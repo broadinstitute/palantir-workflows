@@ -48,6 +48,8 @@ workflow Benchmark {
         stratLabels: {description: "labels by which to identify stratification intervals (must be same length as stratIntervals)"}
         jexlVariantSelectors: {description: "variant types to select over (defined by jexl fed to GATK SelectVariants)"}
         variantSelectorLabels: {description: "labels by wich to identify variant selectors (must be same length as jexlVariantSelectors)"}
+        doIndelLengthStratification: {description: "whether or not to perform stratification by indel length"}
+        requireMatchingGenotypes: {description: "whether to require genotypes to match in order to be a true positive"}
     }
 
     Array[File] actualStratIntervals=flatten(select_all([[""],stratIntervals]))
