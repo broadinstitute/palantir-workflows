@@ -1,0 +1,46 @@
+# History files
+.Rhistory
+
+# Example code in package build process
+*-Ex.R
+
+# R data files from past sessions
+.RData
+.Rproj.user
+
+# RStudio files
+.Rproj.user
+
+# osx meta-file
+.DS_Store
+
+#temporary files and folders
+*blah*
+*blih*
+
+trash
+tmp
+*.out
+*.err
+old
+old_*
+*.jobreport*
+
+#large files and companions
+*.sam
+*.bam
+*.bai
+*.idx
+*.vcf
+*.vcf.gz
+*.tbi
+*.recal
+*.recal.idx
+
+#hidden and backup files
+._*
+.vimbup
+.*.done
+.queue
+*~
+.*.swp
