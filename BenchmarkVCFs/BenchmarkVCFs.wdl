@@ -1,28 +1,53 @@
 version 1.0
 
+
 workflow Benchmark {
     input{
-        File evalVcf  #vcfs to be evaluated
-        String evalLabel  #labels to identify vcfs to be evaluated (must be same length as evalVcfs)
-        File evalVcfIndex  #vcf indecies for evalVcfs (must be same length as evalVcfs)
-        File truthVcf   #truth vcfs against which to evaluate (evalVcfs will be matched to truthVcfs with CrosscheckFingerprints
-        File confidenceInterval    #confidence intervals from truth sets (must be same length as truthVcfs,can be picard interval_list or bed format)
-        String truthLabel   #labels by which to indentify truth sets (must be same length as truthVcfs)
-        File truthVcfIndex   #vcf indecies for truthVcfs (must be same length as truthVcfs)
-        File reference    #reference fasta
-        File refIndex     #reference index
-        File refDict      #reference dict
-        File hapMap       #reference haplotype map for CrosscheckFingerprints
-        Array[File]? stratIntervals     #(optional) intervals for stratifiction (can be picard interval_list or bed format)
-        Array[String]? stratLabels          #(optional) labels by which to identify stratification lists (must be same length as stratIntervalLists)
-        Array[String]? jexlVariantSelectors #(optional) variant types to select over (defined by jexl fed to gatk SelectVariants)
-        Array[String]? variantSelectorLabels #(optional) labels by wich to identify variant selectors (must be same length as jexlVariantSelectors)
-        String referenceVersion      #reference version used, for igv xml session (must be either "hg19" or "hg38")
-        Int? threadsVcfEval=2     #threads (and cpu cores) to use for vcfeval.  Defaults to 2
+        File evalVcf
+        String evalLabel
+        File evalVcfIndex
+        File truthVcf
+        File confidenceInterval
+        String truthLabel
+        File truthVcfIndex
+        File reference
+        File refIndex
+        File refDict
+        File hapMap
+        Array[File]? stratIntervals
+        Array[String]? stratLabels
+        Array[String]? jexlVariantSelectors
+        Array[String]? variantSelectorLabels
+        String referenceVersion
+        Int? threadsVcfEval=2
         Boolean doIndelLengthStratification=true
         Int? preemptible
-        String gatkTag="4.0.11.0" #version of gatk docker to use.  Defaults to 4.0.11.0
+        String gatkTag="4.0.11.0"
         Boolean requireMatchingGenotypes=true
+    }
+
+    meta {
+        author: "Chris Kachulis"
+        email: "ckachuli@broadinstitute.org"
+        description: "A workflow to calculate sensitivity and precision of a germline variant calling pipeline by comparing a 'call' vcf produced by the pipeline to a gold standard 'truth' vcf.  Allows for stratification based on interval lists, bed files, or variant types defined according to GATK SelectVariants."
+    }
+
+    parameter_meta {
+        evalVcf: {description: "vcfs to be evaluated"}
+        evalLabel: {description: "label to identify vcf to be evaluated"}
+        evalVcfIndex: {description: "vcf index for evalVcf"}
+        truthVcf: {description: "truth vcf against which to evaluate"}
+        truthLabel: {description: "label by which to indentify truth set"}
+        confidenceInterval: {description: "confidence interval for truth set (can be bed or picard interval_list)"}
+        reference: {description: "reference fasta"}
+        refIndex: {description: "reference index"}
+        refDict: {description: "reference dict"}
+        hapMap: {description: "reference haplotype map for CrosscheckFingerprints"}
+        referenceVersion: {description: "reference version used, for igv xml session (must be either 'hg19' or 'hg38')"}
+        stratIntervals: {description: "intervals for stratifiction (can be picard interval_list or bed format)"}
+        stratLabels: {description: "labels by which to identify stratification intervals (must be same length as stratIntervals)"}
+        jexlVariantSelectors: {description: "variant types to select over (defined by jexl fed to GATK SelectVariants)"}
+        variantSelectorLabels: {description: "labels by wich to identify variant selectors (must be same length as jexlVariantSelectors)"}
     }
 
     Array[File] actualStratIntervals=flatten(select_all([[""],stratIntervals]))
