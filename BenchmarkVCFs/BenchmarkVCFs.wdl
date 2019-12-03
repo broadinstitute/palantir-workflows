@@ -3,6 +3,7 @@ version 1.0
 
 workflow Benchmark {
     input{
+        String? analysisRegion
         File evalVcf
         String evalLabel
         File evalVcfIndex
@@ -20,6 +21,7 @@ workflow Benchmark {
         Array[String]? variantSelectorLabels
         String referenceVersion
         Int? threadsVcfEval=2
+        Int? threadsHappy=4
         Boolean doIndelLengthStratification=true
         Int? preemptible
         String gatkTag="4.0.11.0"
@@ -27,8 +29,6 @@ workflow Benchmark {
     }
 
     meta {
-        author: "Chris Kachulis"
-        email: "ckachuli@broadinstitute.org"
         description: "A workflow to calculate sensitivity and precision of a germline variant calling pipeline by comparing a 'call' vcf produced by the pipeline to a gold standard 'truth' vcf.  Allows for stratification based on interval lists, bed files, or variant types defined according to GATK SelectVariants."
     }
 
@@ -50,6 +50,22 @@ workflow Benchmark {
         variantSelectorLabels: {description: "labels by wich to identify variant selectors (must be same length as jexlVariantSelectors)"}
         doIndelLengthStratification: {description: "whether or not to perform stratification by indel length"}
         requireMatchingGenotypes: {description: "whether to require genotypes to match in order to be a true positive"}
+        threadsHappy: {description: "threads (and cpu cores) to use for hap.py. Defaults to 4."}
+        gatkTag: {description: "version of gatk docker to use.  Defaults to 4.0.11.0"}
+        happyTag: {description: "version of hap.py docker to use.  Defaults to v0.3.9"}
+        analysisRegion: {description: "if provided (gatk format, single interval e.g., 'chr20', or 'chr20:1-10') all the analysis will be performed within the region."}
+    }
+
+
+    if (defined(analysisRegion)) {
+        call CreateIntervalList {
+            input:
+                reference = reference,
+                reference_index = refIndex,
+                reference_dict = refDict,
+                interval_string = select_first([analysisRegion]),
+                gatkTag = gatkTag
+        }
     }
 
     Array[File] actualStratIntervals=flatten(select_all([[""],stratIntervals]))
@@ -138,7 +154,9 @@ workflow Benchmark {
                         inputIntervals=stratIL,
                         refDict=refDict,
                         gatkTag=gatkTag,
+                        subset_interval=CreateIntervalList.interval_list,
                         preemptible=preemptible
+
                 }
             }
         }
@@ -158,7 +176,8 @@ workflow Benchmark {
             inputIntervals=confidenceInterval,
             refDict=refDict,
             gatkTag=gatkTag,
-            preemptible=preemptible
+            preemptible=preemptible,
+            subset_interval=CreateIntervalList.interval_list
     }
 
     scatter (stratifier in stratifiers) {
@@ -683,6 +702,7 @@ task EvalGATKGC {
 task ConvertIntervals {
     input {
         File inputIntervals
+        File? subset_interval
         Int? preemptible
         Int? memoryMaybe
         File refDict
@@ -695,15 +715,35 @@ task ConvertIntervals {
     Int disk_size = 10 + ceil(3 * size(inputIntervals, "GB") + size(refDict, "GB"))
 
     command <<<
-        if [[ ~{inputIntervals} == *.interval_list ]]; then
-            echo "0" > inputType.txt
-            gatk --java-options "-Xmx~{memoryJava}G" IntervalListToBed -I ~{inputIntervals} -O intervals.bed
-            touch intervals.interval_list
-        elif [[ ~{inputIntervals} == *.bed || ~{inputIntervals} == *.bed.gz ]]; then
-            echo "1" > inputType.txt
-            gatk --java-options "-Xmx~{memoryJava}G" BedToIntervalList -I ~{inputIntervals} -O intervals.interval_list -SD ~{refDict}
-            touch intervals.bed
+        # convert bed to interval_list, or copy interval_list
+        if [[ ~{inputIntervals} == *.bed || ~{inputIntervals} == *.bed.gz ]]; then
+                gatk --java-options "-Xmx~{memoryJava}G" \
+                    BedToIntervalList \
+                    -I ~{inputIntervals} \
+                    -O initial_intervals.interval_list \
+                    -SD ~{refDict}
+        else
+            cp ~{inputIntervals} initial_intervals.interval_list
         fi
+
+        # optionally intersect interval_list with subset_interval
+
+        if [ ! -z ~{subset_interval} ];  then
+            gatk --java-options "-Xmx~{memoryJava}G" \
+                IntervalListTools \
+                -I initial_intervals.interval_list \
+                -I ~{subset_interval} \
+                -ACTION INTERSECT \
+                -O intervals.interval_list
+        else
+            mv initial_intervals.interval_list intervals.interval_list
+        fi
+
+        # convert result to BED
+        gatk --java-options "-Xmx~{memoryJava}G" \
+            IntervalListToBed \
+            -I intervals.interval_list \
+            -O intervals.bed
     >>>
 
     runtime {
@@ -715,8 +755,8 @@ task ConvertIntervals {
     }
 
     output {
-        File bed=if read_int("inputType.txt")==1 then inputIntervals else "intervals.bed"
-        File intervalList=if read_int("inputType.txt")==0 then inputIntervals else "intervals.interval_list"
+        File bed="intervals.bed"
+        File intervalList="intervals.interval_list"
     }
 }
 
@@ -782,8 +822,6 @@ task CountUNKVcfEval {
         echo "$UNK_SNP" > unk_snp.txt
         echo "$UNK_INDEL" > unk_indel.txt
     >>>
-
-
     runtime {
                 docker: "broadinstitute/gatk:"+gatkTag
                 preemptible: select_first([preemptible,0])
@@ -791,7 +829,6 @@ task CountUNKVcfEval {
                 bootDiskSizeGb: "16"
                 memory: memoryRam + " GB"
     }
-
     output {
         Int UNK_SNP=read_int("unk_snp.txt")
         Int UNK_INDEL=read_int("unk_indel.txt")
@@ -1344,6 +1381,34 @@ task WriteXMLfile {
     }
     output {
         File igv_session = "${file_name}.xml"
+    }
+}
+
+task CreateIntervalList{
+    input {
+        File reference
+        File reference_index
+        File reference_dict
+        String interval_string
+        String gatkTag
+    }
+    command {
+        gatk PreprocessIntervals \
+        -R ~{reference} \
+        -L ~{interval_string} \
+        -O output.interval_list \
+        --bin-length 0 \
+        -imr OVERLAPPING_ONLY \
+        -padding 0
+    }
+    output {
+        File interval_list = "output.interval_list"
+    }
+    runtime {
+        preemptible: 3
+        docker: "broadinstitute/gatk:"+gatkTag
+        disks: "local-disk 100 HDD"
+        memory: "4 GB"
     }
 }
 
