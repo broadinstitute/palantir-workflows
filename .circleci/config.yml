@@ -8,6 +8,7 @@ jobs:
       # specify the version you desire here
       - image: broadinstitute/womtool:47-b36d920
         entrypoint: /bin/bash
+        working_directory: ~/palantir-workflows
     branchs:
         only: /.*/
     working_directory: ~/
