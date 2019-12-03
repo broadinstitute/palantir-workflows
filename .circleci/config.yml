@@ -16,5 +16,7 @@ jobs:
       # Customize the JVM maximum heap limit
 
     steps:
+      - apt-get update
+      - apt-get install -y build-essentials
       - checkout
       - run: make all
