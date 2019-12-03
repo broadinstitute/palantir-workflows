@@ -3,6 +3,8 @@ all: validate validate_with_json
 
 WDL= $(shell find . -name '*.wdl')
 
+VALIDATE=java -jar /app/womtool.jar validate
+
 all-tests := $(addsuffix .test, $(basename $(WDL)))
 all-tests-json := $(addsuffix .json, $(all-tests))
 
@@ -14,7 +16,7 @@ test : $(all-tests)
 test_with_json: test $(all-tests-json)
 
 %.test : %.wdl
-	java -jar ~/womtool-46.jar validate $?
+	$(VALIDATE)  $?
 
 %.test.json : %.wdl.json
-	java -jar /app/womtool-46.jar validate $(basename $? .json) -i $?
+	$(VALIDATE) $(basename $? .json) -i $?
