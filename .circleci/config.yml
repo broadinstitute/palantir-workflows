@@ -21,5 +21,5 @@ jobs:
           shell: /bin/sh
           command: |
              apt-get update
-             apt-get install -y build-essentials
+             apt-get install -y make
              make all
