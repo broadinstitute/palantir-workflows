@@ -17,7 +17,9 @@ jobs:
 
     steps:
       - checkout
-      - run: |
-             | apt-get update
-             | apt-get install -y build-essentials
-             | make all
+      - run:
+          shell: /bin/sh
+          command: |
+             apt-get update
+             apt-get install -y build-essentials
+             make all
