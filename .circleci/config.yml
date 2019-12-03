@@ -17,9 +17,6 @@ jobs:
 
     steps:
       - checkout
-      - run:
-          shell: /bin/sh
-          command: |
-             apt-get update
-             apt-get install -y make
-             make all
+      - run: apt-get update
+      - run: apt-get install -y make
+      - run: make all

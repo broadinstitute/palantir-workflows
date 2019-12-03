@@ -7,4 +7,4 @@ Utility workflows used by the DSP's Palantir team.  This repository should be us
 **Remember, this is a public repository, so anything you put in this repo is publicly viewable.**
 
 
-**To enable testable workflows, please make sure that a FILE.wdl.json is present with every FILE.wdl you add.
+**To enable testable workflo with every FILE.wdl you add.ws, please make sure that a FILE.wdl.json is present
