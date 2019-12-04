@@ -1,20 +1,41 @@
-# CircleCI 2.0 configuration file
+# CircleCI 2.1 configuration file
 #
 #
-version: 2
-jobs:
-  build:
+version: 2.1
+executors:
+  womtool-executor:
     docker:
       # specify the version you desire here
       - image: broadinstitute/womtool:47-b36d920
         entrypoint: /bin/bash
-    working_directory: ~/palantir-workflows
+      working_directory: ~/palantir-workflows
 
-    environment:
-      # Customize the JVM maximum heap limit
-
+jobs:
+  validate:
+    executor: womtool-executor
+    parameters:
+      wdl:
+        type: string
     steps:
       - checkout
-      - run: apt-get update
-      - run: apt-get install -y make
-      - run: make all
+      - run: java -jar /app/womtool.jar validate << parameters.wdl >>
+
+  validate-with-json:
+    executor: womtool-executor
+    parameters:
+      wdl:
+        type: string
+      json:
+        type: string
+    steps:
+      - checkout
+      - run: java -jar /app/womtool.jar validate << parameters.wdl >> -i << parameters.json >>
+
+workflows:
+  version: 2
+  validate-and-test:
+    jobs:
+      - validate-with-json:
+          wdl: "BenchmarkVCFs/BenchmarkVCFs.wdl"
+          json: "BenchmarkVCFs/BenchmarkVCFs.wdl.json"
+          name: "validate-BenchmarkVCFs"
