@@ -1,16 +1,16 @@
 {
   "Benchmark.requireMatchingGenotypes": "true",
-  "Benchmark.evalVcfIndex": "/home/circleci/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.eval.vcf.gz.tbi",
-  "Benchmark.evalVcf": "/home/circleci/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.eval.vcf.gz",
-  "Benchmark.refIndex": "/home/circleci/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.fasta.fai",
-  "Benchmark.truthVcf": "/home/circleci/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.truth.vcf.gz",
-  "Benchmark.refDict": "/home/circleci/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.fasta.dict",
+  "Benchmark.evalVcfIndex": "/root/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.eval.vcf.gz.tbi",
+  "Benchmark.evalVcf": "/root/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.eval.vcf.gz",
+  "Benchmark.refIndex": "/root/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.fasta.fai",
+  "Benchmark.truthVcf": "/root/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.truth.vcf.gz",
+  "Benchmark.refDict": "/root/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.fasta.dict",
   "Benchmark.truthLabel": "the_truth",
   "Benchmark.evalLabel": "the_eval",
-  "Benchmark.truthVcfIndex": "/home/circleci/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.truth.vcf.gz.tbi",
+  "Benchmark.truthVcfIndex": "/root/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.truth.vcf.gz.tbi",
   "Benchmark.referenceVersion": "hg38",
-  "Benchmark.hapMap": "/home/circleci/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.haplotype_database.txt",
+  "Benchmark.hapMap": "/root/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.haplotype_database.txt",
   "Benchmark.doIndelLengthStratification": "false",
-  "Benchmark.reference": "/home/circleci/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.fasta",
-  "Benchmark.confidenceInterval": "/home/circleci/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.confidence.interval_list"
+  "Benchmark.reference": "/root/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.fasta",
+  "Benchmark.confidenceInterval": "/root/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.confidence.interval_list"
 }
