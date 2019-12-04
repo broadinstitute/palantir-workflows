@@ -59,5 +59,6 @@ workflows:
       - test:
           wdl: "BenchmarkVCFs/BenchmarkVCFs.wdl"
           input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.json"
-
+          requires:
+            - validate-BenchmarkVCFs
 
