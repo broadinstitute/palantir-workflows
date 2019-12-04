@@ -53,7 +53,7 @@ workflows:
   validate-and-test:
     jobs:
       - validate-with-json:
-          wdl: "BenchmarkVCFs/BenchmarkVCFs.wdl"
+          wdl: "~/BenchmarkVCFs/BenchmarkVCFs.wdl"
           input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.validate.json"
           name: "validate-BenchmarkVCFs"
       - test:
