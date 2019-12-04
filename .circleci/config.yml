@@ -12,7 +12,7 @@ executors:
 
   cromwell-executor:
     docker:
-      -image: broadinstitute/cromwell:47-b36d920
+      - image: broadinstitute/cromwell:47-b36d920
         entrypoint: /bin/bash
     working_directory: ~/palantir-workflows
 
