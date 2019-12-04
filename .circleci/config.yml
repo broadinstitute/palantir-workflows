@@ -54,11 +54,11 @@ workflows:
     jobs:
       - validate-with-json:
           wdl: "BenchmarkVCFs/BenchmarkVCFs.wdl"
-          json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.validate.json"
+          input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.validate.json"
           name: "validate-BenchmarkVCFs"
       - test:
           wdl: "BenchmarkVCFs/BenchmarkVCFs.wdl"
-          json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.json"
+          input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.json"
           requires:
             - validate-BenchmarkVCFs
 
