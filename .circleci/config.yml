@@ -1,0 +1,20 @@
+# CircleCI 2.0 configuration file
+#
+#
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      - image: broadinstitute/womtool:47-b36d920
+        entrypoint: /bin/bash
+    working_directory: ~/palantir-workflows
+
+    environment:
+      # Customize the JVM maximum heap limit
+
+    steps:
+      - checkout
+      - run: apt-get update
+      - run: apt-get install -y make
+      - run: make all
