@@ -1,0 +1,16 @@
+{
+  "Benchmark.requireMatchingGenotypes": "true",
+  "Benchmark.evalVcfIndex": "/home/circleci/palantir-workflows/BenchmarkVCFs/test.eval.vcf.gz.tbi",
+  "Benchmark.evalVcf": "/home/circleci/palantir-workflows/BenchmarkVCFs/test.eval.vcf.gz",
+  "Benchmark.refIndex": "/home/circleci/palantir-workflows/BenchmarkVCFs/test.fasta.fai",
+  "Benchmark.truthVcf": "/home/circleci/palantir-workflows/BenchmarkVCFs/test.truth.vcf.gz",
+  "Benchmark.refDict": "/home/circleci/palantir-workflows/BenchmarkVCFs/test.fasta.dict",
+  "Benchmark.truthLabel": "the_truth",
+  "Benchmark.evalLabel": "the_eval",
+  "Benchmark.truthVcfIndex": "/home/circleci/palantir-workflows/BenchmarkVCFs/test.truth.vcf.gz.tbi",
+  "Benchmark.referenceVersion": "hg38",
+  "Benchmark.hapMap": "/home/circleci/palantir-workflows/BenchmarkVCFs/test.haplotype_database.txt",
+  "Benchmark.doIndelLengthStratification": "false",
+  "Benchmark.reference": "/home/circleci/palantir-workflows/BenchmarkVCFs/test.fasta",
+  "Benchmark.confidenceInterval": "/home/circleci/palantir-workflows/BenchmarkVCFs/test.confidence.interval_list"
+}

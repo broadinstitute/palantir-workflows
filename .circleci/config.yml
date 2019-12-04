@@ -10,6 +10,12 @@ executors:
         entrypoint: /bin/bash
     working_directory: ~/palantir-workflows
 
+  cromwell-executor:
+    docker:
+      -image: broadinstitute/cromwell:47-b36d920
+        entrypoint: /bin/bash
+    working_directory: ~/palantir-workflows
+
 jobs:
   validate:
     executor: womtool-executor
@@ -25,11 +31,22 @@ jobs:
     parameters:
       wdl:
         type: string
-      json:
+      input-json:
         type: string
     steps:
       - checkout
-      - run: java -jar /app/womtool.jar validate << parameters.wdl >> -i << parameters.json >>
+      - run: java -jar /app/womtool.jar validate << parameters.wdl >> -i << parameters.input-json >>
+
+  test:
+    executor: cromwell-executor
+    parameters:
+      wdl:
+        type: string
+      input-json:
+        type: string
+    steps:
+      - checkout
+      - run: java -jar /app/cromwell.jar run << parameters.wdl >> -i << parameters.input-json >>
 
 workflows:
   version: 2
@@ -37,5 +54,10 @@ workflows:
     jobs:
       - validate-with-json:
           wdl: "BenchmarkVCFs/BenchmarkVCFs.wdl"
-          json: "BenchmarkVCFs/BenchmarkVCFs.wdl.json"
+          json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.validate.json"
           name: "validate-BenchmarkVCFs"
+      - test:
+          wdl: "BenchmarkVCFs/BenchmarkVCFs.wdl"
+          json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.json"
+          requires: "validate-BenchmarkVCFs"
+
