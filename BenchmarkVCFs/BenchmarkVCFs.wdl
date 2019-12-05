@@ -21,11 +21,13 @@ workflow Benchmark {
         Array[String]? variantSelectorLabels
         String referenceVersion
         Int? threadsVcfEval=2
-        Int? threadsHappy=4
         Boolean doIndelLengthStratification=true
         Int? preemptible
         String gatkTag="4.0.11.0"
         Boolean requireMatchingGenotypes=true
+
+        Boolean passingOnly=true
+        String? vcfScoreField
     }
 
     meta {
@@ -50,10 +52,10 @@ workflow Benchmark {
         variantSelectorLabels: {description: "labels by wich to identify variant selectors (must be same length as jexlVariantSelectors)"}
         doIndelLengthStratification: {description: "whether or not to perform stratification by indel length"}
         requireMatchingGenotypes: {description: "whether to require genotypes to match in order to be a true positive"}
-        threadsHappy: {description: "threads (and cpu cores) to use for hap.py. Defaults to 4."}
         gatkTag: {description: "version of gatk docker to use.  Defaults to 4.0.11.0"}
-        happyTag: {description: "version of hap.py docker to use.  Defaults to v0.3.9"}
         analysisRegion: {description: "if provided (gatk format, single interval e.g., 'chr20', or 'chr20:1-10') all the analysis will be performed within the region."}
+        passingOnly: {description:"Have vcfEval only consider the passing variants"}
+        vcfScoreField: {description:"Have vcfEval use this field for making the roc-plot. if this is an infor field (like VSQLOD) it should be provided as INFO.VQSLOD, otherewise it is assumed to be a format field."}
     }
 
 
@@ -466,6 +468,8 @@ task CheckForVariants {
         Int disk_size = 10 + ceil(size(vcf, "GB") + size(vcfIndex, "GB") + size(confidenceIL, "GB") + size(stratIL, "GB"))
 
     command <<<
+        set -xeuo pipefail
+
     nVariants="$(gatk --java-options "-Xmx~{memoryJava}G" CountVariants -V ~{vcf} -L ~{confidenceIL} ~{"-L " + stratIL} -isr INTERSECTION | tail -1)"
     if [ "$nVariants" -gt "0" ]; then echo "true" > outBool.txt; else echo "false" > outBool.txt; fi
     >>>
@@ -496,6 +500,8 @@ task VcfEval {
         File refDict
         File refIndex
         String outputPre
+        Boolean passingOnly
+        String? vcfScoreField
         Int? preemptible
         String? memUser
         Int? threads
@@ -508,9 +514,24 @@ task VcfEval {
     Int disk_size = 10 + ceil(size(truthVCF, "GB") + size(truthVCFIndex, "GB") + 2.2 * size(evalVCF, "GB") + size(evalVCFIndex, "GB") + size(confidenceBed, "GB") + size(stratBed, "GB") + size(ref, "GB") + size(refDict, "GB") + size(refIndex, "GB"))
 
     command <<<
+    set -xeuo pipefail
+
     /bin/rtg-tools/rtg format -o rtg_ref ~{ref}
-    /bin/rtg-tools/rtg vcfeval -b ~{truthVCF} -c ~{evalVCF} -e ~{confidenceBed} ~{"--bed-regions " + stratBed} --output-mode combine --decompose -t rtg_ref ~{"--threads "+threads} ~{if !requireMatchingGenotypes then "--squash-ploidy" else ""} -o output_dir
-    for f in output_dir/*; do mv $f ~{outputPre}_"$(basename "$f")"; done
+    /bin/rtg-tools/rtg vcfeval \
+        ~{false="--all-records" true="" passingOnly} \
+        ~{"--vcf-score-field=" + vcfScoreField} \
+        -b ~{truthVCF} -c ~{evalVCF} \
+        -e ~{confidenceBed} ~{"--bed-regions " + stratBed} \
+        --output-mode combine --decompose -t rtg_ref \
+        ~{"--threads "+threads} -o output_dir
+
+    /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} SNP"   --svg=~{outputPre}.snp.svg   ~{outputPre}_snp_roc.tsv.gz
+    /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} INDEL" --svg=~{outputPre}.indel.svg ~{outputPre}_non_snp_roc.tsv.gz
+
+    for f in output_dir/*; do
+        mv $f ~{outputPre}_"$(basename "$f")";
+    done
+
     python3 -<<"EOF" ~{outputPre}_snp_roc.tsv.gz ~{outputPre}_non_snp_roc.tsv.gz ~{outputPre}_summary.csv
     import gzip
     import sys
@@ -607,6 +628,10 @@ task VcfEval {
         File outSummary="${outputPre}_summary.csv"
         File outVcf="${outputPre}_output.vcf.gz"
         File outVcfIndex="${outputPre}_output.vcf.gz.tbi"
+        File outSnpRocPlot="~{outputPre}.snp.svg"
+        File outNonRocPlot="~{outputPre}.indel.svg"
+        File outSnpRoc="${outputPre}_snp_roc.csv"
+        File outNonSnpRoc="${outputPre}_non_snp_roc.csv"
     }
 }
 
@@ -715,6 +740,8 @@ task ConvertIntervals {
     Int disk_size = 10 + ceil(3 * size(inputIntervals, "GB") + size(refDict, "GB"))
 
     command <<<
+        set -xeuo pipefail
+
         # convert bed to interval_list, or copy interval_list
         if [[ ~{inputIntervals} == *.bed || ~{inputIntervals} == *.bed.gz ]]; then
                 gatk --java-options "-Xmx~{memoryJava}G" \
@@ -779,6 +806,8 @@ task FixVcfHeader {
     Int disk_size = 10 + ceil(2.2 * size(vcf, "GB") + 2.2 * size(vcfIndex, "GB") + size(ref, "GB") + size(refDict, "GB") + size(refIndex, "GB"))
 
     command <<<
+        set -xeuo pipefail
+
         gatk --java-options "-Xmx~{memoryJava}G" UpdateVCFSequenceDictionary -V ~{vcf} -O fixed.vcf.gz --source-dictionary ~{refDict} --replace --create-output-variant-index false
         gatk --java-options "-Xmx~{memoryJava}G" IndexFeatureFile -F fixed.vcf.gz
     >>>
@@ -813,6 +842,8 @@ task CountUNKVcfEval {
     Int disk_size = 10 + ceil(size(vcf, "GB") + size(vcfIndex, "GB"))
 
     command <<<
+        set -xeuo pipefail
+
         gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcf} -O selected.unk.snp.vcf.gz -select "(CALL == 'OUT')" --select-type-to-include SNP
         gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcf} -O selected.unk.indel.vcf.gz -select "(CALL == 'OUT')" --select-type-to-include INDEL
 
@@ -853,6 +884,8 @@ task CountUNKGC {
         Int disk_size = 10 + ceil(size(vcfAnnotated, "GB") + size(vcfIndexAnnotated, "GB") + 2 * size(vcfOrig, "GB") + size(vcfIndexOrig, "GB") + size(stratIL, "GB"))
 
         command <<<
+                set -xeuo pipefail
+
                 gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcfOrig} -O selected.unk.snp.vcf.gz ~{"-L "+stratIL} --select-type-to-include SNP --discordance ~{vcfAnnotated}
                 gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcfOrig} -O selected.unk.indel.vcf.gz ~{"-L "+stratIL} --select-type-to-include INDEL --discordance ~{vcfAnnotated}
 
@@ -908,6 +941,8 @@ task EvalForVariantSelection {
     Int disk_size = 10 + ceil(3.2 * size(vcf, "GB") + 2.2 * size(vcfIndex, "GB"))
 
     command <<<
+        set -xeuo pipefail
+
         gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcf} -O selected.TP_CALL.vcf.gz -select "~{selectionTPCall}" -sn ~{sampleCall}
         gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcf} -O selected.TP_BASE.vcf.gz -select "~{selectionTPBase}" -sn ~{sampleBase}
         gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcf} -O selected.FN.vcf.gz -select "~{selectionFN}" -sn ~{sampleBase}
@@ -968,6 +1003,8 @@ task SummariseForIndelSelection {
     }
 
     command <<<
+        set -xeuo pipefail
+
         Rscript -<<"EOF" ~{TP_CALL} ~{TP_BASE} ~{FN} ~{FP} ~{evalLabel} ~{truthLabel} ~{indelLabel} ~{engine} ~{default="" stratLabel} ~{igvSession}
         GetSelectionValue<-function(name, target) {
 
@@ -1029,6 +1066,8 @@ task SummariseForVariantSelection {
     }
 
     command <<<
+        set -xeuo pipefail
+
         Rscript -<<"EOF" ~{TP_CALL} ~{TP_BASE} ~{FN} ~{FP} ~{evalLabel} ~{truthLabel} ~{variantLabel} ~{engine} ~{default="" stratLabel} ~{igvSession}
         args <-commandArgs(trailingOnly=TRUE)
         if (length(args)<10) {
@@ -1073,6 +1112,8 @@ task SummariseVcfEval {
     Int disk_size = 10 + ceil(2.2 * size(summaryFile, "GB"))
 
     command <<<
+        set -xeuo pipefail
+
         Rscript -<<"EOF" ~{evalLabel} ~{truthLabel} ~{default="" summaryFile} ~{default="" stratLabel} ~{default="" igvSession} ~{default="" unkSNP} ~{default="" unkINDEL} ~{areVariants}
         args <- commandArgs(trailingOnly = TRUE)
         if (args[length(args)]=="yes") {
@@ -1239,6 +1280,8 @@ task SummariseGATKGC {
     Int disk_size = 10 + ceil(2.2 * size(summaryFile, "GB") + 2.2 * size(summaryCounts, "GB"))
 
     command <<<
+        set -xeuo pipefail
+
         Rscript -<<"EOF" ~{evalLabel} ~{truthLabel} ~{default="" summaryFile} ~{default="" summaryCounts} ~{default="" stratLabel} ~{default="" igvSession} ~{default="" unkSNP} ~{default="" unkINDEL} ~{areVariants}
         args <- commandArgs(trailingOnly = TRUE)
         if (args[length(args)]=="yes") {
@@ -1311,6 +1354,8 @@ task CombineSummaries {
 
     Int disk_size = 10 + ceil(2 * size(summaries, "GB"))
     command <<<
+        set -xeuo pipefail
+
         mkdir summaries
         array_summaries=(~{sep=' ' summaries})
 
