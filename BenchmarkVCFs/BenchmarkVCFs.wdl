@@ -527,12 +527,12 @@ task VcfEval {
         --output-mode combine --decompose -t rtg_ref \
         ~{"--threads "+threads} -o output_dir
 
-    /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} SNP"   --svg=~{outputPre}.snp.svg   ~{outputPre}_snp_roc.tsv.gz
-    /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} INDEL" --svg=~{outputPre}.indel.svg ~{outputPre}_non_snp_roc.tsv.gz
-
     for f in output_dir/*; do
         mv $f ~{outputPre}_"$(basename "$f")";
     done
+
+    /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} SNP"   --svg=~{outputPre}.snp.svg   ~{outputPre}_snp_roc.tsv.gz
+    /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} INDEL" --svg=~{outputPre}.indel.svg ~{outputPre}_non_snp_roc.tsv.gz
 
     python3 -<<"EOF" ~{outputPre}_snp_roc.tsv.gz ~{outputPre}_non_snp_roc.tsv.gz ~{outputPre}_summary.csv
     import gzip
