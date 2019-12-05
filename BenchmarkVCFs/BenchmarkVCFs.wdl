@@ -632,8 +632,8 @@ task VcfEval {
         File outVcfIndex="${outputPre}_output.vcf.gz.tbi"
         File outSnpRocPlot="~{outputPre}.snp.svg"
         File outNonRocPlot="~{outputPre}.indel.svg"
-        File outSnpRoc="${outputPre}_snp_roc.csv"
-        File outNonSnpRoc="${outputPre}_non_snp_roc.csv"
+        File outSnpRoc="${outputPre}_snp_roc.tsv.gz"
+        File outNonSnpRoc="${outputPre}_non_snp_roc.tsv.gz"
     }
 }
 
