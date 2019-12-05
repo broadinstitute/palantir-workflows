@@ -1,0 +1,2049 @@
+==================================
+=========== MONITORING ===========
+==================================
+--- General Information ---
+#CPU: 32
+Total Memory: 204.66 GiB
+Total Disk space: 2252.800 GiB
+
+--- Runtime Information ---
+[Wed Dec 4 13:35:04 UTC 2019]
+* CPU usage: 0.0%
+* Memory usage: 3.24 GiB 1.6%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 0.000 MiB/s 0.013 MiB/s
+[Wed Dec 4 13:35:14 UTC 2019]
+* CPU usage: 5.8%
+* Memory usage: 4.05 GiB 2.0%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 0.100 MiB/s 8.566 MiB/s
+[Wed Dec 4 13:35:24 UTC 2019]
+* CPU usage: 76.4%
+* Memory usage: 22.66 GiB 11.1%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 54.722 MiB/s 9.041 MiB/s
+[Wed Dec 4 13:35:34 UTC 2019]
+* CPU usage: 79.8%
+* Memory usage: 40.70 GiB 19.9%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 75.650 MiB/s 8.569 MiB/s
+[Wed Dec 4 13:35:44 UTC 2019]
+* CPU usage: 78.7%
+* Memory usage: 57.46 GiB 28.1%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 81.375 MiB/s 8.806 MiB/s
+[Wed Dec 4 13:35:55 UTC 2019]
+* CPU usage: 78.5%
+* Memory usage: 68.16 GiB 33.3%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 98.809 MiB/s 8.556 MiB/s
+[Wed Dec 4 13:36:05 UTC 2019]
+* CPU usage: 83.8%
+* Memory usage: 68.47 GiB 33.5%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 127.059 MiB/s 8.541 MiB/s
+[Wed Dec 4 13:36:15 UTC 2019]
+* CPU usage: 83.9%
+* Memory usage: 68.59 GiB 33.5%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 123.047 MiB/s 8.584 MiB/s
+[Wed Dec 4 13:36:25 UTC 2019]
+* CPU usage: 78.6%
+* Memory usage: 68.73 GiB 33.6%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 733.712 MiB/s 8.806 MiB/s
+[Wed Dec 4 13:36:35 UTC 2019]
+* CPU usage: 95.4%
+* Memory usage: 68.85 GiB 33.6%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1330.659 MiB/s 8.256 MiB/s
+[Wed Dec 4 13:36:45 UTC 2019]
+* CPU usage: 93.1%
+* Memory usage: 69.04 GiB 33.7%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1171.138 MiB/s 8.816 MiB/s
+[Wed Dec 4 13:36:55 UTC 2019]
+* CPU usage: 90.4%
+* Memory usage: 69.33 GiB 33.9%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1033.619 MiB/s 8.569 MiB/s
+[Wed Dec 4 13:37:05 UTC 2019]
+* CPU usage: 95.8%
+* Memory usage: 69.33 GiB 33.9%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1530.569 MiB/s 8.847 MiB/s
+[Wed Dec 4 13:37:15 UTC 2019]
+* CPU usage: 93.7%
+* Memory usage: 69.34 GiB 33.9%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1224.616 MiB/s 8.566 MiB/s
+[Wed Dec 4 13:37:26 UTC 2019]
+* CPU usage: 93.8%
+* Memory usage: 69.35 GiB 33.9%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1275.372 MiB/s 8.806 MiB/s
+[Wed Dec 4 13:37:36 UTC 2019]
+* CPU usage: 95.5%
+* Memory usage: 69.35 GiB 33.9%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1614.500 MiB/s 8.519 MiB/s
+[Wed Dec 4 13:37:46 UTC 2019]
+* CPU usage: 93.3%
+* Memory usage: 69.36 GiB 33.9%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1359.747 MiB/s 8.569 MiB/s
+[Wed Dec 4 13:37:56 UTC 2019]
+* CPU usage: 93.7%
+* Memory usage: 69.47 GiB 33.9%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1469.966 MiB/s 8.603 MiB/s
+[Wed Dec 4 13:38:06 UTC 2019]
+* CPU usage: 95.6%
+* Memory usage: 69.59 GiB 34.0%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1681.191 MiB/s 8.522 MiB/s
+[Wed Dec 4 13:38:16 UTC 2019]
+* CPU usage: 93.8%
+* Memory usage: 69.81 GiB 34.1%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1505.700 MiB/s 8.806 MiB/s
+[Wed Dec 4 13:38:27 UTC 2019]
+* CPU usage: 93.8%
+* Memory usage: 70.02 GiB 34.2%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1555.875 MiB/s 8.556 MiB/s
+[Wed Dec 4 13:38:37 UTC 2019]
+* CPU usage: 95.6%
+* Memory usage: 70.13 GiB 34.3%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1693.047 MiB/s 8.816 MiB/s
+[Wed Dec 4 13:38:47 UTC 2019]
+* CPU usage: 93.4%
+* Memory usage: 70.35 GiB 34.4%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1555.850 MiB/s 8.575 MiB/s
+[Wed Dec 4 13:38:57 UTC 2019]
+* CPU usage: 93.6%
+* Memory usage: 70.56 GiB 34.5%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1786.131 MiB/s 8.841 MiB/s
+[Wed Dec 4 13:39:07 UTC 2019]
+* CPU usage: 95.5%
+* Memory usage: 70.67 GiB 34.5%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1719.344 MiB/s 8.506 MiB/s
+[Wed Dec 4 13:39:17 UTC 2019]
+* CPU usage: 91.6%
+* Memory usage: 70.82 GiB 34.6%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1596.162 MiB/s 8.566 MiB/s
+[Wed Dec 4 13:39:27 UTC 2019]
+* CPU usage: 95.7%
+* Memory usage: 70.89 GiB 34.6%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1882.422 MiB/s 8.812 MiB/s
+[Wed Dec 4 13:39:38 UTC 2019]
+* CPU usage: 65.7%
+* Memory usage: 70.82 GiB 34.6%
+* Disk usage: 279.000 GiB 13%
+* Read/Write IO: 1115.984 MiB/s 8.559 MiB/s
+[Wed Dec 4 13:39:48 UTC 2019]
+* CPU usage: 61.4%
+* Memory usage: 70.83 GiB 34.6%
+* Disk usage: 282.000 GiB 13%
+* Read/Write IO: 364.725 MiB/s 28.337 MiB/s
+[Wed Dec 4 13:39:58 UTC 2019]
+* CPU usage: 94.8%
+* Memory usage: 72.34 GiB 35.3%
+* Disk usage: 288.000 GiB 14%
+* Read/Write IO: 523.712 MiB/s 398.944 MiB/s
+[Wed Dec 4 13:40:08 UTC 2019]
+* CPU usage: 98.0%
+* Memory usage: 72.36 GiB 35.4%
+* Disk usage: 295.000 GiB 14%
+* Read/Write IO: 433.816 MiB/s 8.656 MiB/s
+[Wed Dec 4 13:40:18 UTC 2019]
+* CPU usage: 93.5%
+* Memory usage: 73.81 GiB 36.1%
+* Disk usage: 301.000 GiB 14%
+* Read/Write IO: 517.184 MiB/s 1471.169 MiB/s
+[Wed Dec 4 13:40:28 UTC 2019]
+* CPU usage: 98.0%
+* Memory usage: 73.72 GiB 36.0%
+* Disk usage: 308.000 GiB 14%
+* Read/Write IO: 451.147 MiB/s 392.372 MiB/s
+[Wed Dec 4 13:40:38 UTC 2019]
+* CPU usage: 97.1%
+* Memory usage: 73.72 GiB 36.0%
+* Disk usage: 314.000 GiB 15%
+* Read/Write IO: 544.528 MiB/s 1356.919 MiB/s
+[Wed Dec 4 13:40:48 UTC 2019]
+* CPU usage: 96.3%
+* Memory usage: 73.72 GiB 36.0%
+* Disk usage: 320.000 GiB 15%
+* Read/Write IO: 529.831 MiB/s 508.606 MiB/s
+[Wed Dec 4 13:40:58 UTC 2019]
+* CPU usage: 98.3%
+* Memory usage: 73.72 GiB 36.0%
+* Disk usage: 327.000 GiB 15%
+* Read/Write IO: 547.772 MiB/s 1188.331 MiB/s
+[Wed Dec 4 13:41:09 UTC 2019]
+* CPU usage: 96.5%
+* Memory usage: 73.57 GiB 35.9%
+* Disk usage: 333.000 GiB 16%
+* Read/Write IO: 480.575 MiB/s 678.372 MiB/s
+[Wed Dec 4 13:41:19 UTC 2019]
+* CPU usage: 97.6%
+* Memory usage: 73.63 GiB 36.0%
+* Disk usage: 340.000 GiB 16%
+* Read/Write IO: 580.778 MiB/s 1060.950 MiB/s
+[Wed Dec 4 13:41:29 UTC 2019]
+* CPU usage: 97.6%
+* Memory usage: 73.57 GiB 35.9%
+* Disk usage: 346.000 GiB 16%
+* Read/Write IO: 525.566 MiB/s 806.600 MiB/s
+[Wed Dec 4 13:41:39 UTC 2019]
+* CPU usage: 96.3%
+* Memory usage: 73.57 GiB 35.9%
+* Disk usage: 353.000 GiB 16%
+* Read/Write IO: 521.925 MiB/s 524.359 MiB/s
+[Wed Dec 4 13:41:49 UTC 2019]
+* CPU usage: 98.8%
+* Memory usage: 73.57 GiB 35.9%
+* Disk usage: 359.000 GiB 17%
+* Read/Write IO: 561.888 MiB/s 1336.631 MiB/s
+[Wed Dec 4 13:41:59 UTC 2019]
+* CPU usage: 96.3%
+* Memory usage: 73.58 GiB 36.0%
+* Disk usage: 365.000 GiB 17%
+* Read/Write IO: 536.612 MiB/s 497.756 MiB/s
+[Wed Dec 4 13:42:09 UTC 2019]
+* CPU usage: 97.3%
+* Memory usage: 73.50 GiB 35.9%
+* Disk usage: 371.000 GiB 17%
+* Read/Write IO: 539.644 MiB/s 1370.559 MiB/s
+[Wed Dec 4 13:42:19 UTC 2019]
+* CPU usage: 97.9%
+* Memory usage: 73.51 GiB 35.9%
+* Disk usage: 378.000 GiB 18%
+* Read/Write IO: 499.472 MiB/s 320.312 MiB/s
+[Wed Dec 4 13:42:29 UTC 2019]
+* CPU usage: 97.3%
+* Memory usage: 73.51 GiB 35.9%
+* Disk usage: 385.000 GiB 18%
+* Read/Write IO: 530.341 MiB/s 1554.747 MiB/s
+[Wed Dec 4 13:42:39 UTC 2019]
+* CPU usage: 97.9%
+* Memory usage: 73.51 GiB 35.9%
+* Disk usage: 391.000 GiB 18%
+* Read/Write IO: 588.747 MiB/s 232.209 MiB/s
+[Wed Dec 4 13:42:50 UTC 2019]
+* CPU usage: 97.2%
+* Memory usage: 73.51 GiB 35.9%
+* Disk usage: 397.000 GiB 18%
+* Read/Write IO: 544.381 MiB/s 1623.384 MiB/s
+[Wed Dec 4 13:43:00 UTC 2019]
+* CPU usage: 96.1%
+* Memory usage: 73.53 GiB 35.9%
+* Disk usage: 404.000 GiB 19%
+* Read/Write IO: 515.953 MiB/s 79.216 MiB/s
+[Wed Dec 4 13:43:10 UTC 2019]
+* CPU usage: 98.7%
+* Memory usage: 73.55 GiB 35.9%
+* Disk usage: 410.000 GiB 19%
+* Read/Write IO: 580.472 MiB/s 1365.566 MiB/s
+[Wed Dec 4 13:43:20 UTC 2019]
+* CPU usage: 96.0%
+* Memory usage: 73.52 GiB 35.9%
+* Disk usage: 417.000 GiB 19%
+* Read/Write IO: 552.197 MiB/s 426.019 MiB/s
+[Wed Dec 4 13:43:30 UTC 2019]
+* CPU usage: 99.2%
+* Memory usage: 73.53 GiB 35.9%
+* Disk usage: 423.000 GiB 20%
+* Read/Write IO: 526.450 MiB/s 1496.256 MiB/s
+[Wed Dec 4 13:43:40 UTC 2019]
+* CPU usage: 96.1%
+* Memory usage: 73.53 GiB 35.9%
+* Disk usage: 430.000 GiB 20%
+* Read/Write IO: 510.209 MiB/s 391.991 MiB/s
+[Wed Dec 4 13:43:50 UTC 2019]
+* CPU usage: 97.0%
+* Memory usage: 73.54 GiB 35.9%
+* Disk usage: 436.000 GiB 20%
+* Read/Write IO: 544.994 MiB/s 1315.406 MiB/s
+[Wed Dec 4 13:44:00 UTC 2019]
+* CPU usage: 98.0%
+* Memory usage: 73.54 GiB 35.9%
+* Disk usage: 442.000 GiB 20%
+* Read/Write IO: 589.569 MiB/s 553.531 MiB/s
+[Wed Dec 4 13:44:10 UTC 2019]
+* CPU usage: 96.9%
+* Memory usage: 73.55 GiB 35.9%
+* Disk usage: 448.000 GiB 21%
+* Read/Write IO: 529.025 MiB/s 1210.478 MiB/s
+[Wed Dec 4 13:44:20 UTC 2019]
+* CPU usage: 98.4%
+* Memory usage: 73.55 GiB 35.9%
+* Disk usage: 455.000 GiB 21%
+* Read/Write IO: 520.716 MiB/s 658.616 MiB/s
+[Wed Dec 4 13:44:31 UTC 2019]
+* CPU usage: 96.6%
+* Memory usage: 73.56 GiB 35.9%
+* Disk usage: 462.000 GiB 21%
+* Read/Write IO: 540.725 MiB/s 618.666 MiB/s
+[Wed Dec 4 13:44:41 UTC 2019]
+* CPU usage: 96.9%
+* Memory usage: 73.56 GiB 35.9%
+* Disk usage: 468.000 GiB 22%
+* Read/Write IO: 568.969 MiB/s 1243.787 MiB/s
+[Wed Dec 4 13:44:51 UTC 2019]
+* CPU usage: 98.5%
+* Memory usage: 73.57 GiB 35.9%
+* Disk usage: 474.000 GiB 22%
+* Read/Write IO: 563.300 MiB/s 615.144 MiB/s
+[Wed Dec 4 13:45:01 UTC 2019]
+* CPU usage: 97.0%
+* Memory usage: 73.57 GiB 35.9%
+* Disk usage: 481.000 GiB 22%
+* Read/Write IO: 527.528 MiB/s 1253.919 MiB/s
+[Wed Dec 4 13:45:11 UTC 2019]
+* CPU usage: 96.2%
+* Memory usage: 73.57 GiB 35.9%
+* Disk usage: 487.000 GiB 22%
+* Read/Write IO: 538.097 MiB/s 521.381 MiB/s
+[Wed Dec 4 13:45:21 UTC 2019]
+* CPU usage: 99.0%
+* Memory usage: 73.57 GiB 35.9%
+* Disk usage: 494.000 GiB 23%
+* Read/Write IO: 593.394 MiB/s 1341.228 MiB/s
+[Wed Dec 4 13:45:31 UTC 2019]
+* CPU usage: 96.6%
+* Memory usage: 73.59 GiB 36.0%
+* Disk usage: 500.000 GiB 23%
+* Read/Write IO: 518.722 MiB/s 430.131 MiB/s
+[Wed Dec 4 13:45:41 UTC 2019]
+* CPU usage: 98.6%
+* Memory usage: 73.59 GiB 36.0%
+* Disk usage: 507.000 GiB 23%
+* Read/Write IO: 543.991 MiB/s 1452.275 MiB/s
+[Wed Dec 4 13:45:51 UTC 2019]
+* CPU usage: 96.2%
+* Memory usage: 73.64 GiB 36.0%
+* Disk usage: 513.000 GiB 24%
+* Read/Write IO: 568.047 MiB/s 261.819 MiB/s
+[Wed Dec 4 13:46:02 UTC 2019]
+* CPU usage: 97.3%
+* Memory usage: 73.60 GiB 36.0%
+* Disk usage: 519.000 GiB 24%
+* Read/Write IO: 546.237 MiB/s 1574.047 MiB/s
+[Wed Dec 4 13:46:12 UTC 2019]
+* CPU usage: 97.7%
+* Memory usage: 73.60 GiB 36.0%
+* Disk usage: 526.000 GiB 24%
+* Read/Write IO: 520.384 MiB/s 122.634 MiB/s
+[Wed Dec 4 13:46:22 UTC 2019]
+* CPU usage: 96.9%
+* Memory usage: 73.62 GiB 36.0%
+* Disk usage: 532.000 GiB 25%
+* Read/Write IO: 537.722 MiB/s 1373.731 MiB/s
+[Wed Dec 4 13:46:32 UTC 2019]
+* CPU usage: 98.5%
+* Memory usage: 73.61 GiB 36.0%
+* Disk usage: 539.000 GiB 25%
+* Read/Write IO: 602.078 MiB/s 428.631 MiB/s
+[Wed Dec 4 13:46:42 UTC 2019]
+* CPU usage: 97.2%
+* Memory usage: 73.62 GiB 36.0%
+* Disk usage: 545.000 GiB 25%
+* Read/Write IO: 531.909 MiB/s 1447.184 MiB/s
+[Wed Dec 4 13:46:52 UTC 2019]
+* CPU usage: 96.2%
+* Memory usage: 73.62 GiB 36.0%
+* Disk usage: 552.000 GiB 25%
+* Read/Write IO: 530.009 MiB/s 422.087 MiB/s
+[Wed Dec 4 13:47:02 UTC 2019]
+* CPU usage: 98.8%
+* Memory usage: 73.62 GiB 36.0%
+* Disk usage: 558.000 GiB 26%
+* Read/Write IO: 550.638 MiB/s 1336.622 MiB/s
+[Wed Dec 4 13:47:13 UTC 2019]
+* CPU usage: 96.3%
+* Memory usage: 73.62 GiB 36.0%
+* Disk usage: 565.000 GiB 26%
+* Read/Write IO: 584.837 MiB/s 526.303 MiB/s
+[Wed Dec 4 13:47:23 UTC 2019]
+* CPU usage: 98.7%
+* Memory usage: 73.63 GiB 36.0%
+* Disk usage: 571.000 GiB 26%
+* Read/Write IO: 528.650 MiB/s 1256.447 MiB/s
+[Wed Dec 4 13:47:33 UTC 2019]
+* CPU usage: 96.7%
+* Memory usage: 73.63 GiB 36.0%
+* Disk usage: 578.000 GiB 27%
+* Read/Write IO: 528.587 MiB/s 606.375 MiB/s
+[Wed Dec 4 13:47:43 UTC 2019]
+* CPU usage: 96.5%
+* Memory usage: 73.63 GiB 36.0%
+* Disk usage: 584.000 GiB 27%
+* Read/Write IO: 542.625 MiB/s 679.859 MiB/s
+[Wed Dec 4 13:47:53 UTC 2019]
+* CPU usage: 98.3%
+* Memory usage: 73.64 GiB 36.0%
+* Disk usage: 590.000 GiB 27%
+* Read/Write IO: 581.984 MiB/s 1203.044 MiB/s
+[Wed Dec 4 13:48:03 UTC 2019]
+* CPU usage: 96.6%
+* Memory usage: 73.64 GiB 36.0%
+* Disk usage: 597.000 GiB 27%
+* Read/Write IO: 526.603 MiB/s 643.331 MiB/s
+[Wed Dec 4 13:48:13 UTC 2019]
+* CPU usage: 98.7%
+* Memory usage: 73.65 GiB 36.0%
+* Disk usage: 603.000 GiB 28%
+* Read/Write IO: 534.163 MiB/s 1232.297 MiB/s
+[Wed Dec 4 13:48:23 UTC 2019]
+* CPU usage: 96.3%
+* Memory usage: 73.68 GiB 36.0%
+* Disk usage: 610.000 GiB 28%
+* Read/Write IO: 540.388 MiB/s 522.450 MiB/s
+[Wed Dec 4 13:48:33 UTC 2019]
+* CPU usage: 97.0%
+* Memory usage: 73.75 GiB 36.0%
+* Disk usage: 616.000 GiB 28%
+* Read/Write IO: 559.584 MiB/s 1360.341 MiB/s
+[Wed Dec 4 13:48:43 UTC 2019]
+* CPU usage: 96.0%
+* Memory usage: 73.87 GiB 36.1%
+* Disk usage: 622.000 GiB 29%
+* Read/Write IO: 538.803 MiB/s 187.991 MiB/s
+[Wed Dec 4 13:48:53 UTC 2019]
+* CPU usage: 97.5%
+* Memory usage: 73.89 GiB 36.1%
+* Disk usage: 628.000 GiB 29%
+* Read/Write IO: 528.678 MiB/s 1506.559 MiB/s
+[Wed Dec 4 13:49:03 UTC 2019]
+* CPU usage: 94.8%
+* Memory usage: 73.95 GiB 36.1%
+* Disk usage: 635.000 GiB 29%
+* Read/Write IO: 526.203 MiB/s 232.866 MiB/s
+[Wed Dec 4 13:49:14 UTC 2019]
+* CPU usage: 97.5%
+* Memory usage: 74.07 GiB 36.2%
+* Disk usage: 641.000 GiB 29%
+* Read/Write IO: 513.881 MiB/s 1575.128 MiB/s
+[Wed Dec 4 13:49:24 UTC 2019]
+* CPU usage: 97.9%
+* Memory usage: 74.08 GiB 36.2%
+* Disk usage: 648.000 GiB 30%
+* Read/Write IO: 613.947 MiB/s 243.881 MiB/s
+[Wed Dec 4 13:49:34 UTC 2019]
+* CPU usage: 97.2%
+* Memory usage: 74.16 GiB 36.2%
+* Disk usage: 654.000 GiB 30%
+* Read/Write IO: 527.663 MiB/s 1616.909 MiB/s
+[Wed Dec 4 13:49:44 UTC 2019]
+* CPU usage: 98.0%
+* Memory usage: 74.09 GiB 36.2%
+* Disk usage: 661.000 GiB 30%
+* Read/Write IO: 556.413 MiB/s 251.447 MiB/s
+[Wed Dec 4 13:49:54 UTC 2019]
+* CPU usage: 96.3%
+* Memory usage: 74.14 GiB 36.2%
+* Disk usage: 667.000 GiB 31%
+* Read/Write IO: 541.806 MiB/s 1512.778 MiB/s
+[Wed Dec 4 13:50:04 UTC 2019]
+* CPU usage: 96.3%
+* Memory usage: 74.15 GiB 36.2%
+* Disk usage: 673.000 GiB 31%
+* Read/Write IO: 582.144 MiB/s 354.363 MiB/s
+[Wed Dec 4 13:50:14 UTC 2019]
+* CPU usage: 98.7%
+* Memory usage: 74.15 GiB 36.2%
+* Disk usage: 680.000 GiB 31%
+* Read/Write IO: 546.691 MiB/s 899.878 MiB/s
+[Wed Dec 4 13:50:24 UTC 2019]
+* CPU usage: 96.7%
+* Memory usage: 74.00 GiB 36.2%
+* Disk usage: 686.000 GiB 31%
+* Read/Write IO: 535.462 MiB/s 966.897 MiB/s
+[Wed Dec 4 13:50:34 UTC 2019]
+* CPU usage: 98.5%
+* Memory usage: 74.01 GiB 36.2%
+* Disk usage: 693.000 GiB 32%
+* Read/Write IO: 611.484 MiB/s 952.966 MiB/s
+[Wed Dec 4 13:50:45 UTC 2019]
+* CPU usage: 96.5%
+* Memory usage: 74.01 GiB 36.2%
+* Disk usage: 699.000 GiB 32%
+* Read/Write IO: 546.809 MiB/s 905.291 MiB/s
+[Wed Dec 4 13:50:55 UTC 2019]
+* CPU usage: 96.7%
+* Memory usage: 74.00 GiB 36.2%
+* Disk usage: 706.000 GiB 32%
+* Read/Write IO: 537.628 MiB/s 943.075 MiB/s
+[Wed Dec 4 13:51:05 UTC 2019]
+* CPU usage: 96.1%
+* Memory usage: 73.99 GiB 36.2%
+* Disk usage: 712.000 GiB 33%
+* Read/Write IO: 560.981 MiB/s 893.797 MiB/s
+[Wed Dec 4 13:51:15 UTC 2019]
+* CPU usage: 49.4%
+* Memory usage: 74.02 GiB 36.2%
+* Disk usage: 713.000 GiB 33%
+* Read/Write IO: 471.022 MiB/s 9.344 MiB/s
+[Wed Dec 4 13:51:25 UTC 2019]
+* CPU usage: 78.9%
+* Memory usage: 74.32 GiB 36.3%
+* Disk usage: 714.000 GiB 33%
+* Read/Write IO: 725.275 MiB/s 306.975 MiB/s
+[Wed Dec 4 13:51:35 UTC 2019]
+* CPU usage: 81.8%
+* Memory usage: 74.36 GiB 36.3%
+* Disk usage: 715.000 GiB 33%
+* Read/Write IO: 572.853 MiB/s 1100.756 MiB/s
+[Wed Dec 4 13:51:45 UTC 2019]
+* CPU usage: 82.1%
+* Memory usage: 74.37 GiB 36.3%
+* Disk usage: 716.000 GiB 33%
+* Read/Write IO: 197.662 MiB/s 25.831 MiB/s
+[Wed Dec 4 13:51:55 UTC 2019]
+* CPU usage: 82.0%
+* Memory usage: 74.39 GiB 36.3%
+* Disk usage: 717.000 GiB 33%
+* Read/Write IO: 353.378 MiB/s 109.088 MiB/s
+[Wed Dec 4 13:52:05 UTC 2019]
+* CPU usage: 84.3%
+* Memory usage: 74.44 GiB 36.4%
+* Disk usage: 718.000 GiB 33%
+* Read/Write IO: 390.516 MiB/s 169.656 MiB/s
+[Wed Dec 4 13:52:15 UTC 2019]
+* CPU usage: 81.9%
+* Memory usage: 74.49 GiB 36.4%
+* Disk usage: 719.000 GiB 33%
+* Read/Write IO: 131.994 MiB/s 147.178 MiB/s
+[Wed Dec 4 13:52:25 UTC 2019]
+* CPU usage: 78.8%
+* Memory usage: 73.67 GiB 36.0%
+* Disk usage: 720.000 GiB 33%
+* Read/Write IO: 393.887 MiB/s 151.312 MiB/s
+[Wed Dec 4 13:52:36 UTC 2019]
+* CPU usage: 81.9%
+* Memory usage: 73.70 GiB 36.0%
+* Disk usage: 721.000 GiB 33%
+* Read/Write IO: 295.444 MiB/s 87.006 MiB/s
+[Wed Dec 4 13:52:46 UTC 2019]
+* CPU usage: 82.4%
+* Memory usage: 73.76 GiB 36.0%
+* Disk usage: 722.000 GiB 33%
+* Read/Write IO: 139.900 MiB/s 151.741 MiB/s
+[Wed Dec 4 13:52:56 UTC 2019]
+* CPU usage: 81.9%
+* Memory usage: 73.77 GiB 36.0%
+* Disk usage: 723.000 GiB 33%
+* Read/Write IO: 483.372 MiB/s 147.122 MiB/s
+[Wed Dec 4 13:53:06 UTC 2019]
+* CPU usage: 83.0%
+* Memory usage: 73.82 GiB 36.1%
+* Disk usage: 724.000 GiB 33%
+* Read/Write IO: 227.238 MiB/s 152.262 MiB/s
+[Wed Dec 4 13:53:16 UTC 2019]
+* CPU usage: 78.4%
+* Memory usage: 74.09 GiB 36.2%
+* Disk usage: 725.000 GiB 33%
+* Read/Write IO: 130.162 MiB/s 159.247 MiB/s
+[Wed Dec 4 13:53:26 UTC 2019]
+* CPU usage: 81.7%
+* Memory usage: 73.99 GiB 36.2%
+* Disk usage: 726.000 GiB 33%
+* Read/Write IO: 493.600 MiB/s 91.566 MiB/s
+[Wed Dec 4 13:53:36 UTC 2019]
+* CPU usage: 81.7%
+* Memory usage: 74.03 GiB 36.2%
+* Disk usage: 727.000 GiB 33%
+* Read/Write IO: 347.316 MiB/s 163.803 MiB/s
+[Wed Dec 4 13:53:46 UTC 2019]
+* CPU usage: 82.3%
+* Memory usage: 74.06 GiB 36.2%
+* Disk usage: 728.000 GiB 33%
+* Read/Write IO: 210.106 MiB/s 154.366 MiB/s
+[Wed Dec 4 13:53:56 UTC 2019]
+* CPU usage: 84.8%
+* Memory usage: 74.11 GiB 36.2%
+* Disk usage: 729.000 GiB 33%
+* Read/Write IO: 492.269 MiB/s 153.150 MiB/s
+[Wed Dec 4 13:54:06 UTC 2019]
+* CPU usage: 81.4%
+* Memory usage: 74.18 GiB 36.2%
+* Disk usage: 730.000 GiB 33%
+* Read/Write IO: 177.216 MiB/s 92.484 MiB/s
+[Wed Dec 4 13:54:16 UTC 2019]
+* CPU usage: 81.4%
+* Memory usage: 74.22 GiB 36.3%
+* Disk usage: 730.000 GiB 33%
+* Read/Write IO: 363.988 MiB/s 153.369 MiB/s
+[Wed Dec 4 13:54:27 UTC 2019]
+* CPU usage: 81.8%
+* Memory usage: 74.26 GiB 36.3%
+* Disk usage: 731.000 GiB 34%
+* Read/Write IO: 348.391 MiB/s 167.078 MiB/s
+[Wed Dec 4 13:54:37 UTC 2019]
+* CPU usage: 81.3%
+* Memory usage: 74.54 GiB 36.4%
+* Disk usage: 732.000 GiB 34%
+* Read/Write IO: 167.897 MiB/s 155.009 MiB/s
+[Wed Dec 4 13:54:47 UTC 2019]
+* CPU usage: 84.1%
+* Memory usage: 74.51 GiB 36.4%
+* Disk usage: 733.000 GiB 34%
+* Read/Write IO: 449.044 MiB/s 159.191 MiB/s
+[Wed Dec 4 13:54:57 UTC 2019]
+* CPU usage: 81.3%
+* Memory usage: 74.34 GiB 36.3%
+* Disk usage: 734.000 GiB 34%
+* Read/Write IO: 281.137 MiB/s 84.322 MiB/s
+[Wed Dec 4 13:55:07 UTC 2019]
+* CPU usage: 78.8%
+* Memory usage: 74.40 GiB 36.4%
+* Disk usage: 735.000 GiB 34%
+* Read/Write IO: 152.075 MiB/s 155.969 MiB/s
+[Wed Dec 4 13:55:17 UTC 2019]
+* CPU usage: 81.7%
+* Memory usage: 74.59 GiB 36.4%
+* Disk usage: 736.000 GiB 34%
+* Read/Write IO: 488.300 MiB/s 163.662 MiB/s
+[Wed Dec 4 13:55:27 UTC 2019]
+* CPU usage: 82.8%
+* Memory usage: 74.59 GiB 36.4%
+* Disk usage: 737.000 GiB 34%
+* Read/Write IO: 262.600 MiB/s 155.316 MiB/s
+[Wed Dec 4 13:55:37 UTC 2019]
+* CPU usage: 82.6%
+* Memory usage: 74.61 GiB 36.5%
+* Disk usage: 738.000 GiB 34%
+* Read/Write IO: 192.316 MiB/s 154.353 MiB/s
+[Wed Dec 4 13:55:47 UTC 2019]
+* CPU usage: 82.7%
+* Memory usage: 74.69 GiB 36.5%
+* Disk usage: 739.000 GiB 34%
+* Read/Write IO: 517.000 MiB/s 84.847 MiB/s
+[Wed Dec 4 13:55:57 UTC 2019]
+* CPU usage: 82.0%
+* Memory usage: 74.75 GiB 36.5%
+* Disk usage: 740.000 GiB 34%
+* Read/Write IO: 219.331 MiB/s 150.719 MiB/s
+[Wed Dec 4 13:56:07 UTC 2019]
+* CPU usage: 81.9%
+* Memory usage: 74.75 GiB 36.5%
+* Disk usage: 741.000 GiB 34%
+* Read/Write IO: 285.144 MiB/s 165.775 MiB/s
+[Wed Dec 4 13:56:18 UTC 2019]
+* CPU usage: 81.3%
+* Memory usage: 74.79 GiB 36.5%
+* Disk usage: 742.000 GiB 34%
+* Read/Write IO: 464.066 MiB/s 151.553 MiB/s
+[Wed Dec 4 13:56:28 UTC 2019]
+* CPU usage: 80.6%
+* Memory usage: 75.02 GiB 36.7%
+* Disk usage: 743.000 GiB 34%
+* Read/Write IO: 185.550 MiB/s 162.475 MiB/s
+[Wed Dec 4 13:56:38 UTC 2019]
+* CPU usage: 82.4%
+* Memory usage: 74.77 GiB 36.5%
+* Disk usage: 744.000 GiB 34%
+* Read/Write IO: 392.309 MiB/s 78.666 MiB/s
+[Wed Dec 4 13:56:48 UTC 2019]
+* CPU usage: 82.4%
+* Memory usage: 74.79 GiB 36.5%
+* Disk usage: 745.000 GiB 34%
+* Read/Write IO: 375.050 MiB/s 166.912 MiB/s
+[Wed Dec 4 13:56:58 UTC 2019]
+* CPU usage: 81.6%
+* Memory usage: 74.83 GiB 36.6%
+* Disk usage: 746.000 GiB 34%
+* Read/Write IO: 174.856 MiB/s 157.488 MiB/s
+[Wed Dec 4 13:57:08 UTC 2019]
+* CPU usage: 82.2%
+* Memory usage: 74.88 GiB 36.6%
+* Disk usage: 747.000 GiB 34%
+* Read/Write IO: 440.797 MiB/s 154.559 MiB/s
+[Wed Dec 4 13:57:18 UTC 2019]
+* CPU usage: 82.4%
+* Memory usage: 74.92 GiB 36.6%
+* Disk usage: 748.000 GiB 34%
+* Read/Write IO: 302.475 MiB/s 125.513 MiB/s
+[Wed Dec 4 13:57:28 UTC 2019]
+* CPU usage: 75.4%
+* Memory usage: 74.95 GiB 36.6%
+* Disk usage: 749.000 GiB 34%
+* Read/Write IO: 185.887 MiB/s 118.688 MiB/s
+[Wed Dec 4 13:57:38 UTC 2019]
+* CPU usage: 82.4%
+* Memory usage: 74.99 GiB 36.6%
+* Disk usage: 750.000 GiB 34%
+* Read/Write IO: 474.503 MiB/s 157.234 MiB/s
+[Wed Dec 4 13:57:49 UTC 2019]
+* CPU usage: 82.1%
+* Memory usage: 75.09 GiB 36.7%
+* Disk usage: 751.000 GiB 34%
+* Read/Write IO: 296.000 MiB/s 151.469 MiB/s
+[Wed Dec 4 13:57:59 UTC 2019]
+* CPU usage: 82.6%
+* Memory usage: 75.08 GiB 36.7%
+* Disk usage: 752.000 GiB 34%
+* Read/Write IO: 201.947 MiB/s 148.944 MiB/s
+[Wed Dec 4 13:58:09 UTC 2019]
+* CPU usage: 83.8%
+* Memory usage: 75.13 GiB 36.7%
+* Disk usage: 753.000 GiB 34%
+* Read/Write IO: 511.200 MiB/s 127.987 MiB/s
+[Wed Dec 4 13:58:19 UTC 2019]
+* CPU usage: 82.0%
+* Memory usage: 75.17 GiB 36.7%
+* Disk usage: 754.000 GiB 35%
+* Read/Write IO: 237.500 MiB/s 104.000 MiB/s
+[Wed Dec 4 13:58:29 UTC 2019]
+* CPU usage: 81.0%
+* Memory usage: 75.21 GiB 36.8%
+* Disk usage: 755.000 GiB 35%
+* Read/Write IO: 262.697 MiB/s 165.341 MiB/s
+[Wed Dec 4 13:58:39 UTC 2019]
+* CPU usage: 81.5%
+* Memory usage: 75.24 GiB 36.8%
+* Disk usage: 756.000 GiB 35%
+* Read/Write IO: 450.553 MiB/s 154.400 MiB/s
+[Wed Dec 4 13:58:49 UTC 2019]
+* CPU usage: 83.3%
+* Memory usage: 75.29 GiB 36.8%
+* Disk usage: 757.000 GiB 35%
+* Read/Write IO: 204.850 MiB/s 159.906 MiB/s
+[Wed Dec 4 13:58:59 UTC 2019]
+* CPU usage: 82.5%
+* Memory usage: 75.31 GiB 36.8%
+* Disk usage: 758.000 GiB 35%
+* Read/Write IO: 319.100 MiB/s 82.013 MiB/s
+[Wed Dec 4 13:59:09 UTC 2019]
+* CPU usage: 82.0%
+* Memory usage: 75.35 GiB 36.8%
+* Disk usage: 759.000 GiB 35%
+* Read/Write IO: 422.688 MiB/s 163.859 MiB/s
+[Wed Dec 4 13:59:19 UTC 2019]
+* CPU usage: 81.0%
+* Memory usage: 75.38 GiB 36.8%
+* Disk usage: 760.000 GiB 35%
+* Read/Write IO: 186.200 MiB/s 151.897 MiB/s
+[Wed Dec 4 13:59:29 UTC 2019]
+* CPU usage: 82.6%
+* Memory usage: 75.42 GiB 36.9%
+* Disk usage: 761.000 GiB 35%
+* Read/Write IO: 391.000 MiB/s 149.934 MiB/s
+[Wed Dec 4 13:59:39 UTC 2019]
+* CPU usage: 79.9%
+* Memory usage: 75.63 GiB 37.0%
+* Disk usage: 762.000 GiB 35%
+* Read/Write IO: 343.375 MiB/s 176.537 MiB/s
+[Wed Dec 4 13:59:50 UTC 2019]
+* CPU usage: 82.0%
+* Memory usage: 75.60 GiB 36.9%
+* Disk usage: 762.000 GiB 35%
+* Read/Write IO: 185.738 MiB/s 79.566 MiB/s
+[Wed Dec 4 14:00:00 UTC 2019]
+* CPU usage: 82.6%
+* Memory usage: 75.60 GiB 36.9%
+* Disk usage: 763.000 GiB 35%
+* Read/Write IO: 438.962 MiB/s 158.850 MiB/s
+[Wed Dec 4 14:00:10 UTC 2019]
+* CPU usage: 81.8%
+* Memory usage: 75.64 GiB 37.0%
+* Disk usage: 764.000 GiB 35%
+* Read/Write IO: 316.553 MiB/s 141.500 MiB/s
+[Wed Dec 4 14:00:20 UTC 2019]
+* CPU usage: 82.0%
+* Memory usage: 75.69 GiB 37.0%
+* Disk usage: 765.000 GiB 35%
+* Read/Write IO: 190.350 MiB/s 161.350 MiB/s
+[Wed Dec 4 14:00:30 UTC 2019]
+* CPU usage: 83.6%
+* Memory usage: 75.72 GiB 37.0%
+* Disk usage: 766.000 GiB 35%
+* Read/Write IO: 493.472 MiB/s 148.137 MiB/s
+[Wed Dec 4 14:00:40 UTC 2019]
+* CPU usage: 83.2%
+* Memory usage: 75.78 GiB 37.0%
+* Disk usage: 767.000 GiB 35%
+* Read/Write IO: 261.053 MiB/s 85.747 MiB/s
+[Wed Dec 4 14:00:50 UTC 2019]
+* CPU usage: 74.8%
+* Memory usage: 76.70 GiB 37.5%
+* Disk usage: 768.000 GiB 35%
+* Read/Write IO: 180.719 MiB/s 158.116 MiB/s
+[Wed Dec 4 14:01:00 UTC 2019]
+* CPU usage: 83.7%
+* Memory usage: 76.74 GiB 37.5%
+* Disk usage: 769.000 GiB 35%
+* Read/Write IO: 482.200 MiB/s 162.553 MiB/s
+[Wed Dec 4 14:01:10 UTC 2019]
+* CPU usage: 82.2%
+* Memory usage: 76.61 GiB 37.4%
+* Disk usage: 770.000 GiB 35%
+* Read/Write IO: 240.700 MiB/s 156.863 MiB/s
+[Wed Dec 4 14:01:20 UTC 2019]
+* CPU usage: 82.3%
+* Memory usage: 76.59 GiB 37.4%
+* Disk usage: 771.000 GiB 35%
+* Read/Write IO: 280.041 MiB/s 141.031 MiB/s
+[Wed Dec 4 14:01:31 UTC 2019]
+* CPU usage: 81.6%
+* Memory usage: 76.63 GiB 37.4%
+* Disk usage: 772.000 GiB 35%
+* Read/Write IO: 439.000 MiB/s 82.963 MiB/s
+[Wed Dec 4 14:01:41 UTC 2019]
+* CPU usage: 80.8%
+* Memory usage: 76.67 GiB 37.5%
+* Disk usage: 773.000 GiB 35%
+* Read/Write IO: 200.400 MiB/s 162.356 MiB/s
+[Wed Dec 4 14:01:51 UTC 2019]
+* CPU usage: 81.6%
+* Memory usage: 76.75 GiB 37.5%
+* Disk usage: 774.000 GiB 35%
+* Read/Write IO: 309.462 MiB/s 157.306 MiB/s
+[Wed Dec 4 14:02:01 UTC 2019]
+* CPU usage: 84.2%
+* Memory usage: 76.79 GiB 37.5%
+* Disk usage: 775.000 GiB 35%
+* Read/Write IO: 421.850 MiB/s 149.809 MiB/s
+[Wed Dec 4 14:02:11 UTC 2019]
+* CPU usage: 82.6%
+* Memory usage: 76.84 GiB 37.5%
+* Disk usage: 776.000 GiB 36%
+* Read/Write IO: 205.200 MiB/s 116.484 MiB/s
+[Wed Dec 4 14:02:21 UTC 2019]
+* CPU usage: 81.2%
+* Memory usage: 76.90 GiB 37.6%
+* Disk usage: 777.000 GiB 36%
+* Read/Write IO: 419.044 MiB/s 118.162 MiB/s
+[Wed Dec 4 14:02:31 UTC 2019]
+* CPU usage: 77.5%
+* Memory usage: 77.30 GiB 37.8%
+* Disk usage: 778.000 GiB 36%
+* Read/Write IO: 353.022 MiB/s 157.175 MiB/s
+[Wed Dec 4 14:02:41 UTC 2019]
+* CPU usage: 78.7%
+* Memory usage: 76.74 GiB 37.5%
+* Disk usage: 779.000 GiB 36%
+* Read/Write IO: 175.700 MiB/s 159.453 MiB/s
+[Wed Dec 4 14:02:51 UTC 2019]
+* CPU usage: 81.5%
+* Memory usage: 76.75 GiB 37.5%
+* Disk usage: 780.000 GiB 36%
+* Read/Write IO: 469.547 MiB/s 156.766 MiB/s
+[Wed Dec 4 14:03:01 UTC 2019]
+* CPU usage: 82.8%
+* Memory usage: 76.74 GiB 37.5%
+* Disk usage: 781.000 GiB 36%
+* Read/Write IO: 621.062 MiB/s 83.550 MiB/s
+[Wed Dec 4 14:03:11 UTC 2019]
+* CPU usage: 82.0%
+* Memory usage: 76.73 GiB 37.5%
+* Disk usage: 782.000 GiB 36%
+* Read/Write IO: 263.038 MiB/s 151.834 MiB/s
+[Wed Dec 4 14:03:22 UTC 2019]
+* CPU usage: 82.5%
+* Memory usage: 76.78 GiB 37.5%
+* Disk usage: 783.000 GiB 36%
+* Read/Write IO: 513.619 MiB/s 157.297 MiB/s
+[Wed Dec 4 14:03:32 UTC 2019]
+* CPU usage: 75.4%
+* Memory usage: 76.89 GiB 37.6%
+* Disk usage: 783.000 GiB 36%
+* Read/Write IO: 378.700 MiB/s 149.231 MiB/s
+[Wed Dec 4 14:03:42 UTC 2019]
+* CPU usage: 79.6%
+* Memory usage: 76.97 GiB 37.6%
+* Disk usage: 784.000 GiB 36%
+* Read/Write IO: 213.350 MiB/s 163.175 MiB/s
+[Wed Dec 4 14:03:52 UTC 2019]
+* CPU usage: 81.8%
+* Memory usage: 76.72 GiB 37.5%
+* Disk usage: 785.000 GiB 36%
+* Read/Write IO: 456.262 MiB/s 73.334 MiB/s
+[Wed Dec 4 14:04:02 UTC 2019]
+* CPU usage: 82.5%
+* Memory usage: 76.81 GiB 37.5%
+* Disk usage: 786.000 GiB 36%
+* Read/Write IO: 293.200 MiB/s 162.544 MiB/s
+[Wed Dec 4 14:04:12 UTC 2019]
+* CPU usage: 82.3%
+* Memory usage: 76.82 GiB 37.5%
+* Disk usage: 787.000 GiB 36%
+* Read/Write IO: 228.597 MiB/s 129.459 MiB/s
+[Wed Dec 4 14:04:22 UTC 2019]
+* CPU usage: 83.0%
+* Memory usage: 76.81 GiB 37.5%
+* Disk usage: 788.000 GiB 36%
+* Read/Write IO: 471.950 MiB/s 141.559 MiB/s
+[Wed Dec 4 14:04:32 UTC 2019]
+* CPU usage: 82.7%
+* Memory usage: 76.84 GiB 37.5%
+* Disk usage: 789.000 GiB 36%
+* Read/Write IO: 245.450 MiB/s 161.534 MiB/s
+[Wed Dec 4 14:04:42 UTC 2019]
+* CPU usage: 81.5%
+* Memory usage: 76.88 GiB 37.6%
+* Disk usage: 790.000 GiB 36%
+* Read/Write IO: 284.584 MiB/s 82.537 MiB/s
+[Wed Dec 4 14:04:53 UTC 2019]
+* CPU usage: 82.0%
+* Memory usage: 76.91 GiB 37.6%
+* Disk usage: 791.000 GiB 36%
+* Read/Write IO: 446.300 MiB/s 153.819 MiB/s
+[Wed Dec 4 14:05:03 UTC 2019]
+* CPU usage: 82.2%
+* Memory usage: 76.95 GiB 37.6%
+* Disk usage: 792.000 GiB 36%
+* Read/Write IO: 217.206 MiB/s 164.772 MiB/s
+[Wed Dec 4 14:05:13 UTC 2019]
+* CPU usage: 82.9%
+* Memory usage: 76.99 GiB 37.6%
+* Disk usage: 793.000 GiB 36%
+* Read/Write IO: 378.941 MiB/s 148.506 MiB/s
+[Wed Dec 4 14:05:23 UTC 2019]
+* CPU usage: 82.0%
+* Memory usage: 77.03 GiB 37.6%
+* Disk usage: 794.000 GiB 36%
+* Read/Write IO: 370.600 MiB/s 161.547 MiB/s
+[Wed Dec 4 14:05:33 UTC 2019]
+* CPU usage: 82.5%
+* Memory usage: 77.37 GiB 37.8%
+* Disk usage: 795.000 GiB 36%
+* Read/Write IO: 192.000 MiB/s 94.075 MiB/s
+[Wed Dec 4 14:05:43 UTC 2019]
+* CPU usage: 81.6%
+* Memory usage: 77.29 GiB 37.8%
+* Disk usage: 796.000 GiB 36%
+* Read/Write IO: 439.087 MiB/s 166.812 MiB/s
+[Wed Dec 4 14:05:53 UTC 2019]
+* CPU usage: 82.2%
+* Memory usage: 77.33 GiB 37.8%
+* Disk usage: 797.000 GiB 36%
+* Read/Write IO: 317.047 MiB/s 151.688 MiB/s
+[Wed Dec 4 14:06:03 UTC 2019]
+* CPU usage: 82.3%
+* Memory usage: 77.44 GiB 37.8%
+* Disk usage: 798.000 GiB 37%
+* Read/Write IO: 226.553 MiB/s 153.731 MiB/s
+[Wed Dec 4 14:06:13 UTC 2019]
+* CPU usage: 82.3%
+* Memory usage: 77.42 GiB 37.8%
+* Disk usage: 799.000 GiB 37%
+* Read/Write IO: 454.234 MiB/s 163.356 MiB/s
+[Wed Dec 4 14:06:24 UTC 2019]
+* CPU usage: 81.3%
+* Memory usage: 77.46 GiB 37.8%
+* Disk usage: 800.000 GiB 37%
+* Read/Write IO: 252.322 MiB/s 81.081 MiB/s
+[Wed Dec 4 14:06:34 UTC 2019]
+* CPU usage: 83.6%
+* Memory usage: 77.50 GiB 37.9%
+* Disk usage: 801.000 GiB 37%
+* Read/Write IO: 267.500 MiB/s 168.634 MiB/s
+[Wed Dec 4 14:06:44 UTC 2019]
+* CPU usage: 81.8%
+* Memory usage: 77.49 GiB 37.9%
+* Disk usage: 802.000 GiB 37%
+* Read/Write IO: 430.003 MiB/s 152.287 MiB/s
+[Wed Dec 4 14:06:54 UTC 2019]
+* CPU usage: 81.0%
+* Memory usage: 77.51 GiB 37.9%
+* Disk usage: 803.000 GiB 37%
+* Read/Write IO: 230.000 MiB/s 168.241 MiB/s
+[Wed Dec 4 14:07:04 UTC 2019]
+* CPU usage: 82.0%
+* Memory usage: 77.55 GiB 37.9%
+* Disk usage: 804.000 GiB 37%
+* Read/Write IO: 318.303 MiB/s 139.694 MiB/s
+[Wed Dec 4 14:07:14 UTC 2019]
+* CPU usage: 82.9%
+* Memory usage: 77.59 GiB 37.9%
+* Disk usage: 805.000 GiB 37%
+* Read/Write IO: 426.894 MiB/s 91.928 MiB/s
+[Wed Dec 4 14:07:24 UTC 2019]
+* CPU usage: 84.2%
+* Memory usage: 77.63 GiB 37.9%
+* Disk usage: 806.000 GiB 37%
+* Read/Write IO: 476.438 MiB/s 151.966 MiB/s
+[Wed Dec 4 14:07:34 UTC 2019]
+* CPU usage: 79.2%
+* Memory usage: 77.77 GiB 38.0%
+* Disk usage: 807.000 GiB 37%
+* Read/Write IO: 709.959 MiB/s 526.306 MiB/s
+[Wed Dec 4 14:07:44 UTC 2019]
+* CPU usage: 84.2%
+* Memory usage: 77.64 GiB 37.9%
+* Disk usage: 808.000 GiB 37%
+* Read/Write IO: 619.716 MiB/s 8.919 MiB/s
+[Wed Dec 4 14:07:54 UTC 2019]
+* CPU usage: 82.8%
+* Memory usage: 77.68 GiB 38.0%
+* Disk usage: 809.000 GiB 37%
+* Read/Write IO: 282.369 MiB/s 8.825 MiB/s
+[Wed Dec 4 14:08:04 UTC 2019]
+* CPU usage: 82.9%
+* Memory usage: 77.74 GiB 38.0%
+* Disk usage: 810.000 GiB 37%
+* Read/Write IO: 469.428 MiB/s 9.194 MiB/s
+[Wed Dec 4 14:08:15 UTC 2019]
+* CPU usage: 82.7%
+* Memory usage: 77.78 GiB 38.0%
+* Disk usage: 811.000 GiB 37%
+* Read/Write IO: 337.734 MiB/s 130.234 MiB/s
+[Wed Dec 4 14:08:25 UTC 2019]
+* CPU usage: 78.9%
+* Memory usage: 77.95 GiB 38.1%
+* Disk usage: 812.000 GiB 37%
+* Read/Write IO: 203.666 MiB/s 153.344 MiB/s
+[Wed Dec 4 14:08:35 UTC 2019]
+* CPU usage: 82.4%
+* Memory usage: 77.91 GiB 38.1%
+* Disk usage: 813.000 GiB 37%
+* Read/Write IO: 445.891 MiB/s 164.800 MiB/s
+[Wed Dec 4 14:08:45 UTC 2019]
+* CPU usage: 82.1%
+* Memory usage: 77.98 GiB 38.1%
+* Disk usage: 814.000 GiB 37%
+* Read/Write IO: 299.550 MiB/s 157.447 MiB/s
+[Wed Dec 4 14:08:55 UTC 2019]
+* CPU usage: 82.1%
+* Memory usage: 77.98 GiB 38.1%
+* Disk usage: 815.000 GiB 37%
+* Read/Write IO: 277.900 MiB/s 78.475 MiB/s
+[Wed Dec 4 14:09:05 UTC 2019]
+* CPU usage: 82.5%
+* Memory usage: 78.04 GiB 38.1%
+* Disk usage: 816.000 GiB 37%
+* Read/Write IO: 424.578 MiB/s 164.050 MiB/s
+[Wed Dec 4 14:09:15 UTC 2019]
+* CPU usage: 82.1%
+* Memory usage: 78.07 GiB 38.1%
+* Disk usage: 817.000 GiB 37%
+* Read/Write IO: 227.800 MiB/s 166.059 MiB/s
+[Wed Dec 4 14:09:25 UTC 2019]
+* CPU usage: 82.9%
+* Memory usage: 78.10 GiB 38.2%
+* Disk usage: 818.000 GiB 37%
+* Read/Write IO: 303.300 MiB/s 169.166 MiB/s
+[Wed Dec 4 14:09:35 UTC 2019]
+* CPU usage: 84.0%
+* Memory usage: 78.15 GiB 38.2%
+* Disk usage: 819.000 GiB 37%
+* Read/Write IO: 417.503 MiB/s 145.725 MiB/s
+[Wed Dec 4 14:09:46 UTC 2019]
+* CPU usage: 81.5%
+* Memory usage: 78.18 GiB 38.2%
+* Disk usage: 820.000 GiB 38%
+* Read/Write IO: 214.762 MiB/s 82.250 MiB/s
+[Wed Dec 4 14:09:56 UTC 2019]
+* CPU usage: 82.1%
+* Memory usage: 78.22 GiB 38.2%
+* Disk usage: 821.000 GiB 38%
+* Read/Write IO: 374.103 MiB/s 165.363 MiB/s
+[Wed Dec 4 14:10:06 UTC 2019]
+* CPU usage: 81.7%
+* Memory usage: 78.26 GiB 38.2%
+* Disk usage: 822.000 GiB 38%
+* Read/Write IO: 363.953 MiB/s 165.847 MiB/s
+[Wed Dec 4 14:10:16 UTC 2019]
+* CPU usage: 77.1%
+* Memory usage: 78.12 GiB 38.2%
+* Disk usage: 822.000 GiB 38%
+* Read/Write IO: 223.125 MiB/s 146.184 MiB/s
+[Wed Dec 4 14:10:26 UTC 2019]
+* CPU usage: 82.2%
+* Memory usage: 78.15 GiB 38.2%
+* Disk usage: 823.000 GiB 38%
+* Read/Write IO: 396.203 MiB/s 165.300 MiB/s
+[Wed Dec 4 14:10:36 UTC 2019]
+* CPU usage: 83.1%
+* Memory usage: 78.18 GiB 38.2%
+* Disk usage: 824.000 GiB 38%
+* Read/Write IO: 342.756 MiB/s 85.481 MiB/s
+[Wed Dec 4 14:10:46 UTC 2019]
+* CPU usage: 82.7%
+* Memory usage: 78.22 GiB 38.2%
+* Disk usage: 825.000 GiB 38%
+* Read/Write IO: 228.387 MiB/s 158.631 MiB/s
+[Wed Dec 4 14:10:56 UTC 2019]
+* CPU usage: 82.7%
+* Memory usage: 78.22 GiB 38.2%
+* Disk usage: 827.000 GiB 38%
+* Read/Write IO: 469.519 MiB/s 141.366 MiB/s
+[Wed Dec 4 14:11:06 UTC 2019]
+* CPU usage: 82.2%
+* Memory usage: 78.27 GiB 38.2%
+* Disk usage: 828.000 GiB 38%
+* Read/Write IO: 261.056 MiB/s 164.503 MiB/s
+[Wed Dec 4 14:11:16 UTC 2019]
+* CPU usage: 82.7%
+* Memory usage: 78.36 GiB 38.3%
+* Disk usage: 828.000 GiB 38%
+* Read/Write IO: 264.200 MiB/s 168.366 MiB/s
+[Wed Dec 4 14:11:27 UTC 2019]
+* CPU usage: 81.9%
+* Memory usage: 78.37 GiB 38.3%
+* Disk usage: 829.000 GiB 38%
+* Read/Write IO: 442.316 MiB/s 93.766 MiB/s
+[Wed Dec 4 14:11:37 UTC 2019]
+* CPU usage: 81.5%
+* Memory usage: 78.40 GiB 38.3%
+* Disk usage: 830.000 GiB 38%
+* Read/Write IO: 230.003 MiB/s 150.481 MiB/s
+[Wed Dec 4 14:11:47 UTC 2019]
+* CPU usage: 82.2%
+* Memory usage: 78.45 GiB 38.3%
+* Disk usage: 831.000 GiB 38%
+* Read/Write IO: 380.975 MiB/s 161.719 MiB/s
+[Wed Dec 4 14:11:57 UTC 2019]
+* CPU usage: 81.3%
+* Memory usage: 78.61 GiB 38.4%
+* Disk usage: 832.000 GiB 38%
+* Read/Write IO: 681.812 MiB/s 155.119 MiB/s
+[Wed Dec 4 14:12:07 UTC 2019]
+* CPU usage: 81.4%
+* Memory usage: 79.14 GiB 38.7%
+* Disk usage: 833.000 GiB 38%
+* Read/Write IO: 297.022 MiB/s 162.838 MiB/s
+[Wed Dec 4 14:12:17 UTC 2019]
+* CPU usage: 65.7%
+* Memory usage: 80.61 GiB 39.4%
+* Disk usage: 833.000 GiB 38%
+* Read/Write IO: 313.231 MiB/s 87.109 MiB/s
+[Wed Dec 4 14:12:27 UTC 2019]
+* CPU usage: 82.4%
+* Memory usage: 80.51 GiB 39.3%
+* Disk usage: 834.000 GiB 38%
+* Read/Write IO: 514.600 MiB/s 131.722 MiB/s
+[Wed Dec 4 14:12:37 UTC 2019]
+* CPU usage: 82.9%
+* Memory usage: 80.53 GiB 39.3%
+* Disk usage: 835.000 GiB 38%
+* Read/Write IO: 487.869 MiB/s 168.803 MiB/s
+[Wed Dec 4 14:12:47 UTC 2019]
+* CPU usage: 82.3%
+* Memory usage: 80.56 GiB 39.4%
+* Disk usage: 836.000 GiB 38%
+* Read/Write IO: 238.981 MiB/s 37.816 MiB/s
+[Wed Dec 4 14:12:57 UTC 2019]
+* CPU usage: 82.0%
+* Memory usage: 80.61 GiB 39.4%
+* Disk usage: 837.000 GiB 38%
+* Read/Write IO: 477.981 MiB/s 318.544 MiB/s
+[Wed Dec 4 14:13:08 UTC 2019]
+* CPU usage: 82.8%
+* Memory usage: 80.65 GiB 39.4%
+* Disk usage: 838.000 GiB 38%
+* Read/Write IO: 400.497 MiB/s 263.422 MiB/s
+[Wed Dec 4 14:13:18 UTC 2019]
+* CPU usage: 79.0%
+* Memory usage: 80.70 GiB 39.4%
+* Disk usage: 839.000 GiB 38%
+* Read/Write IO: 111.722 MiB/s 8.841 MiB/s
+[Wed Dec 4 14:13:28 UTC 2019]
+* CPU usage: 82.5%
+* Memory usage: 80.73 GiB 39.4%
+* Disk usage: 840.000 GiB 38%
+* Read/Write IO: 546.756 MiB/s 8.878 MiB/s
+[Wed Dec 4 14:13:38 UTC 2019]
+* CPU usage: 84.0%
+* Memory usage: 81.11 GiB 39.6%
+* Disk usage: 841.000 GiB 38%
+* Read/Write IO: 276.709 MiB/s 104.162 MiB/s
+[Wed Dec 4 14:13:48 UTC 2019]
+* CPU usage: 81.7%
+* Memory usage: 81.35 GiB 39.7%
+* Disk usage: 842.000 GiB 39%
+* Read/Write IO: 179.606 MiB/s 159.122 MiB/s
+[Wed Dec 4 14:13:58 UTC 2019]
+* CPU usage: 80.6%
+* Memory usage: 81.35 GiB 39.7%
+* Disk usage: 843.000 GiB 39%
+* Read/Write IO: 508.400 MiB/s 152.822 MiB/s
+[Wed Dec 4 14:14:08 UTC 2019]
+* CPU usage: 81.7%
+* Memory usage: 81.42 GiB 39.8%
+* Disk usage: 844.000 GiB 39%
+* Read/Write IO: 218.600 MiB/s 84.022 MiB/s
+[Wed Dec 4 14:14:19 UTC 2019]
+* CPU usage: 84.7%
+* Memory usage: 81.46 GiB 39.8%
+* Disk usage: 845.000 GiB 39%
+* Read/Write IO: 266.144 MiB/s 151.822 MiB/s
+[Wed Dec 4 14:14:29 UTC 2019]
+* CPU usage: 81.0%
+* Memory usage: 81.47 GiB 39.8%
+* Disk usage: 846.000 GiB 39%
+* Read/Write IO: 467.106 MiB/s 148.425 MiB/s
+[Wed Dec 4 14:14:39 UTC 2019]
+* CPU usage: 81.8%
+* Memory usage: 81.52 GiB 39.8%
+* Disk usage: 847.000 GiB 39%
+* Read/Write IO: 172.900 MiB/s 160.941 MiB/s
+[Wed Dec 4 14:14:49 UTC 2019]
+* CPU usage: 80.4%
+* Memory usage: 81.55 GiB 39.8%
+* Disk usage: 848.000 GiB 39%
+* Read/Write IO: 322.247 MiB/s 154.859 MiB/s
+[Wed Dec 4 14:14:59 UTC 2019]
+* CPU usage: 84.6%
+* Memory usage: 81.60 GiB 39.9%
+* Disk usage: 849.000 GiB 39%
+* Read/Write IO: 460.100 MiB/s 71.709 MiB/s
+[Wed Dec 4 14:15:09 UTC 2019]
+* CPU usage: 82.2%
+* Memory usage: 81.64 GiB 39.9%
+* Disk usage: 850.000 GiB 39%
+* Read/Write IO: 134.500 MiB/s 161.822 MiB/s
+[Wed Dec 4 14:15:19 UTC 2019]
+* CPU usage: 82.5%
+* Memory usage: 81.68 GiB 39.9%
+* Disk usage: 851.000 GiB 39%
+* Read/Write IO: 492.900 MiB/s 158.812 MiB/s
+[Wed Dec 4 14:15:30 UTC 2019]
+* CPU usage: 82.5%
+* Memory usage: 81.72 GiB 39.9%
+* Disk usage: 852.000 GiB 39%
+* Read/Write IO: 343.681 MiB/s 153.616 MiB/s
+[Wed Dec 4 14:15:40 UTC 2019]
+* CPU usage: 81.7%
+* Memory usage: 81.80 GiB 40.0%
+* Disk usage: 853.000 GiB 39%
+* Read/Write IO: 144.900 MiB/s 169.681 MiB/s
+[Wed Dec 4 14:15:50 UTC 2019]
+* CPU usage: 81.9%
+* Memory usage: 81.82 GiB 40.0%
+* Disk usage: 854.000 GiB 39%
+* Read/Write IO: 531.388 MiB/s 90.569 MiB/s
+[Wed Dec 4 14:16:00 UTC 2019]
+* CPU usage: 81.7%
+* Memory usage: 81.86 GiB 40.0%
+* Disk usage: 855.000 GiB 39%
+* Read/Write IO: 264.928 MiB/s 151.281 MiB/s
+[Wed Dec 4 14:16:10 UTC 2019]
+* CPU usage: 84.7%
+* Memory usage: 81.91 GiB 40.0%
+* Disk usage: 856.000 GiB 39%
+* Read/Write IO: 314.894 MiB/s 172.309 MiB/s
+[Wed Dec 4 14:16:20 UTC 2019]
+* CPU usage: 79.1%
+* Memory usage: 82.08 GiB 40.1%
+* Disk usage: 857.000 GiB 39%
+* Read/Write IO: 501.731 MiB/s 157.697 MiB/s
+[Wed Dec 4 14:16:30 UTC 2019]
+* CPU usage: 83.4%
+* Memory usage: 82.12 GiB 40.1%
+* Disk usage: 858.000 GiB 39%
+* Read/Write IO: 591.822 MiB/s 121.353 MiB/s
+[Wed Dec 4 14:16:40 UTC 2019]
+* CPU usage: 81.8%
+* Memory usage: 82.13 GiB 40.1%
+* Disk usage: 859.000 GiB 39%
+* Read/Write IO: 356.041 MiB/s 131.025 MiB/s
+[Wed Dec 4 14:16:50 UTC 2019]
+* CPU usage: 81.6%
+* Memory usage: 82.14 GiB 40.1%
+* Disk usage: 860.000 GiB 39%
+* Read/Write IO: 509.428 MiB/s 163.734 MiB/s
+[Wed Dec 4 14:17:00 UTC 2019]
+* CPU usage: 82.6%
+* Memory usage: 82.12 GiB 40.1%
+* Disk usage: 861.000 GiB 39%
+* Read/Write IO: 176.484 MiB/s 140.478 MiB/s
+[Wed Dec 4 14:17:10 UTC 2019]
+* CPU usage: 84.1%
+* Memory usage: 82.17 GiB 40.2%
+* Disk usage: 862.000 GiB 39%
+* Read/Write IO: 435.700 MiB/s 146.184 MiB/s
+[Wed Dec 4 14:17:21 UTC 2019]
+* CPU usage: 82.3%
+* Memory usage: 82.21 GiB 40.2%
+* Disk usage: 863.000 GiB 39%
+* Read/Write IO: 388.303 MiB/s 113.066 MiB/s
+[Wed Dec 4 14:17:31 UTC 2019]
+* CPU usage: 82.7%
+* Memory usage: 82.26 GiB 40.2%
+* Disk usage: 864.000 GiB 40%
+* Read/Write IO: 139.500 MiB/s 146.509 MiB/s
+[Wed Dec 4 14:17:41 UTC 2019]
+* CPU usage: 82.1%
+* Memory usage: 82.31 GiB 40.2%
+* Disk usage: 865.000 GiB 40%
+* Read/Write IO: 525.116 MiB/s 171.641 MiB/s
+[Wed Dec 4 14:17:51 UTC 2019]
+* CPU usage: 81.3%
+* Memory usage: 82.36 GiB 40.2%
+* Disk usage: 866.000 GiB 40%
+* Read/Write IO: 266.100 MiB/s 165.606 MiB/s
+[Wed Dec 4 14:18:01 UTC 2019]
+* CPU usage: 82.1%
+* Memory usage: 82.40 GiB 40.3%
+* Disk usage: 867.000 GiB 40%
+* Read/Write IO: 188.800 MiB/s 174.394 MiB/s
+[Wed Dec 4 14:18:11 UTC 2019]
+* CPU usage: 82.9%
+* Memory usage: 82.43 GiB 40.3%
+* Disk usage: 868.000 GiB 40%
+* Read/Write IO: 528.263 MiB/s 84.266 MiB/s
+[Wed Dec 4 14:18:21 UTC 2019]
+* CPU usage: 84.3%
+* Memory usage: 82.48 GiB 40.3%
+* Disk usage: 869.000 GiB 40%
+* Read/Write IO: 206.403 MiB/s 563.241 MiB/s
+[Wed Dec 4 14:18:31 UTC 2019]
+* CPU usage: 82.7%
+* Memory usage: 82.52 GiB 40.3%
+* Disk usage: 870.000 GiB 40%
+* Read/Write IO: 356.800 MiB/s 8.953 MiB/s
+[Wed Dec 4 14:18:41 UTC 2019]
+* CPU usage: 81.8%
+* Memory usage: 82.56 GiB 40.3%
+* Disk usage: 871.000 GiB 40%
+* Read/Write IO: 424.853 MiB/s 8.847 MiB/s
+[Wed Dec 4 14:18:52 UTC 2019]
+* CPU usage: 83.9%
+* Memory usage: 82.61 GiB 40.4%
+* Disk usage: 872.000 GiB 40%
+* Read/Write IO: 133.600 MiB/s 61.775 MiB/s
+[Wed Dec 4 14:19:02 UTC 2019]
+* CPU usage: 81.6%
+* Memory usage: 82.65 GiB 40.4%
+* Disk usage: 873.000 GiB 40%
+* Read/Write IO: 438.200 MiB/s 98.397 MiB/s
+[Wed Dec 4 14:19:12 UTC 2019]
+* CPU usage: 79.0%
+* Memory usage: 82.76 GiB 40.4%
+* Disk usage: 874.000 GiB 40%
+* Read/Write IO: 354.300 MiB/s 165.641 MiB/s
+[Wed Dec 4 14:19:22 UTC 2019]
+* CPU usage: 83.0%
+* Memory usage: 82.80 GiB 40.5%
+* Disk usage: 875.000 GiB 40%
+* Read/Write IO: 139.503 MiB/s 163.569 MiB/s
+[Wed Dec 4 14:19:32 UTC 2019]
+* CPU usage: 82.7%
+* Memory usage: 82.88 GiB 40.5%
+* Disk usage: 876.000 GiB 40%
+* Read/Write IO: 532.600 MiB/s 155.228 MiB/s
+[Wed Dec 4 14:19:42 UTC 2019]
+* CPU usage: 82.3%
+* Memory usage: 82.87 GiB 40.5%
+* Disk usage: 877.000 GiB 40%
+* Read/Write IO: 277.306 MiB/s 169.719 MiB/s
+[Wed Dec 4 14:19:52 UTC 2019]
+* CPU usage: 81.6%
+* Memory usage: 82.91 GiB 40.5%
+* Disk usage: 878.000 GiB 40%
+* Read/Write IO: 248.884 MiB/s 91.447 MiB/s
+[Wed Dec 4 14:20:02 UTC 2019]
+* CPU usage: 80.2%
+* Memory usage: 82.95 GiB 40.5%
+* Disk usage: 879.000 GiB 40%
+* Read/Write IO: 463.100 MiB/s 161.372 MiB/s
+[Wed Dec 4 14:20:12 UTC 2019]
+* CPU usage: 84.6%
+* Memory usage: 82.97 GiB 40.5%
+* Disk usage: 880.000 GiB 40%
+* Read/Write IO: 205.725 MiB/s 167.028 MiB/s
+[Wed Dec 4 14:20:22 UTC 2019]
+* CPU usage: 81.0%
+* Memory usage: 83.02 GiB 40.6%
+* Disk usage: 881.000 GiB 40%
+* Read/Write IO: 354.891 MiB/s 156.191 MiB/s
+[Wed Dec 4 14:20:33 UTC 2019]
+* CPU usage: 79.9%
+* Memory usage: 83.10 GiB 40.6%
+* Disk usage: 882.000 GiB 40%
+* Read/Write IO: 514.987 MiB/s 90.184 MiB/s
+[Wed Dec 4 14:20:43 UTC 2019]
+* CPU usage: 84.3%
+* Memory usage: 83.17 GiB 40.6%
+* Disk usage: 883.000 GiB 40%
+* Read/Write IO: 185.422 MiB/s 568.931 MiB/s
+[Wed Dec 4 14:20:53 UTC 2019]
+* CPU usage: 81.8%
+* Memory usage: 83.15 GiB 40.6%
+* Disk usage: 884.000 GiB 40%
+* Read/Write IO: 510.944 MiB/s 9.219 MiB/s
+[Wed Dec 4 14:21:03 UTC 2019]
+* CPU usage: 81.7%
+* Memory usage: 83.19 GiB 40.6%
+* Disk usage: 885.000 GiB 40%
+* Read/Write IO: 502.288 MiB/s 8.853 MiB/s
+[Wed Dec 4 14:21:13 UTC 2019]
+* CPU usage: 82.4%
+* Memory usage: 83.23 GiB 40.7%
+* Disk usage: 886.000 GiB 41%
+* Read/Write IO: 229.306 MiB/s 8.838 MiB/s
+[Wed Dec 4 14:21:23 UTC 2019]
+* CPU usage: 85.0%
+* Memory usage: 83.28 GiB 40.7%
+* Disk usage: 887.000 GiB 41%
+* Read/Write IO: 473.272 MiB/s 134.816 MiB/s
+[Wed Dec 4 14:21:33 UTC 2019]
+* CPU usage: 77.0%
+* Memory usage: 83.45 GiB 40.8%
+* Disk usage: 888.000 GiB 41%
+* Read/Write IO: 331.863 MiB/s 155.412 MiB/s
+[Wed Dec 4 14:21:43 UTC 2019]
+* CPU usage: 83.1%
+* Memory usage: 83.35 GiB 40.7%
+* Disk usage: 889.000 GiB 41%
+* Read/Write IO: 107.734 MiB/s 155.863 MiB/s
+[Wed Dec 4 14:21:54 UTC 2019]
+* CPU usage: 82.3%
+* Memory usage: 83.37 GiB 40.7%
+* Disk usage: 890.000 GiB 41%
+* Read/Write IO: 263.056 MiB/s 155.537 MiB/s
+[Wed Dec 4 14:22:04 UTC 2019]
+* CPU usage: 81.7%
+* Memory usage: 83.35 GiB 40.7%
+* Disk usage: 891.000 GiB 41%
+* Read/Write IO: 70.700 MiB/s 76.216 MiB/s
+[Wed Dec 4 14:22:14 UTC 2019]
+* CPU usage: 82.6%
+* Memory usage: 83.38 GiB 40.7%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.259 MiB/s 146.175 MiB/s
+[Wed Dec 4 14:22:24 UTC 2019]
+* CPU usage: 82.1%
+* Memory usage: 83.43 GiB 40.8%
+* Disk usage: 893.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 153.284 MiB/s
+[Wed Dec 4 14:22:34 UTC 2019]
+* CPU usage: 50.5%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 4.447 MiB/s 146.841 MiB/s
+[Wed Dec 4 14:22:44 UTC 2019]
+* CPU usage: 4.0%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 6.422 MiB/s 192.447 MiB/s
+[Wed Dec 4 14:22:54 UTC 2019]
+* CPU usage: 4.0%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 63.716 MiB/s 111.594 MiB/s
+[Wed Dec 4 14:23:04 UTC 2019]
+* CPU usage: 3.9%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 604.156 MiB/s 202.944 MiB/s
+[Wed Dec 4 14:23:14 UTC 2019]
+* CPU usage: 3.6%
+* Memory usage: 83.51 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 646.428 MiB/s 9.000 MiB/s
+[Wed Dec 4 14:23:24 UTC 2019]
+* CPU usage: 4.8%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 517.091 MiB/s 792.381 MiB/s
+[Wed Dec 4 14:23:34 UTC 2019]
+* CPU usage: 5.4%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 418.009 MiB/s 1301.062 MiB/s
+[Wed Dec 4 14:23:44 UTC 2019]
+* CPU usage: 3.9%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 627.359 MiB/s 9.000 MiB/s
+[Wed Dec 4 14:23:54 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 632.681 MiB/s 10.219 MiB/s
+[Wed Dec 4 14:24:04 UTC 2019]
+* CPU usage: 4.9%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 455.506 MiB/s 1054.866 MiB/s
+[Wed Dec 4 14:24:14 UTC 2019]
+* CPU usage: 4.7%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 453.431 MiB/s 1035.847 MiB/s
+[Wed Dec 4 14:24:24 UTC 2019]
+* CPU usage: 3.7%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 643.706 MiB/s 9.000 MiB/s
+[Wed Dec 4 14:24:34 UTC 2019]
+* CPU usage: 3.4%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 657.450 MiB/s 9.053 MiB/s
+[Wed Dec 4 14:24:44 UTC 2019]
+* CPU usage: 6.0%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 382.953 MiB/s 1406.866 MiB/s
+[Wed Dec 4 14:24:54 UTC 2019]
+* CPU usage: 4.7%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 472.778 MiB/s 843.100 MiB/s
+[Wed Dec 4 14:25:04 UTC 2019]
+* CPU usage: 4.2%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 533.047 MiB/s 603.400 MiB/s
+[Wed Dec 4 14:25:14 UTC 2019]
+* CPU usage: 3.8%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 553.913 MiB/s 406.500 MiB/s
+[Wed Dec 4 14:25:24 UTC 2019]
+* CPU usage: 4.5%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 515.481 MiB/s 620.913 MiB/s
+[Wed Dec 4 14:25:35 UTC 2019]
+* CPU usage: 4.6%
+* Memory usage: 83.50 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 522.438 MiB/s 607.991 MiB/s
+[Wed Dec 4 14:25:45 UTC 2019]
+* CPU usage: 4.5%
+* Memory usage: 83.50 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 562.981 MiB/s 430.206 MiB/s
+[Wed Dec 4 14:25:55 UTC 2019]
+* CPU usage: 4.4%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 550.553 MiB/s 401.366 MiB/s
+[Wed Dec 4 14:26:05 UTC 2019]
+* CPU usage: 3.1%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 624.959 MiB/s 9.000 MiB/s
+[Wed Dec 4 14:26:15 UTC 2019]
+* CPU usage: 3.4%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 615.531 MiB/s 96.106 MiB/s
+[Wed Dec 4 14:26:25 UTC 2019]
+* CPU usage: 5.2%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 421.866 MiB/s 1231.225 MiB/s
+[Wed Dec 4 14:26:35 UTC 2019]
+* CPU usage: 4.5%
+* Memory usage: 83.46 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 500.603 MiB/s 823.059 MiB/s
+[Wed Dec 4 14:26:45 UTC 2019]
+* CPU usage: 4.9%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 483.919 MiB/s 805.950 MiB/s
+[Wed Dec 4 14:26:55 UTC 2019]
+* CPU usage: 4.3%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 532.475 MiB/s 501.550 MiB/s
+[Wed Dec 4 14:27:05 UTC 2019]
+* CPU usage: 3.8%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 573.934 MiB/s 410.506 MiB/s
+[Wed Dec 4 14:27:15 UTC 2019]
+* CPU usage: 4.4%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 522.812 MiB/s 689.703 MiB/s
+[Wed Dec 4 14:27:25 UTC 2019]
+* CPU usage: 4.2%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 525.794 MiB/s 581.528 MiB/s
+[Wed Dec 4 14:27:35 UTC 2019]
+* CPU usage: 3.8%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 555.716 MiB/s 418.031 MiB/s
+[Wed Dec 4 14:27:45 UTC 2019]
+* CPU usage: 4.7%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 528.581 MiB/s 558.272 MiB/s
+[Wed Dec 4 14:27:55 UTC 2019]
+* CPU usage: 4.6%
+* Memory usage: 83.54 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 521.600 MiB/s 690.212 MiB/s
+[Wed Dec 4 14:28:05 UTC 2019]
+* CPU usage: 3.8%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 564.209 MiB/s 423.884 MiB/s
+[Wed Dec 4 14:28:15 UTC 2019]
+* CPU usage: 3.8%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 562.197 MiB/s 462.341 MiB/s
+[Wed Dec 4 14:28:25 UTC 2019]
+* CPU usage: 4.2%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 501.859 MiB/s 797.050 MiB/s
+[Wed Dec 4 14:28:35 UTC 2019]
+* CPU usage: 4.2%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 553.209 MiB/s 431.322 MiB/s
+[Wed Dec 4 14:28:45 UTC 2019]
+* CPU usage: 4.4%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 566.244 MiB/s 412.678 MiB/s
+[Wed Dec 4 14:28:55 UTC 2019]
+* CPU usage: 4.3%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 489.044 MiB/s 770.416 MiB/s
+[Wed Dec 4 14:29:05 UTC 2019]
+* CPU usage: 4.3%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 554.616 MiB/s 477.891 MiB/s
+[Wed Dec 4 14:29:15 UTC 2019]
+* CPU usage: 4.0%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 561.222 MiB/s 429.972 MiB/s
+[Wed Dec 4 14:29:25 UTC 2019]
+* CPU usage: 4.0%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 518.597 MiB/s 645.175 MiB/s
+[Wed Dec 4 14:29:35 UTC 2019]
+* CPU usage: 4.4%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 545.209 MiB/s 611.500 MiB/s
+[Wed Dec 4 14:29:45 UTC 2019]
+* CPU usage: 4.4%
+* Memory usage: 83.54 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 542.291 MiB/s 418.762 MiB/s
+[Wed Dec 4 14:29:55 UTC 2019]
+* CPU usage: 4.1%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 533.756 MiB/s 527.819 MiB/s
+[Wed Dec 4 14:30:05 UTC 2019]
+* CPU usage: 4.5%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 492.675 MiB/s 686.450 MiB/s
+[Wed Dec 4 14:30:15 UTC 2019]
+* CPU usage: 3.7%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 551.266 MiB/s 378.478 MiB/s
+[Wed Dec 4 14:30:25 UTC 2019]
+* CPU usage: 3.9%
+* Memory usage: 83.47 GiB 40.8%
+* Disk usage: 894.000 GiB 41%
+* Read/Write IO: 554.112 MiB/s 588.131 MiB/s
+[Wed Dec 4 14:30:36 UTC 2019]
+* CPU usage: 11.8%
+* Memory usage: 83.48 GiB 40.8%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 377.206 MiB/s 417.991 MiB/s
+[Wed Dec 4 14:30:46 UTC 2019]
+* CPU usage: 4.9%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 21.159 MiB/s 13.203 MiB/s
+[Wed Dec 4 14:30:56 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.500 MiB/s
+[Wed Dec 4 14:31:06 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.62 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 9.341 MiB/s
+[Wed Dec 4 14:31:16 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.62 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 13.397 MiB/s
+[Wed Dec 4 14:31:26 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.62 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.500 MiB/s
+[Wed Dec 4 14:31:36 UTC 2019]
+* CPU usage: 3.4%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 9.147 MiB/s
+[Wed Dec 4 14:31:46 UTC 2019]
+* CPU usage: 3.4%
+* Memory usage: 83.62 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.550 MiB/s
+[Wed Dec 4 14:31:56 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.800 MiB/s
+[Wed Dec 4 14:32:06 UTC 2019]
+* CPU usage: 3.4%
+* Memory usage: 83.62 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.584 MiB/s
+[Wed Dec 4 14:32:16 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.550 MiB/s
+[Wed Dec 4 14:32:26 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.62 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.550 MiB/s
+[Wed Dec 4 14:32:36 UTC 2019]
+* CPU usage: 3.4%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.503 MiB/s
+[Wed Dec 4 14:32:46 UTC 2019]
+* CPU usage: 3.4%
+* Memory usage: 83.70 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.572 MiB/s
+[Wed Dec 4 14:32:56 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.600 MiB/s
+[Wed Dec 4 14:33:06 UTC 2019]
+* CPU usage: 3.3%
+* Memory usage: 83.65 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.800 MiB/s
+[Wed Dec 4 14:33:16 UTC 2019]
+* CPU usage: 3.6%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.500 MiB/s
+[Wed Dec 4 14:33:26 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.559 MiB/s
+[Wed Dec 4 14:33:36 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.550 MiB/s
+[Wed Dec 4 14:33:46 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.550 MiB/s
+[Wed Dec 4 14:33:56 UTC 2019]
+* CPU usage: 3.7%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.572 MiB/s
+[Wed Dec 4 14:34:06 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.553 MiB/s
+[Wed Dec 4 14:34:16 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.500 MiB/s
+[Wed Dec 4 14:34:26 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.822 MiB/s
+[Wed Dec 4 14:34:36 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.581 MiB/s
+[Wed Dec 4 14:34:46 UTC 2019]
+* CPU usage: 3.4%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.553 MiB/s
+[Wed Dec 4 14:34:56 UTC 2019]
+* CPU usage: 3.7%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.500 MiB/s
+[Wed Dec 4 14:35:06 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.63 GiB 40.9%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.553 MiB/s
+[Wed Dec 4 14:35:16 UTC 2019]
+* CPU usage: 5.2%
+* Memory usage: 83.81 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.013 MiB/s 8.562 MiB/s
+[Wed Dec 4 14:35:26 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.541 MiB/s
+[Wed Dec 4 14:35:36 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.816 MiB/s
+[Wed Dec 4 14:35:46 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.550 MiB/s
+[Wed Dec 4 14:35:56 UTC 2019]
+* CPU usage: 3.8%
+* Memory usage: 83.83 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.550 MiB/s
+[Wed Dec 4 14:36:06 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.509 MiB/s
+[Wed Dec 4 14:36:16 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.83 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.606 MiB/s
+[Wed Dec 4 14:36:27 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.83 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.550 MiB/s
+[Wed Dec 4 14:36:37 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.83 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.500 MiB/s
+[Wed Dec 4 14:36:47 UTC 2019]
+* CPU usage: 3.4%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.800 MiB/s
+[Wed Dec 4 14:36:57 UTC 2019]
+* CPU usage: 3.8%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.575 MiB/s
+[Wed Dec 4 14:37:07 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.581 MiB/s
+[Wed Dec 4 14:37:17 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.83 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.500 MiB/s
+[Wed Dec 4 14:37:27 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.559 MiB/s
+[Wed Dec 4 14:37:37 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.450 MiB/s
+[Wed Dec 4 14:37:47 UTC 2019]
+* CPU usage: 3.4%
+* Memory usage: 83.90 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.422 MiB/s
+[Wed Dec 4 14:37:57 UTC 2019]
+* CPU usage: 3.8%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.741 MiB/s
+[Wed Dec 4 14:38:07 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 7.900 MiB/s
+[Wed Dec 4 14:38:17 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.494 MiB/s
+[Wed Dec 4 14:38:27 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.400 MiB/s
+[Wed Dec 4 14:38:37 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.494 MiB/s
+[Wed Dec 4 14:38:47 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.503 MiB/s
+[Wed Dec 4 14:38:57 UTC 2019]
+* CPU usage: 4.0%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.400 MiB/s
+[Wed Dec 4 14:39:07 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.741 MiB/s
+[Wed Dec 4 14:39:17 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.494 MiB/s
+[Wed Dec 4 14:39:27 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.456 MiB/s
+[Wed Dec 4 14:39:37 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.453 MiB/s
+[Wed Dec 4 14:39:47 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.522 MiB/s
+[Wed Dec 4 14:39:57 UTC 2019]
+* CPU usage: 4.0%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.453 MiB/s
+[Wed Dec 4 14:40:07 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.406 MiB/s
+[Wed Dec 4 14:40:17 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.453 MiB/s
+[Wed Dec 4 14:40:27 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.769 MiB/s
+[Wed Dec 4 14:40:37 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.453 MiB/s
+[Wed Dec 4 14:40:47 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.444 MiB/s
+[Wed Dec 4 14:40:57 UTC 2019]
+* CPU usage: 4.0%
+* Memory usage: 83.89 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.463 MiB/s
+[Wed Dec 4 14:41:07 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.453 MiB/s
+[Wed Dec 4 14:41:17 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.456 MiB/s
+[Wed Dec 4 14:41:27 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.506 MiB/s
+[Wed Dec 4 14:41:37 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.706 MiB/s
+[Wed Dec 4 14:41:47 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.463 MiB/s
+[Wed Dec 4 14:41:57 UTC 2019]
+* CPU usage: 3.7%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.400 MiB/s
+[Wed Dec 4 14:42:07 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.512 MiB/s
+[Wed Dec 4 14:42:17 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.459 MiB/s
+[Wed Dec 4 14:42:28 UTC 2019]
+* CPU usage: 3.5%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.400 MiB/s
+[Wed Dec 4 14:42:38 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.81 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.500 MiB/s
+[Wed Dec 4 14:42:48 UTC 2019]
+* CPU usage: 3.2%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.750 MiB/s
+[Wed Dec 4 14:42:58 UTC 2019]
+* CPU usage: 3.6%
+* Memory usage: 83.84 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.500 MiB/s
+[Wed Dec 4 14:43:08 UTC 2019]
+* CPU usage: 3.6%
+* Memory usage: 83.81 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.400 MiB/s
+[Wed Dec 4 14:43:18 UTC 2019]
+* CPU usage: 3.4%
+* Memory usage: 83.82 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.481 MiB/s
+[Wed Dec 4 14:43:28 UTC 2019]
+* CPU usage: 3.1%
+* Memory usage: 83.81 GiB 41.0%
+* Disk usage: 892.000 GiB 41%
+* Read/Write IO: 0.000 MiB/s 8.450 MiB/s
