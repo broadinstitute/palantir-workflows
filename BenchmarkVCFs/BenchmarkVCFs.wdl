@@ -53,7 +53,7 @@ workflow Benchmark {
         doIndelLengthStratification: {description: "whether or not to perform stratification by indel length"}
         requireMatchingGenotypes: {description: "whether to require genotypes to match in order to be a true positive"}
         gatkTag: {description: "version of gatk docker to use.  Defaults to 4.0.11.0"}
-        analysisRegion: {description: "if provided (gatk format, single interval e.g., 'chr20', or 'chr20:1-10') all the analysis will be performed within the region."}
+        analysisRegion: {description: "if provided (gatk format, single interval e.g., 'chr20', or 'chr20:1-10') all the analysis will be performed only within the region."}
         passingOnly: {description:"Have vcfEval only consider the passing variants"}
         vcfScoreField: {description:"Have vcfEval use this field for making the roc-plot. If this is an info field (like VSQLOD) it should be provided as INFO.VQSLOD, otherewise it is assumed to be a format field."}
     }
