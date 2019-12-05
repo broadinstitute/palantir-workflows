@@ -55,7 +55,7 @@ workflow Benchmark {
         gatkTag: {description: "version of gatk docker to use.  Defaults to 4.0.11.0"}
         analysisRegion: {description: "if provided (gatk format, single interval e.g., 'chr20', or 'chr20:1-10') all the analysis will be performed within the region."}
         passingOnly: {description:"Have vcfEval only consider the passing variants"}
-        vcfScoreField: {description:"Have vcfEval use this field for making the roc-plot. if this is an infor field (like VSQLOD) it should be provided as INFO.VQSLOD, otherewise it is assumed to be a format field."}
+        vcfScoreField: {description:"Have vcfEval use this field for making the roc-plot. If this is an info field (like VSQLOD) it should be provided as INFO.VQSLOD, otherewise it is assumed to be a format field."}
     }
 
 
