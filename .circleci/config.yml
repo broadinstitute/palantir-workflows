@@ -21,6 +21,8 @@ commands:
     description: "Download cromwell jar"
     steps:
       - run: wget https://github.com/broadinstitute/cromwell/releases/download/47/cromwell-47.jar
+      - run: ln -s cromwell-47.jar cromwell.jar
+
 
 jobs:
   validate:
