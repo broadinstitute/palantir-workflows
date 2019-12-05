@@ -228,7 +228,8 @@ workflow Benchmark {
                     outputPre=outputPrefix+"_vcfeval",
                     threads=threadsVcfEval,
                     preemptible=preemptible,
-                    requireMatchingGenotypes=requireMatchingGenotypes
+                    requireMatchingGenotypes=requireMatchingGenotypes,
+                    passingOnly=passingOnly
             }
             
             call WriteXMLfile as VcfEvalWriteXMLfile {
@@ -520,6 +521,7 @@ task VcfEval {
     /bin/rtg-tools/rtg vcfeval \
         ~{false="--all-records" true="" passingOnly} \
         ~{"--vcf-score-field=" + vcfScoreField} \
+        ~{false="--squash-ploidy" true="" requireMatchingGenotypes} \
         -b ~{truthVCF} -c ~{evalVCF} \
         -e ~{confidenceBed} ~{"--bed-regions " + stratBed} \
         --output-mode combine --decompose -t rtg_ref \
