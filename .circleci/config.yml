@@ -16,6 +16,12 @@ executors:
         entrypoint: /bin/bash
     working_directory: ~/palantir-workflows
 
+commands:
+  get-cromwell-jar:
+    description: "Download cromwell jar"
+    steps:
+      - run: wget https://github.com/broadinstitute/cromwell/releases/download/47/cromwell-47.jar
+
 jobs:
   validate:
     executor: womtool-executor
@@ -38,7 +44,7 @@ jobs:
       - run: java -jar /app/womtool.jar validate << parameters.wdl >> -i << parameters.input-json >>
 
   test:
-    executor: cromwell-executor
+    machine: true
     parameters:
       wdl:
         type: string
@@ -46,7 +52,8 @@ jobs:
         type: string
     steps:
       - checkout
-      - run: java -jar /app/cromwell.jar run << parameters.wdl >> -i << parameters.input-json >>
+      - get-cromwell-jar
+      - run: java -jar cromwell.jar run << parameters.wdl >> -i << parameters.input-json >>
 
 workflows:
   version: 2
