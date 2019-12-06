@@ -8,11 +8,28 @@ workflow testBenchmarkVCFs {
 		Float expected_indelPrecision
 		Float expected_snpRecall
 		Float expected_indelRecall
-		Float expected_snpF1Score
-		Float expected_indelF1Score
+
+		File evalVcf
+		File truthVcf
 	}
 
-	call BenchmarkVCFs.Benchmark
+	call BgzipAndIndex as BgzipAndIndexEval {
+		input:
+			vcf = evalVcf
+	}
+
+	call BgzipAndIndex as BgzipAndIndexTruth {
+		input:
+			vcf = truthVcf
+	}
+
+	call BenchmarkVCFs.Benchmark {
+		input:
+			evalVcf = BgzipAndIndexEval.bgzipped_vcf,
+			evalVcfIndex = BgzipAndIndexEval.vcf_index,
+			truthVcf = BgzipAndIndexTruth.bgzipped_vcf,
+			truthVcfIndex = BgzipAndIndexTruth.vcf_index
+	}
 
 	call AssertPassed {
 		input:
@@ -20,32 +37,48 @@ workflow testBenchmarkVCFs {
 			expected_indelPrecision = expected_indelPrecision,
 			expected_snpRecall = expected_snpRecall,
 			expected_indelRecall = expected_indelRecall,
-			expected_snpF1Score = expected_snpF1Score,
-			expected_indelF1Score = expected_indelF1Score,
 			observed_snpPrecision = Benchmark.snpPrecision,
 			observed_indelPrecision = Benchmark.indelPrecision,
 			observed_snpRecall = Benchmark.snpRecall,
 			observed_indelRecall = Benchmark.indelRecall,
-			observed_snpF1Score = Benchmark.snpF1Score,
-			observed_indelF1Score = Benchmark.indelF1Score
+
+	}
+}
+
+task BgzipAndIndex {
+	input {
+		File vcf
 	}
 
+	command <<<
+		set -xeuo pipefail
+
+		ln -s ~{vcf} .
+		bgzip ~{basename(vcf)}
+		tabix ~{basename(vcf) + ".gz"}
+	>>>
+
+	runtime {
+		docker: "biocontainers/tabix@sha256:7e093436d00c01cf6ad7b285680bf1657f9fcb692cc083c972e5df5a7e951f49"
+	}
+
+	output {
+		File bgzipped_vcf = "~{basename(vcf) + '.gz'}"
+		File vcf_index = "~{basename(vcf) + '.gz.tbi'}"
+	}
 }
+
 task AssertPassed {
 	input {
 		Float expected_snpPrecision
 		Float expected_indelPrecision
 		Float expected_snpRecall
 		Float expected_indelRecall
-		Float expected_snpF1Score
-		Float expected_indelF1Score
 		
 		Float observed_snpPrecision
 		Float observed_indelPrecision
 		Float observed_snpRecall
 		Float observed_indelRecall
-		Float observed_snpF1Score
-		Float observed_indelF1Score
 	}
 
 	command <<<
@@ -66,8 +99,6 @@ task AssertPassed {
 		assert_eq indelPrecision ~{expected_indelPrecision} ~{observed_indelPrecision}
 		assert_eq snpRecall ~{expected_snpRecall} ~{observed_snpRecall}
 		assert_eq indelRecall ~{expected_indelRecall} ~{observed_indelRecall}
-		assert_eq snpF1Score ~{expected_snpF1Score} ~{observed_snpF1Score}
-		assert_eq indelF1Score ~{expected_indelF1Score} ~{observed_indelF1Score}
 	>>>
 
     runtime {

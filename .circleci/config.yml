@@ -62,17 +62,21 @@ workflows:
   validate-and-test:
     jobs:
       - validate-with-json:
-          wdl: "BenchmarkVCFs/BenchmarkVCFs.wdl"
+          wdl: "test/BenchmarkVCFs/test_BenchmarkVCFs.wdl"
           input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.json"
           name: "validate-BenchmarkVCFs"
       - test:
-          wdl: "BenchmarkVCFs/BenchmarkVCFs.wdl"
+          wdl: "test/BenchmarkVCFs/test_BenchmarkVCFs.wdl"
           input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.json"
           requires:
             - validate-BenchmarkVCFs
       - test:
-          wdl: "BenchmarkVCFs/BenchmarkVCFs.wdl"
+          wdl: "test/BenchmarkVCFs/test_BenchmarkVCFs.wdl"
           input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.unmatchingGenotypes.json"
           requires:
             - validate-BenchmarkVCFs
-
+      - test:
+          wdl: "test/BenchmarkVCFs/test_BenchmarkVCFs.wdl"
+          input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.ignoreFilters.json"
+          requires:
+            - validate-BenchmarkVCFs

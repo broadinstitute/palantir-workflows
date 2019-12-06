@@ -1,13 +1,10 @@
 {
-  "testBenchmarkVCFs.Benchmark.requireMatchingGenotypes": "true",
-  "testBenchmarkVCFs.Benchmark.evalVcfIndex": "/Users/ckachuli/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.eval.vcf.gz.tbi",
-  "testBenchmarkVCFs.Benchmark.evalVcf": "/Users/ckachuli/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.eval.vcf.gz",
+  "testBenchmarkVCFs.evalVcf": "/Users/ckachuli/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.eval.vcf",
   "testBenchmarkVCFs.Benchmark.refIndex": "/Users/ckachuli/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.fasta.fai",
-  "testBenchmarkVCFs.Benchmark.truthVcf": "/Users/ckachuli/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.truth.vcf.gz",
+  "testBenchmarkVCFs.truthVcf": "/Users/ckachuli/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.truth.vcf",
   "testBenchmarkVCFs.Benchmark.refDict": "/Users/ckachuli/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.fasta.dict",
   "testBenchmarkVCFs.Benchmark.truthLabel": "the_truth",
   "testBenchmarkVCFs.Benchmark.evalLabel": "the_eval",
-  "testBenchmarkVCFs.Benchmark.truthVcfIndex": "/Users/ckachuli/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.truth.vcf.gz.tbi",
   "testBenchmarkVCFs.Benchmark.referenceVersion": "hg38",
   "testBenchmarkVCFs.Benchmark.hapMap": "/Users/ckachuli/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.haplotype_database.txt",
   "testBenchmarkVCFs.Benchmark.doIndelLengthStratification": "false",
@@ -15,8 +12,6 @@
   "testBenchmarkVCFs.Benchmark.confidenceInterval": "/Users/ckachuli/palantir-workflows/test/BenchmarkVCFs/plumbing_data/test.confidence.interval_list",
   "testBenchmarkVCFs.expected_snpPrecision" : 1.0,
   "testBenchmarkVCFs.expected_indelPrecision" : 0.5,
-  "testBenchmarkVCFs.expected_snpRecall" : 1.0,
-  "testBenchmarkVCFs.expected_indelRecall": 0.5,
-  "testBenchmarkVCFs.expected_snpF1Score" :1.0,
-  "testBenchmarkVCFs.expected_indelF1Score" : 0.5
+  "testBenchmarkVCFs.expected_snpRecall" : 0.5,
+  "testBenchmarkVCFs.expected_indelRecall": 0.5
 }
