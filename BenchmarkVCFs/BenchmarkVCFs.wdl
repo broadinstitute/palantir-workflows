@@ -229,7 +229,8 @@ workflow Benchmark {
                     threads=threadsVcfEval,
                     preemptible=preemptible,
                     requireMatchingGenotypes=requireMatchingGenotypes,
-                    passingOnly=passingOnly
+                    passingOnly=passingOnly,
+                    vcfScoreField=vcfScoreField
             }
             
             call WriteXMLfile as VcfEvalWriteXMLfile {
