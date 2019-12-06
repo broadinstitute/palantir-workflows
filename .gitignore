@@ -37,6 +37,9 @@ old_*
 *.recal
 *.recal.idx
 
+#cromwell executions folders
+*cromwell-executions*
+
 #hidden and backup files
 ._*
 .vimbup
@@ -44,3 +47,6 @@ old_*
 .queue
 *~
 .*.swp
+
+#Intellij stuff
+.idea

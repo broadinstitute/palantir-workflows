@@ -10,12 +10,6 @@ executors:
         entrypoint: /bin/bash
     working_directory: ~/palantir-workflows
 
-  cromwell-executor:
-    docker:
-      - image: broadinstitute/cromwell:47-b36d920
-        entrypoint: /bin/bash
-    working_directory: ~/palantir-workflows
-
 commands:
   get-cromwell-jar:
     description: "Download cromwell jar"
