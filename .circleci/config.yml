@@ -68,15 +68,18 @@ workflows:
       - test:
           wdl: "test/BenchmarkVCFs/test_BenchmarkVCFs.wdl"
           input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.json"
+          name: "test-BenchmarkVCFs"
           requires:
             - validate-BenchmarkVCFs
       - test:
           wdl: "test/BenchmarkVCFs/test_BenchmarkVCFs.wdl"
           input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.unmatchingGenotypes.json"
+          name: "test-BenchmarkVCFs-allow-mismatched-genotypes"
           requires:
             - validate-BenchmarkVCFs
       - test:
           wdl: "test/BenchmarkVCFs/test_BenchmarkVCFs.wdl"
           input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.ignoreFilters.json"
+          name: "test-BenchmarkVCFs-include-filtered-variants"
           requires:
             - validate-BenchmarkVCFs
