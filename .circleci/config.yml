@@ -30,7 +30,7 @@ jobs:
   test:
     machine: true
     environment:
-      CROMWELL_JAR=/home/circleci/cromwell-47.jar
+      CROMWELL_JAR=/home/circleci/project/cromwell-47.jar
     steps:
       - checkout
       - get-cromwell-jar
