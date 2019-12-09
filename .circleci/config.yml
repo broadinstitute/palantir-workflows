@@ -30,11 +30,6 @@ jobs:
 
   test:
     machine: true
-    parameters:
-      wdl:
-        type: string
-      input-json:
-        type: string
     steps:
       - checkout
       - get-cromwell-jar
