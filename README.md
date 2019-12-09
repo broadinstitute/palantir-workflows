@@ -9,24 +9,19 @@ Utility workflows used by the DSP's Palantir team.  This repository should be us
 
 ## Testing Workflows
 
-All (WDL) workflows should have associated tests.
-Tests can be added by adding jobs to the `validate-and-test` (circleci) workflow in `.circleci/config.yml`.
-Each (WDL) workflow should be at least validated with womtool by adding the following job to the `validate-and-test` (circleci) workflow.
-	
-	- validate:
-		wdl: "path/to/workflow/myWorkflow.wdl"
-		name: "validate-myWorkflow"
+All workflows should have associated tests.
+In order to add tests, you should add a test workflow to the `test` directory. 
+The test workflow should call the workflow you are testing, and (preferably) compare the outputs to those expected. 
+Input JSONs for the test workflow must be placed in a directory whose name is the same as the test workflow, with `.wdl` replaced by `_json`.
+So, the test directory structure will be built like this:
 
-If possible, each (WDL) workflow should also be tested by running some plumbing test data through to make sure that it succeeds.
-This can be done by additionally adding the following job to the `validate-and-test` (circleci) workflow
-
-	- test:
-		wdl: "path/to/workflow/myWorkflow.wdl"
-		input-json: "path/to/workflow/myWorkflow.wdl.test.json"
-		name: "test-myWorkflow"
-		requires:
-			-validate-myWorkflow
-
-Input paths in the input json should be absolute, with the consideration that the `palantir-workflows` directory will map to `/home/circleci/project` in the test environment.
-Tests can also consist of test (WDL) workflow, which import the (WDL) workflow to be tested, run it, and compare the outputs to expected outputs.
-See `test/BenchmarkVCFs/test_BenchmarkVCFs.wdl` for example.
+```bash
++-- palantir-workflows
+|   +-- test
+|   |   +-- MyWorkflow
+|   |   |   +-- my_test_workflow.wdl
+|   |   |   +-- my_test_workflow_json
+|   |   |   |   +-- test_input_1.json
+|   |   |   |   +-- test_input_2.json
++++++++++++++++++
+```
