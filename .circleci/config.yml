@@ -9,6 +9,7 @@ executors:
       - image: broadinstitute/womtool:47-b36d920
         entrypoint: /bin/bash
     working_directory: ~/palantir-workflows
+    environment: WOMTOOL_JAR=/app/womtool.jar
 
 commands:
   get-cromwell-jar:
@@ -23,13 +24,13 @@ jobs:
     executor: womtool-executor
     steps:
       - checkout
-      - run: export WOMTOOL_JAR=/app/womtool.jar
       - run: apt-get update
       - run: apt-get install -y make
       - run: make validate
 
   test:
     machine: true
+    environment:
     steps:
       - checkout
       - get-cromwell-jar
