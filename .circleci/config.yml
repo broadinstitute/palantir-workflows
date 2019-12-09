@@ -15,29 +15,18 @@ commands:
     description: "Download cromwell jar"
     steps:
       - run: wget https://github.com/broadinstitute/cromwell/releases/download/47/cromwell-47.jar
-      - run: ln -s cromwell-47.jar cromwell.jar
+      - run: export CROMWELL_JAR=$PWD/cromwell-47.jar
 
 
 jobs:
   validate:
     executor: womtool-executor
-    parameters:
-      wdl:
-        type: string
     steps:
       - checkout
-      - run: java -jar /app/womtool.jar validate << parameters.wdl >>
-
-  validate-with-json:
-    executor: womtool-executor
-    parameters:
-      wdl:
-        type: string
-      input-json:
-        type: string
-    steps:
-      - checkout
-      - run: java -jar /app/womtool.jar validate << parameters.wdl >> -i << parameters.input-json >>
+      - run: export WOMTOOL_JAR=/app/womtool.jar
+      - run: apt-get update
+      - run: apt-get install -y make
+      - run: make validate
 
   test:
     machine: true
@@ -49,31 +38,15 @@ jobs:
     steps:
       - checkout
       - get-cromwell-jar
-      - run: java -jar cromwell.jar run << parameters.wdl >> -i << parameters.input-json >>
+      - run: apt-get update
+      - run: apt-get install -y make
+      - run: make test
 
 workflows:
   version: 2
   validate-and-test:
     jobs:
-      - validate-with-json:
-          wdl: "test/BenchmarkVCFs/test_BenchmarkVCFs.wdl"
-          input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.json"
-          name: "validate-BenchmarkVCFs"
+      - validate
       - test:
-          wdl: "test/BenchmarkVCFs/test_BenchmarkVCFs.wdl"
-          input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.json"
-          name: "test-BenchmarkVCFs"
           requires:
-            - validate-BenchmarkVCFs
-      - test:
-          wdl: "test/BenchmarkVCFs/test_BenchmarkVCFs.wdl"
-          input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.unmatchingGenotypes.json"
-          name: "test-BenchmarkVCFs-allow-mismatched-genotypes"
-          requires:
-            - validate-BenchmarkVCFs
-      - test:
-          wdl: "test/BenchmarkVCFs/test_BenchmarkVCFs.wdl"
-          input-json: "test/BenchmarkVCFs/BenchmarkVCFs.wdl.test.ignoreFilters.json"
-          name: "test-BenchmarkVCFs-include-filtered-variants"
-          requires:
-            - validate-BenchmarkVCFs
+            - validate
