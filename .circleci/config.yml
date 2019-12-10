@@ -17,15 +17,25 @@ commands:
     steps:
       - run: wget https://github.com/broadinstitute/cromwell/releases/download/47/cromwell-47.jar
 
-
+  install-make:
+    description: "Install make"
+    steps:
+      - run: apt-get update
+      - run: apt-get install -y make
 jobs:
   validate:
     executor: womtool-executor
     steps:
       - checkout
-      - run: apt-get update
-      - run: apt-get install -y make
+      - install-make
       - run: make validate
+
+  validate-with-json:
+    executor: womtool-executor
+    steps:
+      - checkout
+      - install-make
+      - run: make validate-with-json
 
   test:
     machine: true
@@ -41,6 +51,8 @@ workflows:
   validate-and-test:
     jobs:
       - validate
+      - validate-with-json
       - test:
           requires:
             - validate
+            - validate-with-json
