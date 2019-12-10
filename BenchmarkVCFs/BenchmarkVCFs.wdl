@@ -1402,18 +1402,18 @@ task MatchEvalTruth {
     Int disk_size = 10 + ceil(size(hapMap, "GB"))
 
     parameter_meta {
-    	evalVcf: {
-    		localization_optional: true
-    	}
-    	truthVcf: {
-    		localization_optional: true
-    	}
-    	evalVcfIndex: {
-			localization_optional: true
-		}
-		truthVcfIndex: {
-			localization_optional: true
-		}
+        evalVcf: {
+            localization_optional: true
+        }
+        truthVcf: {
+            localization_optional: true
+        }
+        evalVcfIndex: {
+            localization_optional: true
+        }
+        truthVcfIndex: {
+            localization_optional: true
+        }
     }
 
     command <<<
