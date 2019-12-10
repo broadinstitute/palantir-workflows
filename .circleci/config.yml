@@ -11,13 +11,6 @@ executors:
     working_directory: ~/palantir-workflows
     environment: WOMTOOL_JAR=/app/womtool.jar
 
-  cromwell-executor:
-    docker:
-      - image: broadinstitute/cromwell:47-b36d920
-        entrypoint: /bin/bash
-    working_directory: ~/palantir-workflows
-    environment: CROMWELL_JAR=/app/cromwell.jar
-
 commands:
   get-cromwell-jar:
     description: "Download cromwell jar"
@@ -34,27 +27,13 @@ jobs:
       - run: apt-get install -y make
       - run: make validate
 
-#  test:
-#    machine: true
-#    environment:
-#      CROMWELL_JAR=/home/circleci/project/cromwell-47.jar
-#    steps:
-#      - checkout
-#      - get-cromwell-jar
-#      - run: make test
-
   test:
-    executor: cromwell-executor
+    machine: true
+    environment:
+      CROMWELL_JAR=/home/circleci/project/cromwell-47.jar
     steps:
       - checkout
-      - setup_remote_docker
-      - run: apt-get update
-      - run: apt-get install -y make
-      - run: apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-      - run: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-      - run: add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-      - run: apt-get update
-      - run: apt-get install -y docker-ce
+      - get-cromwell-jar
       - run: make test
 
 workflows:
