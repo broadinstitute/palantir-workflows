@@ -1,22 +1,38 @@
+TEST_JSON= $(shell find test -name '*.json')
 
-all: validate validate_with_json
+VALIDATE_WDL= $(shell find . -name '*.wdl' ! -path './test/*')
 
-WDL= $(shell find . -name '*.wdl')
+TEST=java -jar $(CROMWELL_JAR) run
 
-VALIDATE=java -jar /app/womtool.jar validate
+VALIDATE=java -jar $(WOMTOOL_JAR) validate
 
-all-tests := $(addsuffix .test, $(basename $(WDL)))
-all-tests-json := $(addsuffix .json, $(all-tests))
+all-tests := $(addsuffix .test, $(TEST_JSON))
 
-validate: $(all-tests)
-validate_with_json : $(all-tests) $(all-tests-json)
+all-validations := $(addsuffix .validate, $(VALIDATE_WDL))
 
-test : $(all-tests)
+all-validations-with-json := $(addsuffix .validate, $(TEST_JSON))
 
-test_with_json: test $(all-tests-json)
+.PHONY: all
+all: test validate
 
-%.test : %.wdl
-	$(VALIDATE)  $?
+.PHONY: test
+test: $(all-tests)
 
-%.test.json : %.wdl.json
-	$(VALIDATE) $(basename $? .json) -i $?
+.PHONY: validate
+validate: $(all-validations)
+
+.PHONY: validate-with-json
+validate-with-json: $(all-validations-with-json)
+
+.PHONY: %.wdl.validate
+%.wdl.validate: 
+	$(VALIDATE) $(basename $@)
+
+.PHONY: %.json.test
+%.json.test:
+	mkdir -p logs
+	$(TEST) $(subst _json/,.wdl, $(dir $(basename $@))) -i $(basename $@) -o test_options.json 2>&1 | tee logs/$(notdir $(subst _json/,.wdl, $(dir $(basename $@))))_with_$(notdir $(basename $@)).log 
+
+.PHONY: %.json.validate
+%.json.validate:
+	$(VALIDATE) $(subst _json/,.wdl, $(dir $(basename $@))) -i $(basename $@)

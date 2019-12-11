@@ -1,20 +1,66 @@
-# CircleCI 2.0 configuration file
+# CircleCI 2.1 configuration file
 #
 #
-version: 2
-jobs:
-  build:
+version: 2.1
+executors:
+  womtool-executor:
     docker:
       # specify the version you desire here
       - image: broadinstitute/womtool:47-b36d920
         entrypoint: /bin/bash
     working_directory: ~/palantir-workflows
+    environment: WOMTOOL_JAR=/app/womtool.jar
 
-    environment:
-      # Customize the JVM maximum heap limit
+commands:
+  get-cromwell-jar:
+    description: "Download cromwell jar"
+    steps:
+      - run: wget https://github.com/broadinstitute/cromwell/releases/download/47/cromwell-47.jar
 
+  install-make:
+    description: "Install make"
+    steps:
+      - run: |
+            apt-get update
+            apt-get install -y make
+jobs:
+  validate:
+    executor: womtool-executor
     steps:
       - checkout
-      - run: apt-get update
-      - run: apt-get install -y make
-      - run: make all
+      - install-make
+      - run: make validate
+
+  validate-with-json:
+    executor: womtool-executor
+    steps:
+      - checkout
+      - install-make
+      - run: make validate-with-json
+
+  test:
+    machine: true
+    environment:
+      CROMWELL_JAR=/home/circleci/project/cromwell-47.jar
+    steps:
+      - checkout
+      - get-cromwell-jar
+      - run: make test
+      - store_artifacts:
+          path: /home/circleci/project/logs
+      - store_artifacts:
+          path: /home/circleci/project/workflow_logs
+      - store_artifacts:
+          path: /home/circleci/project/call_logs
+
+
+workflows:
+  version: 2
+  validate-and-test:
+    jobs:
+      - validate
+      - validate-with-json
+      - test:
+          requires:
+            - validate
+            - validate-with-json

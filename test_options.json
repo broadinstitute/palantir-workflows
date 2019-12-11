@@ -1,0 +1,4 @@
+{
+  "final_workflow_log_dir": "/home/circleci/project/workflow_logs",
+  "final_call_logs_dir": "/home/circleci/project/call_logs"
+}

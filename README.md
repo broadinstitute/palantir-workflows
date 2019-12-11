@@ -7,4 +7,21 @@ Utility workflows used by the DSP's Palantir team.  This repository should be us
 **Remember, this is a public repository, so anything you put in this repo is publicly viewable.**
 
 
-**To enable testable workflows, please make sure that a FILE.wdl.json is present with every FILE.wdl you add.
+## Testing Workflows
+
+All workflows should have associated tests.
+In order to add tests, you should add a test workflow to the `test` directory. 
+The test workflow should call the workflow you are testing, and (preferably) compare the outputs to those expected. 
+Input JSONs for the test workflow must be placed in a directory whose name is the same as the test workflow, with `.wdl` replaced by `_json`.
+So, the test directory structure will be built like this:
+
+```bash
++-- palantir-workflows
+|   +-- test
+|   |   +-- MyWorkflow
+|   |   |   +-- my_test_workflow.wdl
+|   |   |   +-- my_test_workflow_json
+|   |   |   |   +-- test_input_1.json
+|   |   |   |   +-- test_input_2.json
++++++++++++++++++
+```

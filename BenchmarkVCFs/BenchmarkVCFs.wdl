@@ -94,6 +94,8 @@ workflow Benchmark {
         input:
             evalVcf=evalVcf,
             truthVcf=truthVcf,
+            evalVcfIndex=evalVcfIndex,
+            truthVcfIndex=truthVcfIndex,
             hapMap=hapMap,
             gatkTag=gatkTag,
             preemptible=preemptible
@@ -1385,8 +1387,10 @@ task CombineSummaries {
 #Use CrosscheckFingerprints to match evaluation vcfs to appropriate truth vcfs
 task MatchEvalTruth {
     input{
-        String evalVcf
-        String truthVcf
+        File evalVcf
+        File truthVcf
+        File evalVcfIndex
+        File truthVcfIndex
         File hapMap
         Int? preemptible
         Int? memoryMaybe
@@ -1396,6 +1400,21 @@ task MatchEvalTruth {
     Int memoryJava=select_first([memoryMaybe,memoryDefault])
     Int memoryRam=memoryJava+2
     Int disk_size = 10 + ceil(size(hapMap, "GB"))
+
+    parameter_meta {
+        evalVcf: {
+            localization_optional: true
+        }
+        truthVcf: {
+            localization_optional: true
+        }
+        evalVcfIndex: {
+            localization_optional: true
+        }
+        truthVcfIndex: {
+            localization_optional: true
+        }
+    }
 
     command <<<
         gatk --java-options "-Xmx~{memoryJava}G" CrosscheckFingerprints -I ~{evalVcf} -SI ~{truthVcf} -H ~{hapMap} --CROSSCHECK_MODE CHECK_ALL_OTHERS --CROSSCHECK_BY FILE --EXPECT_ALL_GROUPS_TO_MATCH
