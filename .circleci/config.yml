@@ -20,8 +20,9 @@ commands:
   install-make:
     description: "Install make"
     steps:
-      - run: apt-get update
-      - run: apt-get install -y make
+      - run: |
+            apt-get update
+            apt-get install -y make
 jobs:
   validate:
     executor: womtool-executor
@@ -45,6 +46,9 @@ jobs:
       - checkout
       - get-cromwell-jar
       - run: make test
+      - store_artifacts:
+          path: /home/circleci/project/logs
+
 
 workflows:
   version: 2

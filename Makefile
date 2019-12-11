@@ -30,7 +30,8 @@ validate-with-json: $(all-validations-with-json)
 
 .PHONY: %.json.test
 %.json.test:
-	$(TEST) $(subst _json/,.wdl, $(dir $(basename $@))) -i $(basename $@)
+	mkdir -p logs
+	$(TEST) $(subst _json/,.wdl, $(dir $(basename $@))) -i $(basename $@) > logs/$(notdir $(subst _json/,.wdl, $(dir $(basename $@))))_with_$(notdir $(basename $@)).log
 
 .PHONY: %.json.validate
 %.json.validate:
