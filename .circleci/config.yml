@@ -48,6 +48,10 @@ jobs:
       - run: make test
       - store_artifacts:
           path: /home/circleci/project/logs
+      - store_artifacts:
+          path: /home/circleci/project/workflow_logs
+      - store_artifacts:
+          path: /home/circleci/project/call_logs
 
 
 workflows:
