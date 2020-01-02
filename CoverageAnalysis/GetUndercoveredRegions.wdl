@@ -1,29 +1,32 @@
+version 1.0
 
 task CalculateCoverage {
-   File bam_file
-   File bam_index
-   File interval_list
-   String base_name
-   Int min_base_quality
-   Int min_mapping_quality
-   Int disk_size
-   File ref_fasta
-   File ref_dict
-   File ref_index
-   String? java_mem
+   input {
+       File bam_file
+       File bam_index
+       File interval_list
+       String base_name
+       Int min_base_quality
+       Int min_mapping_quality
+       File ref_fasta
+       File ref_dict
+       File ref_index
+       String? java_mem
+   }
 
+    Int disk_size = 10 + ceil(size(bam_file, "GiB") + 10*size(ref_fasta, "GB") + size(ref_index,"GB"))
    command <<<
-      java ${"-Xmx"+java_mem} -jar /usr/GenomeAnalysisTK.jar -T DepthOfCoverage \
-         -L ${interval_list} \
-         -I ${bam_file} \
-         -mmq ${min_mapping_quality} \
-         -mbq ${min_base_quality} \
+      java ~{"-Xmx"+java_mem} -jar /usr/GenomeAnalysisTK.jar -T DepthOfCoverage \
+         -L ~{interval_list} \
+         -I ~{bam_file} \
+         -mmq ~{min_mapping_quality} \
+         -mbq ~{min_base_quality} \
          --countType COUNT_FRAGMENTS \
-         -o "${base_name}.coverage" \
-         -R ${ref_fasta}
+         -o "~{base_name}.coverage" \
+         -R ~{ref_fasta}
    >>>
    output {
-      File coverage = "${base_name}.coverage"
+      File coverage = "~{base_name}.coverage"
    }
    runtime {
       docker: "broadinstitute/gatk3:3.8-1"
@@ -33,13 +36,15 @@ task CalculateCoverage {
 }
 
 task GetSampleName {
-    File bam
+    input {
+        File bam
+    }
 
     Int disk_size = 10 + ceil(size(bam, "GiB"))
     command <<<
         set -e
 
-        samtools view -H ${bam} | \
+        samtools view -H ~{bam} | \
             awk '$1=="@RG" {
                     for(i=2; i<=NF; i++) {
                         split($i,split_str,":")
@@ -49,32 +54,36 @@ task GetSampleName {
                     }
                 }' | sort | uniq
     >>>
+
   runtime {
     docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud@sha256:82dd1af86c9e6d4432170133382053525864d8f156a352e18ecf5947542e0b29"
     disks: "local-disk "+disk_size+" HDD"
     memory: "1 GB"
   }
+
   output {
     String sample_name = read_string(stdout())
   }
 }
 
 task CollectData {
-   Array[File] coverage_files
-   File sexes_file
-   String base_name
-   Int low_coverage_threshold
-   Float sample_threshold
-   Int disk_size
+    input {
+       Array[File] coverage_files
+       File sexes_file
+       String base_name
+       Int low_coverage_threshold
+       Float sample_threshold
+   }
 
+	Int disk_size = 10 + 1.1*ceil(size(coverage_files, "GiB"))
    command <<<
       set -e
       set -v
 
       # Paste all the coverage files together into a single file base_name.coverage.txt
-      echo 'paste <(cat ${coverage_files[0]} | cut -f 1) \' > run.sh
+      echo 'paste <(cat ~{coverage_files[0]} | cut -f 1) \' > run.sh
 
-      echo ${sep=" " coverage_files} > coverage_files.txt
+      echo ~{sep=" " coverage_files} > coverage_files.txt
       sed -i 's/ /\n/g' coverage_files.txt
 
       while read line
@@ -82,31 +91,31 @@ task CollectData {
          echo '<(cat' $line '| cut -f 4) \' >> run.sh
       done < coverage_files.txt
       chmod 755 run.sh
-      ./run.sh > ${base_name}.coverage.txt
+      ./run.sh > ~{base_name}.coverage.txt
 
       echo "Starting Data Munging in R"
 
       # In R do various data munging operations
       Rscript -<<"EOF"
       library(data.table)
-      sites <- fread("${base_name}.coverage.txt")
-      sexes <- fread("${sexes_file}", col.names = c("sample", "sex", "normalizedX", "normalizedY"))
+      sites <- fread("~{base_name}.coverage.txt")
+      sexes <- fread("~{sexes_file}", col.names = c("sample", "sex", "normalizedX", "normalizedY"))
       maleColumns <- paste0("Depth_for_", sexes[sex == "Male", sample])
       femaleColumns <- paste0("Depth_for_", sexes[sex == "Female", sample])
 
       sites[, contig := gsub(":.*", "", Locus)]
       sites[, pos := as.numeric(gsub(".*:", "", Locus))]
-      sites[, countBelowThreshold := Reduce(`+`, lapply(.SD, "<", ${low_coverage_threshold})), .SDcols = c(maleColumns, femaleColumns)]
-      sites[contig == "chrX", maleCountBelowThreshold := Reduce(`+`, lapply(.SD, "<", ${low_coverage_threshold} / 2)), .SDcols = maleColumns]
-      sites[contig == "chrX", femaleCountBelowThreshold := Reduce(`+`, lapply(.SD, "<", ${low_coverage_threshold})), .SDcols = femaleColumns]
-      sites[contig == "chrX", countBelowThreshold := femaleCountBelowThreshold + maleCountBelowThreshold]
-      sites[contig == "chrY", countBelowThreshold := Reduce(`+`, lapply(.SD, "<", ${low_coverage_threshold} / 2)), .SDcols = maleColumns]
+      sites[, countBelowThreshold := Reduce(`+`, lapply(.SD, "<", ~{low_coverage_threshold})), .SDcols = c(maleColumns, femaleColumns)]
+      sites[grepl("^(chr)?X", contig), maleCountBelowThreshold := Reduce(`+`, lapply(.SD, "<", ~{low_coverage_threshold} / 2)), .SDcols = maleColumns]
+      sites[grepl("^(chr)?X", contig), femaleCountBelowThreshold := Reduce(`+`, lapply(.SD, "<", ~{low_coverage_threshold})), .SDcols = femaleColumns]
+      sites[grepl("^(chr)?X", contig), countBelowThreshold := femaleCountBelowThreshold + maleCountBelowThreshold]
+      sites[grepl("^(chr)?Y", contig), countBelowThreshold := Reduce(`+`, lapply(.SD, "<", ~{low_coverage_threshold} / 2)), .SDcols = maleColumns]
 
-      sampleThreshold <- sexes[, .N] * ${sample_threshold}
-      maleSampleThreshold <- sexes[sex == "Male", .N] * ${sample_threshold}
+      sampleThreshold <- sexes[, .N] * ~{sample_threshold}
+      maleSampleThreshold <- sexes[sex == "Male", .N] * ~{sample_threshold}
 
-      sites[contig != "chrY", poorlyCovered := countBelowThreshold >= sampleThreshold]
-      sites[contig == "chrY", poorlyCovered := countBelowThreshold >= maleSampleThreshold]
+      sites[!grepl("^(chr)?Y", contig), poorlyCovered := countBelowThreshold >= sampleThreshold]
+      sites[grepl("^(chr)?Y", contig), poorlyCovered := countBelowThreshold >= maleSampleThreshold]
       poorlyCoveredSites <- sites[poorlyCovered == TRUE, .(contig, pos)]
       poorlyCoveredSites[, interval := cumsum(c(1, (pos - shift(pos) > 1 | contig != shift(contig))[-1]))]
       poorlyCoveredIntervals <- unique(poorlyCoveredSites[, .(contig = contig, start = min(pos) - 1, end = max(pos)), by = interval])
@@ -114,13 +123,13 @@ task CollectData {
       poorlyCoveredIntervals[, name := paste0(contig, "_", start, "_", end)]
       poorlyCoveredIntervals[, interval := NULL]
       poorlyCoveredIntervals
-      fwrite(poorlyCoveredIntervals, "${base_name}.low_coverage.bed", col.names = FALSE, sep = "\t")
+      fwrite(poorlyCoveredIntervals, "~{base_name}.low_coverage.bed", col.names = FALSE, sep = "\t")
       EOF
 
    >>>
    output {
-      File coverage_output = "${base_name}.coverage.txt"
-      File bed_file_output = "${base_name}.low_coverage.bed"
+      File coverage_output = "~{base_name}.coverage.txt"
+      File bed_file_output = "~{base_name}.low_coverage.bed"
    }
    runtime {
       docker: "rocker/tidyverse:3.5.2"
@@ -130,34 +139,36 @@ task CollectData {
 }
 
 task DetermineXYCoverage {
-    File bam_file
-    File bam_index
-    String base_name
-    Int disk_size
+    input {
+        File bam_file
+        File bam_index
+        String base_name
+        Int disk_size
+    }
 
     command <<<
-          samtools idxstats ${bam_file} > ${base_name}.idxstats.txt
+          samtools idxstats ~{bam_file} > ~{base_name}.idxstats.txt
 
           Rscript -<<"EOF"
-          idxstats <- read.table("${base_name}.idxstats.txt", col.names = c("contig", "length", "mapped", "unmapped"))
+          idxstats <- read.table("~{base_name}.idxstats.txt", col.names = c("contig", "length", "mapped", "unmapped"))
 
           # Determine normalization constant.  This is the number of bases/chromosome/read.
-          normalization <- sum(as.numeric(idxstats[grepl("^[0-9]{1}$|^[0-9]{2}$", idxstats$contig), ]$length)) /
-              sum(as.numeric(idxstats[grepl("^[0-9]{1}$|^[0-9]{2}$", idxstats$contig), ]$mapped))
+          normalization <- sum(as.numeric(idxstats[grepl("^(chr)?[0-9]{1,2}$", idxstats$contig), ]$length)) /
+              sum(as.numeric(idxstats[grepl("^(chr)?[0-9]{1,2}$", idxstats$contig), ]$mapped))
           # Estimate the number of X and Y chromosomes in the sample by
           # normalizing the coverage on X and Y.
-          normalizedX <- 2 / (idxstats[idxstats$contig == "X", ]$length /
-                                  idxstats[idxstats$contig == "X", ]$mapped / normalization)
-          normalizedY <- 2 / (idxstats[idxstats$contig == "Y", ]$length /
-                                  idxstats[idxstats$contig == "Y", ]$mapped / normalization)
-          sampleAndXYChroms <- data.frame("${base_name}", round(normalizedX, 3), round(normalizedY, 3))
+          normalizedX <- 2 / (idxstats[grepl("^(chr)?X$", idxstats$contig), ]$length /
+                                  idxstats[grepl("^(chr)?X$", idxstats$contig), ]$mapped / normalization)
+          normalizedY <- 2 / (idxstats[grepl("^(chr)?Y$", idxstats$contig), ]$length /
+                                  idxstats[grepl("^(chr)?Y$", idxstats$contig), ]$mapped / normalization)
+          sampleAndXYChroms <- data.frame("~{base_name}", round(normalizedX, 3), round(normalizedY, 3))
 
-          write.table(sampleAndXYChroms, "${base_name}.xy.txt", col.name = F, row.name = F, quote = F)
+          write.table(sampleAndXYChroms, "~{base_name}.xy.txt", col.name = F, row.name = F, quote = F)
           EOF
     >>>
 
     output {
-          File xy_out = "${base_name}.xy.txt"
+          File xy_out = "~{base_name}.xy.txt"
     }
 
     runtime {
@@ -168,12 +179,14 @@ task DetermineXYCoverage {
 }
 
 task DetermineSexesByClustering {
-    Array[File] inputFiles
+    input {
+        Array[File] inputFiles
+    }
 
     command <<<
     Rscript -<<"EOF"
     library(data.table)
-    d_list <- lapply(list("${sep="\",\"" inputFiles}"), fread)
+    d_list <- lapply(list("~{sep="\",\"" inputFiles}"), fread)
     d <- rbindlist(d_list)
     d_mat <- as.matrix(d,rownames = "V1")
     initial_centers <- matrix(c(1,2,1,0), nrow=2)
@@ -207,51 +220,47 @@ task DetermineSexesByClustering {
     }
 }
 
-task CramToBam {
-   File ref_fasta
-   File ref_fasta_index
-   File ref_dict
-   File cram_file
-   String output_basename
-   Int disk_size
+task BedToIntervalList {
+    input {
+        File bed
+        File sequence_dict
+    }
 
-   command <<<
-      set -e
-      set -v
-      set -o pipefail
+    String output_name = basename(bed, ".bed") + ".interval_list"
+    Int disk_size = 10 + ceil(2.5 * size(bed, "GB"))
 
-      samtools view -h -T ${ref_fasta} ${cram_file} -o ${output_basename}.bam
-      samtools index -b ${output_basename}.bam
-      mv ${output_basename}.bam.bai ${output_basename}.bai
-   >>>
-   runtime {
-      docker: "broadinstitute/genomes-in-the-cloud:2.2.5-1486412288"
-      memory: "3 GB"
-      disks: "local-disk " + disk_size + " HDD"
-   }
-   output {
-      File output_bam = "${output_basename}.bam"
-      File output_bam_index = "${output_basename}.bai"
-   }
+    command <<<
+        java -jar /usr/gitc/picard.jar BedToIntervalList I=~{bed} SD=~{sequence_dict} O=~{output_name}
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud@sha256:82dd1af86c9e6d4432170133382053525864d8f156a352e18ecf5947542e0b29"
+        disks: "local-disk "+disk_size+" HDD"
+    }
+
+    output {
+        File interval_list = "~{output_name}"
+    }
 }
 
+workflow GetUndercoveredRegions {
+    input {
+       Array[File] bam_files
+       Array[File] bam_indicies
+       String base_name
+       File interval_list
+       Int min_base_quality
+       Int min_mapping_quality
+       Int low_coverage_threshold
+       Float sample_fraction_threshold
+       Int disk_size
+       File ref_dict
+       File ref_fasta
+       File ref_index
+       String? java_mem
+   }
 
-workflow ScatteredCoverage {
-   Array[File] bam_files
-   Array[File] bam_indices
-   String base_name
-   File interval_list
-   Int min_base_quality
-   Int min_mapping_quality
-   Int low_coverage_threshold
-   Float sample_fraction_threshold
-   Int disk_size
-   File ref_dict
-   File ref_fasta
-   File ref_index
-   String? java_mem
-
-   Array[Pair[File, File]] bam_index_pairs = zip(bam_files, bam_indices)
+   Array[Pair[File, File]] bam_index_pairs = zip(bam_files, bam_indicies)
 
 
    scatter (paired_data in bam_index_pairs) {
@@ -279,7 +288,6 @@ workflow ScatteredCoverage {
             interval_list = interval_list,
             min_base_quality = min_base_quality,
             min_mapping_quality = min_mapping_quality,
-            disk_size = disk_size,
             ref_dict = ref_dict,
             ref_fasta = ref_fasta,
             ref_index = ref_index,
@@ -298,13 +306,19 @@ workflow ScatteredCoverage {
         sexes_file = DetermineSexesByClustering.output_sexes,
         base_name = base_name,
         low_coverage_threshold = low_coverage_threshold,
-        sample_threshold = sample_fraction_threshold,
-        disk_size = disk_size
+        sample_threshold = sample_fraction_threshold
+   }
+
+   call BedToIntervalList {
+      input:
+        bed = CollectData.bed_file_output,
+        sequence_dict = ref_dict
    }
 
    output {
       File coverage_output = CollectData.coverage_output
       File bed_file_output = CollectData.bed_file_output
+      File interval_list_output = BedToIntervalList.interval_list
       File all_sexes_output = DetermineSexesByClustering.output_sexes
    }
 }

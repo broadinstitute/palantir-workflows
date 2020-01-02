@@ -1,0 +1,9 @@
+@HD	VN:1.6	SO:coordinate
+@SQ	SN:chr1	LN:12
+@SQ	SN:chrX	LN:17
+@SQ	SN:chrY	LN:7
+chr1	1	4	+	.
+chr1	8	12	+	.
+chrX	1	2	+	.
+chrX	7	17	+	.
+chrY	6	7	+	.

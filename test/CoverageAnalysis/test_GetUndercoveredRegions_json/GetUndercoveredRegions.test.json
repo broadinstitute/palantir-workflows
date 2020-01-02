@@ -1,0 +1,19 @@
+{
+  "testGetUndercoveredRegions.GetUndercoveredRegions.disk_size": 100,
+  "testGetUndercoveredRegions.sam_files": [
+    "/home/circleci/project/test/CoverageAnalysis/plumbing_data/sample1.sam",
+    "/home/circleci/project/test/CoverageAnalysis/plumbing_data/sample2.sam",
+    "/home/circleci/project/test/CoverageAnalysis/plumbing_data/sample3.sam"
+  ],
+  "testGetUndercoveredRegions.GetUndercoveredRegions.base_name": "test",
+  "testGetUndercoveredRegions.GetUndercoveredRegions.low_coverage_threshold": 2,
+  "testGetUndercoveredRegions.GetUndercoveredRegions.min_base_quality": 20,
+  "testGetUndercoveredRegions.GetUndercoveredRegions.sample_fraction_threshold": 0.5,
+  "testGetUndercoveredRegions.GetUndercoveredRegions.ref_index": "/home/circleci/project/test/CoverageAnalysis/plumbing_data/test.ref.fasta.fai",
+  "testGetUndercoveredRegions.GetUndercoveredRegions.interval_list": "/home/circleci/project/test/CoverageAnalysis/plumbing_data/region.interval_list",
+  "testGetUndercoveredRegions.GetUndercoveredRegions.ref_fasta": "/home/circleci/project/test/CoverageAnalysis/plumbing_data/test.ref.fasta",
+  "testGetUndercoveredRegions.GetUndercoveredRegions.min_mapping_quality": 20,
+  "testGetUndercoveredRegions.GetUndercoveredRegions.ref_dict": "/home/circleci/project/test/CoverageAnalysis/plumbing_data/test.ref.dict",
+  "testGetUndercoveredRegions.expected_interval_list": "/home/circleci/project/test/CoverageAnalysis/plumbing_data/expected_low_coverage.interval_list"
+}
+

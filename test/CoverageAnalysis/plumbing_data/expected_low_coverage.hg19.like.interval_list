@@ -1,0 +1,9 @@
+@HD	VN:1.6	SO:coordinate
+@SQ	SN:1	LN:12
+@SQ	SN:X	LN:17
+@SQ	SN:Y	LN:7
+1	1	4	+	.
+1	8	12	+	.
+X	1	2	+	.
+X	7	17	+	.
+Y	6	7	+	.

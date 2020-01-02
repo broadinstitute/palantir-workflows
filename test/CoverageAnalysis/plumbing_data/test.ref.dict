@@ -1,0 +1,4 @@
+@HD	VN:1.0	SO:unsorted
+@SQ	SN:chr1	LN:12	M5:31e91beccf6059ff57c696827c0c6a4b	UR:file:///Users/ckachuli/palantir-workflows/test/CoverageAnalysis/plumbing_data/test.ref.fasta
+@SQ	SN:chrX	LN:17	M5:6ffcd430126f17ae1791ecf290d93f94	UR:file:///Users/ckachuli/palantir-workflows/test/CoverageAnalysis/plumbing_data/test.ref.fasta
+@SQ	SN:chrY	LN:7	M5:588b4c920b1e67c1bfc4245955d2b967	UR:file:///Users/ckachuli/palantir-workflows/test/CoverageAnalysis/plumbing_data/test.ref.fasta
