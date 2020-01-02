@@ -75,7 +75,7 @@ task CollectData {
        Float sample_threshold
    }
 
-	Int disk_size = 10 + 1.1*ceil(size(coverage_files, "GiB"))
+	Int disk_size = 10 + ceil(1.1 * size(coverage_files, "GiB"))
    command <<<
       set -e
       set -v
