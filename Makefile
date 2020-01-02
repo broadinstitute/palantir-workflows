@@ -1,3 +1,5 @@
+SHELL=/bin/bash -eo pipefail
+
 TEST_JSON= $(shell find test -name '*.json')
 
 VALIDATE_WDL= $(shell find . -name '*.wdl' ! -path './test/*')
