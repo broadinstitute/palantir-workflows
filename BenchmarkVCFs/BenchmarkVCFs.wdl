@@ -1361,14 +1361,12 @@ task CombineSummaries {
     command <<<
         set -xeuo pipefail
 
-        mkdir summaries
-        array_summaries=(~{sep=' ' summaries})
-
-        Rscript -<<"EOF" ~{dollar}{array_summaries[@]}
+        Rscript -<<"EOF"
+        library(readr)
         library(dplyr)
-        args <- commandArgs(trailingOnly = TRUE)
-        dlist <- lapply(args, read.csv)
-        merged<- bind_rows(dlist)
+        library(purrr)
+        summary_files <- read_csv("~{write_lines(summaries)}", col_names=FALSE)
+        merged<- as.list(summary_files$X1) %>% map(read_csv) %>% reduce(bind_rows)
         write.csv(merged,"summary.csv",row.names=FALSE)
         EOF
     >>>
