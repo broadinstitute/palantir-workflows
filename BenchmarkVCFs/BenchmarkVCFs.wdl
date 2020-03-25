@@ -410,6 +410,9 @@ workflow Benchmark {
         Float indelRecall = SummariseVcfEval.indelRecall[0]
         Float snpF1Score = SummariseVcfEval.snpF1Score[0]
         Float indelF1Score = SummariseVcfEval.indelF1Score[0]
+
+        File annotatedVCF = StandardVcfEval.outVcf
+        File annotatedVCFIndex = StandardVcfEval.outVcfIndex
     }
 }
 
