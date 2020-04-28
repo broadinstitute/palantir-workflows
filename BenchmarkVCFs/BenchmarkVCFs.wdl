@@ -25,6 +25,7 @@ workflow Benchmark {
         Int? preemptible
         String gatkTag="4.0.11.0"
         Boolean requireMatchingGenotypes=true
+        Boolean decompose=true
 
         Boolean passingOnly=true
         String? vcfScoreField
@@ -232,7 +233,8 @@ workflow Benchmark {
                     preemptible=preemptible,
                     requireMatchingGenotypes=requireMatchingGenotypes,
                     passingOnly=passingOnly,
-                    vcfScoreField=vcfScoreField
+                    vcfScoreField=vcfScoreField,
+                    decompose=decompose
             }
             
             call WriteXMLfile as VcfEvalWriteXMLfile {
@@ -510,6 +512,7 @@ task VcfEval {
         String? memUser
         Int? threads
         Boolean requireMatchingGenotypes
+        Boolean decompose
     }
     String memDefault="16 GB"
     String mem=select_first([memUser,memDefault])
@@ -527,7 +530,8 @@ task VcfEval {
         ~{false="--squash-ploidy" true="" requireMatchingGenotypes} \
         -b ~{truthVCF} -c ~{evalVCF} \
         -e ~{confidenceBed} ~{"--bed-regions " + stratBed} \
-        --output-mode combine --decompose -t rtg_ref \
+        --output-mode combine ~{true="--decompose" false = "" decompose} \
+         -t rtg_ref \
         ~{"--threads "+threads} -o output_dir
 
     for f in output_dir/*; do
