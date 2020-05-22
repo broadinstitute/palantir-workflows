@@ -20,7 +20,8 @@ workflow TestingNewImputation {
       input_vcfs = array_vcfs,
       input_vcf_indices = array_vcf_indices,
       output_vcf_basename = "merged_aou_arrays",
-      shard_size = size(array_vcfs[0], "GB")
+      array_size = size(array_vcfs[0], "GB"),
+      num_samples = length(samples)
   }
 
   if (perform_qc_steps) {
@@ -28,16 +29,9 @@ workflow TestingNewImputation {
           input:
             input_vcf = GenerateDataset.output_vcf,
             input_vcf_index = GenerateDataset.output_vcf_index,
-            output_vcf_basename = "merged_and_partly_qcd",
+            output_vcf_basename = "merged_and_QCd",
         }
-        call QCVCF {
-        input:
-          vcf = QConArray.perform_qc_steps.output_vcf,
-          vcf_index = QConArray.output_vcf_index,
-          basename = "merged_and_qcd",
-       }
   }
-
 
   File to_be_imputed_vcf = select_first([QCVCF.output_vcf, GenerateDataset.output_vcf]) 
   File to_be_imputed_vcf_index = select_first([QCVCF.output_vcf_index, GenerateDataset.output_vcf_index])
@@ -169,9 +163,12 @@ task GenerateDataset {
     Array[File] input_vcfs
     Array[File] input_vcf_indices
     String output_vcf_basename
-    Float shard_size
+    Float array_size
+    Int num_samples
    }
-    Int disk_size = ceil(((shard_size * 22) * 2) + 20)
+
+   Int disk_size = ceil(array_size * num_samples) + 20
+
     ### merge -> separate multiallelics -> remove all except SNP
   command <<<
     bcftools merge ~{sep=' ' input_vcfs} | bcftools norm -m - | awk 'BEGIN {FS="\t"}; {if($1 ~ /#/ || (($5=="A" || $5=="C" || $5=="G" || $5=="T") && ($4=="A" || $4=="C" || $4=="G" || $4=="T") && ($7 !~ "DUPE"))) print $0}' | bgzip -c > ~{output_vcf_basename}.vcf.gz
@@ -217,7 +214,8 @@ task ChunkVCF {
     Int disk_size = 400
   }
   command {
-    gatk SelectVariants -V ~{vcf} -L ~{chrom}:~{start}-~{end} -O ~{basename}.vcf.gz
+    gatk SelectVariants -V ~{vcf} --select-type-to-include SNP --max-nocall-fraction 0.1 \
+    --restrict-alleles-to BIALLELIC -L ~{chrom}:~{start}-~{end} -O ~{basename}.vcf.gz
   }
   runtime {
     docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
@@ -305,7 +303,7 @@ task PrePhaseVariantsEagle {
     docker: "skwalker/imputation:test"
       memory: "32 GB"
       cpu: "8"
-        disks: "local-disk " + disk_size + " HDD"
+      disks: "local-disk " + disk_size + " HDD"
   }
 }
 
@@ -447,5 +445,31 @@ task SplitSample {
   output {
     File output_gzipped_vcf = "~{sample}.vcf.gz"
     File output_gzipped_vcf_index = "~{sample}.vcf.gz.tbi"
+  }
+}
+
+task QConArray {
+  input {
+    File input_vcf
+    File input_vcf_index
+    String output_vcf_basename
+   }
+    Int disk_size = 400
+
+  command <<<
+    # site missing rate < 5% ; hwe p > 1e-6 ; in
+    vcftools --gzvcf ~{input_vcf} --stdout --max-missing 0.05 --hwe 0.000001 --recode -c > tmp.vcf
+    awk 'BEGIN {FS="\t"}; {if ($1 ~ /#/ || ($4=="A" && $5!="T") || ($4=="T" && $5!="A") || ($4=="C" && $5!="G" ) || ($4=="G" || $5!="C")) print $0}' tmp.vcf | bgzip -c > ~{output_vcf_basename}.vcf.gz
+    bcftools index -t ~{output_vcf_basename}.vcf.gz 
+  >>>
+
+  runtime {
+    docker: "skwalker/imputation:with_vcftools"
+    memory: "16 GiB"
+    disks: "local-disk " + disk_size + " HDD"
+  }
+  output {
+    File output_vcf = "~{output_vcf_basename}.vcf.gz"
+    File output_vcf_index = "~{output_vcf_basename}.vcf.gz.tbi"
   }
 }
