@@ -33,8 +33,8 @@ workflow TestingNewImputation {
         }
   }
 
-  File to_be_imputed_vcf = select_first([QCVCF.output_vcf, GenerateDataset.output_vcf]) 
-  File to_be_imputed_vcf_index = select_first([QCVCF.output_vcf_index, GenerateDataset.output_vcf_index])
+  File to_be_imputed_vcf = select_first([QConArray.output_vcf, GenerateDataset.output_vcf]) 
+  File to_be_imputed_vcf_index = select_first([QConArray.output_vcf_index, GenerateDataset.output_vcf_index])
 
   scatter (chrom in ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22"]) { 
     call CalculateChromsomeLength {
