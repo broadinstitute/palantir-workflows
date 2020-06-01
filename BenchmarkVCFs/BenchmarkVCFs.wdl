@@ -250,6 +250,27 @@ workflow Benchmark {
                     gatkTag=gatkTag,
                     preemptible=preemptible
             }
+
+            call SelectVariants  as SelectTPVariants {
+                input:
+                    vcf = StandardVcfEval.outVcf,
+                    select = "CALL == 'TP'",
+                    sample = "CALLS"
+            }
+
+            call SelectVariants  as SelectFPVariants {
+                input:
+                    vcf = StandardVcfEval.outVcf,
+                    select = "(CALL == 'FP' || CALL == 'FP_CA')",
+                    sample = "CALLS"
+            }
+
+            call SelectVariants  as SelectFNVariants {
+                input:
+                    vcf = StandardVcfEval.outVcf,
+                    select = "(BASE == 'FN' || BASE == 'FN_CA')",
+                    sample = "BASELINE"
+            }
         }
 
         String areVariants=if(CheckForVariantsTruth.variantsFound && CheckForVariantsEval.variantsFound) then "yes" else "no"
@@ -410,6 +431,22 @@ workflow Benchmark {
         Float indelRecall = SummariseVcfEval.indelRecall[0]
         Float snpF1Score = SummariseVcfEval.snpF1Score[0]
         Float indelF1Score = SummariseVcfEval.indelF1Score[0]
+
+        File? annotatedVCF = StandardVcfEval.outVcf[0]
+        File? annotatedVCFIndex = StandardVcfEval.outVcfIndex[0]
+        File? annotatedTPVCF = SelectTPVariants.selected_vcf[0]
+        File? annotatedTPVCFIndex = SelectTPVariants.selected_vcf_index[0]
+        File? annotatedFPVCF = SelectFPVariants.selected_vcf[0]
+        File? annotatedFPVCFIndex = SelectFPVariants.selected_vcf_index[0]
+        File? annotatedFNVCF = SelectFNVariants.selected_vcf[0]
+        File? annotatedFNVCFIndex = SelectFNVariants.selected_vcf_index[0]
+
+        File? snp_roc_table_all = StandardVcfEval.outSnpRoc[0]
+        File? nonsnp_roc_table_all = StandardVcfEval.outNonSnpRoc[0]
+        File? snp_roc_table_LCR = StandardVcfEval.outSnpRoc[1]
+        File? nonsnp_roc_table_LCR = StandardVcfEval.outNonSnpRoc[1]
+        File? snp_roc_table_HCR = StandardVcfEval.outSnpRoc[2]
+        File? nonsnp_roc_table_HCR = StandardVcfEval.outNonSnpRoc[2]
     }
 }
 
@@ -1491,5 +1528,36 @@ task ErrorWithMessage{
 
     runtime {
         docker: "ubuntu"
+    }
+}
+
+task SelectVariants {
+    input {
+        File vcf
+        String select
+        String sample
+    }
+
+    Int disk_size = 10 + ceil(size(vcf, "GB"))
+
+    parameter_meta {
+        vcf: {
+            localization_optional: true
+        }
+    }
+
+    command <<<
+        set -eo pipefail
+        gatk SelectVariants -V ~{vcf} -O ~{basename(vcf,".vcf.gz")}.selected.variants.vcf.gz --select "~{select}" -sn ~{sample}
+    >>>
+
+    runtime {
+        docker: "broadinstitute/gatk@sha256:f80d33060cb4872d29b9a248b193d267f838b1a636c5a6120aaa45b08a1f09e9"
+        disks: "local-disk " + disk_size + " HDD"
+    }
+
+    output {
+        File selected_vcf = "~{basename(vcf,'.vcf.gz')}.selected.variants.vcf.gz"
+        File selected_vcf_index = "~{basename(vcf,'.vcf.gz')}.selected.variants.vcf.gz.tbi"
     }
 }
