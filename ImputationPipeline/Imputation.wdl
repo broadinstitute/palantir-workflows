@@ -230,7 +230,7 @@ task QConChunk {
     File vcf_index
     File panel_vcf
     File panel_vcf_index
-    Int disk_size = size([vcf, vcf_index, panel_bcf, panel_bcf_index], "GB")
+    Int disk_size = size([vcf, vcf_index, panel_vcf, panel_vcf_index], "GB")
   }
   command <<<
 
