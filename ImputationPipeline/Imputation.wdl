@@ -95,8 +95,7 @@ workflow TestingNewImputation {
   call MergeVCFs {
     input:
       input_vcfs = phased_vcfs,
-      output_vcf_basename = output_callset_name,
-      shard_size = size(minimac4.vcf[0], "GB")
+      output_vcf_basename = output_callset_name
   }
 
   File broad_imputed_vcf = MergeVCFs.output_vcf
