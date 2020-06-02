@@ -87,9 +87,10 @@ workflow TestingNewImputation {
         }
       }
      }
+     Array[File] chromsome_vcfs = select_all(minimac4.vcf)
   }
 
-  Array[File] phased_vcfs = flatten(select_all(minimac4.vcf))
+  Array[File] phased_vcfs = flatten(chromsome_vcfs)
 
   call MergeVCFs {
     input:
