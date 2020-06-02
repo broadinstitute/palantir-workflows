@@ -262,8 +262,8 @@ task QConChunk {
 
 task PrePhaseVariantsEagle {
   input {
-    File dataset_bcf
-    File dataset_bcf_index
+    File? dataset_bcf
+    File? dataset_bcf_index
     File reference_panel_bcf
     File reference_panel_bcf_index
     String chrom
