@@ -3,9 +3,9 @@ version 1.0
 workflow TestingNewImputation {
   input {
     Int chunkLength = 25000000
-    Array[File] array_vcfs
-    Array[File] array_vcf_indices 
-    Array[String] samples
+    File multi_sample_vcf
+    File multi_sample_vcf_index
+    Array[String] samples # subset of the 13k samples
     Boolean perform_qc_steps
     File ref_dict = "gs://gcp-public-data--broad-references/hg19/v0/Homo_sapiens_assembly19.dict"
     String genetic_maps_eagle = "/genetic_map_hg19_withX.txt.gz"
@@ -14,24 +14,8 @@ workflow TestingNewImputation {
     String path_to_m3vcf = "gs://broad-dsde-methods-skwalker/polygenic_risk_scores/minimac3_files/"
   }
 
-  call GenerateDataset {
-    input:
-      input_vcfs = array_vcfs,
-      input_vcf_indices = array_vcf_indices,
-      output_vcf_basename = "merged_aou_arrays"
-  }
-
-  if (perform_qc_steps) {
-        call QConArray {
-          input:
-            input_vcf = GenerateDataset.output_vcf,
-            input_vcf_index = GenerateDataset.output_vcf_index,
-            output_vcf_basename = "merged_and_QCd",
-        }
-  }
-
-  File to_be_imputed_vcf = select_first([QConArray.output_vcf, GenerateDataset.output_vcf]) 
-  File to_be_imputed_vcf_index = select_first([QConArray.output_vcf_index, GenerateDataset.output_vcf_index])
+  ## TODO: need to make sure each sample is valid 
+ 
 
   scatter (chrom in ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22"]) { 
     call CalculateChromsomeLength {
@@ -44,30 +28,43 @@ workflow TestingNewImputation {
     Int num_chunks = ceil(CalculateChromsomeLength.chrom_length / chunkLengthFloat)
 
     scatter (i in range(num_chunks)) {
-      call ChunkVCF {
+
+      call GenerateChunk {
         input:
+          samples = samples,
+          vcf = multi_sample_vcf,
+          vcf_index = multi_sample_vcf_index,
           start = (i * chunkLength) + 1,
           end = if (CalculateChromsomeLength.chrom_length < ((i + 1) * chunkLength)) then CalculateChromsomeLength.chrom_length else ((i + 1) * chunkLength), 
-          vcf = to_be_imputed_vcf,
-          vcf_index = to_be_imputed_vcf_index,
           chrom = chrom,
           basename = "chrom_" + chrom + "_chunk_" + i
-       }
+      }
 
-      call QConChunk {
+
+       if (perform_qc_steps) {
+        call QCSites {
+          input:
+            input_vcf = GenerateChunk.output_vcf,
+            input_vcf_index = GenerateChunk.output_vcf_index,
+            output_vcf_basename =  "chrom_" + chrom + "_chunk_" + i
+
+          }
+        }
+
+      call CheckChunkValid {
         input: 
-          vcf = ChunkVCF.output_vcf,
-          vcf_index = ChunkVCF.output_vcf_index,
+          vcf = QCSites.output_vcf,
+          vcf_index = QCSites.output_vcf_index,
           panel_vcf = path_to_reference_panel + "ALL.chr" + chrom + ".phase3_integrated.20130502.genotypes.vcf.gz",
           panel_vcf_index = path_to_reference_panel + "ALL.chr" + chrom + ".phase3_integrated.20130502.genotypes.vcf.gz.tbi"
       }
 
-      if (QConChunk.valid) {
+      if (CheckChunkValid.valid) {
 
       call PrePhaseVariantsEagle {
         input:
-          dataset_bcf = QConChunk.valid_chunk_bcf,
-          dataset_bcf_index = QConChunk.valid_chunk_bcf_index,
+          dataset_bcf = CheckChunkValid.valid_chunk_bcf,
+          dataset_bcf_index = CheckChunkValid.valid_chunk_bcf_index,
           reference_panel_bcf = path_to_reference_panel + "ALL.chr" + chrom + ".phase3_integrated.20130502.genotypes.bcf",
           reference_panel_bcf_index = path_to_reference_panel + "ALL.chr" + chrom + ".phase3_integrated.20130502.genotypes.bcf.csi",
           chrom = chrom,
@@ -155,31 +152,6 @@ task RemoveDuplicates {
   }
 }
 
-task GenerateDataset {
-  input {
-    Array[File] input_vcfs
-    Array[File] input_vcf_indices
-    String output_vcf_basename
-   }
-
-   Int disk_size = size(input_vcfs, "GB") + size(input_vcf_indices, "GB") + 20
-
-    ### merge -> separate multiallelics -> remove all except SNP
-  command <<<
-    bcftools merge ~{sep=' ' input_vcfs} -O u | bcftools norm -m - -O z -o ~{output_vcf_basename}.vcf.gz 
-    # this shouldn't be necessary | awk 'BEGIN {FS="\t"}; {if($1 ~ /#/ || (($5=="A" || $5=="C" || $5=="G" || $5=="T") && ($4=="A" || $4=="C" || $4=="G" || $4=="T") && ($7 !~ "DUPE"))) print $0}' | bgzip -c > ~{output_vcf_basename}.vcf.gz
-    bcftools index -t ~{output_vcf_basename}.vcf.gz
-  >>>
-  runtime {
-    docker: "farjoun/impute:0.0.3-1504715575"
-    memory: "3 GiB"
-    disks: "local-disk " + disk_size + " HDD"
-  }
-  output {
-    File output_vcf = "~{output_vcf_basename}.vcf.gz"
-    File output_vcf_index = "~{output_vcf_basename}.vcf.gz.tbi"
-  }
-}
 
 task CalculateChromsomeLength {
   input {
@@ -199,20 +171,30 @@ task CalculateChromsomeLength {
   }
 }
 
-task ChunkVCF {
+task GenerateChunk {
   input {
     Int start
     Int end
     String chrom
     String basename
-    File vcf
-    File vcf_index
-    Int disk_size = 2*size([vcf, vcf_index], "GB")
+    String vcf
+    String vcf_index
+    Array[String] samples
+    Int disk_size = 400 # not sure how big the disk size needs to be since it should be using
+    # 2*size([vcf, vcf_index], "GB")
   }
   command {
+
+    mv ~{write_lines(samples)} samples.args # needs to be a .args with each sample name on a separate line
+
+    head samples.args
+
     gatk SelectVariants -V ~{vcf} --select-type-to-include SNP --max-nocall-fraction 0.1 \
-    --restrict-alleles-to BIALLELIC -L ~{chrom}:~{start}-~{end} -O ~{basename}.vcf.gz
+    --restrict-alleles-to BIALLELIC  -xl-select-type SYMBOLIC --select-type-to-exclude MIXED \
+    --exclude-non-variants TRUE -L ~{chrom}:~{start}-~{end} -O ~{basename}.vcf.gz \
+    -sn samples.args
   }
+
   runtime {
     docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
     disks: "local-disk " + disk_size + " HDD"
@@ -224,7 +206,7 @@ task ChunkVCF {
   }
 }  
 
-task QConChunk {
+task CheckChunkValid {
   input {
     File vcf
     File vcf_index
@@ -427,7 +409,7 @@ task SplitSample {
   }
 }
 
-task QConArray {
+task QCSites {
   input {
     File input_vcf
     File input_vcf_index
