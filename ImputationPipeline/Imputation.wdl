@@ -1,11 +1,11 @@
 version 1.0
 
-workflow TestingNewImputation {
+workflow ImputationPipeline {
   input {
     Int chunkLength = 25000000
     File multi_sample_vcf
     File multi_sample_vcf_index
-    Array[String] samples # subset of the 13k samples
+    File samples_list = "gs://broad-dsde-methods-skwalker/polygenic_risk_scores/partners_subset_samples.args"
     Boolean perform_qc_steps
     File ref_dict = "gs://gcp-public-data--broad-references/hg19/v0/Homo_sapiens_assembly19.dict"
     String genetic_maps_eagle = "/genetic_map_hg19_withX.txt.gz"
@@ -13,6 +13,8 @@ workflow TestingNewImputation {
     String path_to_reference_panel = "gs://broad-dsde-methods-skwalker/polygenic_risk_scores/eagle_reference_panels/"
     String path_to_m3vcf = "gs://broad-dsde-methods-skwalker/polygenic_risk_scores/minimac3_files/"
   }
+
+  Array[String] samples = read_lines(samples_list)
 
   ## TODO: need to make sure each sample is valid 
  
@@ -31,7 +33,7 @@ workflow TestingNewImputation {
 
       call GenerateChunk {
         input:
-          samples = samples,
+          samples_list = samples_list,
           vcf = multi_sample_vcf,
           vcf_index = multi_sample_vcf_index,
           start = (i * chunkLength) + 1,
@@ -95,11 +97,10 @@ workflow TestingNewImputation {
       output_vcf_basename = output_callset_name
   }
 
-  File broad_imputed_vcf = MergeVCFs.output_vcf
-
   call UpdateHeader {
     input:
-      vcf = broad_imputed_vcf,
+      vcf = MergeVCFs.output_vcf,
+      vcf_index = MergeVCFs.output_vcf_index,
       ref_dict = ref_dict
   }
 
@@ -179,20 +180,16 @@ task GenerateChunk {
     String basename
     String vcf
     String vcf_index
-    Array[String] samples
+    File samples_list
     Int disk_size = 400 # not sure how big the disk size needs to be since it should be using
     # 2*size([vcf, vcf_index], "GB")
   }
   command {
 
-    mv ~{write_lines(samples)} samples.args # needs to be a .args with each sample name on a separate line
-
-    head samples.args
-
     gatk SelectVariants -V ~{vcf} --select-type-to-include SNP --max-nocall-fraction 0.1 \
     --restrict-alleles-to BIALLELIC  -xl-select-type SYMBOLIC --select-type-to-exclude MIXED \
-    --exclude-non-variants TRUE -L ~{chrom}:~{start}-~{end} -O ~{basename}.vcf.gz \
-    -sn samples.args
+    --exclude-non-variants true -L ~{chrom}:~{start}-~{end} -O ~{basename}.vcf.gz \
+    -sn ~{samples_list} --exclude-filtered true
   }
 
   runtime {
@@ -227,10 +224,10 @@ task CheckChunkValid {
   }
   command <<<
 
-    ### IMPORTANT TODO: make sure ref and alts match between array and panel or are a simple mismatch
+    ### TODO: make sure ref and alts match between array and panel or are a simple mismatch
  
     var_in_original=$(gatk CountVariants -V ~{vcf})
-    var_in_original=$(gatk CountVariants -V ~{vcf} -L ~{panel_vcf})
+    var_in_reference=$(gatk CountVariants -V ~{vcf} -L ~{panel_vcf})
 
     echo ${var_in_reference} " * 2 - " ${var_in_original} "should be greater than 0 AND " ${var_in_reference} "should be greater than 3"
     if [ $(( ${var_in_reference} * 2 - ${var_in_original})) -gt 0 ] && [ ${var_in_reference} -gt 3 ]; then
@@ -320,6 +317,8 @@ task MergeVCFs {
   
   command <<<
     bcftools concat ~{input_vcfs} -Oz -o ~{output_vcf_basename}.vcf.gz
+    bcftools index -t ~{output_vcf_basename}.vcf.gz
+
   >>>
   runtime {
     docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
@@ -328,6 +327,7 @@ task MergeVCFs {
   }
   output {
     File output_vcf = "~{output_vcf_basename}.vcf.gz"
+    File output_vcf_index = "~{output_vcf_basename}.vcf.gz.tbi"
   }
 }
 
