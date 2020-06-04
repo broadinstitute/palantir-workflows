@@ -53,8 +53,8 @@ workflow TestingNewImputation {
 
       call CheckChunkValid {
         input: 
-          vcf = QCSites.output_vcf,
-          vcf_index = QCSites.output_vcf_index,
+          vcf = select_first([QCSites.output_vcf,  GenerateChunk.output_vcf]),
+          vcf_index = select_first([QCSites.output_vcf_index, GenerateChunk.output_vcf_index]),
           panel_vcf = path_to_reference_panel + "ALL.chr" + chrom + ".phase3_integrated.20130502.genotypes.vcf.gz",
           panel_vcf_index = path_to_reference_panel + "ALL.chr" + chrom + ".phase3_integrated.20130502.genotypes.vcf.gz.tbi"
       }
