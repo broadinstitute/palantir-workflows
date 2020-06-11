@@ -1,5 +1,7 @@
+# Hi this is Mark and Chris
 workflow GenerateTruth {
 
+  String ChrisIsCool
   String bloodbiopsydocker
 
   String base_name 
