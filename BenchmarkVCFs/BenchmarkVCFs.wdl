@@ -547,6 +547,7 @@ task VcfEval {
         String? memUser
         Int? threads
         Boolean requireMatchingGenotypes
+        String output_mode = "split"
     }
     String memDefault="16 GB"
     String mem=select_first([memUser,memDefault])
@@ -564,9 +565,9 @@ task VcfEval {
         ~{false="--squash-ploidy" true="" requireMatchingGenotypes} \
         -b ~{truthVCF} -c ~{evalVCF} \
         -e ~{confidenceBed} ~{"--bed-regions " + stratBed} \
-        --output-mode combine --decompose -t rtg_ref \
+        --output-mode ~{output_mode} --decompose -t rtg_ref \
         ~{"--threads "+threads} -o output_dir
-
+    ls > ls.txt
     for f in output_dir/*; do
         mv $f ~{outputPre}_"$(basename "$f")";
     done
@@ -666,6 +667,7 @@ task VcfEval {
     }
 
     output {
+        File ls = "ls.txt"
         Array[File] outs=glob("${outputPre}_*")
         File outSummary="${outputPre}_summary.csv"
         File outVcf="${outputPre}_output.vcf.gz"
