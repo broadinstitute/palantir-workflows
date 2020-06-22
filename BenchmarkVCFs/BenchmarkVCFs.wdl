@@ -29,6 +29,7 @@ workflow Benchmark {
         Boolean passingOnly=true
         String? vcfScoreField
         File testFile
+        File testFile2
     }
 
     meta {
