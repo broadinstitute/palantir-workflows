@@ -30,6 +30,7 @@ workflow Benchmark {
         String? vcfScoreField
         File testInput
         File testInput2
+        File testInput3
     }
 
     meta {
