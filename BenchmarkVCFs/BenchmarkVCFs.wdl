@@ -558,6 +558,13 @@ task VcfEval {
     command <<<
     set -xeuo pipefail
 
+    touch ~{outputPre}"_output.vcf.gz"
+    touch ~{outputPre}"_output.vcf.gz.tbi"
+    touch ~{outputPre}"_fp.vcf.gz"
+    touch ~{outputPre}"_fp.vcf.gz.tbi"
+    touch ~{outputPre}"_tp.vcf.gz"
+    touch ~{outputPre}"_tp.vcf.gz.tbi"
+
     /bin/rtg-tools/rtg format -o rtg_ref ~{ref}
     /bin/rtg-tools/rtg vcfeval \
         ~{false="--all-records" true="" passingOnly} \
@@ -567,7 +574,9 @@ task VcfEval {
         -e ~{confidenceBed} ~{"--bed-regions " + stratBed} \
         --output-mode ~{output_mode} --decompose -t rtg_ref \
         ~{"--threads "+threads} -o output_dir
-    ls > ls.txt
+    
+
+
     for f in output_dir/*; do
         mv $f ~{outputPre}_"$(basename "$f")";
     done
@@ -667,11 +676,14 @@ task VcfEval {
     }
 
     output {
-        File ls = "ls.txt"
         Array[File] outs=glob("${outputPre}_*")
         File outSummary="${outputPre}_summary.csv"
         File outVcf="${outputPre}_output.vcf.gz"
         File outVcfIndex="${outputPre}_output.vcf.gz.tbi"
+        File fp_vcf = outputPre + "_fp.vcf.gz"
+        File fp_vcf_index = outputPre + "_fp.vcf.gz.tbi"
+        File tp_vcf = outputPre + "_tp.vcf.gz"
+        File tp_vcf_index = outputPre + "_tp.vcf.gz.tbi"
         File outSnpRocPlot="~{outputPre}.snp.svg"
         File outNonRocPlot="~{outputPre}.indel.svg"
         File outSnpRoc="${outputPre}_snp_roc.tsv.gz"
