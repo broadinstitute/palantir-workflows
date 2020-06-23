@@ -547,7 +547,6 @@ task VcfEval {
         String? memUser
         Int? threads
         Boolean requireMatchingGenotypes
-        String output_mode = "split"
     }
     String memDefault="16 GB"
     String mem=select_first([memUser,memDefault])
@@ -566,13 +565,23 @@ task VcfEval {
     touch ~{outputPre}"_tp.vcf.gz.tbi"
 
     /bin/rtg-tools/rtg format -o rtg_ref ~{ref}
+
     /bin/rtg-tools/rtg vcfeval \
         ~{false="--all-records" true="" passingOnly} \
         ~{"--vcf-score-field=" + vcfScoreField} \
         ~{false="--squash-ploidy" true="" requireMatchingGenotypes} \
         -b ~{truthVCF} -c ~{evalVCF} \
         -e ~{confidenceBed} ~{"--bed-regions " + stratBed} \
-        --output-mode ~{output_mode} --decompose -t rtg_ref \
+        --output-mode combine --decompose -t rtg_ref \
+        ~{"--threads "+threads} -o output_dir
+
+    /bin/rtg-tools/rtg vcfeval \
+        ~{false="--all-records" true="" passingOnly} \
+        ~{"--vcf-score-field=" + vcfScoreField} \
+        ~{false="--squash-ploidy" true="" requireMatchingGenotypes} \
+        -b ~{truthVCF} -c ~{evalVCF} \
+        -e ~{confidenceBed} ~{"--bed-regions " + stratBed} \
+        --output-mode split --decompose -t rtg_ref \
         ~{"--threads "+threads} -o output_dir
     
 
