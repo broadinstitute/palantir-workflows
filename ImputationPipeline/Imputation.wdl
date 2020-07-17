@@ -503,7 +503,7 @@ task SortIds {
 	}
 }
 
-task MergeSingleSampleVcfs
+task MergeSingleSampleVcfs {
   input {
     Array[File] input_vcfs
     Array[File] input_vcf_indices
