@@ -347,7 +347,8 @@ task DifferentMergeVCFs {
   Int disk_size = ceil(3*size(input_vcfs, "GB"))
   
   command <<<
-    gatk MergeVcfs -I ~{sep=' -I=' input_vcfs} -O ~{output_vcf_basename}.vcf.gz
+    gatk GatherVcfs -I ~{sep=' -I=' input_vcfs} -O ~{output_vcf_basename}.vcf.gz --create-output-variant-index FALSE
+    gakt IndexFeatureFile -F ~{output_vcf_basename}.vcf.gz
   >>>
    runtime {
     docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
