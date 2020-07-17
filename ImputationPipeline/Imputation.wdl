@@ -5,7 +5,7 @@ workflow ImputationPipeline {
     Int chunkLength = 25000000
     File? multi_sample_vcf
     File? multi_sample_vcf_index
-    Array[File]? single_sample_vcfs
+    Array[File]? single_sample_vcfs # wdl doesn't let you have an optional array of files ?
     Array[File]? single_sample_vcf_indices
     Boolean perform_extra_qc_steps
     File ref_dict = "gs://gcp-public-data--broad-references/hg19/v0/Homo_sapiens_assembly19.dict"
@@ -15,17 +15,17 @@ workflow ImputationPipeline {
     String path_to_m3vcf = "gs://broad-dsde-methods-skwalker/polygenic_risk_scores/minimac3_files/"
   }
 
-  if (single_sample_vcfs) {
+  if (defined(single_sample_vcfs)) {
     call MergeSingleSampleVcfs {
       input:
-        input_vcfs = single_sample_vcfs,
-        input_vcf_indices = single_sample_vcf_indices,
+        input_vcfs = select_first([single_sample_vcfs, []]),
+        input_vcf_indices = select_first([single_sample_vcf_indices, []]),
         output_vcf_basename = "merged_input_samples"
     }
   }
 
-  File vcf_to_impute = select_first(multi_sample_vcf, MergeSingleSampleVcfs.output_vcf)
-  File vcf_index_to_impute = select_first(multi_sample_vcf_index, MergeSingleSampleVcfs.output_vcf_index)  
+  File vcf_to_impute = select_first([multi_sample_vcf, MergeSingleSampleVcfs.output_vcf])
+  File vcf_index_to_impute = select_first([multi_sample_vcf_index, MergeSingleSampleVcfs.output_vcf_index])  
 
   scatter (chrom in ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22"]) { 
     call CalculateChromsomeLength {
@@ -41,7 +41,6 @@ workflow ImputationPipeline {
 
       call GenerateChunk {
         input:
-          samples_list = samples_list,
           vcf = vcf_to_impute,
           vcf_index = vcf_index_to_impute,
           start = (i * chunkLength) + 1,
@@ -184,7 +183,6 @@ task GenerateChunk {
     String basename
     String vcf
     String vcf_index
-    File samples_list
     Int disk_size = 400 # not sure how big the disk size needs to be since we aren't downloading the entire VCF here 
   }
   command {
