@@ -7,7 +7,7 @@ workflow ImputationPipeline {
     File? multi_sample_vcf_index
     Array[File]? single_sample_vcfs
     Array[File]? single_sample_vcf_indices
-    Boolean perform_qc_steps
+    Boolean perform_extra_qc_steps
     File ref_dict = "gs://gcp-public-data--broad-references/hg19/v0/Homo_sapiens_assembly19.dict"
     String genetic_maps_eagle = "/genetic_map_hg19_withX.txt.gz"
     String output_callset_name = "broad_imputation"
@@ -51,8 +51,8 @@ workflow ImputationPipeline {
       }
 
 
-       if (perform_qc_steps) {
-        call QCSites {
+       if (perform_extra_qc_steps) {
+        call OptionalQCSites {
           input:
             input_vcf = GenerateChunk.output_vcf,
             input_vcf_index = GenerateChunk.output_vcf_index,
@@ -63,8 +63,8 @@ workflow ImputationPipeline {
 
       call CheckChunkValid {
         input: 
-          vcf = select_first([QCSites.output_vcf,  GenerateChunk.output_vcf]),
-          vcf_index = select_first([QCSites.output_vcf_index, GenerateChunk.output_vcf_index]),
+          vcf = select_first([OptionalQCSites.output_vcf,  GenerateChunk.output_vcf]),
+          vcf_index = select_first([OptionalQCSites.output_vcf_index, GenerateChunk.output_vcf_index]),
           panel_vcf = path_to_reference_panel + "ALL.chr" + chrom + ".phase3_integrated.20130502.genotypes.vcf.gz",
           panel_vcf_index = path_to_reference_panel + "ALL.chr" + chrom + ".phase3_integrated.20130502.genotypes.vcf.gz.tbi"
       }
@@ -451,7 +451,7 @@ task SplitSample {
   }
 }
 
-task QCSites {
+task OptionalQCSites {
   input {
     File input_vcf
     File input_vcf_index
