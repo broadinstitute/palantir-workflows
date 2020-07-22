@@ -1,6 +1,6 @@
 version 1.0
 
-###look what fun!!!
+
 workflow Benchmark {
     input{
         String? analysisRegion
@@ -28,9 +28,6 @@ workflow Benchmark {
 
         Boolean passingOnly=true
         String? vcfScoreField
-        File testFile
-        File testFile2
-        File testFile3
     }
 
     meta {
