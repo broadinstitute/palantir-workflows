@@ -1,6 +1,5 @@
 version 1.0
 
-#one more test
 workflow Benchmark {
     input{
         String? analysisRegion
