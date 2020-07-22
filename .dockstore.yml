@@ -1,4 +1,5 @@
 version: 1.2
 workflows:
-  - subclass: WLD
-    primaryDescriptorPath: /MicrobialRNATagSeq/MicrobialPipeline.wdl
+  - name: MicrobialPipeline
+  subclass: WLD
+  primaryDescriptorPath: /MicrobialRNATagSeq/MicrobialPipeline.wdl
