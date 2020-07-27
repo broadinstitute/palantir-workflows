@@ -1,15 +1,17 @@
 version 1.0
 
-
 workflow ScoringImputedDataset {
 	input { 
-    File weights # disease weights file
-    File array_vcf # imputed VCF: make sure the variant IDs exactly match those in the weights file 
+    File weights # disease weights file. Becauase we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
+    #  that will allow you to sort the variants in this weights file
+
+    File? original_array_vcf # original array for better PCA projection ( this is optional, with the default being it will run on the imputed array vcf instead)
+    File imputed_array_vcf  # imputed VCF for scoring (and optionally PCA projection): make sure the variant IDs exactly match those in the weights file 
     Int scoring_mem = 16
     File population_vcf # population VCF (e.g., Thousand Genomes): again, make sure the variant IDs exactly match those in the weights file 
     
-    String population_basename # for naming the output of scoring the population array
-    String basename # whatever you want things to be labeled at the end
+    String population_basename # for naming the output of population scoring
+    String basename # for naming the output of array scoring and the array projection files
 
     ## these next 3 files are after performing PCA on your population dataset ( again, make sure all the variant IDs are the same )
     File population_loadings
@@ -17,15 +19,20 @@ workflow ScoringImputedDataset {
     File population_pcs
     File pruning_sites_for_pca # and the sites used for PCA
 
-    File adjust_scores_rscript = "gs://broad-dsde-methods-skwalker/ScoringAdjustment.R"  
+    File adjust_scores_rscript = "gs://broad-dsde-methods-skwalker/ScoringAdjustment.R" 
+    String? columns_for_scoring # Plink expects the first 3 columns in your weights file to be variant ID, effect allele, effect weight
+    # if this isn't true, then you should give it the correct column #s in that order
+    # example: if you were to set columns_for_scoring = "11 12 13" would mean that the 11th column is the variant ID, the 12th column 
+    # is the effect allele, and the 13th column is the effect weight
   }
 
   call ScoreVcf as ScoreImputedArray {
   	input:
-  	vcf = array_vcf,
+  	vcf = select_first([original_array_vcf, imputed_array_vcf]),
   	basename = basename,
   	weights = weights,
-  	base_mem = scoring_mem
+  	base_mem = scoring_mem,
+  	extra_args = columns_for_scoring
   }
 
   call ScoreVcf as ScorePopulation {
@@ -33,41 +40,51 @@ workflow ScoringImputedDataset {
   	vcf = population_vcf,
   	basename = population_basename,
   	weights = weights,
-	  base_mem = scoring_mem * 4 
-	  }
+  	base_mem = scoring_mem * 4,
+  	extra_args = columns_for_scoring 
+  }
 
-	  call ArrayVcfToPlinkDataset {
-	  	input:
-	  	vcf = array_vcf,
-	  	pruning_sites = pruning_sites_for_pca,
-	  	basename = basename
-	  }
+  call ArrayVcfToPlinkDataset {
+  	input:
+  	vcf = imputed_array_vcf,
+  	pruning_sites = pruning_sites_for_pca,
+  	basename = basename
+  }
 
-	  call ProjectArray {
-	  	input:
-	  	pc_loadings = population_loadings,
-	  	pc_meansd = population_meansd,
-	  	bed = ArrayVcfToPlinkDataset.bed,
-	  	bim = ArrayVcfToPlinkDataset.bim,
-	  	fam = ArrayVcfToPlinkDataset.fam,
-	  	basename = basename
-	  }
+  call ProjectArray {
+  	input:
+  	pc_loadings = population_loadings,
+  	pc_meansd = population_meansd,
+  	bed = ArrayVcfToPlinkDataset.bed,
+  	bim = ArrayVcfToPlinkDataset.bim,
+  	fam = ArrayVcfToPlinkDataset.fam,
+  	basename = basename
+  }
 
-	  call AdjustScores {
-	  	input:
-	  	adjusting_Rscript = adjust_scores_rscript,
-	  	population_pcs = population_pcs,
-	  	population_scores = ScorePopulation.score,
-	  	array_pcs = ProjectArray.projections,
-	  	array_scores = ScoreImputedArray.score
-	  }
-	}
+  call AdjustScores {
+  	input:
+  	adjusting_Rscript = adjust_scores_rscript,
+  	population_pcs = population_pcs,
+  	population_scores = ScorePopulation.score,
+  	array_pcs = ProjectArray.projections,
+  	array_scores = ScoreImputedArray.score
+  }
+
+  output {
+  	File pc_plot = AdjustScores.pca_plot
+  	File adjusted_population_scores = AdjustScores.adjusted_population_scores
+  	File adjusted_array_scores = AdjustScores.adjusted_array_scores
+  }
+}
 
 # Wallace suggested using variant IDs as chrom:pos:allele1:allele2 where allele1 is < allele2 (alphabetically sorted) so 
 # that the variant IDs exactly match in the disease weights file and the imputed VCF file (assuming your weights file also
 # contains variant IDs sorted this way)
 # If you're using the partners VCF I imputed, those variants have already been sorted in this order, so this task isn't 
 # necessary (which is why it's not actually run in the workflow)
+
+## This is assuming that your variant IDs are in the format chr:positionr:allele1:allele2 and just alphabetizes allele1 and 
+## allele 2. To get variant IDs in this format, you can run `bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' ~{vcf}`
 task SortIds {
 	input {
 		File vcf
@@ -97,6 +114,7 @@ task ScoreVcf {
 		String basename
 		File weights
 		Int base_mem = 8
+		String? extra_args
 	}
 
 	Int runtime_mem = base_mem + 2
@@ -107,7 +125,7 @@ task ScoreVcf {
 	command {
 		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation \
 		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums -vcf ~{vcf} dosage=DS \
-		--out ~{basename} --memory ~{plink_mem}
+		--out ~{basename} --memory ~{plink_mem} ~{extra_args}
 	}
 
 	output {
@@ -216,3 +234,31 @@ task AdjustScores {
 	}
 } 
 
+
+# This task allows you to sort each variant ID in your weights file. It already assumes they are in the format chr:position:a1:a2
+# and just sorts a1, a2. You will have to perform other awk magic to get it into this format otherwise.
+
+task SortWeights {
+  input {
+    File weights_file
+    Int disk_space = 50
+    Int id_column # the column # of the variant IDs
+     String basename # what you wanted the new weights file to be called
+   }
+    
+    command <<<
+  
+    awk -v id_col="~{id_column}" -v OFS='\t' '{split($id_col, n, ":"); if ( n[4] < n[3])  $id_col=n[1]":"n[2]":"n[4]":"n[3]; print $0}' ~{weights_file} > ~{basename}.txt
+
+	>>>
+
+	output {
+		File sorted_weights = "~{basename}.txt"
+	}
+
+	runtime {
+		docker: "skwalker/imputation:with_vcftools" 
+		disks: "local-disk " + disk_space + " HDD"
+		memory: "16 GB"
+	}
+}

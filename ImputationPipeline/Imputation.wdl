@@ -114,11 +114,11 @@ workflow ImputationPipeline {
         }
       }
     }
-    Array[File] chromsome_vcfs = select_all(SortIds.output_vcf)
+    Array[File] chromosome_vcfs = select_all(SortIds.output_vcf)
     Array[File] chromosome_vcf_indices = select_all(SortIds.output_vcf_index)
   }
 
-  Array[File] phased_vcfs = flatten(chromsome_vcfs)
+  Array[File] phased_vcfs = flatten(chromosome_vcfs)
   Array[File] phased_vcf_indices = flatten(chromosome_vcf_indices)
 
   call DifferentMergeVCFs { 
@@ -188,8 +188,7 @@ task GenerateChunk {
   command {
 
     gatk SelectVariants -V ~{vcf} --select-type-to-include SNP --max-nocall-fraction 0.1 \
-    --restrict-alleles-to BIALLELIC  -xl-select-type SYMBOLIC --select-type-to-exclude MIXED \
-    -L ~{chrom}:~{start}-~{end} -O ~{basename}.vcf.gz --exclude-filtered true
+    --restrict-alleles-to BIALLELIC -L ~{chrom}:~{start}-~{end} -O ~{basename}.vcf.gz --exclude-filtered true
   }
 
   runtime {
@@ -262,7 +261,7 @@ task PrePhaseVariantsEagle {
     Int start
     Int end
   }  
-  Int disk_size = ceil(1.5 * size([dataset_bcf, reference_panel_bcf, dataset_bcf_index, reference_panel_bcf_index], "GB"))
+  Int disk_size = ceil(3 * size([dataset_bcf, reference_panel_bcf, dataset_bcf_index, reference_panel_bcf_index], "GB"))
   command <<<
       /eagle  \
              --vcfTarget ~{dataset_bcf}  \
@@ -479,7 +478,7 @@ task SortIds {
 	input {
 		File vcf
 		String basename
-        Int disk_space =  3*ceil(size(vcf, "GB"))
+    Int disk_space =  3*ceil(size(vcf, "GB"))
 	}
 
 	command <<<
