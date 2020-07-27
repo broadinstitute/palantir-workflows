@@ -34,35 +34,21 @@ workflow ScoringImputedDataset {
   		  basename = "original_array.different_ids"
   	}
 
-  	call SortIds {
+  	call SortIds as SortOriginalArrayVariantIds {
   		input:
   		  vcf = UpdateVariantIds.output_vcf,
   		  basename = "original_array.updated_ids"
   	}
-
-  	call ScoreVcf as ScoreOriginalArray {
-  		input:
-		  	vcf = SortIds.output_vcf,
-		  	basename = basename,
-		  	weights = weights,
-		  	base_mem = scoring_mem,
-		  	extra_args = columns_for_scoring
-  	}
   }
-
-  # ha can't just use an "else" clause ??
-  if (!(defined(original_array_vcf))) {
-  	call ScoreVcf as ScoreImputedArray {
-	  	input:
-		  	vcf = imputed_array_vcf,
-		  	basename = basename,
-		  	weights = weights,
-		  	base_mem = scoring_mem,
-		  	extra_args = columns_for_scoring
-	  }
-	}
-
-	File array_scoring_file = select_first([ScoreImputedArray.score, ScoreOriginalArray.score ])
+  
+  call ScoreVcf as ScoreImputedArray {
+  	input:
+	  	vcf = imputed_array_vcf,
+	  	basename = basename,
+	  	weights = weights,
+	  	base_mem = scoring_mem,
+	  	extra_args = columns_for_scoring
+  }
 
   call ScoreVcf as ScorePopulation {
   	input:
@@ -75,7 +61,7 @@ workflow ScoringImputedDataset {
 
   call ArrayVcfToPlinkDataset {
   	input:
-  	vcf = imputed_array_vcf,
+  	vcf = select_first([SortOriginalArrayVariantIds.output_vcf, imputed_array_vcf]),
   	pruning_sites = pruning_sites_for_pca,
   	basename = basename
   }
@@ -96,7 +82,7 @@ workflow ScoringImputedDataset {
   	population_pcs = population_pcs,
   	population_scores = ScorePopulation.score,
   	array_pcs = ProjectArray.projections,
-  	array_scores = array_scoring_file
+  	array_scores = ScoreImputedArray.score
   }
 
   output {
