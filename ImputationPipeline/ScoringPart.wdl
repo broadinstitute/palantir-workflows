@@ -26,14 +26,43 @@ workflow ScoringImputedDataset {
     # is the effect allele, and the 13th column is the effect weight
   }
 
-  call ScoreVcf as ScoreImputedArray {
-  	input:
-  	vcf = select_first([original_array_vcf, imputed_array_vcf]),
-  	basename = basename,
-  	weights = weights,
-  	base_mem = scoring_mem,
-  	extra_args = columns_for_scoring
+  # this adds in the correct IDs (sorted) so we can run things properly
+  if (defined(original_array_vcf)) {
+  	call UpdateVariantIds {
+  		input:
+  		  vcf = original_array_vcf, 
+  		  basename = "original_array.different_ids"
+  	}
+
+  	call SortIds {
+  		input:
+  		  vcf = UpdateVariantIds.output_vcf,
+  		  basename = "original_array.updated_ids"
+  	}
+
+  	call ScoreVcf as ScoreOriginalArray {
+  		input:
+		  	vcf = SortIds.output_vcf,
+		  	basename = basename,
+		  	weights = weights,
+		  	base_mem = scoring_mem,
+		  	extra_args = columns_for_scoring
+  	}
   }
+
+  # ha can't just use an "else" clause ??
+  if (!(defined(original_array_vcf))) {
+  	call ScoreVcf as ScoreImputedArray {
+	  	input:
+		  	vcf = imputed_array_vcf,
+		  	basename = basename,
+		  	weights = weights,
+		  	base_mem = scoring_mem,
+		  	extra_args = columns_for_scoring
+	  }
+	}
+
+	File array_scoring_file = select_first([ScoreImputedArray.score, ScoreOriginalArray.score ])
 
   call ScoreVcf as ScorePopulation {
   	input:
@@ -67,7 +96,7 @@ workflow ScoringImputedDataset {
   	population_pcs = population_pcs,
   	population_scores = ScorePopulation.score,
   	array_pcs = ProjectArray.projections,
-  	array_scores = ScoreImputedArray.score
+  	array_scores = array_scoring_file
   }
 
   output {
@@ -262,3 +291,27 @@ task SortWeights {
 		memory: "16 GB"
 	}
 }
+
+task UpdateVariantIds {
+
+  input {
+    File? vcf
+    String basename
+    Int disk_space =  3*ceil(size(vcf, "GB"))
+  }
+
+  command <<<
+    bcftools annotate --set-id '%CHROM\:%POS\:%REF\:%FIRST_ALT' ~{vcf} -O z -o ~{basename}.vcf.gz
+  >>>
+
+  output {
+    File output_vcf = "~{basename}.vcf.gz"
+  }
+
+  runtime {
+    docker: "skwalker/imputation:with_vcftools"
+    disks: "local-disk " + disk_space + " HDD"
+    memory: "16 GB"
+  }
+}
+
