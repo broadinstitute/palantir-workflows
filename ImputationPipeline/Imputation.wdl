@@ -11,8 +11,8 @@ workflow ImputationPipeline {
     File ref_dict = "gs://gcp-public-data--broad-references/hg19/v0/Homo_sapiens_assembly19.dict"
     String genetic_maps_eagle = "/genetic_map_hg19_withX.txt.gz"
     String output_callset_name = "broad_imputation"
-    String path_to_reference_panel = "gs://broad-dsde-methods-skwalker/polygenic_risk_scores/eagle_reference_panels/"
-    String path_to_m3vcf = "gs://broad-dsde-methods-skwalker/polygenic_risk_scores/minimac3_files/"
+    String path_to_reference_panel = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/eagle_panels/" # from the "Imputation and Polygenic Risk Score Files" workspace in Terra
+    String path_to_m3vcf = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/minimac3_files/" # from the same workspace ^
   }
 
   if (defined(single_sample_vcfs)) {
@@ -220,11 +220,9 @@ task CheckChunkValid {
     File panel_vcf
     File panel_vcf_index
     Int disk_size =ceil(2*size([vcf, vcf_index, panel_vcf, panel_vcf_index], "GB"))
-    File gatk_jar = "gs://broad-dsde-methods-skwalker/polygenic_risk_scores/test_new_gatk.jar" ## this can be changed to any public gatk jar on the cloud (but I dont think we publish those anywhere? )
+    File gatk_jar # use any public gatk jar on the cloud (but I dont think we publish those anywhere? )
   }
   command <<<
-
-    ### TODO: make sure ref and alts match between array and panel or are a simple mismatch
  
     var_in_original=$(java -jar ~{gatk_jar} CountVariants -V ~{vcf}  | sed 's/Tool returned://')
     var_in_reference=$(java -jar ~{gatk_jar}  CountVariants -V ~{vcf} -L ~{panel_vcf}  | sed 's/Tool returned://')
@@ -366,7 +364,7 @@ task UpdateHeader {
     File vcf_index
     File ref_dict
     String basename
-    Int disk_size = ceil(3*(size(vcf, "GB") + size(vcf_index, "GB")))
+    Int disk_size = ceil(4*(size(vcf, "GB") + size(vcf_index, "GB"))) + 20 
   }
   command <<<
     
