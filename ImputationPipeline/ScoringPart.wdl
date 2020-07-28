@@ -3,11 +3,13 @@ version 1.0
 workflow ScoringImputedDataset {
 	input { 
     File weights # disease weights file. Becauase we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
-    #  that will allow you to sort the variants in this weights file
+    #  that will allow you to sort the variants in this weights file (`SortWeights`)
 
     File? original_array_vcf # original array for better PCA projection ( this is optional, with the default being it will run on the imputed array vcf instead)
     File imputed_array_vcf  # imputed VCF for scoring (and optionally PCA projection): make sure the variant IDs exactly match those in the weights file 
     Int scoring_mem = 16
+    Int population_scoring_mem = scoring_mem * 4
+
     File population_vcf # population VCF (e.g., Thousand Genomes): again, make sure the variant IDs exactly match those in the weights file 
     
     String population_basename # for naming the output of population scoring
@@ -19,7 +21,7 @@ workflow ScoringImputedDataset {
     File population_pcs
     File pruning_sites_for_pca # and the sites used for PCA
 
-    File adjust_scores_rscript = "gs://broad-dsde-methods-skwalker/ScoringAdjustment.R" 
+    File adjust_scores_rscript = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/ScoringAdjustment.R" 
     String? columns_for_scoring # Plink expects the first 3 columns in your weights file to be variant ID, effect allele, effect weight
     # if this isn't true, then you should give it the correct column #s in that order
     # example: if you were to set columns_for_scoring = "11 12 13" would mean that the 11th column is the variant ID, the 12th column 
@@ -55,7 +57,7 @@ workflow ScoringImputedDataset {
   	vcf = population_vcf,
   	basename = population_basename,
   	weights = weights,
-  	base_mem = scoring_mem * 4,
+  	base_mem = population_scoring_mem,
   	extra_args = columns_for_scoring 
   }
 
