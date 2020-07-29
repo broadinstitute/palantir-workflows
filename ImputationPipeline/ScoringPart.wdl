@@ -32,24 +32,24 @@ workflow ScoringImputedDataset {
   if (defined(original_array_vcf)) {
   	call UpdateVariantIds {
   		input:
-  		  vcf = original_array_vcf, 
-  		  basename = "original_array.different_ids"
+  		vcf = original_array_vcf, 
+  		basename = "original_array.different_ids"
   	}
 
   	call SortIds as SortOriginalArrayVariantIds {
   		input:
-  		  vcf = UpdateVariantIds.output_vcf,
-  		  basename = "original_array.updated_ids"
+  		vcf = UpdateVariantIds.output_vcf,
+  		basename = "original_array.updated_ids"
   	}
   }
   
   call ScoreVcf as ScoreImputedArray {
   	input:
-	  	vcf = imputed_array_vcf,
-	  	basename = basename,
-	  	weights = weights,
-	  	base_mem = scoring_mem,
-	  	extra_args = columns_for_scoring
+  	vcf = imputed_array_vcf,
+  	basename = basename,
+  	weights = weights,
+  	base_mem = scoring_mem,
+  	extra_args = columns_for_scoring
   }
 
   call ScoreVcf as ScorePopulation {
@@ -144,7 +144,7 @@ task ScoreVcf {
 	command {
 		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation \
 		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums ~{extra_args} -vcf ~{vcf} \
-		 dosage=DS --out ~{basename} --memory ~{plink_mem} 
+		dosage=DS --out ~{basename} --memory ~{plink_mem} 
 	}
 
 	output {
@@ -259,50 +259,49 @@ task AdjustScores {
 # and just sorts a1, a2. You will have to perform other awk magic to get it into this format otherwise.
 
 task SortWeights {
-  input {
-    File weights_file
-    Int disk_space = 50
+	input {
+		File weights_file
+		Int disk_space = 50
     Int id_column # the column # of the variant IDs
      String basename # what you wanted the new weights file to be called
    }
-    
-    command <<<
-  
-    awk -v id_col="~{id_column}" -v OFS='\t' '{split($id_col, n, ":"); if ( n[4] < n[3])  $id_col=n[1]":"n[2]":"n[4]":"n[3]; print $0}' ~{weights_file} > ~{basename}.txt
 
+   command <<<
+
+   awk -v id_col="~{id_column}" -v OFS='\t' '{split($id_col, n, ":"); if ( n[4] < n[3])  $id_col=n[1]":"n[2]":"n[4]":"n[3]; print $0}' ~{weights_file} > ~{basename}.txt
+
+   >>>
+
+   output {
+   	File sorted_weights = "~{basename}.txt"
+   }
+
+   runtime {
+   	docker: "skwalker/imputation:with_vcftools" 
+   	disks: "local-disk " + disk_space + " HDD"
+   	memory: "16 GB"
+   }
+ }
+
+ task UpdateVariantIds {
+ 	input {
+ 		File? vcf
+ 		String basename
+ 		Int disk_space =  3*ceil(size(vcf, "GB"))
+	}
+
+	command <<<
+	bcftools annotate --set-id '%CHROM\:%POS\:%REF\:%FIRST_ALT' ~{vcf} -O z -o ~{basename}.vcf.gz
 	>>>
 
 	output {
-		File sorted_weights = "~{basename}.txt"
-	}
+ 		File output_vcf = "~{basename}.vcf.gz"
+ 	}
 
-	runtime {
-		docker: "skwalker/imputation:with_vcftools" 
-		disks: "local-disk " + disk_space + " HDD"
-		memory: "16 GB"
-	}
-}
-
-task UpdateVariantIds {
-
-  input {
-    File? vcf
-    String basename
-    Int disk_space =  3*ceil(size(vcf, "GB"))
-  }
-
-  command <<<
-    bcftools annotate --set-id '%CHROM\:%POS\:%REF\:%FIRST_ALT' ~{vcf} -O z -o ~{basename}.vcf.gz
-  >>>
-
-  output {
-    File output_vcf = "~{basename}.vcf.gz"
-  }
-
-  runtime {
-    docker: "skwalker/imputation:with_vcftools"
-    disks: "local-disk " + disk_space + " HDD"
-    memory: "16 GB"
-  }
-}
+ 	runtime {
+ 		docker: "skwalker/imputation:with_vcftools"
+ 		disks: "local-disk " + disk_space + " HDD"
+ 		memory: "16 GB"
+ 	}
+ }
 
