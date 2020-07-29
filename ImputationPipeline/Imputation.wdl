@@ -514,10 +514,10 @@ task MergeSingleSampleVcfs {
     String output_vcf_basename
    }
 
-   Int disk_size = size(input_vcfs, "GB") + size(input_vcf_indices, "GB") + 20
+   Int disk_size = 3* size(input_vcfs, "GB") + size(input_vcf_indices, "GB") + 20
 
   command <<<
-    bcftools merge ~{sep=' ' input_vcfs} -O u | bcftools norm -m - -O z -o ~{output_vcf_basename}.vcf.gz 
+    bcftools merge ~{sep=' ' input_vcfs} -Oz -o ~{output_vcf_basename}.vcf.gz 
     bcftools index -t ~{output_vcf_basename}.vcf.gz
   >>>
 
