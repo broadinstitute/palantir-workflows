@@ -136,6 +136,8 @@ task ScoreVcf {
 
 	Int runtime_mem = base_mem + 2
 	Int plink_mem = base_mem * 1000
+	Int disk_space =  3*ceil(size(vcf, "GB")) + 20 
+
 
 
 
@@ -152,7 +154,7 @@ task ScoreVcf {
 
 	runtime {
 		docker: "skwalker/plink2:first"
-		disks: "local-disk 400 HDD"
+		disks: "local-disk " + disk_space + " HDD"
 		memory: runtime_mem + " GB"
 	}
 }
@@ -167,6 +169,7 @@ task ArrayVcfToPlinkDataset {
 		Int mem = 8
 	}
 
+	Int disk_space =  3*ceil(size(vcf, "GB")) + 20 
 
 	command {
 
@@ -182,7 +185,7 @@ task ArrayVcfToPlinkDataset {
 
 	runtime {
 		docker: "skwalker/plink2:first"
-		disks: "local-disk 400 HDD"
+		disks: "local-disk " + disk_space + " HDD"
 		memory: mem + " GB"
 	}
 } 
