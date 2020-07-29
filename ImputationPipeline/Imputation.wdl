@@ -3,14 +3,22 @@ version 1.0
 workflow ImputationPipeline {
   input {
     Int chunkLength = 25000000
+
+    # You can either input a multisample VCF or an array of single sample VCFs
+    # The pipeline will just merge the single sample VCFs into one multisample VCF
+    # and then impute the multisample VCF
+    # If you want to run a single sample VCF, set the multi_sample_vcf input to the
+    # single sample VCF
     File? multi_sample_vcf
     File? multi_sample_vcf_index
-    Array[File]? single_sample_vcfs # wdl doesn't let you have an optional array of files ?
+    Array[File]? single_sample_vcfs
     Array[File]? single_sample_vcf_indices
-    Boolean perform_extra_qc_steps
-    File ref_dict = "gs://gcp-public-data--broad-references/hg19/v0/Homo_sapiens_assembly19.dict"
-    String genetic_maps_eagle = "/genetic_map_hg19_withX.txt.gz"
-    String output_callset_name = "broad_imputation"
+    
+    Boolean perform_extra_qc_steps # these are optional additional extra QC steps from Amit's group that should only be 
+    # run for large sample sets, especially a diverse set of samples (it's further limiting called at sites to 95% and by HWE)
+    File ref_dict = "gs://gcp-public-data--broad-references/hg19/v0/Homo_sapiens_assembly19.dict" # for reheadering / adding contig lengths in the header of the ouptut VCF
+    String genetic_maps_eagle = "/genetic_map_hg19_withX.txt.gz" # this is for Eagle, it is in the docker image 
+    String output_callset_name = "broad_imputation" # the output callset name
     String path_to_reference_panel = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/eagle_panels/" # from the "Imputation and Polygenic Risk Score Files" workspace in Terra
     String path_to_m3vcf = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/minimac3_files/" # from the same workspace ^
   }
