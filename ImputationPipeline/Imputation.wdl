@@ -129,7 +129,7 @@ workflow ImputationPipeline {
   Array[File] phased_vcfs = flatten(chromosome_vcfs)
   Array[File] phased_vcf_indices = flatten(chromosome_vcf_indices)
 
-  call DifferentMergeVCFs { 
+  call GatherVcfs { 
     input: 
       input_vcfs = phased_vcfs,
       input_vcf_indices = phased_vcf_indices,
@@ -137,8 +137,8 @@ workflow ImputationPipeline {
   }
 
   output {
-    File imputed_multisample_vcf = DifferentMergeVCFs.output_vcf
-    File imputed_multisample_vcf_index = DifferentMergeVCFs.output_vcf_index
+    File imputed_multisample_vcf = GatherVcfs.output_vcf
+    File imputed_multisample_vcf_index = GatherVcfs.output_vcf_index
   }
 }
 
@@ -342,7 +342,7 @@ task MergeVCFs {
   }
 }
 
-task DifferentMergeVCFs {
+task GatherVcfs {
   input {
     Array[File] input_vcfs # these are all valid
     Array[File] input_vcf_indices # these are all valid    
@@ -352,8 +352,11 @@ task DifferentMergeVCFs {
   Int disk_size = ceil(3*size(input_vcfs, "GB"))
   
   command <<<
-    gatk GatherVcfs -I ~{sep=' -I=' input_vcfs} -O ~{output_vcf_basename}.vcf.gz --create-output-variant-index FALSE
-    gakt IndexFeatureFile -F ~{output_vcf_basename}.vcf.gz
+    gatk GatherVcfs -I ~{sep=' -I=' input_vcfs} -O ~{output_vcf_basename}.vcf.gz # I don't think this creates an output index file
+    if [ ! -f ~{output_vcf_basename}.vcf.gz.tbi ]
+    then
+      gatk IndexFeatureFile -F ~{output_vcf_basename}.vcf.gz
+    fi
   >>>
    runtime {
     docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
