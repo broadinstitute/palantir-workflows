@@ -228,7 +228,7 @@ task CheckChunkValid {
     File panel_vcf
     File panel_vcf_index
     Int disk_size =ceil(2*size([vcf, vcf_index, panel_vcf, panel_vcf_index], "GB"))
-    File gatk_jar # use any public gatk jar on the cloud (but I dont think we publish those anywhere? )
+    File gatk_jar =  "gs://fc-6413177b-e99c-4476-b085-3da80d320081/gatk_jar_for_forcing_genotypegvcf_to_run.jar" # you can use any public gatk jar on the cloud (but I dont think we publish those anywhere? )
   }
   command <<<
  
