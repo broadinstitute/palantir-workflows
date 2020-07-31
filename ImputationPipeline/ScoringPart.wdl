@@ -147,7 +147,7 @@ task ScoreVcf {
 	output {
 		File score = "~{basename}.sscore"
 		File log = "~{basename}.log"
-		File sites_scored = "~{basename}sscore.vars.zst"
+		File sites_scored = "~{basename}.sscore.vars.zst"
 	}
 
 	runtime {
