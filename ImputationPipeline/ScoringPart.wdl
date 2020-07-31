@@ -138,9 +138,6 @@ task ScoreVcf {
 	Int plink_mem = base_mem * 1000
 	Int disk_space =  3*ceil(size(vcf, "GB")) + 20 
 
-
-
-
 	command {
 		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation \
 		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums ~{extra_args} -vcf ~{vcf} \
@@ -149,7 +146,8 @@ task ScoreVcf {
 
 	output {
 		File score = "~{basename}.sscore"
-		Array[File] outputs = glob("~{basename}*")
+		File log = "~{basename}.log"
+		File sites_scored = "~{basename}sscore.vars.zst"
 	}
 
 	runtime {
@@ -174,7 +172,7 @@ task ArrayVcfToPlinkDataset {
 	command {
 
 		/plink2 --vcf ~{vcf} --extract ~{pruning_sites} \
-		--out ~{basename} --make-bed
+		--out ~{basename} --make-bed --rm-dup force-first
 	}
 
 	output {
