@@ -107,17 +107,17 @@ workflow ImputationPipeline {
             ref_dict = ref_dict,
             basename = "chrom" + "_chunk_" + i +"_imputed",
         }
-        
-        call SeparateMultiallelics {
-          input:
-            original_vcf = UpdateHeader.output_vcf,
-            original_vcf_index = UpdateHeader.output_vcf_index,
-            output_basename = "chrom" + chrom + "_chunk_" + i +"_imputed",
+
+        call RemoveSymbolicAlleles {
+            input:
+                original_vcf = UpdateHeader.output_vcf,
+                original_vcf_index = UpdateHeader.output_vcf_index,
+                output_basename = "chrom" + chrom + "_chunk_" + i +"_imputed",
         }
         
         call SortIds {
           input:
-           	vcf = SeparateMultiallelics.output_vcf,
+            vcf = RemoveSymbolicAlleles.output_vcf,
             basename = "chrom" + chrom + "_chunk_" + i +"_imputed"
         }
       }
@@ -484,30 +484,30 @@ task OptionalQCSites {
 }
 
 task SortIds {
-	input {
-		File vcf
-		String basename
+    input {
+        File vcf
+        String basename
     Int disk_space =  3*ceil(size(vcf, "GB"))
-	}
+    }
 
-	command <<<
+    command <<<
     # what better way is there to do this I really don't know
     zcat ~{vcf} | awk -v OFS='\t' '{split($3, n, ":"); if ( !($1 ~ /^"#"/) && n[4] < n[3])  $3=n[1]":"n[2]":"n[4]":"n[3]; print $0}' | bgzip -c > ~{basename}.vcf.gz
     bcftools index -t ~{basename}.vcf.gz
 
-	>>>
+    >>>
 
-	output {
-		File output_vcf = "~{basename}.vcf.gz"
-		File output_vcf_index = "~{basename}.vcf.gz.tbi"
+    output {
+        File output_vcf = "~{basename}.vcf.gz"
+        File output_vcf_index = "~{basename}.vcf.gz.tbi"
         
-	}
+    }
 
-	runtime {
-		docker: "skwalker/imputation:with_vcftools"
-		disks: "local-disk " + disk_space + " HDD"
-		memory: "16 GB"
-	}
+    runtime {
+        docker: "skwalker/imputation:with_vcftools"
+        disks: "local-disk " + disk_space + " HDD"
+        memory: "16 GB"
+    }
 }
 
 task MergeSingleSampleVcfs {
