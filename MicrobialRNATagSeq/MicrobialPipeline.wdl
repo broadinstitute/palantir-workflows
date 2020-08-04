@@ -51,8 +51,8 @@ workflow MicrobialPipeline {
                                 }
 
 
-    scatter (i in range(len(fastq_r1s))) {
-    	FastqSet fastq_set = object {
+    scatter (i in range(length(fastq_r1s))) {
+    	FastQSet fastq_set = object {
     		fastq_r1 : fastq_r1s[i],
     		fastq_r2 : fastq_r2s[i]
     	}
