@@ -3,7 +3,6 @@ version 1.0
 struct FastQSet {
     File fastq_r1
     File fastq_r2
-    String prefix
 }
 
 struct ReferenceFasta {

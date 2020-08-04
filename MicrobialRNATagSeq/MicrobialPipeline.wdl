@@ -5,7 +5,8 @@ import "structs.wdl"
 
 workflow MicrobialPipeline {
     input {
-        Array[FastQSet] fastq_sets
+        Array[File] fastq_r1s
+        Array[File] fastq_r2s
         Array[String]+ sample_names
         Array[String]+ barcodes
         Array[String]+ libraries
@@ -49,7 +50,12 @@ workflow MicrobialPipeline {
                         ref_pac : BuildReferenceResources.combined_pac,
                                 }
 
-    scatter (fastq_set in fastq_sets) {
+
+    scatter (i in range(len(fastq_r1s))) {
+    	FastqSet fastq_set = object {
+    		fastq_r1 : fastq_r1s[i],
+    		fastq_r2 : fastq_r2s[i]
+    	}
         call tasks.SplitBarcodes {
             input:
                 fastq_set = fastq_set,
