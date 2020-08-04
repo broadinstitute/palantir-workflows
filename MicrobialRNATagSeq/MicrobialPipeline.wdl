@@ -52,10 +52,10 @@ workflow MicrobialPipeline {
 
 
     scatter (i in range(length(fastq_r1s))) {
-    	FastQSet fastq_set = object {
-    		fastq_r1 : fastq_r1s[i],
-    		fastq_r2 : fastq_r2s[i]
-    	}
+        FastQSet fastq_set = object {
+            fastq_r1 : fastq_r1s[i],
+            fastq_r2 : fastq_r2s[i]
+        }
         call tasks.SplitBarcodes {
             input:
                 fastq_set = fastq_set,
