@@ -8,4 +8,4 @@ workflows:
     primaryDescriptorPath: /ImputationPipeline/ScoringPart.wdl
   - name: EndToEndImputationScoringPipeline
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/Scoring
+    primaryDescriptorPath: /ImputationPipeline/EndToEndPipeline.wdl
