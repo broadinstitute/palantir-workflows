@@ -57,14 +57,12 @@ workflow ImputationPipeline {
           basename = "chrom_" + chrom + "_chunk_" + i
       }
 
-
        if (perform_extra_qc_steps) {
         call OptionalQCSites {
           input:
             input_vcf = GenerateChunk.output_vcf,
             input_vcf_index = GenerateChunk.output_vcf_index,
             output_vcf_basename =  "chrom_" + chrom + "_chunk_" + i
-
           }
         }
 
@@ -117,14 +115,14 @@ workflow ImputationPipeline {
 
         call RemoveSymbolicAlleles {
             input:
-                original_vcf = UpdateHeader.output_vcf,
-                original_vcf_index = UpdateHeader.output_vcf_index,
+                original_vcf = SeparateMultiallelics.output_vcf,
+                original_vcf_index = SeparateMultiallelics.output_vcf_index,
                 output_basename = "chrom" + chrom + "_chunk_" + i +"_imputed",
         }
         
         call SortIds {
           input:
-            vcf = SeparateMultiallelics.output_vcf,
+            vcf = RemoveSymbolicAlleles.output_vcf,
             basename = "chrom" + chrom + "_chunk_" + i +"_imputed"
         }
       }
@@ -171,7 +169,6 @@ task RemoveDuplicates {
   }
 }
 
-
 task CalculateChromsomeLength {
   input {
     File ref_dict
@@ -201,17 +198,14 @@ task GenerateChunk {
     Int disk_size = 400 # not sure how big the disk size needs to be since we aren't downloading the entire VCF here 
   }
   command {
-
     gatk SelectVariants -V ~{vcf} --select-type-to-include SNP --max-nocall-fraction 0.1 -xl-select-type SYMBOLIC \
      --select-type-to-exclude MIXED --restrict-alleles-to BIALLELIC -L ~{chrom}:~{start}-~{end} -O ~{basename}.vcf.gz --exclude-filtered true
   }
-
   runtime {
     docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
     disks: "local-disk " + disk_size + " HDD"
     memory: "8 GB"
   }
-
   parameter_meta {
     vcf: {
       description: "vcf",
@@ -221,7 +215,6 @@ task GenerateChunk {
       localization_optional: true
     }
   }
-
   output {
     File output_vcf = "~{basename}.vcf.gz"
     File output_vcf_index = "~{basename}.vcf.gz.tbi" 
@@ -336,7 +329,6 @@ task MergeVCFs {
   command <<<
     bcftools concat ~{sep=' ' input_vcfs} -Oz -o ~{output_vcf_basename}.vcf.gz
     bcftools index -t ~{output_vcf_basename}.vcf.gz
-
   >>>
   runtime {
     docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
