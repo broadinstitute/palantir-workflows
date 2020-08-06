@@ -1,8 +1,8 @@
 version 1.0
 
-import "Imputation.wdl" as imputation_pipeline
-import "ScoringPart.wdl" as scoring_pipeline
-import "PerformPopulationPCA.wdl" as population_pipeline # Like Thousand Genomes
+import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/skw_add_imputation/ImputationPipeline/Imputation.wdl" as imputation_pipeline
+import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/skw_add_imputation/ImputationPipeline/ScoringPart.wdl" as scoring_pipeline
+import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/skw_add_imputation/ImputationPipeline/PerformPopulationPCA.wdl" as population_pipeline # Like Thousand Genomes
 
 workflow EndToEndPipeline {
 	input {
