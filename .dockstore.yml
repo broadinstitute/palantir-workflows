@@ -6,6 +6,6 @@ workflows:
   - name: PRScoringWorkflow
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/ScoringPart.wdl
-  - name: EndToEndImputationScoringPipeline
+  - name: EndToEndPipeline
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/EndToEndPipeline.wdl
