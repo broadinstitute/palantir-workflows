@@ -11,4 +11,4 @@ workflows:
     primaryDescriptorPath: /ImputationPipeline/EndToEndPipeline.wdl
   - name: PerformPopulationPCA
     subclass: WDL
-    primaryDescriptorPaht: /ImputationPipeline/PerformPopulationPCA.wdl
+    primaryDescriptorPath: /ImputationPipeline/PerformPopulationPCA.wdl
