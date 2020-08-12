@@ -22,7 +22,7 @@ workflow PerformPopulationPCA {
 
   call UpdateVariantIds {
   	input:
-  		vcf = original_aray_vcf,
+  		vcf = original_array_vcf,
   		basename = basename + ".original_array.updated_ids."
   }
 
