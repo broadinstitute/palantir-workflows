@@ -8,45 +8,42 @@ workflow PerformPopulationPCA {
     File population_vcf_index # Like Thousand Genomes
     String basename # what the outputs will be named
     File original_array_vcf # limit to the sites in the original before LD pruning (this could also be an interval list if you have one)
+    File original_array_vcf_index
     Boolean bad_variant_id_format # this is true if variant IDs are NOT in the format chr:pos:allele1:allele2 (it doesn't matter which one -- ref, alt -- goes first)
     # basically if you have actually id names like rsids, this is TRUE
-  }
-
-  # this task ensures that our PCA steps only use sites in the original array, so that
-  # our PC projections will be higher quality (this also makes the VCF smaller so it will be easier
-  # to work with in the subsequent steps)
-  call SubsetToOriginalArrayVCF {
-    input:
-      vcf = population_vcf,
-      vcf_index = population_vcf_index,
-      intervals = original_array_vcf,
-      basename = basename + ".subset_to_array"
   }
  
   # this task seaparates multiallelics and changes variant IDs to chr:pos:ref:alt1 (bc there are no multiallelics now, alt1=alt)
   call SeparateMultiallelics {
     input:
-      original_vcf = SubsetToOriginalArrayVCF.output_vcf,
+      original_vcf = population_vcf,
       output_basename = basename + ".no_multiallelics"
   }
 
-  # this task turns the variant IDs into the format of chr:position:ref:alt
-  # it isn't necessary to run this task if the IDs are already in a format of
-  # chr:position:alt1:alt2 
-  if (bad_variant_id_format) {
-    call UpdateVariantIds {
-      input:
-        vcf = SeparateMultiallelics.output_vcf,
-        basename = basename + ".updated_ids"
-    }
+  call UpdateVariantIds {
+  	input:
+  		vcf = original_aray_vcf,
+  		basename = basename + ".original_array.updated_ids."
   }
 
   #  we use sorted variant IDs so this step makes sure the variant IDs are in the format of chr:pos:allele1:allele2 where allele1 
   # and allele2 are sorted
   call SortVariantIds {
     input:
-      vcf = select_first([UpdateVariantIds.output_vcf, SeparateMultiallelics.output_vcf]),
+      vcf = SeparateMultiallelics.output_vcf,
       basename = basename + ".sorted_ids"
+  }
+
+  call SortVariantIds as SortVariantIdsOriginalArray {
+  	input:
+  		vcf = UpdateVariantIds.outputvcf,
+  		basename = basename + ".orginal_array.sorted_ids"
+  }
+
+  call ExtractIDs {
+  	input:
+  		vcf = SortVariantIdsOriginalArray.output_vcf,
+  		output_basename = basename
   }
  
   # this performs some basic QC steps (filtering by MAF, HWE, etc.), as well as 
@@ -56,7 +53,8 @@ workflow PerformPopulationPCA {
   call LDPruning {
     input:
       vcf = SortVariantIds.output_vcf,
-      basename = basename
+      basename = basename,
+      original_array_sites = ExtractIDs.ids
   }
   
   # perform PCA using flashPCA
@@ -97,6 +95,7 @@ workflow PerformPopulationPCA {
 task LDPruning {
   input {
     File vcf
+    File original_array_sites
     Int mem = 8
     String basename
   }
@@ -108,6 +107,7 @@ task LDPruning {
     --rm-dup force-first \
     --geno 0.05 \
     --hwe 1e-10 \
+    --extract ~{original_array_sites} \
     --indep-pairwise 1000 50 0.2 \
     --maf 0.01 \
     --not-chr X \
@@ -181,7 +181,7 @@ task SeparateMultiallelics {
     Int disk_size =  2*ceil(size(original_vcf, "GB"))
   }
   command {
-    bcftools norm -m - ~{original_vcf} -Ou |   bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
+    bcftools norm -m - ~{original_vcf} -Ou | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
   }
   output {
     File output_vcf = "~{output_basename}.vcf.gz"
@@ -191,6 +191,26 @@ task SeparateMultiallelics {
     disks: "local-disk " + disk_size + " HDD"
     memory: "4 GB"
   }
+}
+
+task ExtractIDs {
+	input {
+		File vcf
+		String output_basename
+		Int disk_size = 2*ceil(size(vcf, "GB"))
+	}
+
+	command <<<
+		bcftools query -f "%ID\n" ~{vcf} -o ~{output_basename}.original_array.ids
+	>>>
+	output {
+		File ids = "~{output_basename}.original_array.ids"
+  	}
+    runtime {
+		docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+		disks: "local-disk " + disk_size + " HDD"
+		memory: "4 GB"
+  	}
 }
 
 task CheckPCA {
