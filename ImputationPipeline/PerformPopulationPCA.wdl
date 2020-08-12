@@ -36,7 +36,7 @@ workflow PerformPopulationPCA {
 
   call SortVariantIds as SortVariantIdsOriginalArray {
   	input:
-  		vcf = UpdateVariantIds.outputvcf,
+  		vcf = UpdateVariantIds.output_vcf,
   		basename = basename + ".orginal_array.sorted_ids"
   }
 
