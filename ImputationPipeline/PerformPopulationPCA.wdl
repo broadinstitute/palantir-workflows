@@ -7,7 +7,8 @@ workflow PerformPopulationPCA {
     File population_vcf # Like Thousand Genomes
     File population_vcf_index # Like Thousand Genomes
     String basename # what the outputs will be named
-    File original_array_vcf # limit to the sites in the original before LD pruning (this could also be an interval list if you have one)
+    File original_array # limit to the sites in the original before LD pruning (this could also be an interval list if you have one)
+    File? original_array_index # required if original array is bgzipped vcf
     Boolean bad_variant_id_format # this is true if variant IDs are NOT in the format chr:pos:allele1:allele2 (it doesn't matter which one -- ref, alt -- goes first)
     # basically if you have actually id names like rsids, this is TRUE
   }
@@ -19,7 +20,8 @@ workflow PerformPopulationPCA {
     input:
       vcf = population_vcf,
       vcf_index = population_vcf_index,
-      intervals = original_array_vcf,
+      intervals = original_array,
+      intervals_index = original_array_index,
       basename = basename + ".subset_to_array"
   }
  
@@ -315,6 +317,7 @@ task SubsetToOriginalArrayVCF {
     File vcf
     File vcf_index
     File intervals
+    File? intervals_index
     String basename 
     Int disk_size = 3*ceil(size([vcf, intervals, vcf_index], "GB")) + 20
   }
