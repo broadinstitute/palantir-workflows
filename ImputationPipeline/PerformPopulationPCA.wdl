@@ -320,7 +320,7 @@ task SubsetToOriginalArrayVCF {
   }
 
     command {
-   gatk SelectVariants -V ~{vcf} -L ~{intervals} -O ~{basename}.vcf.gz
+   gatk SelectVariants -V ~{vcf} -L ~{intervals} --select-type-to-include SNP -O ~{basename}.vcf.gz
    }
 
   runtime {
