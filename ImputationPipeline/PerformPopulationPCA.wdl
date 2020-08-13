@@ -185,13 +185,13 @@ task SeparateMultiallelics {
     Int disk_size =  2*ceil(size(original_vcf, "GB"))
   }
   command {
-    bcftools view -R ~{original_array_vcf} -Ou | bcftools norm -m - ~{original_vcf} -Ou | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
+    bcftools norm -m - ~{original_vcf} -R ~{original_array_vcf} -Ou | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
   }
   output {
     File output_vcf = "~{output_basename}.vcf.gz"
   }
   runtime {
-    docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+    docker: "quay.io/ckachuli/bcftools@sha256:17d9d090d06a565393cb0bbb51a9ab288fa3d7f98e148cba182aef41e6b25e3e" #1.10.2
     disks: "local-disk " + disk_size + " HDD"
     memory: "4 GB"
   }
