@@ -191,7 +191,7 @@ task SeparateMultiallelics {
     File output_vcf = "~{output_basename}.vcf.gz"
   }
   runtime {
-    docker: "quay.io/ckachuli/bcftools@sha256:17d9d090d06a565393cb0bbb51a9ab288fa3d7f98e148cba182aef41e6b25e3e" #1.10.2
+    docker: "quay.io/ckachuli/bcftools@sha256:2bc598bc7d67158a00f5efdf0ccbcff9d10f09c638aa895585b0a2a0e7dbc72e" #1.10.2
     disks: "local-disk " + disk_size + " HDD"
     memory: "4 GB"
   }
