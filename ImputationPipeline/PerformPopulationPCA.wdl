@@ -185,7 +185,7 @@ task SeparateMultiallelics {
     Int disk_size =  2*ceil(size(original_vcf, "GB"))
   }
   command {
-    bcftools norm -m - ~{original_vcf} -R ~{original_array_vcf} -Ou | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
+    bcftools view -R ~{original_array_vcf} -Ou | bcftools norm -m - ~{original_vcf} -Ou | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
   }
   output {
     File output_vcf = "~{output_basename}.vcf.gz"
