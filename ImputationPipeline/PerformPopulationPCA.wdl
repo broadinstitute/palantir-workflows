@@ -17,7 +17,9 @@ workflow PerformPopulationPCA {
   call SeparateMultiallelics {
     input:
       original_vcf = population_vcf,
-      output_basename = basename + ".no_multiallelics"
+      original_vcf_index = population_vcf_index,
+      output_basename = basename + ".no_multiallelics",
+      original_array_vcf = original_array_vcf
   }
 
   call UpdateVariantIds {
@@ -177,11 +179,13 @@ task PerformPCA {
 task SeparateMultiallelics {
   input {
     File original_vcf
+    File original_vcf_index
+    File original_array_vcf
     String output_basename
     Int disk_size =  2*ceil(size(original_vcf, "GB"))
   }
   command {
-    bcftools norm -m - ~{original_vcf} -Ou | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
+    bcftools norm -m - ~{original_vcf} -R ~{original_array_vcf} -Ou | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
   }
   output {
     File output_vcf = "~{output_basename}.vcf.gz"
