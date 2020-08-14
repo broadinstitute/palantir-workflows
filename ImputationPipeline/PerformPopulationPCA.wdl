@@ -18,14 +18,13 @@ workflow PerformPopulationPCA {
     input:
       original_vcf = population_vcf,
       original_vcf_index = population_vcf_index,
-      output_basename = basename + ".no_multiallelics",
-      original_array_vcf = original_array_vcf
+      output_basename = basename + ".no_multiallelics"
   }
 
   call UpdateVariantIds {
-  	input:
-  		vcf = original_array_vcf,
-  		basename = basename + ".original_array.updated_ids."
+    input:
+        vcf = original_array_vcf,
+        basename = basename + ".original_array.updated_ids."
   }
 
   #  we use sorted variant IDs so this step makes sure the variant IDs are in the format of chr:pos:allele1:allele2 where allele1 
@@ -37,15 +36,24 @@ workflow PerformPopulationPCA {
   }
 
   call SortVariantIds as SortVariantIdsOriginalArray {
-  	input:
-  		vcf = UpdateVariantIds.output_vcf,
-  		basename = basename + ".orginal_array.sorted_ids"
+    input:
+        vcf = UpdateVariantIds.output_vcf,
+        basename = basename + ".orginal_array.sorted_ids"
   }
 
   call ExtractIDs {
-  	input:
-  		vcf = SortVariantIdsOriginalArray.output_vcf,
-  		output_basename = basename
+    input:
+        vcf = SortVariantIdsOriginalArray.output_vcf,
+        output_basename = basename
+  }
+
+  call SubsetToOriginalArrayVCF {
+    input:
+        vcf = SortVariantIdsOriginalArray.output_vcf,
+        vcf_index = SortVariantIdsOriginalArray.output_vcf_index,
+        intervals = original_array_vcf,
+        intervals_index = original_array_vcf_index,
+        basename = basename + ".sorted_ids.subsetted"
   }
  
   # this performs some basic QC steps (filtering by MAF, HWE, etc.), as well as 
@@ -54,7 +62,7 @@ workflow PerformPopulationPCA {
   # you can run the LDPruneToSites task that is at the bottom of this wdl
   call LDPruning {
     input:
-      vcf = SortVariantIds.output_vcf,
+      vcf = SubsetToOriginalArrayVCF.output_vcf,
       basename = basename,
       original_array_sites = ExtractIDs.ids
   }
@@ -180,41 +188,40 @@ task SeparateMultiallelics {
   input {
     File original_vcf
     File original_vcf_index
-    File original_array_vcf
     String output_basename
     Int disk_size =  2*ceil(size(original_vcf, "GB"))
   }
   command {
-    bcftools norm -m - ~{original_vcf} -R ~{original_array_vcf} -Ou | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
+    bcftools norm -m - ~{original_vcf} -Ou | bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
   }
   output {
     File output_vcf = "~{output_basename}.vcf.gz"
   }
   runtime {
-    docker: "quay.io/ckachuli/bcftools@sha256:2bc598bc7d67158a00f5efdf0ccbcff9d10f09c638aa895585b0a2a0e7dbc72e" #1.10.2
+    docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
     disks: "local-disk " + disk_size + " HDD"
     memory: "4 GB"
   }
 }
 
 task ExtractIDs {
-	input {
-		File vcf
-		String output_basename
-		Int disk_size = 2*ceil(size(vcf, "GB"))
-	}
+    input {
+        File vcf
+        String output_basename
+        Int disk_size = 2*ceil(size(vcf, "GB"))
+    }
 
-	command <<<
-		bcftools query -f "%ID\n" ~{vcf} -o ~{output_basename}.original_array.ids
-	>>>
-	output {
-		File ids = "~{output_basename}.original_array.ids"
-  	}
+    command <<<
+        bcftools query -f "%ID\n" ~{vcf} -o ~{output_basename}.original_array.ids
+    >>>
+    output {
+        File ids = "~{output_basename}.original_array.ids"
+    }
     runtime {
-		docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
-		disks: "local-disk " + disk_size + " HDD"
-		memory: "4 GB"
-  	}
+        docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+        disks: "local-disk " + disk_size + " HDD"
+        memory: "4 GB"
+    }
 }
 
 task CheckPCA {
@@ -339,6 +346,7 @@ task SubsetToOriginalArrayVCF {
     File vcf
     File vcf_index
     File intervals
+    File? intervals_index
     String basename 
     Int disk_size = 3*ceil(size([vcf, intervals, vcf_index], "GB")) + 20
   }
