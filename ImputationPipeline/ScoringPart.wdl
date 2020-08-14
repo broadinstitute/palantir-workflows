@@ -5,8 +5,7 @@ workflow ScoringImputedDataset {
     File weights # disease weights file. Becauase we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
     #  that will allow you to sort the variants in this weights file (`SortWeights`)
 
-    File? original_array_vcf # original array for better PCA projection ( this is optional, with the default being it will run on the imputed array vcf instead)
-    File imputed_array_vcf  # imputed VCF for scoring (and optionally PCA projection): make sure the variant IDs exactly match those in the weights file 
+    File imputed_array_vcf  # imputed VCF for scoring (and optionally PCA projection): make sure the variant IDs exactly match those in the weights file
     Int scoring_mem = 16
     Int population_scoring_mem = scoring_mem * 4
 
@@ -28,20 +27,6 @@ workflow ScoringImputedDataset {
     # is the effect allele, and the 13th column is the effect weight
   }
 
-  # this adds in the correct IDs (sorted) so we can run things properly
-  if (defined(original_array_vcf)) {
-  	call UpdateVariantIds {
-  		input:
-  		vcf = original_array_vcf, 
-  		basename = "original_array.different_ids"
-  	}
-
-  	call SortIds as SortOriginalArrayVariantIds {
-  		input:
-  		vcf = UpdateVariantIds.output_vcf,
-  		basename = "original_array.updated_ids"
-  	}
-  }
   
   call ScoreVcf as ScoreImputedArray {
   	input:
@@ -63,7 +48,7 @@ workflow ScoringImputedDataset {
 
   call ArrayVcfToPlinkDataset {
   	input:
-  	vcf = select_first([SortOriginalArrayVariantIds.output_vcf, imputed_array_vcf]),
+  	vcf = imputed_array_vcf,
   	pruning_sites = pruning_sites_for_pca,
   	basename = basename
   }

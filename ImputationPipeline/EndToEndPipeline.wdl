@@ -74,10 +74,9 @@ workflow EndToEndPipeline {
 
   call scoring_pipeline.ScoringImputedDataset as ScoringSteps {
 	  input :
-			weights  = disease_weights,
-			columns_for_scoring = columns_for_scoring,
-			original_array_vcf = multi_sample_vcf,
-			imputed_array_vcf = ImputationSteps.imputed_multisample_vcf,
+		weights  = disease_weights,
+		columns_for_scoring = columns_for_scoring,
+		imputed_array_vcf = ImputationSteps.imputed_multisample_vcf,
 	    scoring_mem = scoring_mem,
 	    population_scoring_mem = population_scoring_mem,
 	    population_vcf = select_first([PopulationPCASteps.sorted_variant_id_dataset, population_vcf]),
