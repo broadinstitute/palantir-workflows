@@ -67,6 +67,7 @@ workflow EndToEndPipeline {
   	    population_vcf_index = population_vcf_index,
   	    basename = population_basename,
   	    original_array_vcf =  multi_sample_vcf,
+  	    original_array_vcf_index = multi_sample_vcf_index,
   	    bad_variant_id_format = true # it will update the variant ids into the format we use: chr:pos:allele1:allele2
     }
   }
