@@ -49,8 +49,8 @@ workflow PerformPopulationPCA {
 
   call SubsetToOriginalArrayVCF {
     input:
-        vcf = SortVariantIdsOriginalArray.output_vcf,
-        vcf_index = SortVariantIdsOriginalArray.output_vcf_index,
+        vcf = SortVariantIds.output_vcf,
+        vcf_index = SortVariantIds.output_vcf_index,
         intervals = original_array_vcf,
         intervals_index = original_array_vcf_index,
         basename = basename + ".sorted_ids.subsetted"
