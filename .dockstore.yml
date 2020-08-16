@@ -1,0 +1,14 @@
+version: 1.2
+workflows:
+  - name: ImputationWorkflow
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/Imputation.wdl
+  - name: PRScoringWorkflow
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/ScoringPart.wdl
+  - name: EndToEndPipeline
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/EndToEndPipeline.wdl
+  - name: PerformPopulationPCA
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/PerformPopulationPCA.wdl
