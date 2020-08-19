@@ -203,7 +203,7 @@ task ProjectArray {
 	}
 
 	runtime {
-		docker: "quay.io/ckachuli/flashpca@sha256:266c4594f67872b6fd022cff7894d7da5f4664643af43477462aa025f9491760" # a special version of flashpca which allows to project a single sample without erroring out at an unnecessary check
+		docker: "quay.io/ckachuli/flashpca@sha256:19614bbb172df269fc109c3c549b1aca93770238982e85ee7e3f36061ea627ae" # a special version of flashpca which allows to project a single sample without erroring out at an unnecessary check
 		disks: "local-disk 400 HDD"
 		memory: mem + " GB"
 	} 
