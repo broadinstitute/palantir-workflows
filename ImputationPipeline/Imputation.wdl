@@ -144,6 +144,8 @@ workflow ImputationPipeline {
   output {
     File imputed_multisample_vcf = GatherVcfs.output_vcf
     File imputed_multisample_vcf_index = GatherVcfs.output_vcf_index
+    File? merged_single_sample_vcf = MergeSingleSampleVcfs.output_vcf
+    File? merged_single_sample_vcf_index = MergeSingleSampleVcfs.output_vcf_index
   }
 }
 
