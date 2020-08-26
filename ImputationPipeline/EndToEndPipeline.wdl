@@ -61,8 +61,8 @@ workflow EndToEndPipeline {
   	input:
   	  multi_sample_vcf = multi_sample_vcf,
   	  multi_sample_vcf_index = multi_sample_vcf_index,
-  	  single_sample_vcf = single_sample_vcfs,
-  	  single_sample_vcf_indices = single_sample_vcf_indices
+  	  single_sample_vcfs = single_sample_vcfs,
+  	  single_sample_vcf_indices = single_sample_vcf_indices,
   	  perform_extra_qc_steps = perform_extra_qc_steps,
   	  output_callset_name = output_callset_name,
   }
@@ -73,8 +73,8 @@ workflow EndToEndPipeline {
   	    population_vcf = population_vcf,
   	    population_vcf_index = population_vcf_index,
   	    basename = population_basename,
-  	    original_array_vcf =  if defined(single_sample_vcfs) then single_sample_vcfs[0] else multi_sample_vcf],
-  	    original_array_vcf_index = if defined(single_sample_vcfs) then single_sample_vcf_indices[0] else multi_sample_vcf_index,
+  	    original_array_vcf =  select_first([ImputationSteps.merged_single_sample_vcf, multi_sample_vcf]),
+  	    original_array_vcf_index = select_first([ImputationSteps.merged_single_sample_vcf_index, multi_sample_vcf_index]),
   	    bad_variant_id_format = true # it will update the variant ids into the format we use: chr:pos:allele1:allele2
     }
   }
