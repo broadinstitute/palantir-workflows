@@ -212,7 +212,7 @@ task ExtractIDs {
     }
 
     command <<<
-        bcftools query -f "%ID\n" ~{vcf} -o ~{output_basename}.original_array.ids
+        bcftools query -i 'FILTER="." || FILTER="PASS"' -f "%ID\n" ~{vcf} -o ~{output_basename}.original_array.ids
     >>>
     output {
         File ids = "~{output_basename}.original_array.ids"
