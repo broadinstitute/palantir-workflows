@@ -120,6 +120,7 @@ task LDPruning {
     --extract ~{original_array_sites} \
     --indep-pairwise 1000 50 0.2 \
     --maf 0.01 \
+    --allow-extra-chr \
     --not-chr X \
     --out ~{basename} 
 
@@ -128,6 +129,7 @@ task LDPruning {
     --keep-allele-order \
     --extract ~{basename}.prune.in \
     --make-bed \
+    --allow-extra-chr \
     --not-chr X \
     --out ~{basename}
 
@@ -276,6 +278,7 @@ task LDPruneToSites {
     --keep-allele-order \
     --extract ~{pruning_sites} \
     --make-bed \
+    --allow-extra-chr \
     --out ~{basename}
   }
 

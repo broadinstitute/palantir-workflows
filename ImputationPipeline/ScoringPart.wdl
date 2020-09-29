@@ -125,7 +125,7 @@ task ScoreVcf {
 
 	command {
 		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation \
-		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums ~{extra_args} -vcf ~{vcf} \
+		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --allow-extra-chr ~{extra_args} -vcf ~{vcf} \
 		dosage=DS --out ~{basename} --memory ~{plink_mem} 
 	}
 
@@ -156,7 +156,7 @@ task ArrayVcfToPlinkDataset {
 
 	command {
 
-		/plink2 --vcf ~{vcf} --extract ~{pruning_sites} \
+		/plink2 --vcf ~{vcf} --extract ~{pruning_sites} --allow-extra-chr \
 		--out ~{basename} --make-bed --rm-dup force-first
 	}
 
