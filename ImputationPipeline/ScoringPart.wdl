@@ -20,7 +20,6 @@ workflow ScoringImputedDataset {
     File population_pcs
     File pruning_sites_for_pca # and the sites used for PCA
     File population_vcf # population VCF, output from PerformPopulationPCA
-    File population_scoring_sites # sites to use for scoring population, from PerformPopulationPCA
 
     File adjust_scores_rscript = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/ScoringAdjustment.R" 
     String? columns_for_scoring # Plink expects the first 3 columns in your weights file to be variant ID, effect allele, effect weight
@@ -39,6 +38,12 @@ workflow ScoringImputedDataset {
   	extra_args = columns_for_scoring
   }
 
+  call ExtractIDs {
+  	input:
+  		vcf = imputed_array_vcf,
+  		output_basename = basename
+  }
+
   call ScoreVcf as ScorePopulation {
   	input:
   	vcf = population_vcf,
@@ -46,7 +51,7 @@ workflow ScoringImputedDataset {
   	weights = weights,
   	base_mem = population_scoring_mem,
   	extra_args = columns_for_scoring,
-  	sites = population_scoring_sites
+  	sites = ExtractIDs.ids
   }
 
   call ArrayVcfToPlinkDataset {
@@ -291,4 +296,25 @@ task SortWeights {
  		memory: "16 GB"
  	}
  }
+
+ task ExtractIDs {
+     input {
+         File vcf
+         String output_basename
+         Int disk_size = 2*ceil(size(vcf, "GB")) + 100
+     }
+
+     command <<<
+         bcftools query -f "%ID\n" ~{vcf} -o ~{output_basename}.original_array.ids
+     >>>
+     output {
+         File ids = "~{output_basename}.original_array.ids"
+     }
+     runtime {
+         docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+         disks: "local-disk " + disk_size + " HDD"
+         memory: "4 GB"
+     }
+ }
+
 

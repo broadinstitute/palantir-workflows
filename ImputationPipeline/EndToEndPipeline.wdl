@@ -36,8 +36,6 @@ workflow EndToEndPipeline {
 	  File? population_meansd = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/RiskScoreAdjustmentFiles/WallacesPCASites/sorted_thousand_genomes_wallace_sites.pc.meansd"
 	  File? population_pcs = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/RiskScoreAdjustmentFiles/WallacesPCASites/sorted_thousand_genomes_wallace_sites.pc"
 	  File? pruning_sites_for_pca = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/RiskScoreAdjustmentFiles/WallacesPCASites/wallace_pruning_sites_sorted_ids.txt"
-	  File? population_scoring_sites
-	  
 
 	  ## The following are inputs for scoring and performing the adjustment
 
@@ -85,8 +83,7 @@ workflow EndToEndPipeline {
 	    population_loadings = select_first([PopulationPCASteps.population_loadings, population_loadings]), # either use your newely generated PC files or the input loadings/meansd/pcs/pruning sites
 	    population_meansd = select_first([PopulationPCASteps.population_meansd, population_meansd]), 
 	    population_pcs = select_first([PopulationPCASteps.population_pcs, population_pcs]),
-	    pruning_sites_for_pca = select_first([PopulationPCASteps.pruning_sites_for_pca, pruning_sites_for_pca]),
-	    population_scoring_sites = select_first([PopulationPCASteps.population_sites_for_scoring, population_scoring_sites])
+	    pruning_sites_for_pca = select_first([PopulationPCASteps.pruning_sites_for_pca, pruning_sites_for_pca])
 	}
 
 	output {
