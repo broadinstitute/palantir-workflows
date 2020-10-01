@@ -251,7 +251,7 @@ task ExtractIDs {
     input {
         File vcf
         String output_basename
-        Int disk_size = 2*ceil(size(vcf, "GB"))
+        Int disk_size = 2*ceil(size(vcf, "GB")) + 100
     }
 
     command <<<
