@@ -134,8 +134,8 @@ task ScoreVcf {
 
 	command {
 		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation \
-		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --allow-extra-chr ~{extra_args} -vcf ~{vcf} ~{"-extract " + sites} \
-		dosage=DS --out ~{basename} --memory ~{plink_mem} 
+		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
+		~{"-extract " + sites} --out ~{basename} --memory ~{plink_mem}
 	}
 
 	output {
