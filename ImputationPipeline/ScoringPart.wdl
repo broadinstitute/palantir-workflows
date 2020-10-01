@@ -19,6 +19,8 @@ workflow ScoringImputedDataset {
     File population_meansd
     File population_pcs
     File pruning_sites_for_pca # and the sites used for PCA
+    File population_vcf # population VCF, output from PerformPopulationPCA
+    File population_scoring_sites # sites to use for scoring population, from PerformPopulationPCA
 
     File adjust_scores_rscript = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/ScoringAdjustment.R" 
     String? columns_for_scoring # Plink expects the first 3 columns in your weights file to be variant ID, effect allele, effect weight
@@ -43,7 +45,8 @@ workflow ScoringImputedDataset {
   	basename = population_basename,
   	weights = weights,
   	base_mem = population_scoring_mem,
-  	extra_args = columns_for_scoring 
+  	extra_args = columns_for_scoring,
+  	sites = population_scoring_sites
   }
 
   call ArrayVcfToPlinkDataset {
@@ -117,6 +120,7 @@ task ScoreVcf {
 		File weights
 		Int base_mem = 8
 		String? extra_args
+		File? sites
 	}
 
 	Int runtime_mem = base_mem + 2
@@ -125,7 +129,7 @@ task ScoreVcf {
 
 	command {
 		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation \
-		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --allow-extra-chr ~{extra_args} -vcf ~{vcf} \
+		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --allow-extra-chr ~{extra_args} -vcf ~{vcf} ~{"-extract" + sites}\
 		dosage=DS --out ~{basename} --memory ~{plink_mem} 
 	}
 

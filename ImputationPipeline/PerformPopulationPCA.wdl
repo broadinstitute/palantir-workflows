@@ -7,10 +7,8 @@ workflow PerformPopulationPCA {
     File population_vcf # Like Thousand Genomes
     File population_vcf_index # Like Thousand Genomes
     String basename # what the outputs will be named
-    File original_array_vcf # limit to the sites in the original before LD pruning (this could also be an interval list if you have one)
-    File original_array_vcf_index
-    Boolean bad_variant_id_format # this is true if variant IDs are NOT in the format chr:pos:allele1:allele2 (it doesn't matter which one -- ref, alt -- goes first)
-    # basically if you have actually id names like rsids, this is TRUE
+    File imputed_array_vcf # limit to TYPED and TYPED_ONLY sites before LD pruning.  Also will limit population to sites in imputed vcf for scoring correction
+    File imputed_array_vcf_index
   }
  
   # this task seaparates multiallelics and changes variant IDs to chr:pos:ref:alt1 (bc there are no multiallelics now, alt1=alt)
@@ -23,7 +21,7 @@ workflow PerformPopulationPCA {
 
   call UpdateVariantIds {
     input:
-        vcf = original_array_vcf,
+        vcf = imputed_array_vcf,
         basename = basename + ".original_array.updated_ids."
   }
 
@@ -35,24 +33,36 @@ workflow PerformPopulationPCA {
       basename = basename + ".sorted_ids"
   }
 
-  call SortVariantIds as SortVariantIdsOriginalArray {
+  call SortVariantIds as SortVariantIdsImputedArray {
     input:
         vcf = UpdateVariantIds.output_vcf,
         basename = basename + ".orginal_array.sorted_ids"
   }
 
-  call ExtractIDs {
+  call ExtractIDs as ExtractIDsAll {
     input:
-        vcf = SortVariantIdsOriginalArray.output_vcf,
+        vcf = SortVariantIdsImputedArray.output_vcf,
         output_basename = basename
   }
 
-  call SubsetToOriginalArrayVCF {
+  call SelectTypedSites {
+  	input:
+  		vcf = SortVariantIdsImputedArray.output_vcf,
+  		basename = basename
+  }
+
+  call ExtractIDs as ExtractIDsTyped {
+      input:
+          vcf = SelectTypedSites.output_vcf,
+          output_basename = basename
+    }
+
+  call SubsetToArrayVCF {
     input:
         vcf = SortVariantIds.output_vcf,
         vcf_index = SortVariantIds.output_vcf_index,
-        intervals = original_array_vcf,
-        intervals_index = original_array_vcf_index,
+        intervals = SelectTypedSites.output_vcf,
+        intervals_index = SelectTypedSites.output_vcf_index,
         basename = basename + ".sorted_ids.subsetted"
   }
  
@@ -62,9 +72,9 @@ workflow PerformPopulationPCA {
   # you can run the LDPruneToSites task that is at the bottom of this wdl
   call LDPruning {
     input:
-      vcf = SubsetToOriginalArrayVCF.output_vcf,
+      vcf = SubsetToArrayVCF.output_vcf,
       basename = basename,
-      original_array_sites = ExtractIDs.ids
+      original_array_sites = ExtractIDsTyped.ids
   }
   
   # perform PCA using flashPCA
@@ -97,7 +107,38 @@ workflow PerformPopulationPCA {
     File sorted_variant_id_dataset = SortVariantIds.output_vcf # this is what you should use as your population dataset for the 
     # ScoringPart, since all the IDs will be matching 
     File sorted_variant_id_dataset_index = SortVariantIds.output_vcf_index
+    File population_sites_for_scoring = ExtractIDsAll.ids
 
+  }
+}
+
+task SelectTypedSites {
+	input {
+		File vcf
+		String basename
+	}
+
+	Int disk_size =  ceil(size(vcf, "GB")) + 50
+
+	parameter_meta {
+		vcf: {
+			localization_optional : true
+		}
+	}
+
+	command <<<
+		gatk SelectVariants -V ~{vcf} -select "TYPED || TYPED_ONLY" -O ~{basename}.vcf.gz
+	>>>
+
+	runtime {
+	docker: "us.gcr.io/broad-gatk/gatk:4.1.7.0"
+	disks: "local-disk " + disk_size + " HDD"
+	memory: "16 GB"
+  }
+
+  output {
+	File output_vcf = "~{basename}.vcf.gz"
+	File output_vcf_index = "~{basename}.vcf.gz.tbi"
   }
 }
 
@@ -344,7 +385,7 @@ task UpdateVariantIds {
   }
 }
 
-task SubsetToOriginalArrayVCF {
+task SubsetToArrayVCF {
   input {
     File vcf
     File vcf_index
