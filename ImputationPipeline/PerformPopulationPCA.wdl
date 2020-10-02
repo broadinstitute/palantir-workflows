@@ -57,14 +57,14 @@ workflow PerformPopulationPCA {
           output_basename = basename
     }
 
-  call SubsetToArrayVCF {
-    input:
-        vcf = SortVariantIds.output_vcf,
-        vcf_index = SortVariantIds.output_vcf_index,
-        intervals = SelectTypedSites.output_vcf,
-        intervals_index = SelectTypedSites.output_vcf_index,
-        basename = basename + ".sorted_ids.subsetted"
-  }
+#  call SubsetToArrayVCF {
+#    input:
+#        vcf = SortVariantIds.output_vcf,
+#        vcf_index = SortVariantIds.output_vcf_index,
+#        intervals = SelectTypedSites.output_vcf,
+#        intervals_index = SelectTypedSites.output_vcf_index,
+#        basename = basename + ".sorted_ids.subsetted"
+#  }
  
   # this performs some basic QC steps (filtering by MAF, HWE, etc.), as well as 
   # generating a plink-style bim,bed,fam format that has been limited to LD pruned
@@ -72,7 +72,7 @@ workflow PerformPopulationPCA {
   # you can run the LDPruneToSites task that is at the bottom of this wdl
   call LDPruning {
     input:
-      vcf = SubsetToArrayVCF.output_vcf,
+      vcf = SortVariantIds.output_vcf,
       basename = basename,
       original_array_sites = ExtractIDsTyped.ids
   }
