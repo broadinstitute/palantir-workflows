@@ -72,7 +72,7 @@ workflow PerformPopulationPCA {
   # you can run the LDPruneToSites task that is at the bottom of this wdl
   call LDPruning {
     input:
-      vcf = SortVariantIds.output_vcf,
+      vcf = SubsetToArrayVCF.output_vcf,
       basename = basename,
       original_array_sites = ExtractIDsTyped.ids
   }
