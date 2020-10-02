@@ -185,7 +185,7 @@ task ArrayVcfToPlinkDataset {
 
 	command {
 
-		/plink2 --vcf ~{vcf} --extract-intersect ~{pruning_sites} ~{"--extract-intersect " + subset_to_sites} --allow-extra-chr \
+		/plink2 --vcf ~{vcf} --extract-intersect ~{pruning_sites} ~{subset_to_sites} --allow-extra-chr \
 		--out ~{basename} --make-bed --rm-dup force-first
 	}
 
