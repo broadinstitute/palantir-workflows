@@ -26,6 +26,7 @@ workflow ScoringImputedDataset {
     # if this isn't true, then you should give it the correct column #s in that order
     # example: if you were to set columns_for_scoring = "11 12 13" would mean that the 11th column is the variant ID, the 12th column 
     # is the effect allele, and the 13th column is the effect weight
+    Boolean redoPCA = false
   }
 
   
@@ -42,6 +43,24 @@ workflow ScoringImputedDataset {
   	input:
   		vcf = imputed_array_vcf,
   		output_basename = basename
+  }
+
+  if (redoPCA) {
+  	call ArrayVcfToPlinkDataset as PopulationArrayVcfToPlinkDataset {
+  		input:
+  			vcf = population_vcf,
+  			pruning_sites = pruning_sites_for_pca,
+  			subset_to_sites = ExtractIDs.ids,
+  			basename = "population"
+  	}
+
+  	call PerformPCA {
+        input:
+          bim = PopulationArrayVcfToPlinkDataset.bim,
+          bed = PopulationArrayVcfToPlinkDataset.bed,
+          fam = PopulationArrayVcfToPlinkDataset.fam,
+          basename = basename
+      }
   }
 
   call ScoreVcf as ScorePopulation {
@@ -63,8 +82,8 @@ workflow ScoringImputedDataset {
 
   call ProjectArray {
   	input:
-  	pc_loadings = population_loadings,
-  	pc_meansd = population_meansd,
+  	pc_loadings = select_first([PerformPCA.pc_loadings, population_loadings]),
+  	pc_meansd = select_first([PerformPCA.mean_sd, population_meansd]),
   	bed = ArrayVcfToPlinkDataset.bed,
   	bim = ArrayVcfToPlinkDataset.bim,
   	fam = ArrayVcfToPlinkDataset.fam,
@@ -74,7 +93,7 @@ workflow ScoringImputedDataset {
   call AdjustScores {
   	input:
   	adjusting_Rscript = adjust_scores_rscript,
-  	population_pcs = population_pcs,
+  	population_pcs = select_first([PerformPCA.pcs, population_pcs]),
   	population_scores = ScorePopulation.score,
   	array_pcs = ProjectArray.projections,
   	array_scores = ScoreImputedArray.score
@@ -157,6 +176,7 @@ task ArrayVcfToPlinkDataset {
 	input {
 		File vcf
 		File pruning_sites
+		File? subset_to_sites
 		String basename
 		Int mem = 8
 	}
@@ -165,7 +185,7 @@ task ArrayVcfToPlinkDataset {
 
 	command {
 
-		/plink2 --vcf ~{vcf} --extract ~{pruning_sites} --allow-extra-chr \
+		/plink2 --vcf ~{vcf} --extract-intersect ~{pruning_sites} ~{"--extract-intersect " + subset_to_sites} --allow-extra-chr \
 		--out ~{basename} --make-bed --rm-dup force-first
 	}
 
@@ -315,6 +335,42 @@ task SortWeights {
          disks: "local-disk " + disk_size + " HDD"
          memory: "4 GB"
      }
+ }
+
+ task PerformPCA {
+   input {
+     File bim
+     File bed
+     File fam
+     String basename
+     Int mem = 8
+   }
+
+   # again, based on Wallace commands
+   command {
+     cp ~{bim} ~{basename}.bim
+     cp ~{bed} ~{basename}.bed
+     cp ~{fam} ~{basename}.fam
+
+     ~/flashpca/flashpca --bfile ~{basename} -n 16 -d 20 --outpc ${basename}.pc \
+     --outpve ${basename}.pc.variance --outload ${basename}.pc.loadings \
+     --outmeansd ${basename}.pc.meansd
+   }
+
+   output {
+     File pcs = "${basename}.pc"
+     File pc_variance = "${basename}.pc.variance"
+     File pc_loadings = "${basename}.pc.loadings"
+     File mean_sd = "${basename}.pc.meansd"
+     File eigenvectors = "eigenvectors.txt"
+     File eigenvalues = "eigenvalues.txt"
+   }
+
+   runtime {
+     docker: "skwalker/flashpca:v1"
+     disks: "local-disk 400 HDD"
+     memory: mem + " GB"
+   }
  }
 
 

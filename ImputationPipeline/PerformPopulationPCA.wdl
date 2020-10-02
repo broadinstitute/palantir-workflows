@@ -57,14 +57,14 @@ workflow PerformPopulationPCA {
           output_basename = basename
     }
 
-#  call SubsetToArrayVCF {
-#    input:
-#        vcf = SortVariantIds.output_vcf,
-#        vcf_index = SortVariantIds.output_vcf_index,
-#        intervals = SelectTypedSites.output_vcf,
-#        intervals_index = SelectTypedSites.output_vcf_index,
-#        basename = basename + ".sorted_ids.subsetted"
-#  }
+  call SubsetToArrayVCF {
+    input:
+        vcf = SortVariantIds.output_vcf,
+        vcf_index = SortVariantIds.output_vcf_index,
+        intervals = SelectTypedSites.output_vcf,
+        intervals_index = SelectTypedSites.output_vcf_index,
+        basename = basename + ".sorted_ids.subsetted"
+  }
  
   # this performs some basic QC steps (filtering by MAF, HWE, etc.), as well as 
   # generating a plink-style bim,bed,fam format that has been limited to LD pruned
@@ -107,8 +107,6 @@ workflow PerformPopulationPCA {
     File sorted_variant_id_dataset = SortVariantIds.output_vcf # this is what you should use as your population dataset for the 
     # ScoringPart, since all the IDs will be matching 
     File sorted_variant_id_dataset_index = SortVariantIds.output_vcf_index
-    File population_sites_for_scoring = ExtractIDsAll.ids
-
   }
 }
 
