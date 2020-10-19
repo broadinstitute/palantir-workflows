@@ -4,15 +4,18 @@ FROM alpine:3.12
 # Installation instructions: http://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20200921.zip
 
 
-RUN apk update && apk add unzip wget build-base && \
+RUN apk update && apk add unzip wget build-base bash && \
     wget http://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20200921.zip && \
     unzip plink_linux_x86_64_20200921.zip -d /usr/local/ && \
     rm plink_linux_x86_64_20200921.zip && \
+    wget http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20200923.zip && \
+    unzip plink2_linux_x86_64_20200923.zip -d /usr/local/bin && \
+    rm plink2_linux_x86_64_20200923.zip && \
     cd /usr/local
 
 # WORKAROUND: plink hangs if not started with '--noweb' option
 # See issue #1
-RUN echo '#!/bin/sh'                                                 > /usr/local/bin/plink && \
+RUN echo '#!/bin/bash'                                                 > /usr/local/bin/plink && \
     echo '#Launch the real plink script forcing the --noweb argument' >> /usr/local/bin/plink && \
     echo '/usr/local/plink --noweb "$@"'                        >> /usr/local/bin/plink && \
     chmod a+x /usr/local/bin/plink

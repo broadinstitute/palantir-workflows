@@ -407,12 +407,12 @@ task ImputeSexAndMakeMalesHaploid {
 
 	command <<<
 		plink --vcf ~{vcf} --impute-sex --const-fid --make-bed --out sex_imputed
-		plink --bfile sex_imputes --export vcf bgz --out ~{basename}.sex_imputed
+		plink2 --bfile sex_imputed --export vcf bgz --out ~{basename}.sex_imputed
 		bcftools index -t ~{basename}.sex_imputed.vcf.gz
 	>>>
 
 	runtime {
-		docker: "quay.io/ckachuli/plink1.9@sha256:8bdaf8bffde55ba3fe374b1cb33d3dd05fea2c5449962e4a3187b105f58564a1"
+		docker: "quay.io/ckachuli/plink@sha256:b5ac6b3b4d28e3fd6f9ca09a8d759a0229899ae9626d0b869d3b3f111e83255f"
 		disks: "local-disk " + disk_size + " HDD"
 		memory: "16 GB"
   	}
