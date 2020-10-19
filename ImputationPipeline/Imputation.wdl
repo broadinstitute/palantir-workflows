@@ -150,6 +150,14 @@ workflow ImputationPipeline {
 			basename = "non_par.X"
 	}
 
+	call UpdateHeader as UpdateHeaderPlinkX {
+		input:
+			vcf = ImputeSexAndMakeMalesHaploid.vcf_out,
+			vcf_index = ImputeSexAndMakeMalesHaploid.vcf_out_index,
+			ref_dict = ref_dict,
+			basename = "non_par.X.updated_header"
+	}
+
   Int num_chunksX = ceil(CalculateChromosomeLengthX.chrom_length / chunkLengthFloat)
 
 
@@ -157,8 +165,8 @@ workflow ImputationPipeline {
   scatter (iX in range(num_chunksX)) {
   	call GenerateChunk as GenerateChunkX {
 		input:
-		  vcf = ImputeSexAndMakeMalesHaploid.vcf_out,
-		  vcf_index = ImputeSexAndMakeMalesHaploid.vcf_out_index,
+		  vcf = UpdateHeaderPlinkX.output_vcf,
+		  vcf_index = UpdateHeaderPlinkX.output_vcf_index,
 		  start = (iX * chunkLength) + 1,
 		  end = if (CalculateChromosomeLengthX.chrom_length < ((iX + 1) * chunkLength)) then CalculateChromosomeLengthX.chrom_length else ((iX + 1) * chunkLength),
 		  chrom = "X",
