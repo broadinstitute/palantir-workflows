@@ -449,7 +449,7 @@ task RemoveDuplicates {
 task CalculateChromosomeLength {
   input {
     File ref_dict
-    Int chrom
+    String chrom
   }
   command {
     grep -P "SN:~{chrom}\t" ~{ref_dict} | sed 's/.*LN://' | sed 's/\t.*//'
