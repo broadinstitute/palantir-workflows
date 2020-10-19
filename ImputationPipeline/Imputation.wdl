@@ -46,7 +46,7 @@ workflow ImputationPipeline {
   		input_vcf = vcf_to_impute,
         par1_interval = "X:1-" + par1_end,
         par2_interval = "X:" + par2_start + "-" + CalculateChromosomeLengthX.chrom_length,
-        non_par_interval = "X: " + (par1_end + 1) + "-" + (par2_start - 1)
+        non_par_interval = "X:" + (par1_end + 1) + "-" + (par2_start - 1)
   }
 
   #par1 and par2 are short, most of X is non_par region
