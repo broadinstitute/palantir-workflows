@@ -407,7 +407,7 @@ task ImputeSexAndMakeMalesHaploid {
 
 	command <<<
 		plink --vcf ~{vcf} --impute-sex --const-fid --make-bed --out sex_imputed
-		plink2 --bfile sex_imputed --export vcf bgz --out ~{basename}.sex_imputed
+		plink2 --bfile sex_imputed --export vcf-4.2 bgz --out ~{basename}.sex_imputed
 		bcftools index -t ~{basename}.sex_imputed.vcf.gz
 	>>>
 
