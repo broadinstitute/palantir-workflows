@@ -143,7 +143,7 @@ workflow ImputationPipeline {
 		}
   	}
 
-	# for non-par region, we must impute sex, and turn males in haploid
+	# for non-par region, we must impute sex, and turn males into haploid
 	call ImputeSexAndMakeMalesHaploid {
 		input:
 			vcf = SplitX.non_par_vcf,
@@ -414,7 +414,7 @@ task ImputeSexAndMakeMalesHaploid {
 	Int disk_size = 4 * ceil(size(vcf, "GB")) + 50
 
 	command <<<
-		plink --vcf ~{vcf} --impute-sex --const-fid --make-bed --out sex_imputed
+		plink --vcf ~{vcf} --impute-sex --const-fid --set-hh-missing --make-bed --out sex_imputed
 		plink2 --bfile sex_imputed --export vcf-4.2 bgz --out ~{basename}.sex_imputed
 		bcftools index -t ~{basename}.sex_imputed.vcf.gz
 	>>>
@@ -583,6 +583,8 @@ task minimac4 {
     Int end
   }
   command <<<
+    set -xeuo pipefail
+
     /Minimac4 --refHaps ~{ref_panel} --haps ~{phased_vcf} --start ~{start} --end ~{end} --window 500000 \
       --chr ~{chrom} --noPhoneHome --format GT,DS,GP --allTypedSites --prefix ~{prefix} --minRatio 0.00001 
     if [ ! -f ~{prefix}.dose.vcf.gz.tbi ]
