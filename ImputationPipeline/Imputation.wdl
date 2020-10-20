@@ -414,8 +414,9 @@ task ImputeSexAndMakeMalesHaploid {
 	Int disk_size = 4 * ceil(size(vcf, "GB")) + 50
 
 	command <<<
-		plink --vcf ~{vcf} --impute-sex --const-fid --set-hh-missing --make-bed --out sex_imputed
-		plink2 --bfile sex_imputed --export vcf-4.2 bgz --out ~{basename}.sex_imputed
+		plink --vcf ~{vcf} --impute-sex --const-fid --make-bed --out sex_imputed
+		plink --bfile sex_imputed --set-hh-missing --make-bed --out hh_missing
+		plink2 --bfile hh_missing --export vcf-4.2 bgz --out ~{basename}.sex_imputed
 		bcftools index -t ~{basename}.sex_imputed.vcf.gz
 	>>>
 
