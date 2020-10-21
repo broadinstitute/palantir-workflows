@@ -36,7 +36,6 @@ workflow EndToEndPipeline {
 	  File? population_meansd = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/RiskScoreAdjustmentFiles/WallacesPCASites/sorted_thousand_genomes_wallace_sites.pc.meansd"
 	  File? population_pcs = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/RiskScoreAdjustmentFiles/WallacesPCASites/sorted_thousand_genomes_wallace_sites.pc"
 	  File? pruning_sites_for_pca = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/RiskScoreAdjustmentFiles/WallacesPCASites/wallace_pruning_sites_sorted_ids.txt"
-	  
 
 	  ## The following are inputs for scoring and performing the adjustment
 
@@ -66,9 +65,8 @@ workflow EndToEndPipeline {
   	    population_vcf = population_vcf,
   	    population_vcf_index = population_vcf_index,
   	    basename = population_basename,
-  	    original_array_vcf =  multi_sample_vcf,
-  	    original_array_vcf_index = multi_sample_vcf_index,
-  	    bad_variant_id_format = true # it will update the variant ids into the format we use: chr:pos:allele1:allele2
+  	    imputed_array_vcf =  ImputationSteps.imputed_multisample_vcf,
+  	    imputed_array_vcf_index = ImputationSteps.imputed_multisample_vcf_index,
     }
   }
 
@@ -85,7 +83,7 @@ workflow EndToEndPipeline {
 	    population_loadings = select_first([PopulationPCASteps.population_loadings, population_loadings]), # either use your newely generated PC files or the input loadings/meansd/pcs/pruning sites
 	    population_meansd = select_first([PopulationPCASteps.population_meansd, population_meansd]), 
 	    population_pcs = select_first([PopulationPCASteps.population_pcs, population_pcs]),
-	    pruning_sites_for_pca = select_first([PopulationPCASteps.pruning_sites_for_pca, pruning_sites_for_pca]),
+	    pruning_sites_for_pca = select_first([PopulationPCASteps.pruning_sites_for_pca, pruning_sites_for_pca])
 	}
 
 	output {
