@@ -129,7 +129,7 @@ task SelectTypedSites {
 	>>>
 
 	runtime {
-	docker: "us.gcr.io/broad-gatk/gatk:4.1.7.0"
+	docker: "us.gcr.io/broad-gatk/gatk:4.1.9.0"
 	disks: "local-disk " + disk_size + " HDD"
 	memory: "16 GB"
   }
@@ -398,7 +398,7 @@ task SubsetToArrayVCF {
    }
 
   runtime {
-    docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
+    docker: "us.gcr.io/broad-gatk/gatk:4.1.9.0"
     disks: "local-disk " + disk_size + " HDD"
     memory: "4.5 GB"
   }
