@@ -202,7 +202,7 @@ task GenerateChunk {
      --select-type-to-exclude MIXED --restrict-alleles-to BIALLELIC -L ~{chrom}:~{start}-~{end} -O ~{basename}.vcf.gz --exclude-filtered true
   }
   runtime {
-    docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
+    docker: "us.gcr.io/broad-gatk/gatk:4.1.9.0"
     disks: "local-disk " + disk_size + " HDD"
     memory: "8 GB"
   }
@@ -408,7 +408,7 @@ task RemoveSymbolicAlleles {
     File output_vcf_index = "~{output_basename}.vcf.gz.tbi"
   }
   runtime {
-    docker: "us.gcr.io/broad-gatk/gatk:4.1.7.0"
+    docker: "us.gcr.io/broad-gatk/gatk:4.1.9.0"
     disks: "local-disk " + disk_size + " HDD"
     memory: "4 GB"
   }
@@ -447,7 +447,7 @@ task SplitSample {
     gatk SelectVariants -V ~{vcf} -sn ~{sample} -O ~{sample}.vcf.gz
   }
   runtime {
-    docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
+    docker: "us.gcr.io/broad-gatk/gatk:4.1.9.0"
     disks: "local-disk " + disk_size + " HDD"
     memory: "9 GB"
   }
