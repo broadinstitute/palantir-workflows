@@ -52,7 +52,7 @@ task CrosscheckFingerprints {
     File picard_jar
   }
   parameter_meta {
-    input_reads: {
+    input_data: {
       localization_optional: true
     }
    
@@ -68,7 +68,7 @@ task CrosscheckFingerprints {
 
     
     java -jar ~{picard_jar} CrosscheckFingerprints \
-      INPUT=~{input_reads} \
+      INPUT=~{input_data} \
       SECOND_INPUT=~{sep=" SECOND_INPUT=" ground_truth_files}
       HAPLOTYPE_MAP=~{haplotype_database} \
       LOD_THRESHOLD=-5 \
