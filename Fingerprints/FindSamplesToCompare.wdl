@@ -4,14 +4,14 @@ workflow FindSamplesToCompare{
 	
 	input {
 		File input_reads
-		File input_reads_index
-
+		
 		Array[File] ground_truth_files
-		Array[File] ground_truth_indexes
 		Array[File] ground_truth_intervals
 
 		File haplotype_database 
 		File picard_cloud_jar
+
+		String docker 
 
 
 	}
@@ -22,13 +22,13 @@ workflow FindSamplesToCompare{
 
 	 call CrosscheckFingerprints {
          input:
-           input_bam = deduplicated_bam,
-           input_bam_index = deduplicated_bam_index,
+           input_reads = input_reads,
+           metrics_basename = "crosscheck",
            ground_truth_files = ground_truth_files,
            haplotype_database = haplotype_database,
            disk_size = VCF_disk_size,
            preemptible_tries = 3,
-           docker = jukebox_vc_docker,
+           docker = docker,
            monitoring_script = monitoring_script,
            picard_jar = picard_cloud_jar,
       }
@@ -46,7 +46,8 @@ task CrosscheckFingerprints {
   input {
     File monitoring_script
     File input_reads
-    File ground_truth_files
+    String metrics_basename
+    Array[File] ground_truth_files
     File haplotype_database
     Int disk_size
     Int preemptible_tries
@@ -63,7 +64,7 @@ task CrosscheckFingerprints {
     }
   }  
   
-  String tsv_out="~{final_vcf_base_name}.fingerprints_metrics"
+  String tsv_out="~{metrics_basename}.fingerprints_metrics"
 
   command <<<
     bash ~{monitoring_script} > /cromwell_root/monitoring.log &
@@ -83,7 +84,7 @@ task CrosscheckFingerprints {
       
    >>>
    output {
-   	File crosscheck = ~{tsv_out}
+   	File crosscheck = tsv_out
    }
 
    runtime {
