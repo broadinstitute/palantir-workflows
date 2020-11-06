@@ -1,9 +1,9 @@
 version 1.0
 
-workflow FindSamplesToCompare{
+workflow FindSamplesToCompare {
 	
 	input {
-		File input_reads
+		File input_callset
 		
 		Array[File] ground_truth_files
 		Array[File] ground_truth_intervals
@@ -13,7 +13,6 @@ workflow FindSamplesToCompare{
 
 		String docker 
 
-
 	}
 
 	Int VCF_disk_size = 50
@@ -22,7 +21,7 @@ workflow FindSamplesToCompare{
 
 	 call CrosscheckFingerprints {
          input:
-           input_reads = input_reads,
+           input_data = input_callset,
            metrics_basename = "crosscheck",
            ground_truth_files = ground_truth_files,
            haplotype_database = haplotype_database,
@@ -33,11 +32,9 @@ workflow FindSamplesToCompare{
            picard_jar = picard_cloud_jar,
       }
 
-
    output {
-   		File crosscheck = CrosscheckFingerprints.crosscheck
+   	File crosscheck = CrosscheckFingerprints.crosscheck
    }
-
 }
 
 
@@ -45,7 +42,7 @@ workflow FindSamplesToCompare{
 task CrosscheckFingerprints {
   input {
     File monitoring_script
-    File input_reads
+    File input_data
     String metrics_basename
     Array[File] ground_truth_files
     File haplotype_database
@@ -69,9 +66,7 @@ task CrosscheckFingerprints {
   command <<<
     bash ~{monitoring_script} > /cromwell_root/monitoring.log &
 
-    source ~/.bashrc
-    conda activate genomics.py3
-
+    
     java -jar ~{picard_jar} CrosscheckFingerprints \
       INPUT=~{input_reads} \
       SECOND_INPUT=~{sep=" SECOND_INPUT=" ground_truth_files}
