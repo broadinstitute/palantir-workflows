@@ -3,7 +3,7 @@ version 1.0
 workflow FindSamplesToCompare {
 	
 	input {
-		File input_callset
+		Array[File] input_callset
 		
 		Array[File] ground_truth_files
 		Array[File] ground_truth_intervals
@@ -42,7 +42,7 @@ workflow FindSamplesToCompare {
 task CrosscheckFingerprints {
   input {
     File monitoring_script
-    File input_data
+    Array[File] input_data
     String metrics_basename
     Array[File] ground_truth_files
     File haplotype_database
@@ -68,12 +68,12 @@ task CrosscheckFingerprints {
 
     
     java -jar ~{picard_jar} CrosscheckFingerprints \
-      INPUT=~{input_data} \
-      SECOND_INPUT=~{sep=" SECOND_INPUT=" ground_truth_files}
+      INPUT=~{sep=" SECOND_INPUT=" input_data} \
+      SECOND_INPUT=~{sep=" SECOND_INPUT=" ground_truth_files} \
       HAPLOTYPE_MAP=~{haplotype_database} \
       LOD_THRESHOLD=-5 \
       OUTPUT=~{tsv_out} \
-      CROSSCHECK_BY=SAMPLE \
+      CROSSCHECK_BY=FILE \
       CROSSCHECK_MODE=CHECK_ALL_OTHERS \
       TEST_INPUT_READABILITY=false
       
