@@ -68,7 +68,7 @@ task CrosscheckFingerprints {
 
     
     java -jar ~{picard_jar} CrosscheckFingerprints \
-      INPUT=~{sep=" SECOND_INPUT=" input_data} \
+      INPUT=~{sep=" INPUT=" input_data} \
       SECOND_INPUT=~{sep=" SECOND_INPUT=" ground_truth_files} \
       HAPLOTYPE_MAP=~{haplotype_database} \
       LOD_THRESHOLD=-5 \
