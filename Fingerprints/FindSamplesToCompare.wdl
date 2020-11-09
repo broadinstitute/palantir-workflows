@@ -1,25 +1,25 @@
 version 1.0
 
 workflow FindSamplesToCompare {
-	
-	input {
-		Array[File] input_callset
-		
-		Array[File] ground_truth_files
-		Array[File] ground_truth_intervals
+    
+    input {
+        Array[File] input_callset
+        
+        Array[File] ground_truth_files
+        Array[File] ground_truth_intervals
 
-		File haplotype_database 
-		File picard_cloud_jar
+        File haplotype_database 
+        File picard_cloud_jar
 
-		String docker 
+        String docker 
 
-	}
+    }
 
-	Int VCF_disk_size = 50
+    Int VCF_disk_size = 50
 
-	File monitoring_script="gs://broad-dsde-methods-monitoring/cromwell_monitoring_script.sh"
+    File monitoring_script="gs://broad-dsde-methods-monitoring/cromwell_monitoring_script.sh"
 
-	 call CrosscheckFingerprints {
+     call CrosscheckFingerprints {
          input:
            input_data = input_callset,
            metrics_basename = "crosscheck",
@@ -32,8 +32,15 @@ workflow FindSamplesToCompare {
            picard_jar = picard_cloud_jar,
       }
 
+      call PickMatches {
+        input:
+            crosscheck_results = CrosscheckFingerprints.crosscheck
+      }
+
    output {
-   	File crosscheck = CrosscheckFingerprints.crosscheck
+    File crosscheck = CrosscheckFingerprints.crosscheck
+    Array[Array[String]] matches = PickMatches.matches
+
    }
 }
 
@@ -80,7 +87,7 @@ task CrosscheckFingerprints {
       
    >>>
    output {
-   	File crosscheck = tsv_out
+    File crosscheck = tsv_out
    }
 
    runtime {
@@ -93,5 +100,43 @@ task CrosscheckFingerprints {
     continueOnReturnCode: [0,5]
   }
 }
+
+task PickMatches {
+    input {
+        File crosscheck_results
+    }
+
+    command <<<
+
+        cat <<- 'AWK' > prog.awk
+        BEGIN{
+            OFS="   ";
+            parsedhead=0;
+        }
+        /^#/{next} 
+        /^$/{next} 
+        parsedhead==0 {
+            parsedhead=1;
+            for (i=1; i<=NF; i++) {
+                f[$i] = i
+            };
+            next;
+            } 
+        $(f["RESULT"])!~/MISMATCH/ && $(f["RESULT"])~/MATCH/ {
+            print $(f["LEFT_FILE"]), $(f["LEFT_SAMPLE"]), $(f["RIGHT_FILE"]), $(f["RIGHT_SAMPLE"])
+            } 
+        AWK 
+
+
+         awk -F'\t' -f prog.awk ~{crosscheck_results} > matches.tsv
+    >>>
+    output {
+        Array[Array[String]] matches = read_tsv("matches.tsv")
+    }
+    runtime {
+        docker: "ubuntu"
+    }
+}   
+
 
 
