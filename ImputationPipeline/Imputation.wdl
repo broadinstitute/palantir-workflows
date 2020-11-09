@@ -266,9 +266,11 @@ task PrePhaseVariantsEagle {
     String genetic_map_file
     Int start
     Int end
+    File monitoring_script = "gs://broad-dsde-methods-ckachulis/cromwell_monitoring_script/cromwell_monitoring_script.sh"
   }  
   Int disk_size = ceil(3 * size([dataset_bcf, reference_panel_bcf, dataset_bcf_index, reference_panel_bcf_index], "GB"))
   command <<<
+      bash ~{monitoring_script} > monitoring.log &
       /eagle  \
              --vcfTarget ~{dataset_bcf}  \
              --vcfRef ~{reference_panel_bcf} \
@@ -279,6 +281,7 @@ task PrePhaseVariantsEagle {
   >>>
   output {
     File dataset_prephased_vcf="pre_phased_~{chrom}.vcf.gz"
+    File monitoring_log = "monitoring.log"
   }
   runtime {
     docker: "skwalker/imputation:test" # this has the exact version of minimac and eagle we want to perfectly match Michigan Server
