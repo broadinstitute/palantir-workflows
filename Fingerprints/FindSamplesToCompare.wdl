@@ -75,7 +75,8 @@ task CrosscheckFingerprints {
       OUTPUT=~{tsv_out} \
       CROSSCHECK_BY=FILE \
       CROSSCHECK_MODE=CHECK_ALL_OTHERS \
-      TEST_INPUT_READABILITY=false
+      TEST_INPUT_READABILITY=false \
+      EXIT_CODE_WHEN_MISMATCH=5
       
    >>>
    output {
@@ -89,6 +90,7 @@ task CrosscheckFingerprints {
     docker: docker
     noAddress: false
     maxRetries: 1
+    continueOnReturnCode: [0,5]
   }
 }
 
