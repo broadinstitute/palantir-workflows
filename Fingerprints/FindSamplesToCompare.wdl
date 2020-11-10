@@ -20,20 +20,11 @@ workflow FindSamplesToCompare {
 
     Array[Array[String]] truth_array = transpose([ground_truth_files, ground_truth_intervals,truth_labels])
 
-    scatter (truth_datum in truth_array){
-        Truth truth = object{
-            truthVcf: truth_array[0],
-            confidenceIntervals: truth_array[1],
-            truthLabel: truth_array[2]
-        }
-    } 
-
     call MakeStringMap as intervalsMap {input: keys=ground_truth_files, values=ground_truth_intervals}
     call MakeStringMap as lablesMap {input: keys=ground_truth_files, values=truth_labels}
  
     Map[File, File] truthIntervals = intervalsMap.map
     Map[File, String] truthLabels = lablesMap.map
-
 
     call CrosscheckFingerprints {
          input:
