@@ -55,8 +55,8 @@ workflow FindSamplesToCompare {
             call ExtractSampleFromCallset{
                 input:
                     callset=match.leftFile,
-                    sample=match.leftFile,
-                    basename=match.leftFile + ".extracted"
+                    sample=match.leftSample,
+                    basename=match.leftSample + ".extracted"
             }
       }
 
