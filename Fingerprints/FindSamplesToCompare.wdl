@@ -211,6 +211,7 @@ task ExtractSampleFromCallset {
         disks: "local-disk " + 40 + " LOCAL"
         cpu: 1
         memory: 5 + " GB"
+        docker: "broadinstitute/gatk:4.1.4.1"
     }   
 }
 
