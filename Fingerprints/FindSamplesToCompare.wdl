@@ -188,7 +188,15 @@ task ExtractSampleFromCallset {
         String basename
     }
     command <<<
-        gatk --java-options "-Xmx190g"  \
+
+        set -xe
+
+        # Silly GATK needs an indexed file....
+        gatk --java-options "-Xmx4g"  \
+            IndexFeatureFile \
+            -I ~{callset} 
+
+        gatk --java-options "-Xmx4g"  \
             SelectVariants \
             -V ~{callset} \
             -sn ~{sample} \
