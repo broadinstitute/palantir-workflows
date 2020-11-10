@@ -295,7 +295,7 @@ task MakeStringMap {
 
     String results_path = "results.tsv"
     command <<<
-       paste ~{keys} ~{values} > ~{results_path} 
+       cat ~{write_tsv(transpose([keys,values]))} > ~{results_path} 
     >>>
     runtime {
         docker: "python:3"
