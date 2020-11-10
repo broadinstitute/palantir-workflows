@@ -153,7 +153,7 @@ task PickMatches {
 
         cat <<- 'AWK' > prog.awk
         BEGIN{
-            OFS="   ";
+            OFS="	";
             parsedhead=0;
         }
         /^#/{next} 
