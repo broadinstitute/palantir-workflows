@@ -5,26 +5,40 @@ workflow FindSamplesToCompare {
     input {
         Array[File] input_callset
         Array[File] ground_truth_files
+        Array[File] ground_truth_indexes
         Array[File] ground_truth_intervals
         Array[String] truth_labels
+        Array[File] annotation_intervals
+  
+        File ref_fasta
+        File ref_fasta_sdf
 
         File haplotype_database 
         File picard_cloud_jar
 
         String docker 
 
+        File? interval_list_override
+        File? runs_file_override
+        String? jukebox_vc_docker_override
     }
+
+
+    File interval_list = select_first([interval_list_override, "gs://concordance/interval_lists/chr9.hg38.interval_list"])
+    File runs_file = select_first([runs_file_override, "gs://concordance/hg38/runs.conservative.bed"])
+    String jukebox_vc_docker = select_first([jukebox_vc_docker_override, "gcr.io/terra-project-249020/jukebox_vc@sha256:f313699d82b6262b033910ac200987dfce8c4619bdb74f40b2e0c1e4e711e42b"])
+
 
     Int VCF_disk_size = 50
     File monitoring_script="gs://broad-dsde-methods-monitoring/cromwell_monitoring_script.sh"
 
-    Array[Array[String]] truth_array = transpose([ground_truth_files, ground_truth_intervals,truth_labels])
-
     call MakeStringMap as intervalsMap {input: keys=ground_truth_files, values=ground_truth_intervals}
-    call MakeStringMap as lablesMap {input: keys=ground_truth_files, values=truth_labels}
+    call MakeStringMap as lablesMap    {input: keys=ground_truth_files, values=truth_labels}
+    call MakeStringMap as indexesMap   {input: keys=ground_truth_files, values=ground_truth_indexes}
  
-    Map[File, File] truthIntervals = intervalsMap.map
-    Map[File, String] truthLabels = lablesMap.map
+    Map[File, File]   truthIntervals = intervalsMap.map
+    Map[File, String] truthLabels    = lablesMap.map
+    Map[File, File]   truthIndex     = indexesMap.map
 
     call CrosscheckFingerprints {
          input:
@@ -52,12 +66,37 @@ workflow FindSamplesToCompare {
                 rightSample: matchArray[3]
             }
 
-            call ExtractSampleFromCallset{
+            call ExtractSampleFromCallset {
                 input:
                     callset=match.leftFile,
                     sample=match.leftSample,
                     basename=match.leftSample + ".extracted"
             }
+
+            Float compareSize = size([ExtractSampleFromCallset.output_vcf,match.rightFile,ref_fasta,ref_fasta_sdf], "GiB")
+            call CompareToGroundTruth {
+                input:
+                    monitoring_script=monitoring_script,
+                    left_sample_name = match.leftSample,
+                    right_sample_name = match.rightSample,
+                    input_vcf = ExtractSampleFromCallset.output_vcf,
+                    input_vcf_index = ExtractSampleFromCallset.output_vcf_index,
+                    input_vcf_name = match.leftSample,
+                    truth_vcf = match.rightFile,
+                    truth_vcf_index = truthIndex[match.rightFile],
+                    truth_high_confidence = truthIntervals[match.rightFile],
+                    interval_list=interval_list,
+                    runs_file=runs_file,
+                    ref_fasta=ref_fasta,
+                    ref_fasta_sdf=ref_fasta_sdf,
+                    annotation_intervals=annotation_intervals,
+                    preemptible_tries=3,
+                    disk_size=compareSize+20,
+                    docker=jukebox_vc_docker,
+                    no_address=true
+        }
+
+
       }
 
    output {
@@ -204,7 +243,7 @@ task ExtractSampleFromCallset {
     >>>
     output {
         File output_vcf = "~{basename}.vcf.gz"
-        File? output_vcf_index = "~{basename}.vcf.gz.tbx"
+        File output_vcf_index = "~{basename}.vcf.gz.tbx"
     } 
     runtime{
         disks: "local-disk " + 40 + " LOCAL"
@@ -224,7 +263,12 @@ task CompareToGroundTruth {
     File input_vcf
     File input_vcf_index
     String input_vcf_name
+    File truth_vcf 
+    File truth_vcf_index 
+    File truth_high_confidence
+
     File interval_list
+
     File runs_file
     File ref_fasta
     File ref_fasta_sdf
@@ -249,9 +293,9 @@ task CompareToGroundTruth {
             --hpol_filter_length_dist 12 10 \
             --input_prefix $(echo "~{input_vcf}" | sed 's/\(.vcf.gz\|.vcf\)$//') \
             --output_file /cromwell_root/~{input_vcf_name}.comp.h5 \
-            --gtr_vcf $(find $ground_truths_dirname | grep -E .vcf.gz$) \
+            --gtr_vcf ~{truth_vcf} \
             --cmp_intervals ~{interval_list} \
-            --highconf_intervals $(find $ground_truths_dirname | grep -E .bed$) \
+            --highconf_intervals ~{truth_high_confidence} \
             --runs_intervals ~{runs_file} \
             --reference ~{ref_fasta} \
             --call_sample_name ~{left_sample_name} \
