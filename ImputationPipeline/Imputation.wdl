@@ -35,7 +35,7 @@ workflow ImputationPipeline {
   File vcf_to_impute = select_first([multi_sample_vcf, MergeSingleSampleVcfs.output_vcf])
   File vcf_index_to_impute = select_first([multi_sample_vcf_index, MergeSingleSampleVcfs.output_vcf_index])  
 
-  scatter (chrom in ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22"]) { 
+  scatter (chrom in ["22"]) {
     call CalculateChromsomeLength {
       input:
         ref_dict = ref_dict,
