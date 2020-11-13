@@ -20,14 +20,15 @@ workflow FindSamplesToCompare {
 
         File? interval_list_override
         File? runs_file_override
-        String? jukebox_vc_docker_override
+        String comparison_docker
+
+        Boolean remove_symbolic_alleles=false
     }
 
 
     File interval_list = select_first([interval_list_override, "gs://concordance/interval_lists/chr9.hg38.interval_list"])
     File runs_file = select_first([runs_file_override, "gs://concordance/hg38/runs.conservative.bed"])
-    String jukebox_vc_docker = select_first([jukebox_vc_docker_override, "gcr.io/terra-project-249020/jukebox_vc@sha256:f313699d82b6262b033910ac200987dfce8c4619bdb74f40b2e0c1e4e711e42b"])
-
+    
 
     Int VCF_disk_size = 50
     File monitoring_script="gs://broad-dsde-methods-monitoring/cromwell_monitoring_script.sh"
@@ -73,14 +74,36 @@ workflow FindSamplesToCompare {
                     basename=match.leftSample + ".extracted"
             }
 
+            Pair[File,File] vcf_and_index_original = zip([ExtractSampleFromCallset.output_vcf],[ExtractSampleFromCallset.output_vcf_index])[0]
+            
             Float compareSize = size([ExtractSampleFromCallset.output_vcf,match.rightFile,ref_fasta,ref_fasta_sdf], "GiB")
+
+            if (remove_symbolic_alleles){
+                call FilterSymbolicAlleles{
+                    input:
+                        monitoring_script=monitoring_script,
+                        input_vcf=ExtractSampleFromCallset.output_vcf,
+                        input_vcf_index=ExtractSampleFromCallset.output_vcf_index,
+                        output_basename=match.leftSample + ".noSymbolicAlleles",
+                        disk_size = round(compareSize),
+                        preemptible_tries = 3,
+                        no_address = true,
+                        docker = comparison_docker
+                }
+
+                Pair[File,File] vcf_and_index_symbolic_removed = zip([FilterSymbolicAlleles.output_vcf],[FilterSymbolicAlleles.output_vcf_index])[0]
+            }
+
+
+            Pair[File,File] vcf_and_index_to_compare=select_first([vcf_and_index_symbolic_removed,vcf_and_index_original])
+
             call CompareToGroundTruth {
                 input:
                     monitoring_script=monitoring_script,
                     left_sample_name = match.leftSample,
                     right_sample_name = match.rightSample,
-                    input_vcf = ExtractSampleFromCallset.output_vcf,
-                    input_vcf_index = ExtractSampleFromCallset.output_vcf_index,
+                    input_vcf = vcf_and_index_to_compare.left,
+                    input_vcf_index = vcf_and_index_to_compare.right,
                     input_vcf_name = match.leftSample,
                     truth_vcf = match.rightFile,
                     truth_vcf_index = truthIndex[match.rightFile],
@@ -92,7 +115,7 @@ workflow FindSamplesToCompare {
                     annotation_intervals=annotation_intervals,
                     preemptible_tries=3,
                     disk_size=compareSize+20,
-                    docker=jukebox_vc_docker,
+                    docker=comparison_docker,
                     no_address=true
         }
 
@@ -346,6 +369,41 @@ task MakeStringMap {
     output {
         Map[String, String] map = read_map(results_path)
     }
+}
+
+
+task FilterSymbolicAlleles { 
+  input {
+    File monitoring_script
+    File input_vcf
+    File input_vcf_index
+    String output_basename
+    Int disk_size
+    Int preemptible_tries
+    Boolean no_address
+    String docker
+  }
+  command {
+    bash ~{monitoring_script} > monitoring.log &
+    gatk --java-options "-Xmx10g"  SelectVariants \
+          -V ~{input_vcf} \
+          -O ~{output_basename}.vcf.gz \
+          --remove-unused-alternates --select-type-to-exclude SYMBOLIC --exclude-non-variants 
+  }
+  runtime {
+    preemptible: preemptible_tries
+    memory: "12 GB"
+    cpu: "1"
+    disks: "local-disk " + ceil(disk_size) + " HDD"
+    docker: docker 
+    noAddress: no_address
+    maxRetries: 1
+  }
+  output {
+    File output_vcf = "~{output_basename}.vcf.gz"
+    File output_vcf_index = "~{output_basename}.vcf.gz.tbi"
+    File monitoring_log = "monitoring.log"
+  }
 }
 
 
