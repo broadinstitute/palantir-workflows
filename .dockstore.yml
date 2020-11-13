@@ -15,3 +15,6 @@ workflows:
   - name: BenchmarkVCFs
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/BenchmarkVCFs.wdl
+  - name: FindSampleAndCompare
+    subclass: WDL
+    primaryDescriptorPath: /Fingerprints/FindSamplesToCompare.wdl
