@@ -243,7 +243,7 @@ task ExtractSampleFromCallset {
     >>>
     output {
         File output_vcf = "~{basename}.vcf.gz"
-        File output_vcf_index = "~{basename}.vcf.gz.tbx"
+        File output_vcf_index = "~{basename}.vcf.gz.tbi"
     } 
     runtime{
         disks: "local-disk " + 40 + " LOCAL"
