@@ -285,8 +285,8 @@ task PrePhaseVariantsEagle {
   }
   runtime {
     docker: "skwalker/imputation:test" # this has the exact version of minimac and eagle we want to perfectly match Michigan Server
-    memory: "32 GB"
-    cpu: "8"
+    memory: "4 GB"
+    cpu: "1"
     disks: "local-disk " + disk_size + " HDD"
   }
 }
