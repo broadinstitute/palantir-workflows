@@ -12,3 +12,6 @@ workflows:
   - name: PerformPopulationPCA
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/PerformPopulationPCA.wdl
+  - name: FindSampleAndCompare
+    subclass: WDL
+    primaryDescriptorPath: /Fingerprints/FindSamplesToCompare.wdl
