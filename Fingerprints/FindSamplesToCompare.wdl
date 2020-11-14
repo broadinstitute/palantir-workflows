@@ -88,7 +88,6 @@ workflow FindSamplesToCompare {
                         disk_size = round(compareSize),
                         preemptible_tries = 3,
                         no_address = true,
-                        docker = comparison_docker
                 }
 
                 Pair[File,File] vcf_and_index_symbolic_removed = zip([FilterSymbolicAlleles.output_vcf],[FilterSymbolicAlleles.output_vcf_index])[0]
@@ -381,7 +380,6 @@ task FilterSymbolicAlleles {
     Int disk_size
     Int preemptible_tries
     Boolean no_address
-    String docker
   }
   command {
     bash ~{monitoring_script} > monitoring.log &
@@ -395,7 +393,7 @@ task FilterSymbolicAlleles {
     memory: "12 GB"
     cpu: "1"
     disks: "local-disk " + ceil(disk_size) + " HDD"
-    docker: docker 
+    docker: "broadinstitute/gatk:4.1.4.1" 
     noAddress: no_address
     maxRetries: 1
   }
