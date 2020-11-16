@@ -383,10 +383,19 @@ task FilterSymbolicAlleles {
   }
   command {
     bash ~{monitoring_script} > monitoring.log &
+   
+    set -e
+    
     gatk --java-options "-Xmx10g"  SelectVariants \
           -V ~{input_vcf} \
+          -O ~{output_basename}.tmp.vcf.gz \
+          --remove-unused-alternates
+
+    gatk --java-options "-Xmx10g" SelectVariants \
+          -V ~{output_basename}.tmp.vcf.gz \
           -O ~{output_basename}.vcf.gz \
-          --remove-unused-alternates --select-type-to-exclude SYMBOLIC --exclude-non-variants 
+          --exclude-non-variants \
+          --select-type-to-exclude SYMBOLIC
   }
   runtime {
     preemptible: preemptible_tries
