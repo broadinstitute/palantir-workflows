@@ -1,5 +1,7 @@
 version 1.0
 
+import "Structs.wdl" as structs
+
 workflow ImputationPipeline {
   input {
     Int chunkLength = 25000000
@@ -17,10 +19,11 @@ workflow ImputationPipeline {
     Boolean perform_extra_qc_steps # these are optional additional extra QC steps from Amit's group that should only be 
     # run for large sample sets, especially a diverse set of samples (it's further limiting called at sites to 95% and by HWE)
     File ref_dict = "gs://gcp-public-data--broad-references/hg19/v0/Homo_sapiens_assembly19.dict" # for reheadering / adding contig lengths in the header of the ouptut VCF
+    Array[ReferencePanelContig] referencePanelContigs
     String genetic_maps_eagle = "/genetic_map_hg19_withX.txt.gz" # this is for Eagle, it is in the docker image 
     String output_callset_name = "broad_imputation" # the output callset name
-    String path_to_reference_panel = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/eagle_panels/" # from the "Imputation and Polygenic Risk Score Files" workspace in Terra
-    String path_to_m3vcf = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/minimac3_files/" # from the same workspace ^
+#    String path_to_reference_panel = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/eagle_panels/" # from the "Imputation and Polygenic Risk Score Files" workspace in Terra
+#    String path_to_m3vcf = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/minimac3_files/" # from the same workspace ^
   }
 
   if (defined(single_sample_vcfs)) {
@@ -35,11 +38,11 @@ workflow ImputationPipeline {
   File vcf_to_impute = select_first([multi_sample_vcf, MergeSingleSampleVcfs.output_vcf])
   File vcf_index_to_impute = select_first([multi_sample_vcf_index, MergeSingleSampleVcfs.output_vcf_index])  
 
-  scatter (chrom in ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22"]) { 
+  scatter (referencePanelContig in referencePanelContigs) {
     call CalculateChromsomeLength {
       input:
         ref_dict = ref_dict,
-        chrom = chrom
+        chrom = referencePanelContig.contig
     }
     
     Float chunkLengthFloat = chunkLength
@@ -53,8 +56,8 @@ workflow ImputationPipeline {
           vcf_index = vcf_index_to_impute,
           start = (i * chunkLength) + 1,
           end = if (CalculateChromsomeLength.chrom_length < ((i + 1) * chunkLength)) then CalculateChromsomeLength.chrom_length else ((i + 1) * chunkLength), 
-          chrom = chrom,
-          basename = "chrom_" + chrom + "_chunk_" + i
+          chrom = referencePanelContig.contig,
+          basename = "chrom_" + referencePanelContig.contig + "_chunk_" + i
       }
 
        if (perform_extra_qc_steps) {
@@ -62,7 +65,7 @@ workflow ImputationPipeline {
           input:
             input_vcf = GenerateChunk.output_vcf,
             input_vcf_index = GenerateChunk.output_vcf_index,
-            output_vcf_basename =  "chrom_" + chrom + "_chunk_" + i
+            output_vcf_basename =  "chrom_" + referencePanelContig.contig + "_chunk_" + i
           }
         }
 
@@ -70,8 +73,8 @@ workflow ImputationPipeline {
         input: 
           vcf = select_first([OptionalQCSites.output_vcf,  GenerateChunk.output_vcf]),
           vcf_index = select_first([OptionalQCSites.output_vcf_index, GenerateChunk.output_vcf_index]),
-          panel_vcf = path_to_reference_panel + "ALL.chr" + chrom + ".phase3_integrated.20130502.genotypes.vcf.gz",
-          panel_vcf_index = path_to_reference_panel + "ALL.chr" + chrom + ".phase3_integrated.20130502.genotypes.vcf.gz.tbi"
+          panel_vcf = referencePanelContig.vcf,
+          panel_vcf_index = referencePanelContig.contig.vcf_index
       }
 
       if (CheckChunkValid.valid) {
@@ -80,9 +83,9 @@ workflow ImputationPipeline {
         input:
           dataset_bcf = CheckChunkValid.valid_chunk_bcf,
           dataset_bcf_index = CheckChunkValid.valid_chunk_bcf_index,
-          reference_panel_bcf = path_to_reference_panel + "ALL.chr" + chrom + ".phase3_integrated.20130502.genotypes.bcf",
-          reference_panel_bcf_index = path_to_reference_panel + "ALL.chr" + chrom + ".phase3_integrated.20130502.genotypes.bcf.csi",
-          chrom = chrom,
+          reference_panel_bcf = referencePanelContig.bcf,
+          reference_panel_bcf_index = referencePanelContig.bcf_index,
+          chrom = referencePanelContig.contig,
           genetic_map_file = genetic_maps_eagle,
           start = (i * chunkLength) + 1,
           end = (i + 1) * chunkLength + 5000000 # they do an overlap of 5,000,000 bases in michigan pipeline
@@ -90,10 +93,10 @@ workflow ImputationPipeline {
 
         call minimac4 {
           input:
-            ref_panel = path_to_m3vcf + chrom + ".1000g.Phase3.v5.With.Parameter.Estimates.m3vcf.gz",
+            ref_panel = referencePanelContig.m3vcf,
             phased_vcf = PrePhaseVariantsEagle.dataset_prephased_vcf,
             prefix = "chrom" + "_chunk_" + i +"_imputed",
-            chrom = chrom,
+            chrom = referencePanelContig.contig,
             start = (i * chunkLength) + 1,
             end = (i + 1) * chunkLength
         }
@@ -110,20 +113,20 @@ workflow ImputationPipeline {
           input:
             original_vcf = UpdateHeader.output_vcf,
             original_vcf_index = UpdateHeader.output_vcf_index,
-            output_basename = "chrom" + chrom + "_chunk_" + i +"_imputed",
+            output_basename = "chrom" + referencePanelContig.contig + "_chunk_" + i +"_imputed",
         }
 
         call RemoveSymbolicAlleles {
             input:
                 original_vcf = SeparateMultiallelics.output_vcf,
                 original_vcf_index = SeparateMultiallelics.output_vcf_index,
-                output_basename = "chrom" + chrom + "_chunk_" + i +"_imputed",
+                output_basename = "chrom" + referencePanelContig.contig + "_chunk_" + i +"_imputed",
         }
         
         call SortIds {
           input:
             vcf = RemoveSymbolicAlleles.output_vcf,
-            basename = "chrom" + chrom + "_chunk_" + i +"_imputed"
+            basename = "chrom" + referencePanelContig.contig + "_chunk_" + i +"_imputed"
         }
       }
     }
