@@ -85,6 +85,8 @@ workflow FindSamplesToCompare {
                         input_vcf=ExtractSampleFromCallset.output_vcf,
                         input_vcf_index=ExtractSampleFromCallset.output_vcf_index,
                         output_basename=match.leftSample + ".noSymbolicAlleles",
+                        ref_fasta = ref_fasta,
+                        ref_fasta_index = ref_fasta_index,
                         disk_size = round(compareSize),
                         preemptible_tries = 3,
                         no_address = true,
@@ -378,6 +380,8 @@ task FilterSymbolicAlleles {
     File input_vcf_index
     String output_basename
     Int disk_size
+    File ref_fasta
+    File ref_fasta_index
     Int preemptible_tries
     Boolean no_address
   }
@@ -385,14 +389,21 @@ task FilterSymbolicAlleles {
     bash ~{monitoring_script} > monitoring.log &
    
     set -e
-    
+
+
+    gatk --java-options "-Xmx10g" LeftAlignAndTrimVariants \
+        -V  ~{input_vcf} \
+        -O ~{output_basename}.tmp1.vcf.gz \
+        --reference ~{ref_fasta} \
+        --split-multi-allelics  
+
     gatk --java-options "-Xmx10g"  SelectVariants \
-          -V ~{input_vcf} \
-          -O ~{output_basename}.tmp.vcf.gz \
+          -V ~{output_basename}.tmp1.vcf.gz \
+          -O ~{output_basename}.tmp2.vcf.gz \
           --remove-unused-alternates
 
     gatk --java-options "-Xmx10g" SelectVariants \
-          -V ~{output_basename}.tmp.vcf.gz \
+          -V ~{output_basename}.tmp2.vcf.gz \
           -O ~{output_basename}.vcf.gz \
           --exclude-non-variants \
           --select-type-to-exclude SYMBOLIC
