@@ -24,7 +24,7 @@ task WriteXMLfile {
         String reference_version
         String file_name
 
-        Array[String]? input_names=""
+        Array[String]? input_names
         Array[String] input_names_prefix = if defined(input_names) then prefix('-n ', select_first([input_names])) else []
     }
     command {
