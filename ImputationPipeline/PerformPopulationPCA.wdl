@@ -9,6 +9,8 @@ workflow PerformPopulationPCA {
     String basename # what the outputs will be named
     File imputed_array_vcf # limit to TYPED and TYPED_ONLY sites before LD pruning.  Also will limit population to sites in imputed vcf for scoring correction
     File imputed_array_vcf_index
+    File original_array_vcf
+    File original_array_vcf_index
   }
  
   # this task seaparates multiallelics and changes variant IDs to chr:pos:ref:alt1 (bc there are no multiallelics now, alt1=alt)
@@ -19,10 +21,10 @@ workflow PerformPopulationPCA {
       output_basename = basename + ".no_multiallelics"
   }
 
-  call UpdateVariantIds {
+  call UpdateVariantIds as UpdateVariantIdsImputed {
     input:
         vcf = imputed_array_vcf,
-        basename = basename + ".original_array.updated_ids."
+        basename = basename + ".imputed_array.updated_ids."
   }
 
   #  we use sorted variant IDs so this step makes sure the variant IDs are in the format of chr:pos:allele1:allele2 where allele1 
@@ -35,8 +37,8 @@ workflow PerformPopulationPCA {
 
   call SortVariantIds as SortVariantIdsImputedArray {
     input:
-        vcf = UpdateVariantIds.output_vcf,
-        basename = basename + ".orginal_array.sorted_ids"
+        vcf = UpdateVariantIdsImputed.output_vcf,
+        basename = basename + ".imputed_array.sorted_ids"
   }
 
   call ExtractIDs as ExtractIDsAll {
@@ -65,6 +67,12 @@ workflow PerformPopulationPCA {
         intervals_index = SelectTypedSites.output_vcf_index,
         basename = basename + ".sorted_ids.subsetted"
   }
+
+  call SelectSitesOriginalArray {
+  	input:
+  		vcf = original_array_vcf,
+  		basename = basename
+  }
  
   # this performs some basic QC steps (filtering by MAF, HWE, etc.), as well as 
   # generating a plink-style bim,bed,fam format that has been limited to LD pruned
@@ -74,7 +82,8 @@ workflow PerformPopulationPCA {
     input:
       vcf = SubsetToArrayVCF.output_vcf,
       basename = basename,
-      original_array_sites = ExtractIDsTyped.ids
+      imputed_typed_sites = ExtractIDsTyped.ids,
+      original_array_sites = SelectSitesOriginalArray.ids
   }
   
   # perform PCA using flashPCA
@@ -107,6 +116,35 @@ workflow PerformPopulationPCA {
     File sorted_variant_id_dataset = SortVariantIds.output_vcf # this is what you should use as your population dataset for the 
     # ScoringPart, since all the IDs will be matching 
     File sorted_variant_id_dataset_index = SortVariantIds.output_vcf_index
+  }
+}
+
+task SelectSitesOriginalArray {
+	input {
+		File vcf
+		String basename
+		Int mem = 8
+	}
+
+	Int disk_size =  ceil(size(vcf, "GB")) + 50
+
+	command <<<
+		/plink2 --vcf ~{vcf} \
+		--set-all-var-ids @:#:\$1:\$2
+		--rm-dup force-first \
+		--geno 0.001 \
+		--write-snplist \
+		--out ~{basename}_selected
+	>>>
+
+ 	runtime {
+		docker: "skwalker/plink2:first"
+		disks: "local-disk 400 HDD"
+		memory: mem + " GB"
+  }
+
+  output {
+  	File ids = "selected.snplist"
   }
 }
 
@@ -145,6 +183,7 @@ task LDPruning {
   input {
     File vcf
     File original_array_sites
+    File imputed_typed_sites
     Int mem = 8
     String basename
   }
@@ -156,7 +195,7 @@ task LDPruning {
     --rm-dup force-first \
     --geno 0.05 \
     --hwe 1e-10 \
-    --extract ~{original_array_sites} \
+    --extract-interect ~{original_array_sites} ~{imputed_typed_sites}\
     --indep-pairwise 1000 50 0.2 \
     --maf 0.01 \
     --allow-extra-chr \
