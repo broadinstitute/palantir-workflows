@@ -18,3 +18,6 @@ workflows:
   - name: FindSampleAndCompare
     subclass: WDL
     primaryDescriptorPath: /Fingerprints/FindSamplesToCompare.wdl
+  - name: CreateIGVSession
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/CreateIGVSession.wdl
