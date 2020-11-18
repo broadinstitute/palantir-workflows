@@ -11,6 +11,7 @@ workflow FindSamplesToCompare {
         Array[File] annotation_intervals
   
         File ref_fasta
+        File ref_fasta_index
         File ref_fasta_sdf
 
         File haplotype_database 
