@@ -389,11 +389,10 @@ task FilterSymbolicAlleles {
     Int preemptible_tries
     Boolean no_address
   }
-  command {
+  command <<<
     bash ~{monitoring_script} > monitoring.log &
    
     set -e
-
 
     gatk --java-options "-Xmx10g" LeftAlignAndTrimVariants \
         -V  ~{input_vcf} \
@@ -409,12 +408,13 @@ task FilterSymbolicAlleles {
           --remove-unused-alternates
 
     rm ~{output_basename}.tmp1.vcf.gz}
+
     gatk --java-options "-Xmx10g" SelectVariants \
           -V ~{output_basename}.tmp2.vcf.gz \
           -O ~{output_basename}.vcf.gz \
           --exclude-non-variants \
           --select-type-to-exclude SYMBOLIC
-  }
+  >>>
   runtime {
     preemptible: preemptible_tries
     memory: "12 GB"
