@@ -78,7 +78,7 @@ workflow FindSamplesToCompare {
 
             Pair[File,File] vcf_and_index_original = zip([ExtractSampleFromCallset.output_vcf],[ExtractSampleFromCallset.output_vcf_index])[0]
             
-            Float compareSize = size([ExtractSampleFromCallset.output_vcf,match.rightFile,ref_fasta,ref_fasta_sdf], "GiB")
+            Float compareSize = 3*size([ExtractSampleFromCallset.output_vcf,match.rightFile,ref_fasta,ref_fasta_sdf], "GiB")
 
             if (remove_symbolic_alleles){
                 call FilterSymbolicAlleles{
@@ -401,11 +401,14 @@ task FilterSymbolicAlleles {
         --reference ~{ref_fasta} \
         --split-multi-allelics  
 
+    rm ~{input_vcf}
+
     gatk --java-options "-Xmx10g"  SelectVariants \
           -V ~{output_basename}.tmp1.vcf.gz \
           -O ~{output_basename}.tmp2.vcf.gz \
           --remove-unused-alternates
 
+    rm ~{output_basename}.tmp1.vcf.gz}
     gatk --java-options "-Xmx10g" SelectVariants \
           -V ~{output_basename}.tmp2.vcf.gz \
           -O ~{output_basename}.vcf.gz \
