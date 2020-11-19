@@ -407,7 +407,7 @@ task FilterSymbolicAlleles {
           -O ~{output_basename}.tmp2.vcf.gz \
           --remove-unused-alternates
 
-    rm ~{output_basename}.tmp1.vcf.gz}
+    rm ~{output_basename}.tmp1.vcf.gz
 
     gatk --java-options "-Xmx10g" SelectVariants \
           -V ~{output_basename}.tmp2.vcf.gz \
