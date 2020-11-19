@@ -145,7 +145,7 @@ task SelectSitesOriginalArray {
   }
 
   output {
-  	File ids = "selected.snplist"
+  	File ids = "~{basename}_selected.snplist"
   }
 }
 
