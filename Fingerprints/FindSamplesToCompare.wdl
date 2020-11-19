@@ -12,6 +12,7 @@ workflow FindSamplesToCompare {
   
         File ref_fasta
         File ref_fasta_index
+        File ref_fasta_dict
         File ref_fasta_sdf
 
         File haplotype_database 
@@ -88,6 +89,7 @@ workflow FindSamplesToCompare {
                         output_basename=match.leftSample + ".noSymbolicAlleles",
                         ref_fasta = ref_fasta,
                         ref_fasta_index = ref_fasta_index,
+                        ref_fasta_dict = ref_fasta_dict,
                         disk_size = round(compareSize),
                         preemptible_tries = 3,
                         no_address = true,
@@ -383,6 +385,7 @@ task FilterSymbolicAlleles {
     Int disk_size
     File ref_fasta
     File ref_fasta_index
+    File ref_fasta_dict
     Int preemptible_tries
     Boolean no_address
   }
