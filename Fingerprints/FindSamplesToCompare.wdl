@@ -43,9 +43,20 @@ workflow FindSamplesToCompare {
     Map[File, String] truthLabels    = lablesMap.map
     Map[File, File]   truthIndex     = indexesMap.map
 
+
+    call SwitchFilterAnnotation {
+        input:
+            input_vcf = input_callset[0],
+            INFO_TAG_OLD="CNN_2D",
+            INFO_TAG_NEW="TREE_SCORE",
+            output_vcf_basename = "callset_swapped_score",
+            preemptible_tries = 0,
+            disk_size = 2*size(input_callset, "GiB") + 20
+      }
+
     call CrosscheckFingerprints {
          input:
-           input_data = input_callset,
+           input_data = [SwitchFilterAnnotation.output_vcf],
            metrics_basename = "crosscheck",
            ground_truth_files = ground_truth_files,
            haplotype_database = haplotype_database,
@@ -60,6 +71,8 @@ workflow FindSamplesToCompare {
         input:
             crosscheck_results = CrosscheckFingerprints.crosscheck
       }
+
+     
 
       scatter(matchArray in PickMatches.matches) {
             Match match = object{
@@ -433,4 +446,40 @@ task FilterSymbolicAlleles {
 
 
 
+task SwitchFilterAnnotation {
+  input {
+    File input_vcf
+    File? input_vcf_index
+    String INFO_TAG_OLD
+    String INFO_TAG_NEW
+    String output_vcf_basename
+    Int preemptible_tries
+    Float disk_size
+  }
 
+  command <<<
+    set -xe
+
+    # assumes gziped file 
+    zgrep -m1 "##INFO=<ID=~{INFO_TAG_OLD}," ~{input_vcf} | sed 's/~{INFO_TAG_OLD}/~{INFO_TAG_NEW}/' > new_header_line.txt
+    
+    if [ ~{defined(input_vcf_index)} -nq true ]; then
+        bcftools index -t ~{input_vcf} 
+    fi
+        
+    bcftools annotate -a ~{input_vcf} -h new_header_line.txt -c "+~{INFO_TAG_NEW}:=~{INFO_TAG_OLD}"  ~{input_vcf} -O z -o ~{output_vcf_basename}.scored.vcf.gz
+    bcftools index -t ~{output_vcf_basename}.scored.vcf.gz
+
+  >>>
+  output {
+    File output_vcf="~{output_vcf_basename}.scored.vcf.gz"
+    File output_vcf_index="~{output_vcf_basename}.scored.vcf.gz.tbi"
+  }
+  runtime {
+    preemptible: preemptible_tries
+    memory: "16 GB"
+    disks: "local-disk " + ceil(disk_size + 20) + " SSD"
+    docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+    noAddress: true
+  }
+}
