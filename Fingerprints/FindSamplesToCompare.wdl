@@ -463,7 +463,7 @@ task SwitchFilterAnnotation {
     # assumes gziped file 
     zgrep -m1 "##INFO=<ID=~{INFO_TAG_OLD}," ~{input_vcf} | sed 's/~{INFO_TAG_OLD}/~{INFO_TAG_NEW}/' > new_header_line.txt
     
-    if [ ~{defined(input_vcf_index)} -nq true ]; then
+    if [ ~{defined(input_vcf_index)} -ne true ]; then
         bcftools index -t ~{input_vcf} 
     fi
         
