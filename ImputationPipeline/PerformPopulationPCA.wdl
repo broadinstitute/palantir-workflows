@@ -196,7 +196,7 @@ task LDPruning {
     --rm-dup force-first \
     --geno 0.05 \
     --hwe 1e-10 \
-    --extract-intersect ~{original_array_sites} ~{imputed_typed_sites}\
+    --extract-intersect ~{original_array_sites} ~{imputed_typed_sites} \
     --indep-pairwise 1000 50 0.2 \
     --maf 0.01 \
     --allow-extra-chr \
