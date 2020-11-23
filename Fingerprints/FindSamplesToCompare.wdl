@@ -449,7 +449,6 @@ task FilterSymbolicAlleles {
 task SwitchFilterAnnotation {
   input {
     File input_vcf
-    File? input_vcf_index
     String INFO_TAG_OLD
     String INFO_TAG_NEW
     String output_vcf_basename
@@ -463,11 +462,14 @@ task SwitchFilterAnnotation {
     # assumes gziped file 
     zgrep -m1 "##INFO=<ID=~{INFO_TAG_OLD}," ~{input_vcf} | sed 's/~{INFO_TAG_OLD}/~{INFO_TAG_NEW}/' > new_header_line.txt
     
-    if [ ~{!defined(input_vcf_index)} == true ]; then
-        bcftools index -t ~{input_vcf} 
-    fi
+    
+    mkdir links
+    ln -s ~{input_vcf} links/
+    local_vcf=links/$(basename ~{input_vcf})
+
+    bcftools index -t ${local_vcf}
         
-    bcftools annotate -a ~{input_vcf} -h new_header_line.txt -c "+~{INFO_TAG_NEW}:=~{INFO_TAG_OLD}"  ~{input_vcf} -O z -o ~{output_vcf_basename}.scored.vcf.gz
+    bcftools annotate -a ${local_vcf} -h new_header_line.txt -c "+~{INFO_TAG_NEW}:=~{INFO_TAG_OLD}"  ${local_vcf} -O z -o ~{output_vcf_basename}.scored.vcf.gz
     bcftools index -t ~{output_vcf_basename}.scored.vcf.gz
 
   >>>
