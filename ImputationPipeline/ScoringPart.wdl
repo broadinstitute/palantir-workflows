@@ -113,7 +113,7 @@ workflow ScoringImputedDataset {
 # necessary (which is why it's not actually run in the workflow)
 
 ## This is assuming that your variant IDs are in the format chr:positionr:allele1:allele2 and just alphabetizes allele1 and 
-## allele 2. To get variant IDs in this format, you can run `bcftools annotate --set-id +'%CHROM\_%POS\_%REF\_%FIRST_ALT' ~{vcf}`
+## allele 2. To get variant IDs in this format, you can run `bcftools annotate --set-id '%CHROM\_%POS\_%REF\_%FIRST_ALT' ~{vcf}`
 task SortIds {
 	input {
 		File vcf
