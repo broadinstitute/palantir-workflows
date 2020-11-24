@@ -133,6 +133,7 @@ task SelectSitesOriginalArray {
 		--set-all-var-ids @:#:\$1:\$2 \
 		--rm-dup force-first \
 		--geno 0.001 \
+		--maf 0.01 \
 		--snps-only \
 		--write-snplist \
 		--out ~{basename}_selected
