@@ -7,10 +7,8 @@ workflow PerformPopulationPCA {
     File population_vcf # Like Thousand Genomes
     File population_vcf_index # Like Thousand Genomes
     String basename # what the outputs will be named
-    File imputed_array_vcf # limit to TYPED and TYPED_ONLY sites before LD pruning.  Also will limit population to sites in imputed vcf for scoring correction
-    File imputed_array_vcf_index
-    File original_array_vcf
-    File original_array_vcf_index
+    Array[File] imputed_array_vcfs # limit to TYPED and TYPED_ONLY sites before LD pruning.  Also will limit population to sites in imputed vcf for scoring correction
+    Array[File] original_array_vcfs
   }
  
   # this task seaparates multiallelics and changes variant IDs to chr:pos:ref:alt1 (bc there are no multiallelics now, alt1=alt)
@@ -21,37 +19,41 @@ workflow PerformPopulationPCA {
       output_basename = basename + ".no_multiallelics"
   }
 
-  call UpdateVariantIds as UpdateVariantIdsImputed {
-    input:
-        vcf = imputed_array_vcf,
-        basename = basename + ".imputed_array.updated_ids."
-  }
-
-  #  we use sorted variant IDs so this step makes sure the variant IDs are in the format of chr:pos:allele1:allele2 where allele1 
-  # and allele2 are sorted
-  call SortVariantIds {
-    input:
-      vcf = SeparateMultiallelics.output_vcf,
-      basename = basename + ".sorted_ids"
-  }
-
-  call SortVariantIds as SortVariantIdsImputedArray {
-    input:
-        vcf = UpdateVariantIdsImputed.output_vcf,
-        basename = basename + ".imputed_array.sorted_ids"
-  }
-
-  call SelectTypedSites {
-  	input:
-  		vcf = SortVariantIdsImputedArray.output_vcf,
-  		basename = basename
-  }
-
-  call ExtractIDs as ExtractIDsTyped {
+    #  we use sorted variant IDs so this step makes sure the variant IDs are in the format of chr:pos:allele1:allele2 where allele1
+    # and allele2 are sorted
+    call SortVariantIds {
       input:
-          vcf = SelectTypedSites.output_vcf,
-          output_basename = basename
+        vcf = SeparateMultiallelics.output_vcf,
+        basename = basename + ".sorted_ids"
     }
+
+  scatter (imputed_array_vcf in imputed_array_vcfs) {
+	  call UpdateVariantIds as UpdateVariantIdsImputed {
+		input:
+			vcf = imputed_array_vcf,
+			basename = basename + ".imputed_array.updated_ids."
+	  }
+
+
+
+	  call SortVariantIds as SortVariantIdsImputedArray {
+		input:
+			vcf = UpdateVariantIdsImputed.output_vcf,
+			basename = basename + ".imputed_array.sorted_ids"
+	  }
+
+	  call SelectTypedSites {
+		input:
+			vcf = SortVariantIdsImputedArray.output_vcf,
+			basename = basename
+	  }
+
+	  call ExtractIDs as ExtractIDsTyped {
+		  input:
+			  vcf = SelectTypedSites.output_vcf,
+			  output_basename = basename
+		}
+	}
 
   call SubsetToArrayVCF {
     input:
@@ -62,10 +64,12 @@ workflow PerformPopulationPCA {
         basename = basename + ".sorted_ids.subsetted"
   }
 
-  call SelectSitesOriginalArray {
-  	input:
-  		vcf = original_array_vcf,
-  		basename = basename
+	scatter (original_array_vcf in original_array_vcfs) {
+	  call SelectSitesOriginalArray {
+		input:
+			vcf = original_array_vcf,
+			basename = basename
+	  }
   }
  
   # this performs some basic QC steps (filtering by MAF, HWE, etc.), as well as 
