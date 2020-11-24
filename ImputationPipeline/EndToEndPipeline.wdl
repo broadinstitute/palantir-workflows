@@ -65,8 +65,8 @@ workflow EndToEndPipeline {
   	    population_vcf = population_vcf,
   	    population_vcf_index = population_vcf_index,
   	    basename = population_basename,
-  	    imputed_array_vcf =  ImputationSteps.imputed_multisample_vcf,
-  	    imputed_array_vcf_index = ImputationSteps.imputed_multisample_vcf_index,
+  	    imputed_array_vcfs =  [ImputationSteps.imputed_multisample_vcf],
+  	    original_array_vcfs = [multi_sample_vcf]
     }
   }
 

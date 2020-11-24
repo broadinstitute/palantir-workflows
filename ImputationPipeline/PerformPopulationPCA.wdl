@@ -182,8 +182,8 @@ task SelectTypedSites {
 task LDPruning {
   input {
     File vcf
-    File original_array_sites
-    File imputed_typed_sites
+    Array[File] original_array_sites
+    Array[File] imputed_typed_sites
     Int mem = 8
     String basename
   }
@@ -195,7 +195,7 @@ task LDPruning {
     --rm-dup force-first \
     --geno 0.05 \
     --hwe 1e-10 \
-    --extract-intersect ~{original_array_sites} ~{imputed_typed_sites} \
+    --extract-intersect ~{sep=" " original_array_sites} ~{sep = " " imputed_typed_sites} \
     --indep-pairwise 1000 50 0.2 \
     --maf 0.01 \
     --allow-extra-chr \
@@ -426,14 +426,14 @@ task SubsetToArrayVCF {
   input {
     File vcf
     File vcf_index
-    File intervals
-    File? intervals_index
+    Array[File] intervals
+    Array[File] intervals_index
     String basename 
     Int disk_size = 3*ceil(size([vcf, intervals, vcf_index], "GB")) + 20
   }
 
     command {
-   gatk SelectVariants -V ~{vcf} -L ~{intervals} -O ~{basename}.vcf.gz
+   gatk SelectVariants -V ~{vcf} -L ~{sep =" -L " intervals} --interval-set-rule INTERSECTION -O ~{basename}.vcf.gz
    }
 
   runtime {
