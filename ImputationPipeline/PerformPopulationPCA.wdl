@@ -41,12 +41,6 @@ workflow PerformPopulationPCA {
         basename = basename + ".imputed_array.sorted_ids"
   }
 
-  call ExtractIDs as ExtractIDsAll {
-    input:
-        vcf = SortVariantIdsImputedArray.output_vcf,
-        output_basename = basename
-  }
-
   call SelectTypedSites {
   	input:
   		vcf = SortVariantIdsImputedArray.output_vcf,
