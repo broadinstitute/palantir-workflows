@@ -1,5 +1,5 @@
 version 1.0
-#include "../BenchmarkVCFs/BenchmarkVCFs.wdl" as Benchmark
+import "../BenchmarkVCFs/BenchmarkVCFs.wdl" as Benchmark
 
 workflow FindSamplesToCompare {
     
@@ -90,32 +90,31 @@ workflow FindSamplesToCompare {
                     basename=match.leftSample + ".extracted"
             }
 
-          #  call Benchmark.Benchmark{
-          #      input:
-          #          String? analysisRegion
-          #          File evalVcf
-          #          String evalLabel
-          #          File evalVcfIndex
-          #          File truthVcf
-          #          File confidenceInterval
-          #          String truthLabel
-          #          File truthVcfIndex
-          #          File reference
-          #          File refIndex
-          #          File refDict
-          #          File hapMap
-          #          Array[File]? stratIntervals
-          #          Array[String]? stratLabels
-          #          Array[String]? jexlVariantSelectors
-          #          Array[String]? variantSelectorLabels
-          #          String referenceVersion
-          #          Int? threadsVcfEval=2
-          #          Boolean doIndelLengthStratification=true
-          #          Int? preemptible
-          #          String gatkTag="4.0.11.0"
-          #          Boolean requireMatchingGenotypes=true
-          #          Boolean passingOnly=true
-          #          String? vcfScoreField
+            call Benchmark.Benchmark{
+                input:
+                   # String? analysisRegion =
+                     evalVcf = ExtractSampleFromCallset.output_vcf,
+                     evalLabel = match.leftSample,
+                     evalVcfIndex = ExtractSampleFromCallset.output_vcf_index,
+                     truthVcf = match.rightFile,
+                     confidenceInterval = truthIntervals[match.rightFile],
+                     truthLabel = match.rightSample,
+                     truthVcfIndex = truthIndex[match.rightFile],
+                     reference = ref_fasta,
+                     refIndex = ref_fasta_index,
+                     refDict = ref_fasta_dict,
+                     hapMap = haplotype_database,
+                   # Array[File]? stratIntervals 
+                   # Array[String]? stratLabels
+                   # Array[String]? jexlVariantSelectors
+                   # Array[String]? variantSelectorLabels
+                     referenceVersion = "1",
+                     doIndelLengthStratification=true,
+                     gatkTag="4.0.11.0",
+                     requireMatchingGenotypes=true,
+                     passingOnly=true,
+                     vcfScoreField = "TREE_SCORE"
+                 }
 
             Pair[File,File] vcf_and_index_original = zip([ExtractSampleFromCallset.output_vcf],[ExtractSampleFromCallset.output_vcf_index])[0]
             
