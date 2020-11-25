@@ -9,6 +9,7 @@ workflow PerformPopulationPCA {
     String basename # what the outputs will be named
     Array[File] imputed_array_vcfs # limit to TYPED and TYPED_ONLY sites before LD pruning.  Also will limit population to sites in imputed vcf for scoring correction
     Array[File] original_array_vcfs
+    Array[File]? subset_to_sites
   }
  
   # this task seaparates multiallelics and changes variant IDs to chr:pos:ref:alt1 (bc there are no multiallelics now, alt1=alt)
@@ -81,7 +82,8 @@ workflow PerformPopulationPCA {
       vcf = SubsetToArrayVCF.output_vcf,
       basename = basename,
       imputed_typed_sites = ExtractIDsTyped.ids,
-      original_array_sites = SelectSitesOriginalArray.ids
+      original_array_sites = SelectSitesOriginalArray.ids,
+      selected_sites = subset_to_sites
   }
   
   # perform PCA using flashPCA
@@ -184,6 +186,7 @@ task LDPruning {
     File vcf
     Array[File] original_array_sites
     Array[File] imputed_typed_sites
+    Array[File]? selected_sites
     Int mem = 8
     String basename
   }
@@ -195,7 +198,7 @@ task LDPruning {
     --rm-dup force-first \
     --geno 0.05 \
     --hwe 1e-10 \
-    --extract-intersect ~{sep=" " original_array_sites} ~{sep = " " imputed_typed_sites} \
+    --extract-intersect ~{sep=" " original_array_sites} ~{sep = " " imputed_typed_sites} ~{sep=" " selected_sites} \
     --indep-pairwise 1000 50 0.2 \
     --maf 0.01 \
     --allow-extra-chr \
