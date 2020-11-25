@@ -92,7 +92,7 @@ workflow FindSamplesToCompare {
 
             call Benchmark.Benchmark{
                 input:
-                   # String? analysisRegion =
+                     analysisRegion = "chr9",
                      evalVcf = ExtractSampleFromCallset.output_vcf,
                      evalLabel = match.leftSample,
                      evalVcfIndex = ExtractSampleFromCallset.output_vcf_index,
@@ -104,16 +104,24 @@ workflow FindSamplesToCompare {
                      refIndex = ref_fasta_index,
                      refDict = ref_fasta_dict,
                      hapMap = haplotype_database,
-                   # Array[File]? stratIntervals 
-                   # Array[String]? stratLabels
-                   # Array[String]? jexlVariantSelectors
-                   # Array[String]? variantSelectorLabels
+                     stratIntervals = [ 
+                     "gs://concordance/hg38/runs.conservative.bed", 
+                     "gs://concordance/hg38/LCR-hs38.bed",
+                     "gs://concordance/hg38/mappability.0.bed",
+                     "gs://concordance/hg38/exome.twist.bed"], ## TODO
+                     stratLabels = [
+                     "HMER 7+", 
+                     "LCR-hs38",
+                     "mappability=0",
+                     "exome"], ## TODO
+                     jexlVariantSelectors = ["vc.isSimpleIndel()  && vc.getIndelLengths().0<0", "vc.isSimpleIndel() && vc.getIndelLengths().0>0"],
+                     variantSelectorLabels = ["deletion","insertion"],
                      referenceVersion = "1",
-                     doIndelLengthStratification=true,
+                     doIndelLengthStratification=false,
                      gatkTag="4.0.11.0",
                      requireMatchingGenotypes=true,
                      passingOnly=true,
-                     vcfScoreField = "TREE_SCORE"
+                     vcfScoreField = "INFO.TREE_SCORE"
                  }
 
             Pair[File,File] vcf_and_index_original = zip([ExtractSampleFromCallset.output_vcf],[ExtractSampleFromCallset.output_vcf_index])[0]
@@ -139,7 +147,7 @@ workflow FindSamplesToCompare {
             }
 
 
-            Pair[File,File] vcf_and_index_to_compare=select_first([vcf_and_index_symbolic_removed,vcf_and_index_original])
+            Pair[File,File] vcf_and_index_to_compare = select_first([vcf_and_index_symbolic_removed,vcf_and_index_original])
 
             call CompareToGroundTruth {
                 input:
@@ -162,8 +170,6 @@ workflow FindSamplesToCompare {
                     docker=comparison_docker,
                     no_address=true
         }
-
-
       }
 
    output {
