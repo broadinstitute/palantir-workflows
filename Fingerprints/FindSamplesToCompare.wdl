@@ -1,4 +1,5 @@
 version 1.0
+#include "../BenchmarkVCFs/BenchmarkVCFs.wdl" as Benchmark
 
 workflow FindSamplesToCompare {
     
@@ -47,7 +48,7 @@ workflow FindSamplesToCompare {
     call SwitchFilterAnnotation {
         input:
             input_vcf = input_callset[0],
-            INFO_TAG_OLD="CNN_2D",
+            INFO_TAG_OLD="VQSLOD",
             INFO_TAG_NEW="TREE_SCORE",
             output_vcf_basename = "callset_swapped_score",
             preemptible_tries = 0,
@@ -88,6 +89,33 @@ workflow FindSamplesToCompare {
                     sample=match.leftSample,
                     basename=match.leftSample + ".extracted"
             }
+
+          #  call Benchmark.Benchmark{
+          #      input:
+          #          String? analysisRegion
+          #          File evalVcf
+          #          String evalLabel
+          #          File evalVcfIndex
+          #          File truthVcf
+          #          File confidenceInterval
+          #          String truthLabel
+          #          File truthVcfIndex
+          #          File reference
+          #          File refIndex
+          #          File refDict
+          #          File hapMap
+          #          Array[File]? stratIntervals
+          #          Array[String]? stratLabels
+          #          Array[String]? jexlVariantSelectors
+          #          Array[String]? variantSelectorLabels
+          #          String referenceVersion
+          #          Int? threadsVcfEval=2
+          #          Boolean doIndelLengthStratification=true
+          #          Int? preemptible
+          #          String gatkTag="4.0.11.0"
+          #          Boolean requireMatchingGenotypes=true
+          #          Boolean passingOnly=true
+          #          String? vcfScoreField
 
             Pair[File,File] vcf_and_index_original = zip([ExtractSampleFromCallset.output_vcf],[ExtractSampleFromCallset.output_vcf_index])[0]
             
@@ -462,7 +490,7 @@ task SwitchFilterAnnotation {
     # assumes gziped file 
     zgrep -m1 "##INFO=<ID=~{INFO_TAG_OLD}," ~{input_vcf} | sed 's/~{INFO_TAG_OLD}/~{INFO_TAG_NEW}/' > new_header_line.txt
     
-    
+
     mkdir links
     ln -s ~{input_vcf} links/
     local_vcf=links/$(basename ~{input_vcf})
