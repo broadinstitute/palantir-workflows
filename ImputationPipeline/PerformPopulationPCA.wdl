@@ -7,8 +7,9 @@ workflow PerformPopulationPCA {
     File population_vcf # Like Thousand Genomes
     File population_vcf_index # Like Thousand Genomes
     String basename # what the outputs will be named
-    File imputed_array_vcf # limit to TYPED and TYPED_ONLY sites before LD pruning.  Also will limit population to sites in imputed vcf for scoring correction
-    File imputed_array_vcf_index
+    Array[File] imputed_array_vcfs # limit to TYPED and TYPED_ONLY sites before LD pruning.  Also will limit population to sites in imputed vcf for scoring correction
+    Array[File] original_array_vcfs
+    Array[File]? subset_to_sites
   }
  
   # this task seaparates multiallelics and changes variant IDs to chr:pos:ref:alt1 (bc there are no multiallelics now, alt1=alt)
@@ -19,43 +20,41 @@ workflow PerformPopulationPCA {
       output_basename = basename + ".no_multiallelics"
   }
 
-  call UpdateVariantIds {
-    input:
-        vcf = imputed_array_vcf,
-        basename = basename + ".original_array.updated_ids."
-  }
-
-  #  we use sorted variant IDs so this step makes sure the variant IDs are in the format of chr:pos:allele1:allele2 where allele1 
-  # and allele2 are sorted
-  call SortVariantIds {
-    input:
-      vcf = SeparateMultiallelics.output_vcf,
-      basename = basename + ".sorted_ids"
-  }
-
-  call SortVariantIds as SortVariantIdsImputedArray {
-    input:
-        vcf = UpdateVariantIds.output_vcf,
-        basename = basename + ".orginal_array.sorted_ids"
-  }
-
-  call ExtractIDs as ExtractIDsAll {
-    input:
-        vcf = SortVariantIdsImputedArray.output_vcf,
-        output_basename = basename
-  }
-
-  call SelectTypedSites {
-  	input:
-  		vcf = SortVariantIdsImputedArray.output_vcf,
-  		basename = basename
-  }
-
-  call ExtractIDs as ExtractIDsTyped {
+    #  we use sorted variant IDs so this step makes sure the variant IDs are in the format of chr:pos:allele1:allele2 where allele1
+    # and allele2 are sorted
+    call SortVariantIds {
       input:
-          vcf = SelectTypedSites.output_vcf,
-          output_basename = basename
+        vcf = SeparateMultiallelics.output_vcf,
+        basename = basename + ".sorted_ids"
     }
+
+  scatter (imputed_array_vcf in imputed_array_vcfs) {
+	  call UpdateVariantIds as UpdateVariantIdsImputed {
+		input:
+			vcf = imputed_array_vcf,
+			basename = basename + ".imputed_array.updated_ids."
+	  }
+
+
+
+	  call SortVariantIds as SortVariantIdsImputedArray {
+		input:
+			vcf = UpdateVariantIdsImputed.output_vcf,
+			basename = basename + ".imputed_array.sorted_ids"
+	  }
+
+	  call SelectTypedSites {
+		input:
+			vcf = SortVariantIdsImputedArray.output_vcf,
+			basename = basename
+	  }
+
+	  call ExtractIDs as ExtractIDsTyped {
+		  input:
+			  vcf = SelectTypedSites.output_vcf,
+			  output_basename = basename
+		}
+	}
 
   call SubsetToArrayVCF {
     input:
@@ -64,6 +63,14 @@ workflow PerformPopulationPCA {
         intervals = SelectTypedSites.output_vcf,
         intervals_index = SelectTypedSites.output_vcf_index,
         basename = basename + ".sorted_ids.subsetted"
+  }
+
+	scatter (original_array_vcf in original_array_vcfs) {
+	  call SelectSitesOriginalArray {
+		input:
+			vcf = original_array_vcf,
+			basename = basename
+	  }
   }
  
   # this performs some basic QC steps (filtering by MAF, HWE, etc.), as well as 
@@ -74,7 +81,9 @@ workflow PerformPopulationPCA {
     input:
       vcf = SubsetToArrayVCF.output_vcf,
       basename = basename,
-      original_array_sites = ExtractIDsTyped.ids
+      imputed_typed_sites = ExtractIDsTyped.ids,
+      original_array_sites = SelectSitesOriginalArray.ids,
+      selected_sites = subset_to_sites
   }
   
   # perform PCA using flashPCA
@@ -107,6 +116,37 @@ workflow PerformPopulationPCA {
     File sorted_variant_id_dataset = SortVariantIds.output_vcf # this is what you should use as your population dataset for the 
     # ScoringPart, since all the IDs will be matching 
     File sorted_variant_id_dataset_index = SortVariantIds.output_vcf_index
+  }
+}
+
+task SelectSitesOriginalArray {
+	input {
+		File vcf
+		String basename
+		Int mem = 8
+	}
+
+	Int disk_size =  ceil(size(vcf, "GB")) + 50
+
+	command <<<
+		/plink2 --vcf ~{vcf} \
+		--set-all-var-ids @:#:\$1:\$2 \
+		--rm-dup force-first \
+		--geno 0.001 \
+		--maf 0.01 \
+		--snps-only \
+		--write-snplist \
+		--out ~{basename}_selected
+	>>>
+
+ 	runtime {
+		docker: "skwalker/plink2:first"
+		disks: "local-disk 400 HDD"
+		memory: mem + " GB"
+  }
+
+  output {
+  	File ids = "~{basename}_selected.snplist"
   }
 }
 
@@ -144,7 +184,9 @@ task SelectTypedSites {
 task LDPruning {
   input {
     File vcf
-    File original_array_sites
+    Array[File] original_array_sites
+    Array[File] imputed_typed_sites
+    Array[File]? selected_sites
     Int mem = 8
     String basename
   }
@@ -156,7 +198,7 @@ task LDPruning {
     --rm-dup force-first \
     --geno 0.05 \
     --hwe 1e-10 \
-    --extract ~{original_array_sites} \
+    --extract-intersect ~{sep=" " original_array_sites} ~{sep = " " imputed_typed_sites} ~{sep=" " selected_sites} \
     --indep-pairwise 1000 50 0.2 \
     --maf 0.01 \
     --allow-extra-chr \
@@ -387,14 +429,14 @@ task SubsetToArrayVCF {
   input {
     File vcf
     File vcf_index
-    File intervals
-    File? intervals_index
+    Array[File] intervals
+    Array[File] intervals_index
     String basename 
     Int disk_size = 3*ceil(size([vcf, intervals, vcf_index], "GB")) + 20
   }
 
     command {
-   gatk SelectVariants -V ~{vcf} -L ~{intervals} -O ~{basename}.vcf.gz
+   gatk SelectVariants -V ~{vcf} -L ~{sep =" -L " intervals} --interval-set-rule INTERSECTION -O ~{basename}.vcf.gz
    }
 
   runtime {
