@@ -90,7 +90,7 @@ workflow FindSamplesToCompare {
                     basename=match.leftSample + ".extracted"
             }
 
-            call Benchmark.Benchmark{
+            call Benchmark.Benchmark as BenchmarkVCF{
                 input:
                      analysisRegion = "chr9",
                      evalVcf = ExtractSampleFromCallset.output_vcf,
@@ -170,9 +170,16 @@ workflow FindSamplesToCompare {
                     docker=comparison_docker,
                     no_address=true
         }
-      }
+
+    }
+    call Benchmark.CombineSummaries as CombineSummaries{
+        input:
+            summaries = select_all(BenchmarkVCF.summary),
+            preemptible = 1
+    }
 
    output {
+    File benchmark_vcf_summary = CombineSummaries.summaryOut
     File crosscheck = CrosscheckFingerprints.crosscheck
     Array[Array[String]] matches = PickMatches.matches
 
