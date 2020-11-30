@@ -110,7 +110,7 @@ workflow FindSamplesToCompare {
                      "gs://concordance/hg38/mappability.0.bed",
                      "gs://concordance/hg38/exome.twist.bed"], ## TODO
                      stratLabels = [
-                     "HMER 7+", 
+                     "HMER_7_and_up", 
                      "LCR-hs38",
                      "mappability=0",
                      "exome"], ## TODO
