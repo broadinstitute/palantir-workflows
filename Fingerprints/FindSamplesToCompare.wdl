@@ -88,7 +88,9 @@ workflow FindSamplesToCompare {
     scatter(interval_and_label in zip(stratIntervals,stratLabels)){
         call InvertIntervalList{
             input:
-                interval_list=interval_and_label.left
+                interval_list=interval_and_label.left,
+                docker = docker,
+                picard_jar= picard_cloud_jar
         }
         String notLabel="NOT_" + interval_and_label.right
     }
