@@ -44,7 +44,6 @@ workflow FindSamplesToCompare {
     Map[File, String] truthLabels    = lablesMap.map
     Map[File, File]   truthIndex     = indexesMap.map
 
-
     call SwitchFilterAnnotation {
         input:
             input_vcf = input_callset[0],
@@ -66,16 +65,38 @@ workflow FindSamplesToCompare {
            docker = docker,
            monitoring_script = monitoring_script,
            picard_jar = picard_cloud_jar,
-      }
+        }
 
-      call PickMatches {
+    call PickMatches {
         input:
             crosscheck_results = CrosscheckFingerprints.crosscheck
-      }
+    }
 
-     
 
-      scatter(matchArray in PickMatches.matches) {
+    Array[File] stratIntervals = [ 
+                     "gs://concordance/hg38/runs.conservative.bed", 
+                     "gs://concordance/hg38/LCR-hs38.bed",
+                     "gs://concordance/hg38/mappability.0.bed",
+                     "gs://concordance/hg38/exome.twist.bed"]
+    Array[String] stratLabels = [
+                     "HMER_7_and_up", 
+                     "LCR-hs38",
+                     "mappability=0",
+                     "exome"]
+
+
+    scatter(interval_and_label in zip(stratIntervals,stratLabels)){
+        call InvertIntervalList{
+            input:
+                interval_list=interval_and_label.left
+        }
+        String notLabel="NOT_" + interval_and_label.right
+    }
+
+    Array[File] allStratIntervals=flatten([stratIntervals,InvertIntervalList.output_interval])
+    Array[File] allStratLabels=flatten([stratLabels,notLabel])
+
+    scatter(matchArray in PickMatches.matches) {
             Match match = object{
                 leftFile: matchArray[0],
                 leftSample: matchArray[1],
@@ -104,16 +125,8 @@ workflow FindSamplesToCompare {
                      refIndex = ref_fasta_index,
                      refDict = ref_fasta_dict,
                      hapMap = haplotype_database,
-                     stratIntervals = [ 
-                     "gs://concordance/hg38/runs.conservative.bed", 
-                     "gs://concordance/hg38/LCR-hs38.bed",
-                     "gs://concordance/hg38/mappability.0.bed",
-                     "gs://concordance/hg38/exome.twist.bed"], ## TODO
-                     stratLabels = [
-                     "HMER_7_and_up", 
-                     "LCR-hs38",
-                     "mappability=0",
-                     "exome"], ## TODO
+                     stratIntervals = allStratIntervals,
+                     stratLabels = allStratLabels, 
                      jexlVariantSelectors = ["vc.isSimpleIndel()  && vc.getIndelLengths().0<0", "vc.isSimpleIndel() && vc.getIndelLengths().0>0"],
                      variantSelectorLabels = ["deletion","insertion"],
                      referenceVersion = "1",
@@ -524,4 +537,27 @@ task SwitchFilterAnnotation {
     docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
     noAddress: true
   }
+}
+
+task InvertIntervalList{
+    input {
+        File interval_list
+        String docker
+        File picard_jar
+    }
+
+    command <<<
+        java -jar ~{picard_jar} IntervalListTools \
+            I=~{interval_list} \
+            O=~{"NOT" + basename(interval_list)} \
+            INVERT=true
+    >>>
+    output {
+        File output_interval = "NOT" + basename(interval_list)
+    }
+    runtime {
+        memory: "4GB"
+        disks: "local-disk 20 SSD"
+        docker: docker
+    }
 }
