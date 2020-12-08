@@ -5,6 +5,7 @@ import "Structs.wdl" as structs
 workflow ImputationPipeline {
   input {
     Int chunkLength = 25000000
+    Int chunkOverlaps = 5000000
 
     # You can either input a multisample VCF or an array of single sample VCFs
     # The pipeline will just merge the single sample VCFs into one multisample VCF
@@ -73,15 +74,17 @@ workflow ImputationPipeline {
     Int num_chunks = ceil(CalculateChromsomeLength.chrom_length / chunkLengthFloat)
 
     scatter (i in range(num_chunks)) {
-      String chunk_contig = referencePanelContig.contig
-      Int start = (i * chunkLength) + 1
-      Int end = if (CalculateChromsomeLength.chrom_length < ((i + 1) * chunkLength)) then CalculateChromsomeLength.chrom_length else ((i + 1) * chunkLength)
+    	String chunk_contig = referencePanelContig.contig
+    	Int start = (i * chunkLength) + 1
+    	Int end = if (CalculateChromsomeLength.chrom_length < ((i + 1) * chunkLength)) then CalculateChromsomeLength.chrom_length else ((i + 1) * chunkLength)
+    	Int endWithOverlaps = if (CalculateChromsomeLength.chrom_length < ((i + 1) * chunkLength) + chunkOverlaps) then CalculateChromsomeLength.chrom_length else ((i + 1) * chunkLength + chunkOverlaps)
+
       call GenerateChunk {
         input:
           vcf = vcf_to_impute,
           vcf_index = vcf_index_to_impute,
-          start = (i * chunkLength) + 1,
-          end = if (CalculateChromsomeLength.chrom_length < ((i + 1) * chunkLength)) then CalculateChromsomeLength.chrom_length else ((i + 1) * chunkLength), 
+          start = start,
+          end = endWithOverlaps,
           chrom = referencePanelContig.contig,
           basename = "chrom_" + referencePanelContig.contig + "_chunk_" + i
       }
@@ -113,8 +116,8 @@ workflow ImputationPipeline {
           reference_panel_bcf_index = referencePanelContig.bcf_index,
           chrom = referencePanelContig.contig,
           genetic_map_file = genetic_maps_eagle,
-          start = (i * chunkLength) + 1,
-          end = (i + 1) * chunkLength + 5000000 # they do an overlap of 5,000,000 bases in michigan pipeline
+          start = start,
+          end = endWithOverlaps # they do an overlap of 5,000,000 bases in michigan pipeline
       }
 
         call minimac4 {
@@ -123,8 +126,9 @@ workflow ImputationPipeline {
             phased_vcf = PrePhaseVariantsEagle.dataset_prephased_vcf,
             prefix = "chrom" + "_chunk_" + i +"_imputed",
             chrom = referencePanelContig.contig,
-            start = (i * chunkLength) + 1,
-            end = (i + 1) * chunkLength
+            start = start,
+            end = end,
+            window = chunkOverlaps
         }
 
         call AggregateImputationQCMetrics {
@@ -133,7 +137,7 @@ workflow ImputationPipeline {
           		nSamples = CountSamples.nSamples,
           		basename = output_callset_name + "chrom_" + referencePanelContig.contig + "_chunk_" + i
           }
-        
+
         call UpdateHeader {
           input:
             vcf = minimac4.vcf,
@@ -392,9 +396,10 @@ task minimac4 {
     String chrom
     Int start
     Int end
+    Int window
   }
   command <<<
-    /Minimac4 --refHaps ~{ref_panel} --haps ~{phased_vcf} --start ~{start} --end ~{end} --window 500000 \
+    /Minimac4 --refHaps ~{ref_panel} --haps ~{phased_vcf} --start ~{start} --end ~{end} --window ~{window} \
       --chr ~{chrom} --noPhoneHome --format GT,DS,GP --allTypedSites --prefix ~{prefix} --minRatio 0.00001 
     if [ ! -f ~{prefix}.dose.vcf.gz.tbi ]
     then
