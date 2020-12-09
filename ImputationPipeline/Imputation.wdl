@@ -334,7 +334,7 @@ task CheckChunkValid {
     echo ${var_in_reference} > var_in_reference.txt
 
     echo ${var_in_reference} " * 2 - " ${var_in_original} "should be greater than 0 AND " ${var_in_reference} "should be greater than 3"
-    if [ $(( ${var_in_reference} * 2 - ${var_in_original})) -gt 0 ] && [ ${var_in_reference} -gt 20 ]; then
+    if [ $(( ${var_in_reference} * 2 - ${var_in_original})) -gt 0 ] && [ ${var_in_reference} -gt 30 ]; then
       echo true > valid_file.txt
       bcftools convert -Ob ~{vcf} > valid_variants.bcf
       bcftools index -f valid_variants.bcf 
