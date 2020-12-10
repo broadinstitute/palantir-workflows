@@ -11,41 +11,11 @@ workflow PerformPopulationPCA {
     Array[File] original_array_vcfs
     Array[File]? subset_to_sites
   }
- 
-  # this task seaparates multiallelics and changes variant IDs to chr:pos:ref:alt1 (bc there are no multiallelics now, alt1=alt)
-  call SeparateMultiallelics {
-    input:
-      original_vcf = population_vcf,
-      original_vcf_index = population_vcf_index,
-      output_basename = basename + ".no_multiallelics"
-  }
-
-    #  we use sorted variant IDs so this step makes sure the variant IDs are in the format of chr:pos:allele1:allele2 where allele1
-    # and allele2 are sorted
-    call SortVariantIds {
-      input:
-        vcf = SeparateMultiallelics.output_vcf,
-        basename = basename + ".sorted_ids"
-    }
 
   scatter (imputed_array_vcf in imputed_array_vcfs) {
-	  call UpdateVariantIds as UpdateVariantIdsImputed {
-		input:
-			vcf = imputed_array_vcf,
-			basename = basename + ".imputed_array.updated_ids."
-	  }
-
-
-
-	  call SortVariantIds as SortVariantIdsImputedArray {
-		input:
-			vcf = UpdateVariantIdsImputed.output_vcf,
-			basename = basename + ".imputed_array.sorted_ids"
-	  }
-
 	  call SelectTypedSites {
 		input:
-			vcf = SortVariantIdsImputedArray.output_vcf,
+			vcf = imputed_array_vcf,
 			basename = basename
 	  }
 
@@ -58,8 +28,8 @@ workflow PerformPopulationPCA {
 
   call SubsetToArrayVCF {
     input:
-        vcf = SortVariantIds.output_vcf,
-        vcf_index = SortVariantIds.output_vcf_index,
+        vcf = population_vcf,
+        vcf_index = population_vcf_index,
         intervals = SelectTypedSites.output_vcf,
         intervals_index = SelectTypedSites.output_vcf_index,
         basename = basename + ".sorted_ids.subsetted"
@@ -194,6 +164,7 @@ task LDPruning {
   command {
   
     /plink2 --vcf ~{vcf} \
+    --set-all-var-ids @:#:\$1:\$2 \
     --rm-dup force-first \
     --geno 0.05 \
     --hwe 1e-10 \
@@ -205,6 +176,7 @@ task LDPruning {
     --out ~{basename} 
 
     /plink2 --vcf ~{vcf} \
+    --set-all-var-ids @:#:\$1:\$2 \
     --rm-dup force-first \
     --keep-allele-order \
     --extract ~{basename}.prune.in \
@@ -274,7 +246,7 @@ task SeparateMultiallelics {
     Int disk_size =  2*ceil(size(original_vcf, "GB"))
   }
   command {
-    bcftools norm -m - ~{original_vcf} -Ou | bcftools annotate --set-id +'%CHROM:%POS:%REF:%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
+    bcftools norm -m - ~{original_vcf} -Oz -o ~{output_basename}.vcf.gz
   }
   output {
     File output_vcf = "~{output_basename}.vcf.gz"
@@ -294,13 +266,17 @@ task ExtractIDs {
     }
 
     command <<<
-        bcftools query -f "%ID\n" ~{vcf} -o ~{output_basename}.original_array.ids
+        /plink2 --vcf ~{vcf} \
+		--set-all-var-ids @:#:\$1:\$2 \
+		--rm-dup force-first \
+		--write-snplist \
+		--out ~{output_basename}_selected
     >>>
     output {
-        File ids = "~{output_basename}.original_array.ids"
+        File ids = "~{output_basename}_selected.snplist"
     }
     runtime {
-        docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+        docker: "skwalker/plink2:first"
         disks: "local-disk " + disk_size + " HDD"
         memory: "4 GB"
     }
