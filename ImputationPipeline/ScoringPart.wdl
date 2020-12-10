@@ -27,6 +27,9 @@ workflow ScoringImputedDataset {
     # example: if you were to set columns_for_scoring = "11 12 13" would mean that the 11th column is the variant ID, the 12th column 
     # is the effect allele, and the 13th column is the effect weight
     Boolean redoPCA = false
+
+    Boolean? useDosage
+    String? dosageField
   }
 
   
@@ -36,7 +39,9 @@ workflow ScoringImputedDataset {
   	basename = basename,
   	weights = weights,
   	base_mem = scoring_mem,
-  	extra_args = columns_for_scoring
+  	extra_args = columns_for_scoring,
+  	use_dosage = useDosage,
+  	dosage_field = dosageField
   }
 
   call ExtractIDs {
@@ -70,7 +75,9 @@ workflow ScoringImputedDataset {
   	weights = weights,
   	base_mem = population_scoring_mem,
   	extra_args = columns_for_scoring,
-  	sites = ExtractIDs.ids
+  	sites = ExtractIDs.ids,
+	use_dosage = useDosage,
+	dosage_field = dosageField
   }
 
   call ArrayVcfToPlinkDataset {
@@ -145,6 +152,8 @@ task ScoreVcf {
 		Int base_mem = 8
 		String? extra_args
 		File? sites
+		String dosage_field = "DS"
+		Boolean use_dosage = true
 	}
 
 	Int runtime_mem = base_mem + 2
@@ -153,7 +162,7 @@ task ScoreVcf {
 
 	command {
 		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation \
-		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
+		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --allow-extra-chr ~{extra_args} -vcf ~{vcf} ~{if use_dosage then "dosage=" + dosage_field else ""} \
 		~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem}
 	}
 
