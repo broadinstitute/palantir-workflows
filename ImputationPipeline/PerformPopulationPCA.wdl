@@ -266,7 +266,7 @@ task ExtractIDs {
     }
 
     command <<<
-        /plink2 --vcf ~{vcf} \
+		/plink2 --vcf ~{vcf} \
 		--set-all-var-ids @:#:\$1:\$2 \
 		--rm-dup force-first \
 		--write-snplist \
