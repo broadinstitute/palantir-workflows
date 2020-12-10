@@ -266,11 +266,11 @@ task ExtractIDs {
     }
 
     command <<<
-		/plink2 --vcf ~{vcf} \
-		--set-all-var-ids @:#:\$1:\$2 \
-		--rm-dup force-first \
-		--write-snplist \
-		--out ~{output_basename}_selected
+      /plink2 --vcf ~{vcf} \
+      --set-all-var-ids @:#:\$1:\$2 \
+      --rm-dup force-first \
+      --write-snplist \
+      --out ~{output_basename}_selected
     >>>
     output {
         File ids = "~{output_basename}_selected.snplist"
