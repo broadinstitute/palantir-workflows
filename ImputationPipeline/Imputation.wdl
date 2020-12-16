@@ -517,6 +517,7 @@ task MergeSingleSampleVcfs {
     Array[File] input_vcfs
     Array[File] input_vcf_indices
     String output_vcf_basename
+    Int memory = 3
    }
 
    Int disk_size = 3* ceil(size(input_vcfs, "GB") + size(input_vcf_indices, "GB")) + 20
@@ -528,7 +529,7 @@ task MergeSingleSampleVcfs {
 
   runtime {
     docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
-    memory: "3 GiB"
+    memory: memory + " GiB"
     disks: "local-disk " + disk_size + " HDD"
   }
   output {
