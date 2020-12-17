@@ -133,7 +133,6 @@ task SelectSitesOriginalArray {
 		--set-all-var-ids @:#:\$1:\$2 \
 		--rm-dup force-first \
 		--geno 0.001 \
-		--maf 0.01 \
 		--snps-only \
 		--write-snplist \
 		--out ~{basename}_selected
@@ -275,7 +274,7 @@ task SeparateMultiallelics {
     Int disk_size =  2*ceil(size(original_vcf, "GB"))
   }
   command {
-    bcftools norm -m - ~{original_vcf} -Ou | bcftools annotate --set-id +'%CHROM\:%POS\:%REF\:%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
+    bcftools norm -m - ~{original_vcf} -Ou | bcftools annotate --set-id '%CHROM\:%POS\:%REF\:%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
   }
   output {
     File output_vcf = "~{output_basename}.vcf.gz"
