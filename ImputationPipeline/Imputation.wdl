@@ -144,9 +144,22 @@ workflow ImputationPipeline {
       output_vcf_basename = output_callset_name
   }
 
+  call CountSamples {
+  	input:
+  		vcf = GatherVcfs.output_vcf
+  }
+
+  call AggregateImputationQCMetrics {
+  	input:
+  		infoFiles = minimac4.info,
+  		nSamples = CountSamples.nSamples,
+  		basename = output_callset_name
+  }
+
   output {
     File imputed_multisample_vcf = GatherVcfs.output_vcf
     File imputed_multisample_vcf_index = GatherVcfs.output_vcf_index
+    File aggregated_imputation_metrics = AggregateImputationQCMetrics.aggregated_metrics
   }
 }
 
@@ -535,4 +548,66 @@ task MergeSingleSampleVcfs {
     File output_vcf = "~{output_vcf_basename}.vcf.gz"
     File output_vcf_index = "~{output_vcf_basename}.vcf.gz.tbi"
   }
+}
+
+task CountSamples {
+	input {
+		File vcf
+	}
+
+	Int disk_size = 100 + ceil(size(vcf, "GB"))
+
+	command <<<
+		bcftools query -l ~{vcf} | wc -l >> nSamples.txt
+	>>>
+
+	runtime {
+		docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+		memory: "3 GiB"
+		disks: "local-disk " + disk_size + " HDD"
+  	}
+
+  	output {
+  		Int nSamples = read_int("nSamples.txt")
+  	}
+}
+
+task AggregateImputationQCMetrics {
+	input {
+		Array[File] infoFiles
+		Int nSamples
+		String basename
+	}
+
+	Int disk_size = 100 + ceil(size(infoFiles, "GB"))
+
+	command <<<
+	Rscript -<< "EOF"
+		library(dplyr)
+		library(readr)
+		library(purrr)
+		library(ggplot2)
+
+		sites_info <- list(" ~{sep='", "' infoFiles}") %>% map(read_tsv) %>% reduce(bind_rows)
+
+		nSites <- sites_info %>% nrow()
+		nSites_with_var <- sites_info %>% filter(MAF > 0.25/(~{nSamples}) %>% nrow()
+		nSites_high_r2 <- sites_info %>% filter(Rsq>0.3) %>% nrow()
+
+		aggregated_metrics <- tibble(total_sites=nSites, total_sites_with_var=nSites_with_var, total_sites_r2_gt_0.3=nSites_high_r2, frac_sites_r2_gt_0.3=nSites_high_r2/nSites, frac_sites_with_var_r2_gt_0.3=nSites_high_r2/nSites_with_var)
+
+		write_tsv(aggregated_metrics, "~{basename}_aggregated_imputation_metrics.tsv")
+
+	EOF
+	>>>
+
+	runtime {
+		docker: "rocker/tidyverse"
+		disks : "local-disk " + disk_size + " HDD"
+		preemptible : 3
+	}
+
+	output {
+		File aggregated_metrics = "~{basename}_aggregated_imputation_metrics.tsv"
+	}
 }
