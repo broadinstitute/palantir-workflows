@@ -151,7 +151,7 @@ workflow ImputationPipeline {
 
   call AggregateImputationQCMetrics {
   	input:
-  		infoFiles = minimac4.info,
+  		infoFiles = select_all(flatten(minimac4.info)),
   		nSamples = CountSamples.nSamples,
   		basename = output_callset_name
   }
