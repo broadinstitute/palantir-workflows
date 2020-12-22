@@ -588,7 +588,7 @@ task AggregateImputationQCMetrics {
 		library(purrr)
 		library(ggplot2)
 
-		sites_info <- list(" ~{sep='", "' infoFiles}") %>% map(read_tsv) %>% reduce(bind_rows)
+		sites_info <- list("~{sep='", "' infoFiles}") %>% map(read_tsv) %>% reduce(bind_rows)
 
 		nSites <- sites_info %>% nrow()
 		nSites_with_var <- sites_info %>% filter(MAF > 0.25/(~{nSamples}) %>% nrow()
