@@ -605,6 +605,7 @@ task AggregateImputationQCMetrics {
 		docker: "rocker/tidyverse"
 		disks : "local-disk " + disk_size + " HDD"
 		preemptible : 3
+		memory: "16 GB"
 	}
 
 	output {
