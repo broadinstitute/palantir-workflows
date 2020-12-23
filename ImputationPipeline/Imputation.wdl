@@ -36,7 +36,12 @@ workflow ImputationPipeline {
   }
 
   File vcf_to_impute = select_first([multi_sample_vcf, MergeSingleSampleVcfs.output_vcf])
-  File vcf_index_to_impute = select_first([multi_sample_vcf_index, MergeSingleSampleVcfs.output_vcf_index])  
+  File vcf_index_to_impute = select_first([multi_sample_vcf_index, MergeSingleSampleVcfs.output_vcf_index])
+
+  call CountSamples {
+    	input:
+    		vcf = vcf_to_impute
+    }
 
   scatter (referencePanelContig in referencePanelContigs) {
     call CalculateChromsomeLength {
@@ -100,6 +105,13 @@ workflow ImputationPipeline {
             start = (i * chunkLength) + 1,
             end = (i + 1) * chunkLength
         }
+
+        call AggregateImputationQCMetrics {
+          	input:
+          		infoFile = minimac4.info,
+          		nSamples = CountSamples.nSamples,
+          		basename = output_callset_name + "chrom_" + referencePanelContig.contig + "_chunk_" + i
+          }
         
         call UpdateHeader {
           input:
@@ -144,22 +156,18 @@ workflow ImputationPipeline {
       output_vcf_basename = output_callset_name
   }
 
-  call CountSamples {
+  call MergeImputationQCMetrics {
   	input:
-  		vcf = GatherVcfs.output_vcf
-  }
-
-  call AggregateImputationQCMetrics {
-  	input:
-  		infoFiles = select_all(flatten(minimac4.info)),
-  		nSamples = CountSamples.nSamples,
+  		metrics = select_all(flatten(AggregateImputationQCMetrics.aggregated_metrics)),
   		basename = output_callset_name
   }
+
+
 
   output {
     File imputed_multisample_vcf = GatherVcfs.output_vcf
     File imputed_multisample_vcf_index = GatherVcfs.output_vcf_index
-    File aggregated_imputation_metrics = AggregateImputationQCMetrics.aggregated_metrics
+    File aggregated_imputation_metrics = MergeImputationQCMetrics.aggregated_metrics
   }
 }
 
@@ -574,12 +582,12 @@ task CountSamples {
 
 task AggregateImputationQCMetrics {
 	input {
-		Array[File] infoFiles
+		File infoFile
 		Int nSamples
 		String basename
 	}
 
-	Int disk_size = 100 + ceil(size(infoFiles, "GB"))
+	Int disk_size = 100 + ceil(size(infoFile, "GB"))
 
 	command <<<
 	Rscript -<< "EOF"
@@ -588,13 +596,13 @@ task AggregateImputationQCMetrics {
 		library(purrr)
 		library(ggplot2)
 
-		sites_info <- list("~{sep='", "' infoFiles}") %>% map(read_tsv) %>% reduce(bind_rows)
+		sites_info <- read_tsv("~{infoFile}")
 
 		nSites <- sites_info %>% nrow()
 		nSites_with_var <- sites_info %>% filter(MAF > 0.25/(~{nSamples}) %>% nrow()
 		nSites_high_r2 <- sites_info %>% filter(Rsq>0.3) %>% nrow()
 
-		aggregated_metrics <- tibble(total_sites=nSites, total_sites_with_var=nSites_with_var, total_sites_r2_gt_0.3=nSites_high_r2, frac_sites_r2_gt_0.3=nSites_high_r2/nSites, frac_sites_with_var_r2_gt_0.3=nSites_high_r2/nSites_with_var)
+		aggregated_metrics <- tibble(total_sites=nSites, total_sites_with_var=nSites_with_var, total_sites_r2_gt_0.3=nSites_high_r2,)
 
 		write_tsv(aggregated_metrics, "~{basename}_aggregated_imputation_metrics.tsv")
 
@@ -605,7 +613,39 @@ task AggregateImputationQCMetrics {
 		docker: "rocker/tidyverse"
 		disks : "local-disk " + disk_size + " HDD"
 		preemptible : 3
-		memory: "16 GB"
+	}
+
+	output {
+		File aggregated_metrics = "~{basename}_aggregated_imputation_metrics.tsv"
+	}
+}
+
+task MergeImputationQCMetrics {
+	input {
+		Array[File] metrics
+		String basename
+	}
+
+	Int disk_size = 100 + ceil(size(metrics, "GB"))
+
+	command <<<
+	Rscript -<< "EOF"
+		library(dplyr)
+		library(readr)
+		library(purrr)
+		library(ggplot2)
+
+		metrics <- list("~{sep='", "' metrics}") %>% map(read_tsv) %>% reduce(`+`) %>% mutate(frac_sites_r2_gt_0.3=total_sites_r2_gt_0.3/total_sites, frac_sites_with_var_r2_gt_0.3=total_sites_r2_gt_0.3/total_sites_with_var)
+
+		write_tsv(metrics, "~{basename}_aggregated_imputation_metrics.tsv")
+
+	EOF
+	>>>
+
+	runtime {
+		docker: "rocker/tidyverse"
+		disks : "local-disk " + disk_size + " HDD"
+		preemptible : 3
 	}
 
 	output {
