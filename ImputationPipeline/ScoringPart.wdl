@@ -39,7 +39,7 @@ workflow ScoringImputedDataset {
   	extra_args = columns_for_scoring
   }
 
-	call ScoreVcfGT as ScoreImputedArray {
+	call ScoreVcfGT as ScoreImputedArrayGT {
 		input:
 		vcf = imputed_array_vcf,
 		basename = basename,
