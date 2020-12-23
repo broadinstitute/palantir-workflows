@@ -259,6 +259,9 @@ task CheckChunkValid {
     var_in_original=$(java -jar ~{gatk_jar} CountVariants -V ~{vcf}  | sed 's/Tool returned://')
     var_in_reference=$(java -jar ~{gatk_jar}  CountVariants -V ~{vcf} -L ~{panel_vcf}  | sed 's/Tool returned://')
 
+    echo var_in_original > var_in_original.txt
+    echo var_in_reference > var_in_reference.txt
+
     echo ${var_in_reference} " * 2 - " ${var_in_original} "should be greater than 0 AND " ${var_in_reference} "should be greater than 3"
     if [ $(( ${var_in_reference} * 2 - ${var_in_original})) -gt 0 ] && [ ${var_in_reference} -gt 3 ]; then
       echo true > valid_file.txt
@@ -272,6 +275,8 @@ task CheckChunkValid {
     File? valid_chunk_bcf ="valid_variants.bcf"
     File? valid_chunk_bcf_index = "valid_variants.bcf.csi"
     Boolean valid = read_boolean("valid_file.txt")
+    Int var_in_original = read_int("var_in_original.txt")
+    Int var_in_reference = read_int("var_in_reference.txt")
   }
   runtime {
     docker: "farjoun/impute:0.0.4-1506086533" # need to use this one because you need to be able to run java and bcftools (bcftools one doesn't let you)
