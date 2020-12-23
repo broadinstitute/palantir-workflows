@@ -170,8 +170,8 @@ workflow ImputationPipeline {
   		chroms = flatten(chunk_contig),
   		starts = flatten(start),
   		ends = flatten(end),
-  		vars_in_array = flatten(CheckChunkValid.vars_in_original),
-  		vars_in_panel = flatten(CheckChunkValid.vars_in_panel),
+  		vars_in_array = flatten(CheckChunkValid.var_in_original),
+  		vars_in_panel = flatten(CheckChunkValid.var_in_panel),
   		valids = flatten(CheckChunkValid.valid),
   		basename = output_callset_name
   }
