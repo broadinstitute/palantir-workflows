@@ -273,8 +273,8 @@ task CheckChunkValid {
     var_in_original=$(java -jar ~{gatk_jar} CountVariants -V ~{vcf}  | sed 's/Tool returned://')
     var_in_reference=$(java -jar ~{gatk_jar}  CountVariants -V ~{vcf} -L ~{panel_vcf}  | sed 's/Tool returned://')
 
-    echo var_in_original > var_in_original.txt
-    echo var_in_reference > var_in_reference.txt
+    echo ${var_in_original} > var_in_original.txt
+    echo ${var_in_reference} > var_in_reference.txt
 
     echo ${var_in_reference} " * 2 - " ${var_in_original} "should be greater than 0 AND " ${var_in_reference} "should be greater than 3"
     if [ $(( ${var_in_reference} * 2 - ${var_in_original})) -gt 0 ] && [ ${var_in_reference} -gt 3 ]; then
