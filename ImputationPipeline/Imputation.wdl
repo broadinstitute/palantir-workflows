@@ -651,7 +651,7 @@ task StoreChunksInfo {
 	}
 
 	command <<<
-	Rscript << "EOF"
+	Rscript -<< "EOF"
 		library(dplyr)
 		library(readr)
 
