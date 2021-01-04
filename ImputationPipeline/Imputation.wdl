@@ -182,6 +182,8 @@ workflow ImputationPipeline {
     File imputed_multisample_vcf_index = GatherVcfs.output_vcf_index
     File aggregated_imputation_metrics = MergeImputationQCMetrics.aggregated_metrics
     File chunks_info = StoreChunksInfo.chunks_info
+    File failed_chunks = StoreChunksInfo.failed_chunks
+    Int n_failed_chunks = StoreChunksInfo.n_failed_chunks
   }
 }
 
