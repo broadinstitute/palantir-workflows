@@ -662,7 +662,7 @@ task StoreChunksInfo {
 		n_failed_chunks <- nrow(failed_chunks)
 		write_tsv(chunk_info, "~{basename}_chunk_info.tsv")
 		write_tsv(failed_chunks, "~{basename}_failed_chunks.tsv")
-		write_int(n_failed_chunks, "n_failed_chunks.txt")
+		write(n_failed_chunks, "n_failed_chunks.txt")
 	EOF
 	>>>
 
