@@ -259,6 +259,55 @@ task CheckChunkValid {
   }
 }
 
+task CountChunks {
+  input {
+    File vcf
+    File panel_vcf
+  }
+  command <<<
+    var_in_original=$(gatk CountVariants -V ~{vcf}  | sed 's/Tool returned://')
+    var_in_reference=$(gatk  CountVariants -V ~{vcf} -L ~{panel_vcf}  | sed 's/Tool returned://')
+    echo ${var_in_reference} " * 2 - " ${var_in_original} "should be greater than 0 AND " ${var_in_reference} "should be greater than 3"
+  >>>
+  output {
+    Int var_in_original = read_int(var_in_original)
+    Int var_in_reference = read_int(var_in_reference)
+  }
+  runtime {
+    docker: "us.gcr.io/broad-gatk/gatk:4.1.9.0"
+    disks: "local-disk " + disk_size + " HDD"
+    memory: "4 GB"
+  }
+
+}
+task CheckChunks {
+  input {
+    File vcf
+    Int var_in_original
+    Int var_in_reference
+  }
+  command <<<
+    if [ $(( ${var_in_reference} * 2 - ${var_in_original})) -gt 0 ] && [ ${var_in_reference} -gt 3 ]; then
+    echo true > valid_file.txt
+    bcftools convert -Ob ~{vcf} > valid_variants.bcf
+    bcftools index -f valid_variants.bcf
+    else
+    echo false > valid_file.txt
+    fi
+  >>>
+  output {
+    File? valid_chunk_bcf = "valid_variants.bcf"
+    File? valid_chunk_bcf_index = "valid_variants.bcf.csi"
+    Boolean valid = read_boolean("valid_file.txt")
+  }
+  runtime {
+    docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+    disks: "local-disk " + disk_size + " HDD"
+    memory: "4 GB"
+  }
+
+}
+
 task PrePhaseVariantsEagle {
   input {
     File? dataset_bcf
