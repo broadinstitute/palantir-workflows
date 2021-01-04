@@ -656,7 +656,11 @@ task StoreChunksInfo {
 		library(readr)
 
 		chunk_info <- tibble(chrom = c("~{sep='", "' chroms}"), start = c("~{sep='", "' starts}"), ends = c("~{sep='", "' ends}"), vars_in_array = c("~{sep='", "' vars_in_array}"), vars_in_panel = c("~{sep='", "' vars_in_panel}"), chunk_was_imputed = as.logical(c("~{sep='", "' valids}")))
+		failed_chunks <- chunk_info %>% filter(!chunk_was_imputed) %>% select(-chunk_was_imputed)
+		n_failed_chunks <- nrow(failed_chunks)
 		write_tsv(chunk_info, "~{basename}_chunk_info.tsv")
+		write_tsv(failed_chunks, "~{basename}_failed_chunks.tsv")
+		write_int(n_failed_chunks, "n_failed_chunks.txt")
 	EOF
 	>>>
 
@@ -667,6 +671,8 @@ task StoreChunksInfo {
 
 	output {
 		File chunks_info = "~{basename}_chunk_info.tsv"
+		File failed_chunks = "~{basename}_failed_chunks.tsv"
+		Int n_failed_chunks = read_int("n_failed_chunks.txt")
 	}
 }
 
