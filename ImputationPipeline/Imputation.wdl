@@ -310,9 +310,9 @@ task CheckChunks {
     File vcf_index
     File panel_vcf
     File panel_vcf_index
-    Int disk_size =ceil(2*size([vcf, vcf_index, panel_vcf, panel_vcf_index], "GB"))
     Int var_in_original
     Int var_in_reference
+    Int disk_size =ceil(2*size([vcf, vcf_index, panel_vcf, panel_vcf_index], "GB"))
   }
   command <<<
     if [ $(( ${var_in_reference} * 2 - ${var_in_original})) -gt 0 ] && [ ${var_in_reference} -gt 3 ]; then
