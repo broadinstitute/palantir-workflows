@@ -79,7 +79,9 @@ workflow ImputationPipeline {
       call CountChunks {
         input:
           vcf = select_first([OptionalQCSites.output_vcf,  GenerateChunk.output_vcf]),
+          vcf_index = select_first([OptionalQCSites.output_vcf_index, GenerateChunk.output_vcf_index]),
           panel_vcf = referencePanelContig.vcf,
+          panel_vcf_index = referencePanelContig.vcf_index
       }
       call CheckChunks {
         input:
@@ -273,7 +275,9 @@ task CheckChunkValid {
 task CountChunks {
   input {
     File vcf
+    File vcf_index
     File panel_vcf
+    File panel_vcf_index
     Int disk_size =ceil(2*size([vcf, vcf_index, panel_vcf, panel_vcf_index], "GB"))
   }
 #  command <<<
