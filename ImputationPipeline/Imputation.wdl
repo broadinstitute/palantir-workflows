@@ -69,15 +69,26 @@ workflow ImputationPipeline {
           }
         }
 
-      call CheckChunkValid {
-        input: 
+#      call CheckChunkValid {
+#        input:
+#          vcf = select_first([OptionalQCSites.output_vcf,  GenerateChunk.output_vcf]),
+#          vcf_index = select_first([OptionalQCSites.output_vcf_index, GenerateChunk.output_vcf_index]),
+#          panel_vcf = referencePanelContig.vcf,
+#          panel_vcf_index = referencePanelContig.vcf_index
+#      }
+      call CountChunks {
+        input:
           vcf = select_first([OptionalQCSites.output_vcf,  GenerateChunk.output_vcf]),
-          vcf_index = select_first([OptionalQCSites.output_vcf_index, GenerateChunk.output_vcf_index]),
           panel_vcf = referencePanelContig.vcf,
-          panel_vcf_index = referencePanelContig.vcf_index
+      }
+      call CheckChunks {
+        input:
+          vcf = select_first([OptionalQCSites.output_vcf,  GenerateChunk.output_vcf]),
+          var_in_original = CheckChunks.var_in_original,
+          var_in_reference = CheckChunks.var_in_reference,
       }
 
-      if (CheckChunkValid.valid) {
+      if (CheckChunks.valid) {  #CheckChunkValid.valid) {
 
       call PrePhaseVariantsEagle {
         input:
@@ -263,15 +274,21 @@ task CountChunks {
   input {
     File vcf
     File panel_vcf
+    Int disk_size =ceil(2*size([vcf, vcf_index, panel_vcf, panel_vcf_index], "GB"))
   }
+#  command <<<
+#    var_in_original=$(gatk CountVariants -V ~{vcf}  | sed 's/Tool returned://')
+#    var_in_reference=$(gatk  CountVariants -V ~{vcf} -L ~{panel_vcf}  | sed 's/Tool returned://')
+#    echo ${var_in_reference} " * 2 - " ${var_in_original} "should be greater than 0 AND " ${var_in_reference} "should be greater than 3"
+#  >>>
   command <<<
-    var_in_original=$(gatk CountVariants -V ~{vcf}  | sed 's/Tool returned://')
-    var_in_reference=$(gatk  CountVariants -V ~{vcf} -L ~{panel_vcf}  | sed 's/Tool returned://')
+    echo $(gatk CountVariants -V ~{vcf}  | sed 's/Tool returned://') > var_in_original
+    echo $(gatk  CountVariants -V ~{vcf} -L ~{panel_vcf}  | sed 's/Tool returned://') > var_in_reference
     echo ${var_in_reference} " * 2 - " ${var_in_original} "should be greater than 0 AND " ${var_in_reference} "should be greater than 3"
   >>>
   output {
-    Int var_in_original = read_int(var_in_original)
-    Int var_in_reference = read_int(var_in_reference)
+    Int var_in_original = read_int("var_in_original")
+    Int var_in_reference = read_int("var_in_reference")
   }
   runtime {
     docker: "us.gcr.io/broad-gatk/gatk:4.1.9.0"
