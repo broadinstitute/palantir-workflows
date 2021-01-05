@@ -88,7 +88,7 @@ workflow ImputationPipeline {
           vcf = select_first([OptionalQCSites.output_vcf,  GenerateChunk.output_vcf]),
           vcf_index = select_first([OptionalQCSites.output_vcf_index, GenerateChunk.output_vcf_index]),
           panel_vcf = referencePanelContig.vcf,
-          panel_vcf_index = referencePanelContig.vcf_index
+          panel_vcf_index = referencePanelContig.vcf_index,
           var_in_original = CheckChunks.var_in_original,
           var_in_reference = CheckChunks.var_in_reference,
       }
