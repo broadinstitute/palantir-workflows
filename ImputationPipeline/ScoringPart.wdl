@@ -39,15 +39,6 @@ workflow ScoringImputedDataset {
   	extra_args = columns_for_scoring
   }
 
-	call ScoreVcfGT as ScoreImputedArrayGT {
-		input:
-		vcf = imputed_array_vcf,
-		basename = basename,
-		weights = weights,
-		base_mem = scoring_mem,
-		extra_args = columns_for_scoring
-	}
-
   call ExtractIDs {
   	input:
   		vcf = imputed_array_vcf,
@@ -163,39 +154,6 @@ task ScoreVcf {
 	command {
 		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation \
 		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
-		~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem}
-	}
-
-	output {
-		File score = "~{basename}.sscore"
-		File log = "~{basename}.log"
-		File sites_scored = "~{basename}.sscore.vars.zst"
-	}
-
-	runtime {
-		docker: "skwalker/plink2:first"
-		disks: "local-disk " + disk_space + " HDD"
-		memory: runtime_mem + " GB"
-	}
-}
-
-task ScoreVcfGT {
-	input {
-		File vcf
-		String basename
-		File weights
-		Int base_mem = 8
-		String? extra_args
-		File? sites
-	}
-
-	Int runtime_mem = base_mem + 2
-	Int plink_mem = base_mem * 1000
-	Int disk_space =  3*ceil(size(vcf, "GB")) + 20
-
-	command {
-		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation \
-		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --allow-extra-chr ~{extra_args} -vcf ~{vcf} \
 		~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem}
 	}
 
