@@ -315,7 +315,7 @@ task CheckChunks {
     Int disk_size =ceil(2*size([vcf, vcf_index, panel_vcf, panel_vcf_index], "GB"))
   }
   command <<<
-    if [ $(( ${var_in_reference} * 2 - ${var_in_original})) -gt 0 ] && [ ${var_in_reference} -gt 3 ]; then
+    if [ $(( ~{var_in_reference} * 2 - ~{var_in_original})) -gt 0 ] && [ ~{var_in_reference} -gt 3 ]; then
     echo true > valid_file.txt
     bcftools convert -Ob ~{vcf} > valid_variants.bcf
     bcftools index -f valid_variants.bcf
