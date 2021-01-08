@@ -85,12 +85,19 @@ workflow FindSamplesToCompare {
                      "exome"]
 
 
-    scatter(interval_and_label in zip(stratIntervals,stratLabels)){
-        call InvertIntervalList{
+    scatter(interval_and_label in zip(stratIntervals, stratLabels)){
+        call Benchmark.ConvertIntervals as ConvertIntervals {
             input:
-                interval_list=interval_and_label.left,
+                inputIntervals = interval_and_label.left,
+                refDict = ref_fasta_dict,
+                gatkTag = "4.0.11.0"
+        }
+
+        call InvertIntervalList {
+            input:
+                interval_list = ConvertIntervals.intervalList,
                 docker = docker,
-                picard_jar= picard_cloud_jar
+                picard_jar = picard_cloud_jar
         }
         String notLabel="NOT_" + interval_and_label.right
     }
