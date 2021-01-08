@@ -258,7 +258,7 @@ task CrosscheckFingerprints {
     bash ~{monitoring_script} > /cromwell_root/monitoring.log &
 
     
-    java -jar ~{picard_jar} CrosscheckFingerprints \
+    java -Xmx7g -jar ~{picard_jar} CrosscheckFingerprints \
       INPUT=~{sep=" INPUT=" input_data} \
       SECOND_INPUT=~{sep=" SECOND_INPUT=" ground_truth_files} \
       HAPLOTYPE_MAP=~{haplotype_database} \
@@ -556,7 +556,7 @@ task InvertIntervalList{
     }
 
     command <<<
-        java -jar ~{picard_jar} IntervalListTools \
+        java -Xmx5g -jar ~{picard_jar} IntervalListTools \
             I=~{interval_list} \
             O=~{"NOT" + basename(interval_list)} \
             INVERT=true
@@ -565,7 +565,7 @@ task InvertIntervalList{
         File output_interval = "NOT" + basename(interval_list)
     }
     runtime {
-        memory: "4GB"
+        memory: "6GB"
         disks: "local-disk 20 SSD"
         docker: docker
     }
