@@ -30,13 +30,11 @@ workflow ScoringImputedDataset {
   }
 
   
-  call ScoreVcf as ScoreImputedArray {
+  call ScoreVcfGatk as ScoreImputedArray {
   	input:
   	vcf = imputed_array_vcf,
   	basename = basename,
-  	weights = weights,
-  	base_mem = scoring_mem,
-  	extra_args = columns_for_scoring
+  	weights = weights
   }
 
   call ExtractIDs {
@@ -170,6 +168,39 @@ task ScoreVcf {
 	}
 }
 
+task ScoreVcfGatk {
+	input {
+		File vcf
+		File weights
+		String gatk_override = "gs://broad-dsde-methods-ckachulis/jars/gatk_prs_with_uncertainty.jar"
+		String basename
+	}
+
+	parameter_meta {
+	vcf: {
+	  description: "vcf",
+	  localization_optional: true
+	}
+  }
+
+  command <<<
+		set -xeuo pipefail
+
+		export GATK_LOCAL_JAR=~{gatk_override}
+
+		gatk ScorePRS -V ~{vcf} --weights ~{weights} -O ~{basename}.scores.tsv
+  >>>
+
+  runtime {
+  	docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
+	disks: "local-disk 100 HDD"
+  }
+
+  output {
+  	File score = "~{basename}.scores.tsv"
+  }
+}
+
 # This just turns the array vcf into bim/bed/fam format and extracts only the sites
 # Used for the original PCA steps
 task ArrayVcfToPlinkDataset {
@@ -241,7 +272,6 @@ task ProjectArray {
 # This does the scoring adjustment
 task AdjustScores {
 	input {
-		File adjusting_Rscript
 		File population_pcs
 		File population_scores 
 		File array_pcs
@@ -250,7 +280,54 @@ task AdjustScores {
 	}
 
 	command {
-		Rscript ~{adjusting_Rscript} ~{population_pcs} ~{population_scores} ~{array_pcs} ~{array_scores}
+		Rscript -<< "EOF"~{population_pcs} ~{population_scores} ~{array_pcs} ~{array_scores}
+		library(ggplot2)
+		library(dplyr)
+		library(readr
+
+		population_pcs = read_tsv("~{population_pcs}")
+		population_scores = read_tsv("~{population_scores}")
+
+		population_data = inner_join(population_pcs, population_scores, by=("IID"="X.IID")
+
+		# generate the linear model from the population data using the first 5 PCs
+		population_model = glm(SCORE1_SUM ~ PC1 + PC2 + PC3 + PC4 + PC5, data = population_data, family = "gaussian")
+
+		population_data$residual_score = resid(population_model)
+		population_resid_mean = mean(population_data$residual_score)
+		population_resid_sd = sd(population_data$residual_score)
+
+		# calculate adjusted score on population data,  make sure it's standardized to N(0, 1)
+		population_data$adjusted_score = (population_data$residual_score - population_resid_mean)/population_resid_sd
+		print("check that adjusted population distribution follows N(0,1)")
+		print(round(mean(population_data$adjusted_score),5) == 0)
+		print(round(sd(population_data$adjusted_score), 5) == 1)
+
+		# this calculates the adjusted score for the new data
+		generate_adjusted_scores = function(new_data) {
+		  subset_data_for_model = new_data %>% transmute(raw_score = SCORE1_SUM, PC1=PC1, PC2=PC2, PC3=PC3, PC4=PC4, PC5=PC5)
+		  new_data$residual_score = subset_data_for_model$raw_score - predict(population_model, subset_data_for_model) # calculate the residual score from the model
+		  new_data$adjusted_score = (new_data$residual_score - population_resid_mean)/population_resid_sd # again adjust compared to population
+		  new_data %>% rowwise() %>% mutate(percentile=pnorm(adjusted_score, round(mean(population_data$adjusted_score),5),
+															 round(sd(population_data$adjusted_score), 5) == 1))
+        }
+
+        array_scores = merge(read.csv(args[3],  sep = "\t", header = T),
+                             read.csv(args[4],  sep = "\t", header = T), by.x="IID", by.y="X.IID")
+
+        adjusted_array_scores = generate_adjusted_scores(array_scores)
+
+        # make sure the PCs fit well between the array and the population data
+        ggplot(population_data, aes(x=PC1, y=PC2, color="Population Data")) + geom_point() + geom_point() +
+          geom_point(data = array_scores, aes(x=PC1, y=PC2, color="Array Data")) + labs(x="PC1", y="PC2") + theme_bw()
+        ggsave(filename = "PCA_plot.png", dpi=300, width = 6, height = 6)
+
+        # return population scores
+        write.table(population_data %>% subset(select = -residual_score), file = "population_data_scores.tsv", sep="\t", row.names=F, quote = F)
+
+        # return array scores
+        write.table(adjusted_array_scores %>% subset(select = -residual_score), file = "array_data_scores.tsv", sep="\t", row.names=F, quote = F)
+		EOF
 	}
 
 	output {
