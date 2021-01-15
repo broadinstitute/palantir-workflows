@@ -178,7 +178,7 @@ task RemoveDuplicates {
     bcftools index -t ~{output_basename}.vcf.gz
   >>>
   runtime {
-    docker: "farjoun/impute:0.0.3-1504715575"
+    docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.9-1-deb_cv1" #"farjoun/impute:0.0.3-1504715575"
     memory: "3 GiB"
     disks: "local-disk " + disk_size + " HDD"
   }
@@ -238,41 +238,6 @@ task GenerateChunk {
     File output_vcf = "~{basename}.vcf.gz"
     File output_vcf_index = "~{basename}.vcf.gz.tbi" 
   }
-}  
-
-task CheckChunkValid {
-  input {
-    File vcf
-    File vcf_index
-    File panel_vcf
-    File panel_vcf_index
-    Int disk_size =ceil(2*size([vcf, vcf_index, panel_vcf, panel_vcf_index], "GB"))
-    File gatk_jar =  "gs://fc-6413177b-e99c-4476-b085-3da80d320081/gatk_jar_for_forcing_genotypegvcf_to_run.jar" # you can use any public gatk jar on the cloud (but I dont think we publish those anywhere? )
-  }
-  command <<<
- 
-    var_in_original=$(java -jar ~{gatk_jar} CountVariants -V ~{vcf}  | sed 's/Tool returned://')
-    var_in_reference=$(java -jar ~{gatk_jar}  CountVariants -V ~{vcf} -L ~{panel_vcf}  | sed 's/Tool returned://')
-
-    echo ${var_in_reference} " * 2 - " ${var_in_original} "should be greater than 0 AND " ${var_in_reference} "should be greater than 3"
-    if [ $(( ${var_in_reference} * 2 - ${var_in_original})) -gt 0 ] && [ ${var_in_reference} -gt 3 ]; then
-      echo true > valid_file.txt
-      bcftools convert -Ob ~{vcf} > valid_variants.bcf
-      bcftools index -f valid_variants.bcf 
-    else
-      echo false > valid_file.txt
-    fi
-  >>>
-  output {
-    File? valid_chunk_bcf ="valid_variants.bcf"
-    File? valid_chunk_bcf_index = "valid_variants.bcf.csi"
-    Boolean valid = read_boolean("valid_file.txt")
-  }
-  runtime {
-    docker: "farjoun/impute:0.0.4-1506086533" # need to use this one because you need to be able to run java and bcftools (bcftools one doesn't let you)
-    disks: "local-disk " + disk_size + " HDD"
-    memory: "4 GB"
-  }
 }
 
 task CountChunks {
@@ -283,11 +248,6 @@ task CountChunks {
     File panel_vcf_index
     Int disk_size =ceil(2*size([vcf, vcf_index, panel_vcf, panel_vcf_index], "GB"))
   }
-#  command <<<
-#    var_in_original=$(gatk CountVariants -V ~{vcf}  | sed 's/Tool returned://')
-#    var_in_reference=$(gatk  CountVariants -V ~{vcf} -L ~{panel_vcf}  | sed 's/Tool returned://')
-#    echo ${var_in_reference} " * 2 - " ${var_in_original} "should be greater than 0 AND " ${var_in_reference} "should be greater than 3"
-#  >>>
   command <<<
     echo $(gatk CountVariants -V ~{vcf}  | sed 's/Tool returned://') > var_in_original
     echo $(gatk  CountVariants -V ~{vcf} -L ~{panel_vcf}  | sed 's/Tool returned://') > var_in_reference
@@ -329,7 +289,7 @@ task CheckChunks {
     Boolean valid = read_boolean("valid_file.txt")
   }
   runtime {
-    docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+    docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.9-1-deb_cv1"
     disks: "local-disk " + disk_size + " HDD"
     memory: "4 GB"
   }
@@ -361,7 +321,7 @@ task PrePhaseVariantsEagle {
     File dataset_prephased_vcf="pre_phased_~{chrom}.vcf.gz"
   }
   runtime {
-    docker: "skwalker/imputation:test" # this has the exact version of minimac and eagle we want to perfectly match Michigan Server
+    docker: "us.gcr.io/broad-dsde-methods/skwalker-imputation:test" #"skwalker/imputation:test" # this has the exact version of minimac and eagle we want to perfectly match Michigan Server
     memory: "32 GB"
     cpu: "8"
     disks: "local-disk " + disk_size + " HDD"
@@ -391,7 +351,7 @@ task minimac4 {
     File info = "~{prefix}.info"
   }
   runtime {
-    docker: "skwalker/imputation:test" # this has the exact version of minimac and eagle we want to perfectly match Michigan Server
+    docker: "us.gcr.io/broad-dsde-methods/skwalker-imputation:test" #"skwalker/imputation:test" # this has the exact version of minimac and eagle we want to perfectly match Michigan Server
     memory: "4 GB"
     cpu: "1"
     disks: "local-disk 100 HDD"
@@ -411,7 +371,7 @@ task MergeVCFs {
     bcftools index -t ~{output_vcf_basename}.vcf.gz
   >>>
   runtime {
-    docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+    docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.9-1-deb_cv1"
     memory: "3 GiB"
     disks: "local-disk " + disk_size + " HDD"
   }
@@ -510,7 +470,7 @@ task SeparateMultiallelics {
     File output_vcf_index = "~{output_basename}.vcf.gz.tbi"
   }
   runtime {
-    docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+    docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.9-1-deb_cv1"
     disks: "local-disk " + disk_size + " HDD"
     memory: "4 GB"
   }
@@ -552,7 +512,7 @@ task OptionalQCSites {
   >>>
 
   runtime {
-    docker: "skwalker/imputation:with_vcftools" # TODO: use a public one (not suse bcftools biocontainers also has vcftools )
+    docker: "us.gcr.io/broad-dsde-methods/skwalker-imputation:with_vcftools" # TODO: use a public one (not suse bcftools biocontainers also has vcftools )
     memory: "16 GiB"
     disks: "local-disk " + disk_size + " HDD"
   }
@@ -583,7 +543,7 @@ task SortIds {
     }
 
     runtime {
-        docker: "skwalker/imputation:with_vcftools"
+        docker: "us.gcr.io/broad-dsde-methods/skwalker-imputation:with_vcftools"
         disks: "local-disk " + disk_space + " HDD"
         memory: "16 GB"
     }
@@ -604,7 +564,7 @@ task MergeSingleSampleVcfs {
   >>>
 
   runtime {
-    docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+    docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.9-1-deb_cv1"
     memory: "3 GiB"
     disks: "local-disk " + disk_size + " HDD"
   }
