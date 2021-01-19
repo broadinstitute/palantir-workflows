@@ -144,6 +144,7 @@ workflow ImputationPipeline {
         }
       }
     }
+    Array[File] aggregatedImputationMetrics = select_all(AggregateImputationQCMetrics.aggregated_metrics)
     Array[File] chromosome_vcfs = select_all(SortIds.output_vcf)
     Array[File] chromosome_vcf_indices = select_all(SortIds.output_vcf_index)
   }
@@ -160,7 +161,7 @@ workflow ImputationPipeline {
 
   call MergeImputationQCMetrics {
   	input:
-  		metrics = select_all(flatten(AggregateImputationQCMetrics.aggregated_metrics)),
+  		metrics = flatten(aggregatedImputationMetrics),
   		basename = output_callset_name
   }
 
