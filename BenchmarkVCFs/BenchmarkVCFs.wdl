@@ -25,6 +25,8 @@ workflow Benchmark {
         Int? preemptible
         String gatkTag="4.0.11.0"
         Boolean requireMatchingGenotypes=true
+        File gatkJarForAnnotation
+        String annotationName
 
         Boolean passingOnly=true
         String? vcfScoreField
@@ -56,6 +58,8 @@ workflow Benchmark {
         analysisRegion: {description: "if provided (gatk format, single interval e.g., 'chr20', or 'chr20:1-10') all the analysis will be performed only within the region."}
         passingOnly: {description:"Have vcfEval only consider the passing variants"}
         vcfScoreField: {description:"Have vcfEval use this field for making the roc-plot. If this is an info field (like VSQLOD) it should be provided as INFO.VQSLOD, otherewise it is assumed to be a format field."}
+        gatkJarForAnnotation: {description:"GATK jar that can calculate necessary annotations for jexl Selections when using VCFEval."}
+        annotationName: {description:"Annotation argument to GATK (-A argument)"}
     }
 
 
@@ -312,7 +316,12 @@ workflow Benchmark {
                     sampleCall="CALLS",
                     sampleBase="BASELINE",
                     gatkTag=gatkTag,
-                    preemptible=preemptible
+                    preemptible=preemptible,
+                    gatkJarForAnnotation = gatkJarForAnnotation,
+                    annotationName = annotationName,
+                    reference = reference,
+                    refDict = refDict,
+                    refIndex = refIndex
             }
 
             call WriteXMLfile as VcfEvalIndelWriteXMLfile {
@@ -363,7 +372,12 @@ workflow Benchmark {
                             sampleCall="CALLS",
                             sampleBase="BASELINE",
                             gatkTag=gatkTag,
-                            preemptible=preemptible
+                            preemptible=preemptible,
+                            gatkJarForAnnotation = gatkJarForAnnotation,
+                            annotationName = annotationName,
+                            reference = reference,
+                            refDict = refDict,
+                            refIndex = refIndex
                     }
                     
                     call WriteXMLfile as VcfEvalSelectorWriteXMLfile {
@@ -932,6 +946,12 @@ task EvalForVariantSelection {
         String sampleCall
         String sampleBase
         String gatkTag
+
+        String annotationName
+        File gatkJarForAnnotation
+        File reference
+        File refDict
+        File refIndex
     }
 
     Int memoryDefault=16
@@ -943,15 +963,17 @@ task EvalForVariantSelection {
     String selectionFN=jexl + " && " + selectFN
     String selectionFP=jexl + " && " + selectFP
 
-    Int disk_size = 10 + ceil(3.2 * size(vcf, "GB") + 2.2 * size(vcfIndex, "GB"))
-
+    Int disk_size = 10 + ceil(4.2 * size(vcf, "GB") + 2.2 * size(vcfIndex, "GB") + size(reference, "GB"))
+    
     command <<<
         set -xeuo pipefail
 
-        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcf} -O selected.TP_CALL.vcf.gz -select "~{selectionTPCall}" -sn ~{sampleCall}
-        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcf} -O selected.TP_BASE.vcf.gz -select "~{selectionTPBase}" -sn ~{sampleBase}
-        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcf} -O selected.FN.vcf.gz -select "~{selectionFN}" -sn ~{sampleBase}
-        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcf} -O selected.FP.vcf.gz -select "~{selectionFP}" -sn ~{sampleCall}
+        java -jar ~{gatkJarForAnnotation} VariantAnnotator -V ~{vcf} -O annotated.vcf.gz -A ~{annotationName} -R ~{reference}
+
+        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V annotated.vcf.gz -O selected.TP_CALL.vcf.gz -select "~{selectionTPCall}" -sn ~{sampleCall}
+        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V annotated.vcf.gz -O selected.TP_BASE.vcf.gz -select "~{selectionTPBase}" -sn ~{sampleBase}
+        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V annotated.vcf.gz -O selected.FN.vcf.gz -select "~{selectionFN}" -sn ~{sampleBase}
+        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V annotated.vcf.gz -O selected.FP.vcf.gz -select "~{selectionFP}" -sn ~{sampleCall}
 
         TP_CALL="$(gatk --java-options "-Xmx~{memoryJava}G" CountVariants -V selected.TP_CALL.vcf.gz | tail -1)"
         TP_BASE="$(gatk --java-options "-Xmx~{memoryJava}G" CountVariants -V selected.TP_BASE.vcf.gz | tail -1)"
