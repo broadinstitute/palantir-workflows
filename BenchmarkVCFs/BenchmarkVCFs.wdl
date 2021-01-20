@@ -964,7 +964,7 @@ task EvalForVariantSelection {
     String selectionFP=jexl + " && " + selectFP
 
     Int disk_size = 10 + ceil(4.2 * size(vcf, "GB") + 2.2 * size(vcfIndex, "GB") + size(reference, "GB"))
-    
+
     command <<<
         set -xeuo pipefail
 
