@@ -25,3 +25,8 @@ So, the test directory structure will be built like this:
 |   |   |   |   +-- test_input_2.json
 +++++++++++++++++
 ```
+
+## Using the Dockstore Github App to Automatically Update Workflows in Dockstore/Terra
+Workflows registered in Dockstore can be automatically synced when changes are pushed to this repo by adding their information to `.dockstore.yml`. 
+In this way, a change pushed to a branch in this repo can be automatically propagated into any Terra workspaces using the workflow. 
+Details can be found at Dockstore's Github App [documentation](https://docs.dockstore.org/en/develop/getting-started/github-apps/github-apps.html).
