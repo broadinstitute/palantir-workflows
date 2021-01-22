@@ -173,6 +173,7 @@ task ScoreVcfGatk {
 		File weights
 		File gatk_override = "gs://broad-dsde-methods-ckachulis/jars/gatk_prs_with_uncertainty.jar"
 		String basename
+		File? sites
 	}
 
 	parameter_meta {
@@ -187,12 +188,16 @@ task ScoreVcfGatk {
 
 		export GATK_LOCAL_JAR=~{gatk_override}
 
-		gatk ScorePRS -V ~{vcf} --weights ~{weights} -O ~{basename}.scores.tsv
+		touch sites.list
+		~{"cp " + sites + " sites.list"}
+
+		gatk ScorePRS -V ~{vcf} --weights ~{weights} --ids sites.list -O ~{basename}.scores.tsv
   >>>
 
   runtime {
   	docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
 	disks: "local-disk 100 HDD"
+	memory: "8 GB"
   }
 
   output {
