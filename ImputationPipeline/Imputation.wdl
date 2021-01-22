@@ -69,13 +69,6 @@ workflow ImputationPipeline {
           }
         }
 
-#      call CheckChunkValid {
-#        input:
-#          vcf = select_first([OptionalQCSites.output_vcf,  GenerateChunk.output_vcf]),
-#          vcf_index = select_first([OptionalQCSites.output_vcf_index, GenerateChunk.output_vcf_index]),
-#          panel_vcf = referencePanelContig.vcf,
-#          panel_vcf_index = referencePanelContig.vcf_index
-#      }
       call CountChunks {
         input:
           vcf = select_first([OptionalQCSites.output_vcf,  GenerateChunk.output_vcf]),
@@ -93,12 +86,12 @@ workflow ImputationPipeline {
           var_in_reference = CountChunks.var_in_reference,
       }
 
-      if (CheckChunks.valid) {  #CheckChunkValid.valid) {
+      if (CheckChunks.valid) {
 
       call PrePhaseVariantsEagle {
         input:
-          dataset_bcf = CheckChunks.valid_chunk_bcf, #CheckChunkValid.valid_chunk_bcf,
-          dataset_bcf_index = CheckChunks.valid_chunk_bcf_index, #CheckChunkValid.valid_chunk_bcf_index,
+          dataset_bcf = CheckChunks.valid_chunk_bcf,
+          dataset_bcf_index = CheckChunks.valid_chunk_bcf_index,
           reference_panel_bcf = referencePanelContig.bcf,
           reference_panel_bcf_index = referencePanelContig.bcf_index,
           chrom = referencePanelContig.contig,
@@ -178,7 +171,7 @@ task RemoveDuplicates {
     bcftools index -t ~{output_basename}.vcf.gz
   >>>
   runtime {
-    docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.9-1-deb_cv1" #"farjoun/impute:0.0.3-1504715575"
+    docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.9-1-deb_cv1"
     memory: "3 GiB"
     disks: "local-disk " + disk_size + " HDD"
   }
@@ -321,7 +314,7 @@ task PrePhaseVariantsEagle {
     File dataset_prephased_vcf="pre_phased_~{chrom}.vcf.gz"
   }
   runtime {
-    docker: "us.gcr.io/broad-dsde-methods/skwalker-imputation:test" #"skwalker/imputation:test" # this has the exact version of minimac and eagle we want to perfectly match Michigan Server
+    docker: "us.gcr.io/broad-dsde-methods/skwalker-imputation:test" # this has the exact version of minimac and eagle we want to perfectly match Michigan Server
     memory: "32 GB"
     cpu: "8"
     disks: "local-disk " + disk_size + " HDD"
@@ -351,7 +344,7 @@ task minimac4 {
     File info = "~{prefix}.info"
   }
   runtime {
-    docker: "us.gcr.io/broad-dsde-methods/skwalker-imputation:test" #"skwalker/imputation:test" # this has the exact version of minimac and eagle we want to perfectly match Michigan Server
+    docker: "us.gcr.io/broad-dsde-methods/skwalker-imputation:test" # this has the exact version of minimac and eagle we want to perfectly match Michigan Server
     memory: "4 GB"
     cpu: "1"
     disks: "local-disk 100 HDD"
@@ -509,7 +502,7 @@ task OptionalQCSites {
     # site missing rate < 5% ; hwe p > 1e-6
     vcftools --gzvcf ~{input_vcf}  --max-missing 0.05 --hwe 0.000001 --recode -c | bgzip -c > ~{output_vcf_basename}.vcf.gz
     bcftools index -t ~{output_vcf_basename}.vcf.gz 
-  >>>
+  >>> # Note: this is necessary because vcftools doesn't have a way to output a zipped vcf, nor a way to index one (hence needing to use bcf).
 
   runtime {
     docker: "us.gcr.io/broad-dsde-methods/skwalker-imputation:with_vcftools" # TODO: use a public one (not suse bcftools biocontainers also has vcftools )
@@ -543,7 +536,7 @@ task SortIds {
     }
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/skwalker-imputation:with_vcftools"
+        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.9-1-deb_cv1"
         disks: "local-disk " + disk_space + " HDD"
         memory: "16 GB"
     }
