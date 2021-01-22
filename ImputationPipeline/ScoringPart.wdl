@@ -171,7 +171,7 @@ task ScoreVcfGatk {
 	input {
 		File vcf
 		File weights
-		String gatk_override = "gs://broad-dsde-methods-ckachulis/jars/gatk_prs_with_uncertainty.jar"
+		File gatk_override = "gs://broad-dsde-methods-ckachulis/jars/gatk_prs_with_uncertainty.jar"
 		String basename
 	}
 
