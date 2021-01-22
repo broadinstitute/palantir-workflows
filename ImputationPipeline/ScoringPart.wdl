@@ -287,7 +287,7 @@ task AdjustScores {
         Rscript -<< "EOF"
         library(ggplot2)
         library(dplyr)
-        library(readr
+        library(readr)
 
         population_pcs = read_tsv("~{population_pcs}")
         population_scores = read_tsv("~{population_scores}")
