@@ -292,7 +292,7 @@ task AdjustScores {
         population_pcs = read_tsv("~{population_pcs}")
         population_scores = read_tsv("~{population_scores}")
 
-        population_data = inner_join(population_pcs, population_scores, by=("IID"="X.IID")
+        population_data = inner_join(population_pcs, population_scores, by=("IID"="X.IID"))
 
         # generate the linear model from the population data using the first 5 PCs
         population_model = glm(SCORE1_SUM ~ PC1 + PC2 + PC3 + PC4 + PC5, data = population_data, family = "gaussian")
@@ -310,7 +310,7 @@ task AdjustScores {
         # this calculates the adjusted score for the new data
         array_pcs = read_csv("~{array_pcs}")
         array_scores = read_tsv("~{array_scores}")
-        array_scores = inner_join(array_pcs, array_scores)
+        array_scores = inner_join(array_pcs, array_scores, by=("IID"="X.IID"))
 
         adjusted_array_scores = array_scores %>% mutate(raw_score = score, raw_score_var=score_var, raw_score_high_95_pct=high_95_pct, raw_score_high_99_pct=high_99_pct, raw_score_low_95_pct=low_95_pct, raw_score_low_99_pct=low_99_pct,
                                                         adjusted_score = (raw_score - predict(population_model, array_scores) - population_resid_mean)/population_resid_sd,
