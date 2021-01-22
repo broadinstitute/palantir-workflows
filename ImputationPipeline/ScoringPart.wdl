@@ -308,7 +308,7 @@ task AdjustScores {
         print(round(sd(population_data$adjusted_score), 5) == 1)
 
         # this calculates the adjusted score for the new data
-        array_pcs = read_csv("~{array_pcs}")
+        array_pcs = read_tsv("~{array_pcs}")
         array_scores = read_tsv("~{array_scores}")
         array_scores = inner_join(array_pcs, array_scores, by=c("IID"="sample"))
 
