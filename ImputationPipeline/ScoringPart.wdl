@@ -320,7 +320,7 @@ task AdjustScores {
                                                         adjusted_score_low_95_pct = (raw_score_low_95_pct - predict(population_model, array_scores) - population_resid_mean)/population_resid_sd,
                                                         adjusted_score_low_99_pct = (raw_score_low_99_pct - predict(population_model, array_scores) - population_resid_mean)/population_resid_sd)
 
-        adjusted_array_scores = array_scores %>% mutate(percentile=pnorm(adjusted_score),
+        adjusted_array_scores = adjusted_array_scores %>% mutate(percentile=pnorm(adjusted_score),
                                                         percentile_high_95_pct=pnorm(adjusted_score_high_95_pct),
                                                         percentile_high_99_pct=pnorm(adjusted_score_high_99_pct),
                                                         percentile_low_95_pct=pnorm(adjusted_score_low_95_pct),
