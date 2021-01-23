@@ -15,9 +15,8 @@ RUN apt-get update \
 
 
 RUN wget https://github.com/genepi/imputationserver/raw/master/files/bin/eagle
-RUN wget https://github.com/genepi/imputationserver/raw/master/files/bin/Minimac4
 RUN ["chmod", "+x", "eagle"]
-RUN ["chmod", "+x", "Minimac4"]
 
+RUN wget https://data.broadinstitute.org/alkesgroup/Eagle/downloads/tables/genetic_map_hg19_withX.txt.gz
 
 RUN pip3 install docopt
