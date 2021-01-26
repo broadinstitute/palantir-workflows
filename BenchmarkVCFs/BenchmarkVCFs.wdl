@@ -479,7 +479,7 @@ task CheckForVariants {
     >>>
 
     runtime {
-            docker: "broadinstitute/gatk:"+gatkTag
+            docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
             preemptible: select_first([preemptible,0])
             disks: "local-disk " + disk_size + " HDD"
             bootDiskSizeGb: "16"
@@ -712,7 +712,7 @@ task EvalGATKGC {
     >>>
 
     runtime {
-        docker: "broadinstitute/gatk:"+gatkTag
+        docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
         preemptible: select_first([preemptible,0])
         disks: "local-disk " + disk_size + " HDD"
         bootDiskSizeGb: "16"
@@ -779,7 +779,7 @@ task ConvertIntervals {
     >>>
 
     runtime {
-        docker: "broadinstitute/gatk:"+gatkTag
+        docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
         preemptible: select_first([preemptible,0])
         disks: "local-disk " + disk_size + " HDD"
         bootDiskSizeGb: "16"
@@ -818,7 +818,7 @@ task FixVcfHeader {
     >>>
 
     runtime {
-            docker: "broadinstitute/gatk:"+gatkTag
+            docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
             preemptible: select_first([preemptible,0])
             disks: "local-disk " + disk_size + " HDD"
             bootDiskSizeGb: "16"
@@ -859,7 +859,7 @@ task CountUNKVcfEval {
         echo "$UNK_INDEL" > unk_indel.txt
     >>>
     runtime {
-                docker: "broadinstitute/gatk:"+gatkTag
+                docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
                 preemptible: select_first([preemptible,0])
                 disks: "local-disk " + disk_size + " HDD"
                 bootDiskSizeGb: "16"
@@ -903,7 +903,7 @@ task CountUNKGC {
 
 
         runtime {
-                    docker: "broadinstitute/gatk:"+gatkTag
+                    docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
                     preemptible: select_first([preemptible,0])
                     disks: "local-disk " + disk_size + " HDD"
                     bootDiskSizeGb: "16"
@@ -965,7 +965,7 @@ task EvalForVariantSelection {
     >>>
 
     runtime {
-            docker: "broadinstitute/gatk:"+gatkTag
+            docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
             preemptible: select_first([preemptible,0])
             disks: "local-disk " + disk_size + " HDD"
             bootDiskSizeGb: "16"
@@ -1421,7 +1421,7 @@ task MatchEvalTruth {
     >>>
 
     runtime {
-            docker: "broadinstitute/gatk:"+gatkTag
+            docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
             preemptible: select_first([preemptible,0])
             disks: "local-disk " + disk_size + " HDD"
             bootDiskSizeGb: "16"
@@ -1473,7 +1473,7 @@ task CreateIntervalList{
     }
     runtime {
         preemptible: 3
-        docker: "broadinstitute/gatk:"+gatkTag
+        docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
         disks: "local-disk 100 HDD"
         memory: "4 GB"
     }
