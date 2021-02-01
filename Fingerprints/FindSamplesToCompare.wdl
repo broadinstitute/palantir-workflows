@@ -44,19 +44,19 @@ workflow FindSamplesToCompare {
     Map[File, String] truthLabels    = lablesMap.map
     Map[File, File]   truthIndex     = indexesMap.map
 
-    call SwitchFilterAnnotation {
-        input:
-            input_vcf = input_callset[0],
-            INFO_TAG_OLD="VQSLOD",
-            INFO_TAG_NEW="TREE_SCORE",
-            output_vcf_basename = "callset_swapped_score",
-            preemptible_tries = 0,
-            disk_size = 2*size(input_callset, "GiB") + 20
-      }
+    #call SwitchFilterAnnotation {
+    #    input:
+    #        input_vcf = input_callset[0],
+    #        INFO_TAG_OLD="VQSLOD",
+    #        INFO_TAG_NEW="TREE_SCORE",
+    #        output_vcf_basename = "callset_swapped_score",
+    #        preemptible_tries = 0,
+    #        disk_size = 2*size(input_callset, "GiB") + 20
+    #  }
 
     call CrosscheckFingerprints {
          input:
-           input_data = [SwitchFilterAnnotation.output_vcf],
+           input_data = input_callset,
            metrics_basename = "crosscheck",
            ground_truth_files = ground_truth_files,
            haplotype_database = haplotype_database,
