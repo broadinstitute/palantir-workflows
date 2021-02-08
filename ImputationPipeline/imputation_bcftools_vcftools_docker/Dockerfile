@@ -1,4 +1,10 @@
-FROM ubuntu:latest
+# default ubuntu version: 20.04
+ARG UBUNTU_VERSION=20.04
+FROM ubuntu:${UBUNTU_VERSION}
+
+# the following argument is needed for pkg-config to
+# install without hanging on user input
+ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
   && apt-get install -y wget \
@@ -6,7 +12,7 @@ RUN apt-get update \
   && apt-get install -y build-essential \
   && apt-get install -y libz-dev \
   && apt-get install -y libbz2-dev \
-  && apt-get install -y liblzma-dev \
+  && apt-get install -y liblzma-dev  \
   && apt-get install -y pkg-config \
   && apt-get install -y tabix \
   && apt-get install -y python3 \
