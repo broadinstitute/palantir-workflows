@@ -10,6 +10,9 @@ workflow FindSamplesToCompare {
         Array[File] ground_truth_intervals
         Array[String] truth_labels
         Array[File] annotation_intervals
+
+        File gatkJarForAnnotation
+        String annotationName
   
         File ref_fasta
         File ref_fasta_index
@@ -26,6 +29,20 @@ workflow FindSamplesToCompare {
         String comparison_docker
 
         Boolean remove_symbolic_alleles=false
+
+        Array[File] stratIntervals = [
+                         "gs://concordance/hg38/runs.conservative.bed",
+                         "gs://concordance/hg38/LCR-hs38.bed",
+                         "gs://concordance/hg38/mappability.0.bed",
+                         "gs://concordance/hg38/exome.twist.bed"]
+        Array[String] stratLabels = [
+                         "HMER_7_and_up",
+                         "LCR-hs38",
+                         "mappability=0",
+                         "exome"]
+
+        Array[String] jexlVariantSelectors = ["vc.isSimpleIndel()  && vc.getIndelLengths().0<0", "vc.isSimpleIndel() && vc.getIndelLengths().0>0"]
+        Array[String] variantSelectorLabels = ["deletion","insertion"]
     }
 
 
@@ -71,18 +88,6 @@ workflow FindSamplesToCompare {
         input:
             crosscheck_results = CrosscheckFingerprints.crosscheck
     }
-
-
-    Array[File] stratIntervals = [ 
-                     "gs://concordance/hg38/runs.conservative.bed", 
-                     "gs://concordance/hg38/LCR-hs38.bed",
-                     "gs://concordance/hg38/mappability.0.bed",
-                     "gs://concordance/hg38/exome.twist.bed"]
-    Array[String] stratLabels = [
-                     "HMER_7_and_up", 
-                     "LCR-hs38",
-                     "mappability=0",
-                     "exome"]
 
 
     scatter(interval_and_label in zip(stratIntervals, stratLabels)){
@@ -136,14 +141,16 @@ workflow FindSamplesToCompare {
                      hapMap = haplotype_database,
                      stratIntervals = allStratIntervals,
                      stratLabels = allStratLabels, 
-                     jexlVariantSelectors = ["vc.isSimpleIndel()  && vc.getIndelLengths().0<0", "vc.isSimpleIndel() && vc.getIndelLengths().0>0"],
-                     variantSelectorLabels = ["deletion","insertion"],
+                     jexlVariantSelectors = jexlVariantSelectors,
+                     variantSelectorLabels = variantSelectorLabels,
                      referenceVersion = "1",
                      doIndelLengthStratification=false,
                      gatkTag="4.0.11.0",
                      requireMatchingGenotypes=true,
                      passingOnly=true,
-                     vcfScoreField = "INFO.TREE_SCORE"
+                     vcfScoreField = "INFO.TREE_SCORE",
+                     gatkJarForAnnotation = gatkJarForAnnotation,
+                     annotationName = annotationName
                  }
 
             Pair[File,File] vcf_and_index_original = zip([ExtractSampleFromCallset.output_vcf],[ExtractSampleFromCallset.output_vcf_index])[0]
