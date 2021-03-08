@@ -621,7 +621,7 @@ task AggregateImputationQCMetrics {
 		sites_info <- read_tsv("~{infoFile}")
 
 		nSites <- sites_info %>% nrow()
-		nSites_with_var <- sites_info %>% filter(MAF > 0.25/~{nSamples}) %>% nrow()
+		nSites_with_var <- sites_info %>% filter(MAF >= 0.3/(2*~{nSamples} - 0.7) %>% nrow()
 		nSites_high_r2 <- sites_info %>% filter(Rsq>0.3) %>% nrow()
 
 		aggregated_metrics <- tibble(total_sites=nSites, total_sites_with_var=nSites_with_var, total_sites_r2_gt_0.3=nSites_high_r2,)
