@@ -38,6 +38,19 @@ workflow ImputationPipeline {
   File vcf_to_impute = select_first([multi_sample_vcf, MergeSingleSampleVcfs.output_vcf])
   File vcf_index_to_impute = select_first([multi_sample_vcf_index, MergeSingleSampleVcfs.output_vcf_index])
 
+  call SetIDs {
+    input:
+        vcf = vcf_to_impute,
+        vcfIndex = vcf_index_to_impute,
+        output_basename = "input_samples_with_variant_ids"
+  }
+
+  call SortIds as SortIdsVcfToImpute {
+    input:
+        vcf = SetIDs.output_vcf,
+        basename = "input_samples_with_variant_ids_sorted"
+  }
+
   call CountSamples {
     	input:
     		vcf = vcf_to_impute
@@ -159,6 +172,31 @@ workflow ImputationPipeline {
       output_vcf_basename = output_callset_name
   }
 
+  call ExtractIDs {
+    input:
+        vcf = GatherVcfs.output_vcf,
+        output_basename = "imputed_sites"
+  }
+
+  call SelectVariantsExcludingIds {
+    input:
+        vcf = SortIdsVcfToImpute.output_vcf,
+        ids_to_exclude = ExtractIDs.ids,
+        basename = "imputed_sites_to_recover"
+  }
+
+  call RemoveAnnotations {
+    input:
+        vcf = SelectVariantsExcludingIds.output_vcf,
+        basename = "imputed_sites_to_recover_annotations_removed"
+  }
+
+  call InterleaveVariants {
+    input:
+        vcfs = [RemoveAnnotations.output_vcf, GatherVcfs.output_vcf],
+        basename = output_callset_name
+  }
+
   call MergeImputationQCMetrics {
   	input:
   		metrics = flatten(aggregatedImputationMetrics),
@@ -179,8 +217,8 @@ workflow ImputationPipeline {
 
 
   output {
-    File imputed_multisample_vcf = GatherVcfs.output_vcf
-    File imputed_multisample_vcf_index = GatherVcfs.output_vcf_index
+    File imputed_multisample_vcf = InterleaveVariants.output_vcf
+    File imputed_multisample_vcf_index = InterleaveVariants.output_vcf_index
     File aggregated_imputation_metrics = MergeImputationQCMetrics.aggregated_metrics
     File chunks_info = StoreChunksInfo.chunks_info
     File failed_chunks = StoreChunksInfo.failed_chunks
@@ -710,4 +748,140 @@ task MergeImputationQCMetrics {
 	output {
 		File aggregated_metrics = "~{basename}_aggregated_imputation_metrics.tsv"
 	}
+}
+
+task SetIDs {
+    input {
+        File vcf
+        File vcfIndex
+        String output_basename
+    }
+
+    Int disk_size = 100 + ceil(2.2 * size(vcf, "GB"))
+
+    command <<<
+        bcftools annotate ~{vcf} --set-id '%CHROM\:%POS\:%REF\:%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
+        bcftools index -t ~{output_basename}.vcf.gz
+    >>>
+
+    runtime {
+        docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+        disks: "local-disk " + disk_size + " HDD"
+        memory: "4 GB"
+    }
+
+    output {
+        File output_vcf = "~{output_basename}.vcf.gz"
+        File output_vcf_index = "~{output_basename}.vcf.gz.tbi"
+    }
+}
+
+task ExtractIDs {
+     input {
+         File vcf
+         String output_basename
+         Int disk_size = 2*ceil(size(vcf, "GB")) + 100
+     }
+
+     command <<<
+         bcftools query -f "%ID\n" ~{vcf} -o ~{output_basename}.ids
+     >>>
+     output {
+         File ids = "~{output_basename}.ids"
+     }
+     runtime {
+         docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+         disks: "local-disk " + disk_size + " HDD"
+         memory: "4 GB"
+     }
+ }
+
+task SelectVariantsExcludingIds {
+    input {
+        File vcf
+        File ids_to_exclude
+        String basename
+    }
+
+    Int disk_size = 1.2*ceil(size(vcf, "GB")) + 100
+
+    parameter_meta {
+        vcf: {
+          description: "vcf",
+          localization_optional: true
+          }
+    }
+
+    command <<<
+        cp ~{ids_to_exclude} sites_to_exclude.list
+        gatk SelectVariants -V ~{vcf} --exclude-ids bad_sites.list -O ~{basename}vcf.gz
+    >>>
+
+    runtime {
+            docker: "us.gcr.io/broad-gatk/gatk:4.2.0.0"
+            disks: "local-disk " + disk_size + " SSD"
+            memory: "16 GB"
+        }
+
+    output {
+        File output_vcf = "~{basename}.vcf.gz"
+        File output_vcf_index = "~{basename}.vcf.gz.tbi"
+    }
+ }
+
+task RemoveAnnotations {
+    input {
+        File vcf
+        String basename
+    }
+
+    Int disk_size = 2.2*ceil(size(vcf, "GB")) + 100
+
+    command <<<
+        bcftools annotate -x FORMAT,INFO -Oz -o ~{basename}.vcf.gz
+        bcftool index -t ~{basename}.vcf.gz
+    >>>
+
+    runtime {
+        docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+        memory: "3 GiB"
+        disks: "local-disk " + disk_size + " HDD"
+      }
+
+    output {
+        File output_vcf = "~{basename}.vcf.gz"
+        File output_vcf_index = "~{basename}.vcf.gz.tbi"
+    }
+}
+
+task InterleaveVariants {
+    input {
+        Array[File] vcfs
+        String basename
+    }
+
+    Int disk_size = 1.2*ceil(size(vcfs, "GB")) + 100
+
+    parameter_meta {
+        vcfs: {
+          description: "vcfs",
+          localization_optional: true
+          }
+      }
+
+    command <<<
+        gatk InterleaveVariants -V ~{sep=" -V " vcfs} -O ~{basename}.vcf.gz
+    >>>
+
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-interleave-variants@sha256:b3c8396fd07487d10f3bc5fc9f977f6c79474ca425d79a35ba73429e19a8a097"
+        disks: "local-disk " + disk_size + " SSD"
+        memory: "16 GB"
+    }
+
+    output {
+        File output_vcf = "~{basename}.vcf.gz"
+        File output_vcf_index = "~{basename}.vcf.gz.tbi"
+    }
 }
