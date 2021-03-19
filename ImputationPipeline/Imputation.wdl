@@ -814,7 +814,7 @@ task SelectVariantsExcludingIds {
 
     command <<<
         cp ~{ids_to_exclude} sites_to_exclude.list
-        gatk SelectVariants -V ~{vcf} --exclude-ids bad_sites.list -O ~{basename}vcf.gz
+        gatk SelectVariants -V ~{vcf} --exclude-ids sites_to_exclude.list -O ~{basename}vcf.gz
     >>>
 
     runtime {
