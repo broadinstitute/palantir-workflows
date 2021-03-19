@@ -803,7 +803,7 @@ task SelectVariantsExcludingIds {
         String basename
     }
 
-    Int disk_size = 1.2*ceil(size(vcf, "GB")) + 100
+    Int disk_size = ceil(1.2*size(vcf, "GB")) + 100
 
     parameter_meta {
         vcf: {
@@ -835,7 +835,7 @@ task RemoveAnnotations {
         String basename
     }
 
-    Int disk_size = 2.2*ceil(size(vcf, "GB")) + 100
+    Int disk_size = ceil(2.2*size(vcf, "GB")) + 100
 
     command <<<
         bcftools annotate -x FORMAT,INFO -Oz -o ~{basename}.vcf.gz
@@ -860,7 +860,7 @@ task InterleaveVariants {
         String basename
     }
 
-    Int disk_size = 1.2*ceil(size(vcfs, "GB")) + 100
+    Int disk_size = ceil(1.2*size(vcfs, "GB")) + 100
 
     parameter_meta {
         vcfs: {
