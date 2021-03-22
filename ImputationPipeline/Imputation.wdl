@@ -911,7 +911,7 @@ task FindSitesFileTwoOnly {
 	>>>
 
 	runtime {
-		docker: "alpine:3.12.4"
+		docker: "ubuntu:20.04"
 		disks: "local-disk " + disk_size + " SSD"
 		memory: "16 GB"
 	}
