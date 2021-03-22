@@ -193,7 +193,7 @@ workflow ImputationPipeline {
   call SelectVariantsByIds {
     input:
         vcf = SortIdsVcfToImpute.output_vcf,
-        ids = FindSitesFileTwoOnly.ids,
+        ids = FindSitesFileTwoOnly.missing_sites,
         basename = "imputed_sites_to_recover"
   }
 
