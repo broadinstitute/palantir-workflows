@@ -8,8 +8,6 @@ workflow ScoringImputedDataset {
     File imputed_array_vcf  # imputed VCF for scoring (and optionally PCA projection): make sure the variant IDs exactly match those in the weights file
     Int scoring_mem = 16
     Int population_scoring_mem = scoring_mem * 4
-
-    File population_vcf # population VCF (e.g., Thousand Genomes): again, make sure the variant IDs exactly match those in the weights file 
     
     String population_basename # for naming the output of population scoring
     String basename # for naming the output of array scoring and the array projection files
@@ -19,7 +17,7 @@ workflow ScoringImputedDataset {
     File population_meansd
     File population_pcs
     File pruning_sites_for_pca # and the sites used for PCA
-    File population_vcf # population VCF, output from PerformPopulationPCA
+    File population_vcf # population VCF, output from PerformPopulationPCA.  The variant IDs must exactly match those in the weights file
 
     File adjust_scores_rscript = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/ScoringAdjustment.R" 
     String? columns_for_scoring # Plink expects the first 3 columns in your weights file to be variant ID, effect allele, effect weight
