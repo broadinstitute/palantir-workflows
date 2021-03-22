@@ -850,7 +850,7 @@ task RemoveAnnotations {
     Int disk_size = ceil(2.2*size(vcf, "GB")) + 100
 
     command <<<
-        bcftools annotate -x FORMAT,INFO -Oz -o ~{basename}.vcf.gz
+        bcftools annotate ~{vcf} -x FORMAT,INFO -Oz -o ~{basename}.vcf.gz
         bcftool index -t ~{basename}.vcf.gz
     >>>
 
