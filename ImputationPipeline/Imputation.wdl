@@ -51,6 +51,12 @@ workflow ImputationPipeline {
         basename = "input_samples_with_variant_ids_sorted"
   }
 
+  call ExtractIDs as ExtractIdsVcfToImpute {
+      input:
+          vcf = SortIdsVcfToImpute.output_vcf,
+          output_basename = "imputed_sites"
+    }
+
   call CountSamples {
     	input:
     		vcf = vcf_to_impute
@@ -178,16 +184,22 @@ workflow ImputationPipeline {
         output_basename = "imputed_sites"
   }
 
-  call SelectVariantsExcludingIds {
+  call FindSitesFileTwoOnly {
+    input:
+        file1 = ExtractIDs.ids,
+        file2 = ExtractIdsVcfToImpute.ids
+  }
+
+  call SelectVariantsByIds {
     input:
         vcf = SortIdsVcfToImpute.output_vcf,
-        ids_to_exclude = ExtractIDs.ids,
+        ids = FindSitesFileTwoOnly.ids,
         basename = "imputed_sites_to_recover"
   }
 
   call RemoveAnnotations {
     input:
-        vcf = SelectVariantsExcludingIds.output_vcf,
+        vcf = SelectVariantsByIds.output_vcf,
         basename = "imputed_sites_to_recover_annotations_removed"
   }
 
@@ -796,10 +808,10 @@ task ExtractIDs {
      }
  }
 
-task SelectVariantsExcludingIds {
+task SelectVariantsByIds {
     input {
         File vcf
-        File ids_to_exclude
+        File ids
         String basename
     }
 
@@ -813,8 +825,8 @@ task SelectVariantsExcludingIds {
     }
 
     command <<<
-        cp ~{ids_to_exclude} sites_to_exclude.list
-        gatk SelectVariants -V ~{vcf} --exclude-ids sites_to_exclude.list -O ~{basename}vcf.gz
+        cp ~{ids} sites.list
+        gatk SelectVariants -V ~{vcf} --keep-ids sites.list -O ~{basename}vcf.gz
     >>>
 
     runtime {
@@ -884,4 +896,27 @@ task InterleaveVariants {
         File output_vcf = "~{basename}.vcf.gz"
         File output_vcf_index = "~{basename}.vcf.gz.tbi"
     }
+}
+
+task FindSitesFileTwoOnly {
+	input {
+		File file1
+		File file2
+	}
+
+	Int disk_size = ceil(size(file1, "GB") + 2*size(file2, "GB")) + 100
+
+	command <<<
+		comm -13 <(sort ~{file1}) <(sort ~{file2}) > missing_sites.ids
+	>>>
+
+	runtime {
+		docker: "alpine:3.4.12"
+		disks: "local-disk " + disk_size + " SSD"
+		memory: "16 GB"
+	}
+
+	output {
+		File missing_sites = "missing_sites.ids"
+	}
 }
