@@ -826,7 +826,7 @@ task SelectVariantsByIds {
 
     command <<<
         cp ~{ids} sites.list
-        gatk SelectVariants -V ~{vcf} --keep-ids sites.list -O ~{basename}vcf.gz
+        gatk SelectVariants -V ~{vcf} --keep-ids sites.list -O ~{basename}.vcf.gz
     >>>
 
     runtime {
