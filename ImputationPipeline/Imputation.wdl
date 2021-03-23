@@ -284,8 +284,8 @@ task GenerateChunk {
     Int end
     String chrom
     String basename
-    String vcf
-    String vcf_index
+    File vcf
+    File vcf_index
     Int disk_size = 400 # not sure how big the disk size needs to be since we aren't downloading the entire VCF here 
   }
   command {
