@@ -887,7 +887,7 @@ task InterleaveVariants {
 
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-interleave-variants@sha256:1c80d4da6dff25af3515dea541ab22f7c5849a17c7c1cbc9deeefd3d5ba9b81d"
+        docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-interleave-variants@sha256:c9176cb4bdd7344da15a7112e35c9a81aac4fc801dcbc6f39b529f4146416d6f"
         disks: "local-disk " + disk_size + " SSD"
         memory: "16 GB"
     }
