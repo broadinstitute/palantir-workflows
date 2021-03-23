@@ -851,7 +851,7 @@ task RemoveAnnotations {
 
     command <<<
         bcftools annotate ~{vcf} -x FORMAT,INFO -Oz -o ~{basename}.vcf.gz
-        bcftool index -t ~{basename}.vcf.gz
+        bcftools index -t ~{basename}.vcf.gz
     >>>
 
     runtime {
