@@ -7,13 +7,13 @@ image_version=v1.0.0 # as of Jan 25 2021
 ubuntu_version=20.04 # as of Jan 25 2021
 
 wd=$(pwd)
-cd "$(dirname $0)"
+cd "$(dirname $0)" || exit
 
 ../build_push_docker.sh \
   --directory ${dockerfile_directory} \
   --ubuntu-version ${ubuntu_version} \
   --image-version-tag ${image_version} \
-  --dry-run
+#  --dry-run
 
 
 cd "${wd}" || exit
