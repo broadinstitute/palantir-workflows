@@ -30,7 +30,7 @@ workflow ImputationPipeline {
   String bcftools_vcftools_docker_tag = "us.gcr.io/broad-dsde-methods/skwalker-imputation:with_vcftools" # TODO: use a public one (not suse bcftools biocontainers also has vcftools )
   String gatk_docker_tag = "us.gcr.io/broad-gatk/gatk:4.1.9.0"
   String minimac4_docker_tag = "us.gcr.io/broad-dsde-methods/imputation-minimac-docker:v1.0.0" #"us.gcr.io/broad-dsde-methods/skwalker-imputation:test" # this has the exact version of minimac and eagle we want to perfectly match Michigan Server
-  String eagle_docker_tag = minimac4_docker_tag
+  String eagle_docker_tag = "us.gcr.io/broad-dsde-methods/imputation_eagle_docker:v1.0.0"
 
   if (defined(single_sample_vcfs)) {
     call MergeSingleSampleVcfs {
