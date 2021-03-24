@@ -5,7 +5,7 @@ import "Structs.wdl" as structs
 workflow ImputationPipeline {
   input {
     Int chunkLength = 25000000
-    Int chunkOverlaps = 5000000
+    Int chunkOverlaps = 5000000 # this is the padding that will be added to the beginning and end of each chunk to reduce edge effects
 
     # You can either input a multisample VCF or an array of single sample VCFs
     # The pipeline will just merge the single sample VCFs into one multisample VCF
@@ -76,14 +76,15 @@ workflow ImputationPipeline {
     scatter (i in range(num_chunks)) {
     	String chunk_contig = referencePanelContig.contig
     	Int start = (i * chunkLength) + 1
+    	Int startWithOverlaps = if (start - chunkOverlaps < 1) then 1 else start - chunkOverlaps
     	Int end = if (CalculateChromsomeLength.chrom_length < ((i + 1) * chunkLength)) then CalculateChromsomeLength.chrom_length else ((i + 1) * chunkLength)
-    	Int endWithOverlaps = if (CalculateChromsomeLength.chrom_length < ((i + 1) * chunkLength) + chunkOverlaps) then CalculateChromsomeLength.chrom_length else ((i + 1) * chunkLength + chunkOverlaps)
+    	Int endWithOverlaps = if (CalculateChromsomeLength.chrom_length < end + chunkOverlaps) then CalculateChromsomeLength.chrom_length else end + chunkOverlaps
 
       call GenerateChunk {
         input:
           vcf = vcf_to_impute,
           vcf_index = vcf_index_to_impute,
-          start = start,
+          start = startWithOverlaps,
           end = endWithOverlaps,
           chrom = referencePanelContig.contig,
           basename = "chrom_" + referencePanelContig.contig + "_chunk_" + i
@@ -116,8 +117,8 @@ workflow ImputationPipeline {
           reference_panel_bcf_index = referencePanelContig.bcf_index,
           chrom = referencePanelContig.contig,
           genetic_map_file = genetic_maps_eagle,
-          start = start,
-          end = endWithOverlaps # they do an overlap of 5,000,000 bases in michigan pipeline
+          start = startWithOverlaps,
+          end = endWithOverlaps
       }
 
         call minimac4 {
