@@ -47,9 +47,23 @@ workflow ValidateScoring {
 				weights = SubsetWeightsImputed.subset_weights
 		}
 
-		call Scoring.ScoringImputedDataset as ScoreImputed {
+		call Scoring.ScoringImputedDataset as ScoreImputedSubset {
 			input:
 				weights = SubsetWeightsWGS.subset_weights,
+				imputed_array_vcf = imputedArray,
+				population_basename = population_basename,
+				basename = "imputed",
+				population_loadings = population_loadings,
+				population_meansd = population_meansd,
+				population_pcs = population_pcs,
+				pruning_sites_for_pca = pruning_sites_for_pca,
+				population_vcf = population_vcf,
+				redoPCA = true
+		}
+
+		call Scoring.ScoringImputedDataset as ScoreImputed {
+			input:
+				weights = weights,
 				imputed_array_vcf = imputedArray,
 				population_basename = population_basename,
 				basename = "imputed",
@@ -76,6 +90,13 @@ workflow ValidateScoring {
 		}
 	}
 
+	call CompareScores as CompareScoresSubset {
+		input:
+			arrayScores = ScoreImputedSubset.adjusted_array_scores,
+			wgsScores = ScoreWGS.adjusted_array_scores,
+			sample_name_map = sample_name_map
+		}
+
 	call CompareScores {
 		input:
 			arrayScores = ScoreImputed.adjusted_array_scores,
@@ -85,6 +106,7 @@ workflow ValidateScoring {
 
 
 	output {
+		File score_comparison_subset = CompareScoresSubset.score_comparison
 		File score_comparison = CompareScores.score_comparison
 		Int n_original_sites = SubsetWeightsImputed.n_original_sites[0]
 		Array[Int] n_subset_sites = SubsetWeightsImputed.n_subset_sites
@@ -162,8 +184,8 @@ task CompareScores {
 		library(readr)
 		library(ggplot2)
 
-		array_scores <- list("~{sep='" "' arrayScores}") %>% map(read_tsv) %>% reduce(bind_rows) %>% transmute(IID, adjusted_score_array=adjusted_score)
-		wgs_score <- list("~{sep='" "' wgsScores}") %>% map(read_tsv) %>% reduce(bind_rows) %>% transmute(IID, adjusted_score_wgs=adjusted_score)
+		array_scores <- list("~{sep='","' arrayScores}") %>% map(read_tsv) %>% reduce(bind_rows) %>% transmute(IID, adjusted_score_array=adjusted_score)
+		wgs_score <- list("~{sep='","' wgsScores}") %>% map(read_tsv) %>% reduce(bind_rows) %>% transmute(IID, adjusted_score_wgs=adjusted_score)
 
 		sample_names <- read_delim("~{sample_name_map}", delim=":")
 

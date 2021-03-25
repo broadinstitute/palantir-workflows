@@ -28,7 +28,8 @@ workflow validateImputation {
 		input:
 			multi_sample_vcf = validationArrays,
 			multi_sample_vcf_index = validationArraysIndex,
-			referencePanelContigs = referencePanelContigs
+			referencePanelContigs = referencePanelContigs,
+			perform_extra_qc_steps = false
 	}
 
 	if(!defined(af_resource)) {
@@ -98,6 +99,8 @@ workflow validateImputation {
 		File accuracy = PearsonCorrelation.accuracy
 		File correlations_plot = plotCorrelations.correlations_plot
 		File aggregated_imputation_metrics = ImputationPipeline.aggregated_imputation_metrics
+
+		File imputed_multisample_vcf = ImputationPipeline.imputed_multisample_vcf
 	}
 }
 
