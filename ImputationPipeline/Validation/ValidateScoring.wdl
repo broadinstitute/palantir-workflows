@@ -188,9 +188,9 @@ task CompareScores {
 		array_scores <- list("~{sep='","' arrayScores}") %>% map(read_tsv) %>% reduce(bind_rows) %>% transmute(IID, adjusted_score_array=adjusted_score)
 		wgs_score <- list("~{sep='","' wgsScores}") %>% map(read_tsv) %>% reduce(bind_rows) %>% transmute(IID, adjusted_score_wgs=adjusted_score)
 
-		sample_names <- read_delim("~{sample_name_map}", delim=":")
+		sample_names <- read_delim("~{sample_name_map}", delim=":", col_names=FALSE)
 
-		combined_scores <- inner_join(inner_join(array_scores, sample_names, by=c("IID"="V1")), wgs_score, by=c("V2"="IID"))
+		combined_scores <- inner_join(inner_join(array_scores, sample_names, by=c("IID"="X1")), wgs_score, by=c("X2"="IID"))
 
 		ggplot(combined_scores, aes(x=adjusted_score_array, y=adjusted_score_wgs)) +
 		geom_point() +
