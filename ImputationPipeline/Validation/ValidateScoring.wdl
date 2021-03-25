@@ -183,6 +183,7 @@ task CompareScores {
 		library(dplyr)
 		library(readr)
 		library(ggplot2)
+		library(purrr)
 
 		array_scores <- list("~{sep='","' arrayScores}") %>% map(read_tsv) %>% reduce(bind_rows) %>% transmute(IID, adjusted_score_array=adjusted_score)
 		wgs_score <- list("~{sep='","' wgsScores}") %>% map(read_tsv) %>% reduce(bind_rows) %>% transmute(IID, adjusted_score_wgs=adjusted_score)
