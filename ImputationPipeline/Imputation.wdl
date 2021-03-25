@@ -26,8 +26,8 @@ workflow ImputationPipeline {
 #    String path_to_m3vcf = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/minimac3_files/" # from the same workspace ^
   }
   # Docker images here
-  String bcftools_docker_tag = "us.gcr.io/broad-dsde-methods/bcftools:v1.9-1-deb_cv1"
-  String bcftools_vcftools_docker_tag = "us.gcr.io/broad-dsde-methods/skwalker-imputation:with_vcftools" # TODO: use a public one (not suse bcftools biocontainers also has vcftools )
+  String bcftools_docker_tag = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0" #"us.gcr.io/broad-dsde-methods/bcftools:v1.9-1-deb_cv1"
+  String bcftools_vcftools_docker_tag = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0" #"us.gcr.io/broad-dsde-methods/skwalker-imputation:with_vcftools" # TODO: use a public one (not suse bcftools biocontainers also has vcftools )
   String gatk_docker_tag = "us.gcr.io/broad-gatk/gatk:4.1.9.0"
   String minimac4_docker_tag = "us.gcr.io/broad-dsde-methods/imputation-minimac-docker:v1.0.0" #"us.gcr.io/broad-dsde-methods/skwalker-imputation:test" # this has the exact version of minimac and eagle we want to perfectly match Michigan Server
   String eagle_docker_tag = "us.gcr.io/broad-dsde-methods/imputation_eagle_docker:v1.0.0"
