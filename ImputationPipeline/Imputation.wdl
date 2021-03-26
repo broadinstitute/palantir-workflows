@@ -415,7 +415,7 @@ task GatherVcfs {
     gatk GatherVcfs -I ~{sep=' -I ' input_vcfs} -O ~{output_vcf_basename}.vcf.gz # I don't think this creates an output index file
     if [ ! -f ~{output_vcf_basename}.vcf.gz.tbi ]
     then
-      gatk IndexFeatureFile -F ~{output_vcf_basename}.vcf.gz
+      gatk IndexFeatureFile -I ~{output_vcf_basename}.vcf.gz
     fi
   >>>
    runtime {
