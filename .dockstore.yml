@@ -22,5 +22,5 @@ workflows:
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/Validation/ValidateScoring.wdl
   - name: FullImputationPRSValidation
-      subclass: WDL
-      primaryDescriptorPath: /ImputationPipeline/Validation/FullImputationPRSValidation.wdl
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/Validation/FullImputationPRSValidation.wdl
