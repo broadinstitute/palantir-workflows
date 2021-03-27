@@ -3,7 +3,7 @@ version 1.0
 import "ValidateImputation.wdl" as ValidateImputation
 import "ValidateScoring.wdl" as ValidateScoring
 
-workflow FullValidation {
+workflow FullImputationPRSValidation {
 	input {
 		File validationArrays
 		File validationArraysIndex
