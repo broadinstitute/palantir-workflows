@@ -875,7 +875,7 @@ task InterleaveVariants {
     Int disk_size = ceil(3.2*size(vcfs, "GB")) + 100
 
     command <<<
-        gatk MergeVcfs-V ~{sep=" -I " vcfs} -O ~{basename}.vcf.gz
+        gatk MergeVcfs -I ~{sep=" -I " vcfs} -O ~{basename}.vcf.gz
     >>>
 
 
