@@ -4,8 +4,8 @@ import "../ScoringPart.wdl" as Scoring
 
 workflow ValidateScoring {
 	input {
-		Array[File] imputedArrays
-		Array[File] wgssForScoring
+		File validationArrays
+		File validationWgs
 
 		String population_basename
 
@@ -19,81 +19,66 @@ workflow ValidateScoring {
 		File sample_name_map
 	}
 
-	scatter (i in range(length(imputedArrays))) {
-		File imputedArray = imputedArrays[i]
-		File wgsForScoring = wgssForScoring[i]
+	call ExtractIDs as extractImputedIDs {
+		input:
+			vcf = validationArrays,
+			output_basename = "imputed"
+	}
 
-		call ExtractIDs as extractImputedIDs {
-			input:
-				vcf = imputedArray,
-				output_basename = "imputed"
-		}
 
-		call ExtractIDs as extractWGSIDs {
-			input:
-				vcf = wgsForScoring,
-				output_basename = "wgs"
-		}
+	call SubsetWeights {
+		input:
+			sites = extractImputedIDs.ids,
+			weights = weights
+	}
 
-		call SubsetWeights as SubsetWeightsImputed {
-			input:
-				sites = extractImputedIDs.ids,
-				weights = weights
-		}
 
-		call SubsetWeights as SubsetWeightsWGS {
-			input:
-				sites = extractWGSIDs.ids,
-				weights = SubsetWeightsImputed.subset_weights
-		}
+	call Scoring.ScoringImputedDataset as ScoreImputed {
+		input:
+			weights = weights,
+			imputed_array_vcf = validationArrays,
+			population_basename = population_basename,
+			basename = "imputed",
+			population_loadings = population_loadings,
+			population_meansd = population_meansd,
+			population_pcs = population_pcs,
+			pruning_sites_for_pca = pruning_sites_for_pca,
+			population_vcf = population_vcf,
+			redoPCA = true
+	}
 
-		call Scoring.ScoringImputedDataset as ScoreImputedSubset {
-			input:
-				weights = SubsetWeightsWGS.subset_weights,
-				imputed_array_vcf = imputedArray,
-				population_basename = population_basename,
-				basename = "imputed",
-				population_loadings = population_loadings,
-				population_meansd = population_meansd,
-				population_pcs = population_pcs,
-				pruning_sites_for_pca = pruning_sites_for_pca,
-				population_vcf = population_vcf,
-				redoPCA = true
-		}
+	call Scoring.ScoringImputedDataset as ScoreWGSSubset {
+		input:
+			weights = SubsetWeights.subset_weights,
+			imputed_array_vcf = validationWgs,
+			population_basename = population_basename,
+			basename = "imputed",
+			population_loadings = population_loadings,
+			population_meansd = population_meansd,
+			population_pcs = population_pcs,
+			pruning_sites_for_pca = pruning_sites_for_pca,
+			population_vcf = population_vcf,
+			redoPCA = true
+	}
 
-		call Scoring.ScoringImputedDataset as ScoreImputed {
-			input:
-				weights = weights,
-				imputed_array_vcf = imputedArray,
-				population_basename = population_basename,
-				basename = "imputed",
-				population_loadings = population_loadings,
-				population_meansd = population_meansd,
-				population_pcs = population_pcs,
-				pruning_sites_for_pca = pruning_sites_for_pca,
-				population_vcf = population_vcf,
-				redoPCA = true
-		}
-
-		call Scoring.ScoringImputedDataset as ScoreWGS {
-			input:
-				weights = SubsetWeightsWGS.subset_weights,
-				imputed_array_vcf = wgsForScoring,
-				population_basename = population_basename,
-				basename = "imputed",
-				population_loadings = population_loadings,
-				population_meansd = population_meansd,
-				population_pcs = population_pcs,
-				pruning_sites_for_pca = pruning_sites_for_pca,
-				population_vcf = population_vcf,
-				redoPCA = true
-		}
+	call Scoring.ScoringImputedDataset as ScoreWGS {
+		input:
+			weights = weights,
+			imputed_array_vcf = validationWgs,
+			population_basename = population_basename,
+			basename = "imputed",
+			population_loadings = population_loadings,
+			population_meansd = population_meansd,
+			population_pcs = population_pcs,
+			pruning_sites_for_pca = pruning_sites_for_pca,
+			population_vcf = population_vcf,
+			redoPCA = true
 	}
 
 	call CompareScores as CompareScoresSubset {
 		input:
-			arrayScores = ScoreImputedSubset.adjusted_array_scores,
-			wgsScores = ScoreWGS.adjusted_array_scores,
+			arrayScores = ScoreImputed.adjusted_array_scores,
+			wgsScores = ScoreWGSSubset.adjusted_array_scores,
 			sample_name_map = sample_name_map
 		}
 
@@ -108,8 +93,8 @@ workflow ValidateScoring {
 	output {
 		File score_comparison_subset = CompareScoresSubset.score_comparison
 		File score_comparison = CompareScores.score_comparison
-		Int n_original_sites = SubsetWeightsImputed.n_original_sites[0]
-		Array[Int] n_subset_sites = SubsetWeightsImputed.n_subset_sites
+		Int n_original_sites = SubsetWeights.n_original_sites
+		Int n_subset_sites = SubsetWeights.n_subset_sites
 	}
 }
 
@@ -173,8 +158,8 @@ task ExtractIDs {
 
 task CompareScores {
 	input {
-		Array[File] arrayScores
-		Array[File] wgsScores
+		File arrayScores
+		File wgsScores
 		File sample_name_map
 	}
 
@@ -185,8 +170,8 @@ task CompareScores {
 		library(ggplot2)
 		library(purrr)
 
-		array_scores <- list("~{sep='","' arrayScores}") %>% map(read_tsv) %>% reduce(bind_rows) %>% transmute(IID, adjusted_score_array=adjusted_score)
-		wgs_score <- list("~{sep='","' wgsScores}") %>% map(read_tsv) %>% reduce(bind_rows) %>% transmute(IID, adjusted_score_wgs=adjusted_score)
+		array_scores <- read_tsv("~{arrayScores}") %>% transmute(IID, adjusted_score_array=adjusted_score)
+		wgs_score <- read_tsv("~{wgsScores}") %>% transmute(IID, adjusted_score_wgs=adjusted_score)
 
 		sample_names <- read_delim("~{sample_name_map}", delim=":", col_names=FALSE)
 

@@ -86,7 +86,8 @@ workflow validateImputation {
 			af_expressions = subpopulation_af_expression,
 			sample_map = sample_map,
 			af_resource = select_first([af_resource, GatherVCFsCloud.vcf_out]),
-			output_basename = "validation"
+			output_basename = "validation",
+			missingIsHomRef = true
 	}
 
 	call plotCorrelations {
@@ -205,9 +206,8 @@ task PearsonCorrelation {
 		Int? n_bins
 		Float? right_edge_first_bin
 		Float? min_af_for_accuracy_metrics
+		Boolean missingIsHomRef = false
 		Int mem = 16
-
-		File gatk_override = "gs://broad-dsde-methods-ckachulis/jars/gatk_pearson_correlation_multisample_bins_arguments.jar"
 	}
 
 	parameter_meta {
@@ -229,15 +229,15 @@ task PearsonCorrelation {
 		cp ~{af_expressions} af_expressions.list
 		touch sample_map.list
 		~{"cp " + sample_map + " sample_map.list"}
-		export GATK_LOCAL_JAR=~{gatk_override}
 
 		gatk --java-options "-Xmx~{mem - 2}G" ArrayImputationCorrelation --eval ~{evalVcf} --truth ~{truthVcf} --af-annotations af_expressions.list --resource ~{af_resource} \
 		~{"--ids " + sites} ~{"-L " + intervals} --sample-map sample_map.list ~{"--dosage-field " + dosage_field} -O ~{output_basename}.correlations.tsv \
-		-OA ~{output_basename}.accuracy.tsv ~{"-nBins " + n_bins} ~{"-firstBinRightEdge " + right_edge_first_bin} ~{"-minAfForAccuracyMetrics " + min_af_for_accuracy_metrics}
+		-OA ~{output_basename}.accuracy.tsv ~{"-nBins " + n_bins} ~{"-firstBinRightEdge " + right_edge_first_bin} ~{"-minAfForAccuracyMetrics " + min_af_for_accuracy_metrics} \
+		~{if missingIsHomRef then "-missingIsHomRef" else ""}
 	>>>
 
 	runtime {
-		docker: "us.gcr.io/broad-gatk/gatk:4.1.1.0"
+		docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-array-correlation"
 		disks: "local-disk 100 HDD"
 		memory: mem + " GB"
 	}

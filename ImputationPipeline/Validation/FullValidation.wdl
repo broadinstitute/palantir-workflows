@@ -23,8 +23,6 @@ workflow FullValidation {
 
 		Array[ReferencePanelContig] referencePanelContigs
 
-		Array[File] wgssForScoring
-
 		String population_basename
 
 		File population_loadings
@@ -54,23 +52,10 @@ workflow FullValidation {
 			referencePanelContigs = referencePanelContigs,
 	}
 
-	scatter (wgsForScoring in wgssForScoring) {
-		call GetSingleSampleName {
-			input:
-				vcf = wgsForScoring
-		}
-
-		call SplitMultiSampleVcf {
-			input:
-				multiSampleVcf = validateImputation.imputed_multisample_vcf,
-				sample = GetSingleSampleName.sampleName
-		}
-	}
-
 	call ValidateScoring.ValidateScoring {
 		input:
-			imputedArrays = SplitMultiSampleVcf.single_sample_vcf,
-			wgssForScoring = wgssForScoring,
+			validationArrays = validateImputation.imputed_multisample_vcf,
+			validationWgs = validationWGS,
 			population_basename = population_basename,
 			population_loadings = population_loadings,
 			population_meansd = population_meansd,
@@ -90,7 +75,7 @@ workflow FullValidation {
 		File score_comparison_subset = ValidateScoring.score_comparison
 		File score_comparison = ValidateScoring.score_comparison
 		Int n_original_sites = ValidateScoring.n_original_sites
-		Array[Int] n_subset_sites = ValidateScoring.n_subset_sites
+		Int n_subset_sites = ValidateScoring.n_subset_sites
 	}
 }
 
