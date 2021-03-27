@@ -872,22 +872,15 @@ task InterleaveVariants {
         String basename
     }
 
-    Int disk_size = ceil(1.2*size(vcfs, "GB")) + 100
-
-    parameter_meta {
-        vcfs: {
-          description: "vcfs",
-          localization_optional: true
-          }
-      }
+    Int disk_size = ceil(3.2*size(vcfs, "GB")) + 100
 
     command <<<
-        gatk InterleaveVariants -V ~{sep=" -V " vcfs} -O ~{basename}.vcf.gz
+        gatk MergeVcfs-V ~{sep=" -I " vcfs} -O ~{basename}.vcf.gz
     >>>
 
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-interleave-variants@sha256:c9176cb4bdd7344da15a7112e35c9a81aac4fc801dcbc6f39b529f4146416d6f"
+        docker: "us.gcr.io/broad-gatk/gatk:4.2.0.0"
         disks: "local-disk " + disk_size + " SSD"
         memory: "16 GB"
     }
