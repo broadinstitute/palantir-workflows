@@ -258,6 +258,7 @@ task plotCorrelations {
 		library(readr)
 		library(dplyr)
 		library(ggplot2)
+		library(tidyr)
 
 		corr <- read_tsv("~{correlations}")
 		corr_gathered <- gather(correlations, key="type", value="correlation", snp_correlation, indel_correlation) %>%
