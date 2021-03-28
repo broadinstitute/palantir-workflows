@@ -19,6 +19,7 @@ workflow validateImputation {
 		File? reference_dict
 
 		File subpopulation_af_expression
+		File samplePopulations
 		File? sample_map
 
 		Array[ReferencePanelContig] referencePanelContigs
@@ -92,7 +93,8 @@ workflow validateImputation {
 
 	call plotCorrelations {
 		input :
-			correlations = PearsonCorrelation.correlations
+			correlations = PearsonCorrelation.correlations,
+			samplePopulations = samplePopulations
 	}
 
 	output {
@@ -251,6 +253,7 @@ task PearsonCorrelation {
 task plotCorrelations {
 	input {
 		File correlations
+		File samplePopulations
 	}
 
 	command <<<
@@ -261,12 +264,14 @@ task plotCorrelations {
 		library(tidyr)
 
 		corr <- read_tsv("~{correlations}")
+		populations <- read_tsv("~{samplePopulations}")
+		corr <- inner_join(corr,populations)
 		corr_gathered <- gather(corr, key="type", value="correlation", snp_correlation, indel_correlation) %>%
 				mutate(variant_type=ifelse(type=="snp_correlation", "snp", "indel"))
 		ggplot(corr_gathered %>% filter(!is.na(correlation)), aes(x=bin_center, y=correlation^2)) +
 			geom_point(size=0.2, alpha=0.1) +
 			geom_smooth(se=FALSE) +
-			facet_grid(variant_type~af_annotation) + scale_x_log10() + theme_bw() +
+			facet_grid(variant_type~sub_population) + scale_x_log10() + theme_bw() +
 			xlab("Minor Allele Frequency") + ylab(bquote(R^2))
 
 		ggsave(filename="correlation_plot.png")
