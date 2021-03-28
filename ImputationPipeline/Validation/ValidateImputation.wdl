@@ -237,7 +237,7 @@ task PearsonCorrelation {
 	>>>
 
 	runtime {
-		docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-array-correlation"
+		docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-array-correlation@sha256:59b5115c3c0a521ff69adfb8b5cf7a826bea52155aef3918a3faa6914cd5d535"
 		disks: "local-disk 100 HDD"
 		memory: mem + " GB"
 	}
