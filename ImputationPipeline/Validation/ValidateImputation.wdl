@@ -263,7 +263,7 @@ task plotCorrelations {
 		corr <- read_tsv("~{correlations}")
 		corr_gathered <- gather(corr, key="type", value="correlation", snp_correlation, indel_correlation) %>%
 				mutate(variant_type=ifelse(type=="snp_correlation", "snp", "indel"))
-		ggplot(corr_gathered %>% filter(!is.na(correlations)), aes(aes(x=bin_center, y=correlation^2)) +
+		ggplot(corr_gathered %>% filter(!is.na(correlations)), aes(x=bin_center, y=correlation^2)) +
 			geom_point(size=0.2, alpha=0.1) +
 			geom_smooth(se=FALSE) +
 			facet_grid(variant_type~af_annotation) + scale_x_log10() + theme_bw() +
