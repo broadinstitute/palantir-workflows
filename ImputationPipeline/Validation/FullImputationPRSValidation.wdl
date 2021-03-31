@@ -33,6 +33,8 @@ workflow FullImputationPRSValidation {
 
 		File weights
 		File sample_name_map
+
+		Int wgs_vcf_to_plink_mem = 8
 	}
 
 	call ValidateImputation.validateImputation {
@@ -63,7 +65,8 @@ workflow FullImputationPRSValidation {
 			pruning_sites_for_pca = pruning_sites_for_pca,
 			population_vcf = population_vcf,
 			weights = weights,
-			sample_name_map = sample_name_map
+			sample_name_map = sample_name_map,
+			wgs_vcf_to_plink_mem = wgs_vcf_to_plink_mem
 	}
 
 	output {
