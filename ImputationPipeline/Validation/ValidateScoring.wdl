@@ -21,6 +21,8 @@ workflow ValidateScoring {
 		Int wgs_vcf_to_plink_mem = 8
 	}
 
+
+
 	call ExtractIDs as extractImputedIDs {
 		input:
 			vcf = validationArrays,
@@ -49,10 +51,16 @@ workflow ValidateScoring {
 			redoPCA = true
 	}
 
+	call QCSites {
+		input:
+			input_vcf = validationWgs,
+			output_vcf_basename = "wgsValidation"
+	}
+
 	call Scoring.ScoringImputedDataset as ScoreWGSSubset {
 		input:
 			weights = SubsetWeights.subset_weights,
-			imputed_array_vcf = validationWgs,
+			imputed_array_vcf = QCSites.output_vcf,
 			population_basename = population_basename,
 			basename = "imputed",
 			population_loadings = population_loadings,
@@ -67,7 +75,7 @@ workflow ValidateScoring {
 	call Scoring.ScoringImputedDataset as ScoreWGS {
 		input:
 			weights = weights,
-			imputed_array_vcf = validationWgs,
+			imputed_array_vcf = QCSites.output_vcf,
 			population_basename = population_basename,
 			basename = "imputed",
 			population_loadings = population_loadings,
@@ -201,4 +209,28 @@ task CompareScores {
 	output {
 		File score_comparison = "score_comparison.png"
 	}
+}
+
+task QCSites {
+  input {
+    File input_vcf
+    String output_vcf_basename
+   }
+    Int disk_size = ceil(2*(size(input_vcf, "GB")))
+
+  command <<<
+    # site with any missing genotypes are removed;
+    vcftools --gzvcf ~{input_vcf}  --max-missing-count 0 --recode -c | bgzip -c > ~{output_vcf_basename}.vcf.gz
+    bcftools index -t ~{output_vcf_basename}.vcf.gz
+  >>>
+
+  runtime {
+    docker: "skwalker/imputation:with_vcftools" # TODO: use a public one (not suse bcftools biocontainers also has vcftools )
+    memory: "16 GiB"
+    disks: "local-disk " + disk_size + " HDD"
+  }
+  output {
+    File output_vcf = "~{output_vcf_basename}.vcf.gz"
+    File output_vcf_index = "~{output_vcf_basename}.vcf.gz.tbi"
+  }
 }
