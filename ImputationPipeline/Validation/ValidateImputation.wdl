@@ -87,8 +87,7 @@ workflow validateImputation {
 			af_expressions = subpopulation_af_expression,
 			sample_map = sample_map,
 			af_resource = select_first([af_resource, GatherVCFsCloud.vcf_out]),
-			output_basename = "validation",
-			missingIsHomRef = true
+			output_basename = "validation"
 	}
 
 	call plotCorrelations {
