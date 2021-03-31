@@ -207,7 +207,6 @@ task PearsonCorrelation {
 		Int? n_bins
 		Float? right_edge_first_bin
 		Float? min_af_for_accuracy_metrics
-		Boolean missingIsHomRef = false
 		Int mem = 16
 	}
 
@@ -233,12 +232,11 @@ task PearsonCorrelation {
 
 		gatk --java-options "-Xmx~{mem - 2}G" ArrayImputationCorrelation --eval ~{evalVcf} --truth ~{truthVcf} --af-annotations af_expressions.list --resource ~{af_resource} \
 		~{"--ids " + sites} ~{"-L " + intervals} --sample-map sample_map.list ~{"--dosage-field " + dosage_field} -O ~{output_basename}.correlations.tsv \
-		-OA ~{output_basename}.accuracy.tsv ~{"-nBins " + n_bins} ~{"-firstBinRightEdge " + right_edge_first_bin} ~{"-minAfForAccuracyMetrics " + min_af_for_accuracy_metrics} \
-		~{if missingIsHomRef then "-missingIsHomRef" else ""}
+		-OA ~{output_basename}.accuracy.tsv ~{"-nBins " + n_bins} ~{"-firstBinRightEdge " + right_edge_first_bin} ~{"-minAfForAccuracyMetrics " + min_af_for_accuracy_metrics}
 	>>>
 
 	runtime {
-		docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-array-correlation@sha256:59b5115c3c0a521ff69adfb8b5cf7a826bea52155aef3918a3faa6914cd5d535"
+		docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-array-correlation@sha256:c54e9befc899dcf53dfe647ad438090b45f9c1d6f74445a93af95835e628e72e"
 		disks: "local-disk 100 HDD"
 		memory: mem + " GB"
 	}
