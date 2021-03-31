@@ -17,6 +17,8 @@ workflow ValidateScoring {
 
 		File weights
 		File sample_name_map
+
+		Int wgs_vcf_to_plink_mem = 8
 	}
 
 	call ExtractIDs as extractImputedIDs {
@@ -58,7 +60,8 @@ workflow ValidateScoring {
 			population_pcs = population_pcs,
 			pruning_sites_for_pca = pruning_sites_for_pca,
 			population_vcf = population_vcf,
-			redoPCA = true
+			redoPCA = true,
+			vcf_to_plink_mem = wgs_vcf_to_plink_mem
 	}
 
 	call Scoring.ScoringImputedDataset as ScoreWGS {
@@ -72,7 +75,8 @@ workflow ValidateScoring {
 			population_pcs = population_pcs,
 			pruning_sites_for_pca = pruning_sites_for_pca,
 			population_vcf = population_vcf,
-			redoPCA = true
+			redoPCA = true,
+			vcf_to_plink_mem = wgs_vcf_to_plink_mem
 	}
 
 	call CompareScores as CompareScoresSubset {

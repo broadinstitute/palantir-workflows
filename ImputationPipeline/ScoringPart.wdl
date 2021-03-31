@@ -8,6 +8,7 @@ workflow ScoringImputedDataset {
     File imputed_array_vcf  # imputed VCF for scoring (and optionally PCA projection): make sure the variant IDs exactly match those in the weights file
     Int scoring_mem = 16
     Int population_scoring_mem = scoring_mem * 4
+    Int vcf_to_plink_mem = 8
     
     String population_basename # for naming the output of population scoring
     String basename # for naming the output of array scoring and the array projection files
@@ -75,7 +76,8 @@ workflow ScoringImputedDataset {
   	input:
   	vcf = imputed_array_vcf,
   	pruning_sites = pruning_sites_for_pca,
-  	basename = basename
+  	basename = basename,
+  	mem = vcf_to_plink_mem
   }
 
   call ProjectArray {
