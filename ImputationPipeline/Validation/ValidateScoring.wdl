@@ -57,7 +57,7 @@ workflow ValidateScoring {
 			output_vcf_basename = "wgsValidation"
 	}
 
-	call Scoring.ScoringImputedDataset as ScoreWGSSubset {
+	call Scoring.ScoringImputedDataset as ScoreWGS {
 		input:
 			weights = SubsetWeights.subset_weights,
 			imputed_array_vcf = QCSites.output_vcf,
@@ -72,28 +72,6 @@ workflow ValidateScoring {
 			vcf_to_plink_mem = wgs_vcf_to_plink_mem
 	}
 
-	call Scoring.ScoringImputedDataset as ScoreWGS {
-		input:
-			weights = weights,
-			imputed_array_vcf = QCSites.output_vcf,
-			population_basename = population_basename,
-			basename = "imputed",
-			population_loadings = population_loadings,
-			population_meansd = population_meansd,
-			population_pcs = population_pcs,
-			pruning_sites_for_pca = pruning_sites_for_pca,
-			population_vcf = population_vcf,
-			redoPCA = true,
-			vcf_to_plink_mem = wgs_vcf_to_plink_mem
-	}
-
-	call CompareScores as CompareScoresSubset {
-		input:
-			arrayScores = ScoreImputed.adjusted_array_scores,
-			wgsScores = ScoreWGSSubset.adjusted_array_scores,
-			sample_name_map = sample_name_map
-		}
-
 	call CompareScores {
 		input:
 			arrayScores = ScoreImputed.adjusted_array_scores,
@@ -103,8 +81,8 @@ workflow ValidateScoring {
 
 
 	output {
-		File score_comparison_subset = CompareScoresSubset.score_comparison
 		File score_comparison = CompareScores.score_comparison
+		File pc_plot = ScoreImputed.pc_plot
 		Int n_original_sites = SubsetWeights.n_original_sites
 		Int n_subset_sites = SubsetWeights.n_subset_sites
 	}

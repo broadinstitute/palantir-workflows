@@ -75,8 +75,8 @@ workflow FullImputationPRSValidation {
 		File correlations_plot = validateImputation.correlations_plot
 		File aggregated_imputation_metrics = validateImputation.aggregated_imputation_metrics
 
-		File score_comparison_subset = ValidateScoring.score_comparison
 		File score_comparison = ValidateScoring.score_comparison
+		File pc_plot = ValidateScoring.pc_plot
 		Int n_original_sites = ValidateScoring.n_original_sites
 		Int n_subset_sites = ValidateScoring.n_subset_sites
 	}
