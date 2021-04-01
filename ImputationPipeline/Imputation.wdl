@@ -199,9 +199,9 @@ workflow ImputationPipeline {
   		chroms = flatten(chunk_contig),
   		starts = flatten(start),
   		ends = flatten(end),
-  		vars_in_array = flatten(CheckChunkValid.var_in_original),
-  		vars_in_panel = flatten(CheckChunkValid.var_in_panel),
-  		valids = flatten(CheckChunkValid.valid),
+  		vars_in_array = flatten(CountChunks.var_in_original),
+  		vars_in_panel = flatten(CountChunks.var_in_panel),
+  		valids = flatten(CheckChunks.valid),
   		basename = output_callset_name
   }
 
@@ -342,8 +342,6 @@ task CheckChunks {
     File? valid_chunk_bcf = "valid_variants.bcf"
     File? valid_chunk_bcf_index = "valid_variants.bcf.csi"
     Boolean valid = read_boolean("valid_file.txt")
-    Int var_in_original = read_int("var_in_original.txt")
-    Int var_in_panel = read_int("var_in_reference.txt")
   }
   runtime {
     docker: bcftools_docker
