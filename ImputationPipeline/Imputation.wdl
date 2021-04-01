@@ -200,7 +200,7 @@ workflow ImputationPipeline {
   		starts = flatten(start),
   		ends = flatten(end),
   		vars_in_array = flatten(CountChunks.var_in_original),
-  		vars_in_panel = flatten(CountChunks.var_in_panel),
+  		vars_in_panel = flatten(CountChunks.var_in_reference),
   		valids = flatten(CheckChunks.valid),
   		basename = output_callset_name
   }
