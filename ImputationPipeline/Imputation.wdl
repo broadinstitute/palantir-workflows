@@ -43,7 +43,12 @@ workflow ImputationPipeline {
   }
 
   File vcf_to_impute = select_first([multi_sample_vcf, MergeSingleSampleVcfs.output_vcf])
-  File vcf_index_to_impute = select_first([multi_sample_vcf_index, MergeSingleSampleVcfs.output_vcf_index])  
+  File vcf_index_to_impute = select_first([multi_sample_vcf_index, MergeSingleSampleVcfs.output_vcf_index])
+
+  call CountSamples {
+    	input:
+    		vcf = vcf_to_impute
+    }
 
   scatter (referencePanelContig in referencePanelContigs) {
     call CalculateChromsomeLength {
@@ -57,7 +62,9 @@ workflow ImputationPipeline {
     Int num_chunks = ceil(CalculateChromsomeLength.chrom_length / chunkLengthFloat)
 
     scatter (i in range(num_chunks)) {
-
+      String chunk_contig = referencePanelContig.contig
+      Int start = (i * chunkLength) + 1
+      Int end = if (CalculateChromsomeLength.chrom_length < ((i + 1) * chunkLength)) then CalculateChromsomeLength.chrom_length else ((i + 1) * chunkLength)
       call GenerateChunk {
         input:
           vcf = vcf_to_impute,
@@ -123,6 +130,13 @@ workflow ImputationPipeline {
             end = (i + 1) * chunkLength,
             minimac4_docker = minimac4_docker_tag
         }
+
+        call AggregateImputationQCMetrics {
+          	input:
+          		infoFile = minimac4.info,
+          		nSamples = CountSamples.nSamples,
+          		basename = output_callset_name + "chrom_" + referencePanelContig.contig + "_chunk_" + i
+          }
         
         call UpdateHeader {
           input:
@@ -157,6 +171,7 @@ workflow ImputationPipeline {
         }
       }
     }
+    Array[File] aggregatedImputationMetrics = select_all(AggregateImputationQCMetrics.aggregated_metrics)
     Array[File] chromosome_vcfs = select_all(SortIds.output_vcf)
     Array[File] chromosome_vcf_indices = select_all(SortIds.output_vcf_index)
   }
@@ -172,9 +187,32 @@ workflow ImputationPipeline {
       gatk_docker = gatk_docker_tag
   }
 
+  call MergeImputationQCMetrics {
+  	input:
+  		metrics = flatten(aggregatedImputationMetrics),
+  		basename = output_callset_name
+  }
+
+
+  call StoreChunksInfo {
+  	input:
+  		chroms = flatten(chunk_contig),
+  		starts = flatten(start),
+  		ends = flatten(end),
+  		vars_in_array = flatten(CheckChunkValid.var_in_original),
+  		vars_in_panel = flatten(CheckChunkValid.var_in_panel),
+  		valids = flatten(CheckChunkValid.valid),
+  		basename = output_callset_name
+  }
+
+
   output {
     File imputed_multisample_vcf = GatherVcfs.output_vcf
     File imputed_multisample_vcf_index = GatherVcfs.output_vcf_index
+    File aggregated_imputation_metrics = MergeImputationQCMetrics.aggregated_metrics
+    File chunks_info = StoreChunksInfo.chunks_info
+    File failed_chunks = StoreChunksInfo.failed_chunks
+    Int n_failed_chunks = StoreChunksInfo.n_failed_chunks
   }
 }
 
@@ -304,6 +342,8 @@ task CheckChunks {
     File? valid_chunk_bcf = "valid_variants.bcf"
     File? valid_chunk_bcf_index = "valid_variants.bcf.csi"
     Boolean valid = read_boolean("valid_file.txt")
+    Int var_in_original = read_int("var_in_original.txt")
+    Int var_in_panel = read_int("var_in_reference.txt")
   }
   runtime {
     docker: bcftools_docker
@@ -600,4 +640,136 @@ task MergeSingleSampleVcfs {
     File output_vcf = "~{output_vcf_basename}.vcf.gz"
     File output_vcf_index = "~{output_vcf_basename}.vcf.gz.tbi"
   }
+}
+
+task CountSamples {
+	input {
+		File vcf
+	}
+
+	Int disk_size = 100 + ceil(size(vcf, "GB"))
+
+	command <<<
+		bcftools query -l ~{vcf} | wc -l >> nSamples.txt
+	>>>
+
+	runtime {
+		docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+		memory: "3 GiB"
+		disks: "local-disk " + disk_size + " HDD"
+  	}
+
+  	output {
+  		Int nSamples = read_int("nSamples.txt")
+  	}
+}
+
+task AggregateImputationQCMetrics {
+	input {
+		File infoFile
+		Int nSamples
+		String basename
+	}
+
+	Int disk_size = 100 + ceil(size(infoFile, "GB"))
+
+	command <<<
+	Rscript -<< "EOF"
+		library(dplyr)
+		library(readr)
+		library(purrr)
+		library(ggplot2)
+
+		sites_info <- read_tsv("~{infoFile}")
+
+		nSites <- sites_info %>% nrow()
+		nSites_with_var <- sites_info %>% filter(MAF >= 0.3/(2*~{nSamples} - 0.7)) %>% nrow()
+		nSites_high_r2 <- sites_info %>% filter(Rsq>0.3) %>% nrow()
+
+		aggregated_metrics <- tibble(total_sites=nSites, total_sites_with_var=nSites_with_var, total_sites_r2_gt_0.3=nSites_high_r2,)
+
+		write_tsv(aggregated_metrics, "~{basename}_aggregated_imputation_metrics.tsv")
+
+	EOF
+	>>>
+
+	runtime {
+		docker: "rocker/tidyverse"
+		disks : "local-disk " + disk_size + " HDD"
+		preemptible : 3
+	}
+
+	output {
+		File aggregated_metrics = "~{basename}_aggregated_imputation_metrics.tsv"
+	}
+}
+
+task StoreChunksInfo {
+	input {
+		Array[String] chroms
+		Array[Int] starts
+		Array[Int] ends
+		Array[Int] vars_in_array
+		Array[Int] vars_in_panel
+		Array[Boolean] valids
+		String basename
+	}
+
+	command <<<
+	Rscript -<< "EOF"
+		library(dplyr)
+		library(readr)
+
+		chunk_info <- tibble(chrom = c("~{sep='", "' chroms}"), start = c("~{sep='", "' starts}"), ends = c("~{sep='", "' ends}"), vars_in_array = c("~{sep='", "' vars_in_array}"), vars_in_panel = c("~{sep='", "' vars_in_panel}"), chunk_was_imputed = as.logical(c("~{sep='", "' valids}")))
+		failed_chunks <- chunk_info %>% filter(!chunk_was_imputed) %>% select(-chunk_was_imputed)
+		n_failed_chunks <- nrow(failed_chunks)
+		write_tsv(chunk_info, "~{basename}_chunk_info.tsv")
+		write_tsv(failed_chunks, "~{basename}_failed_chunks.tsv")
+		write(n_failed_chunks, "n_failed_chunks.txt")
+	EOF
+	>>>
+
+	runtime {
+		docker: "rocker/tidyverse"
+		preemptible : 3
+	}
+
+	output {
+		File chunks_info = "~{basename}_chunk_info.tsv"
+		File failed_chunks = "~{basename}_failed_chunks.tsv"
+		Int n_failed_chunks = read_int("n_failed_chunks.txt")
+	}
+}
+
+task MergeImputationQCMetrics {
+	input {
+		Array[File] metrics
+		String basename
+	}
+
+	Int disk_size = 100 + ceil(size(metrics, "GB"))
+
+	command <<<
+	Rscript -<< "EOF"
+		library(dplyr)
+		library(readr)
+		library(purrr)
+		library(ggplot2)
+
+		metrics <- list("~{sep='", "' metrics}") %>% map(read_tsv) %>% reduce(`+`) %>% mutate(frac_sites_r2_gt_0.3=total_sites_r2_gt_0.3/total_sites, frac_sites_with_var_r2_gt_0.3=total_sites_r2_gt_0.3/total_sites_with_var)
+
+		write_tsv(metrics, "~{basename}_aggregated_imputation_metrics.tsv")
+
+	EOF
+	>>>
+
+	runtime {
+		docker: "rocker/tidyverse"
+		disks : "local-disk " + disk_size + " HDD"
+		preemptible : 3
+	}
+
+	output {
+		File aggregated_metrics = "~{basename}_aggregated_imputation_metrics.tsv"
+	}
 }

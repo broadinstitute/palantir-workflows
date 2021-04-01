@@ -12,3 +12,6 @@ workflows:
   - name: PerformPopulationPCA
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/PerformPopulationPCA.wdl
+  - name: BenchmarkVCFs
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/BenchmarkVCFs.wdl
