@@ -178,27 +178,27 @@ workflow FindSamplesToCompare {
 
             Pair[File,File] vcf_and_index_to_compare = select_first([vcf_and_index_symbolic_removed,vcf_and_index_original])
 
-            call CompareToGroundTruth {
-                input:
-                    monitoring_script=monitoring_script,
-                    left_sample_name = match.leftSample,
-                    right_sample_name = match.rightSample,
-                    input_vcf = vcf_and_index_to_compare.left,
-                    input_vcf_index = vcf_and_index_to_compare.right,
-                    input_vcf_name = match.leftSample,
-                    truth_vcf = match.rightFile,
-                    truth_vcf_index = truthIndex[match.rightFile],
-                    truth_high_confidence = truthIntervals[match.rightFile],
-                    interval_list=interval_list,
-                    runs_file=runs_file,
-                    ref_fasta=ref_fasta,
-                    ref_fasta_sdf=ref_fasta_sdf,
-                    annotation_intervals=annotation_intervals,
-                    preemptible_tries=3,
-                    disk_size=compareSize+20,
-                    docker=comparison_docker,
-                    no_address=true
-        }
+            #call CompareToGroundTruth {
+            #    input:
+            #        monitoring_script=monitoring_script,
+            #        left_sample_name = match.leftSample,
+            #        right_sample_name = match.rightSample,
+            #        input_vcf = vcf_and_index_to_compare.left,
+            #        input_vcf_index = vcf_and_index_to_compare.right,
+            #        input_vcf_name = match.leftSample,
+            #        truth_vcf = match.rightFile,
+            #        truth_vcf_index = truthIndex[match.rightFile],
+            #        truth_high_confidence = truthIntervals[match.rightFile],
+            #        interval_list=interval_list,
+            #        runs_file=runs_file,
+            #        ref_fasta=ref_fasta,
+            #        ref_fasta_sdf=ref_fasta_sdf,
+            #        annotation_intervals=annotation_intervals,
+            #        preemptible_tries=3,
+            #        disk_size=compareSize+20,
+            #        docker=comparison_docker,
+            #        no_address=true
+            #}
 
     }
     call Benchmark.CombineSummaries as CombineSummaries{
