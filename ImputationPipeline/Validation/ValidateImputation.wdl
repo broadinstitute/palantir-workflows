@@ -2,12 +2,14 @@ version 1.0
 
 import "../Imputation.wdl" as Imputation
 import "../Structs.wdl" as structs
+import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/ImputationPipeline/Imputation.wdl" as ImputationMain
 
 workflow validateImputation {
 	input {
 		File validationArrays
 		File validationArraysIndex
 		File validationWGS
+		String branch
 
 		File? af_resource
 		String? gnomad_vcf_prefix
@@ -26,6 +28,14 @@ workflow validateImputation {
 	}
 
 	call Imputation.ImputationPipeline {
+		input:
+			multi_sample_vcf = validationArrays,
+			multi_sample_vcf_index = validationArraysIndex,
+			referencePanelContigs = referencePanelContigs,
+			perform_extra_qc_steps = false
+	}
+
+	call ImputationMain.ImputationPipeline as ImputationPipelineMain {
 		input:
 			multi_sample_vcf = validationArrays,
 			multi_sample_vcf_index = validationArraysIndex,
@@ -90,10 +100,22 @@ workflow validateImputation {
 			output_basename = "validation"
 	}
 
+	call PearsonCorrelation as PearsonCorrelationMain{
+		input:
+			evalVcf = ImputationPipelineMain.imputed_multisample_vcf,
+			truthVcf = validationWGS,
+			af_expressions = subpopulation_af_expression,
+			sample_map = sample_map,
+			af_resource = select_first([af_resource, GatherVCFsCloud.vcf_out]),
+			output_basename = "validation"
+	}
+
 	call plotCorrelations {
 		input :
 			correlations = PearsonCorrelation.correlations,
-			samplePopulations = samplePopulations
+			correlationsMain = PearsonCorrelationMain.correlations,
+			samplePopulations = samplePopulations,
+			branch = branch
 	}
 
 	output {
@@ -103,6 +125,7 @@ workflow validateImputation {
 		File aggregated_imputation_metrics = ImputationPipeline.aggregated_imputation_metrics
 
 		File imputed_multisample_vcf = ImputationPipeline.imputed_multisample_vcf
+		File imputed_multisample_vcf_main = ImputationPipelineMain.imputed_multisample_vcf
 	}
 }
 
@@ -250,7 +273,9 @@ task PearsonCorrelation {
 task plotCorrelations {
 	input {
 		File correlations
+		File correlationsMain
 		File samplePopulations
+		String branch
 	}
 
 	command <<<
@@ -260,8 +285,10 @@ task plotCorrelations {
 		library(ggplot2)
 		library(tidyr)
 
-		corr <- read_tsv("~{correlations}")
+		corr <- read_tsv("~{correlations}") %>% mutate(branch="~{branch}")
+		corr_main <- read_tsv("~{correlationsMain}") %>% mutate(branch="main")
 		populations <- read_tsv("~{samplePopulations}")
+		corr <- bind_rows(corr, corr_main)
 		corr <- inner_join(corr,populations)
 		corr_gathered <- gather(corr, key="type", value="correlation", snp_correlation, indel_correlation) %>%
 				mutate(variant_type=ifelse(type=="snp_correlation", "snp", "indel"))

@@ -34,6 +34,8 @@ workflow FullImputationPRSValidation {
 		File weights
 		File sample_name_map
 
+		String branch
+
 		Int wgs_vcf_to_plink_mem = 8
 	}
 
@@ -52,11 +54,13 @@ workflow FullImputationPRSValidation {
 			subpopulation_af_expression = subpopulation_af_expression,
 			sample_map = sample_map,
 			referencePanelContigs = referencePanelContigs,
+			branch = branch
 	}
 
 	call ValidateScoring.ValidateScoring {
 		input:
 			validationArrays = validateImputation.imputed_multisample_vcf,
+			validationArraysMain = validateImputation.imputed_multisample_vcf_main,
 			validationWgs = validationWGS,
 			population_basename = population_basename,
 			population_loadings = population_loadings,
@@ -66,7 +70,8 @@ workflow FullImputationPRSValidation {
 			population_vcf = population_vcf,
 			weights = weights,
 			sample_name_map = sample_name_map,
-			wgs_vcf_to_plink_mem = wgs_vcf_to_plink_mem
+			wgs_vcf_to_plink_mem = wgs_vcf_to_plink_mem,
+			branch = branch
 	}
 
 	output {
@@ -75,7 +80,8 @@ workflow FullImputationPRSValidation {
 		File correlations_plot = validateImputation.correlations_plot
 		File aggregated_imputation_metrics = validateImputation.aggregated_imputation_metrics
 
-		File score_comparison = ValidateScoring.score_comparison
+		File score_comparison_branch = ValidateScoring.score_comparison_branch
+		File score_comparison_main_vs_branch = ValidateScoring.score_comparison_main_vs_branch
 		File pc_plot = ValidateScoring.pc_plot
 		Int n_original_sites = ValidateScoring.n_original_sites
 		Int n_subset_sites = ValidateScoring.n_subset_sites

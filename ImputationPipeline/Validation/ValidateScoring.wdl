@@ -1,10 +1,12 @@
 version 1.0
 
 import "../ScoringPart.wdl" as Scoring
+import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/ImputationPipeline/ScoringPart.wdl" as ScoringMain
 
 workflow ValidateScoring {
 	input {
-		File validationArrays
+		File? validationArrays
+		File validationArraysMain
 		File validationWgs
 
 		String population_basename
@@ -17,6 +19,7 @@ workflow ValidateScoring {
 
 		File weights
 		File sample_name_map
+		String branch
 
 		Int wgs_vcf_to_plink_mem = 8
 	}
@@ -25,7 +28,13 @@ workflow ValidateScoring {
 
 	call ExtractIDs as extractImputedIDs {
 		input:
-			vcf = validationArrays,
+			vcf = select_first([validationArrays, validationArraysMain]),
+			output_basename = "imputed"
+	}
+
+	call ExtractIDs as extractImputedIDsMain {
+		input:
+			vcf = validationArraysMain,
 			output_basename = "imputed"
 	}
 
@@ -36,11 +45,31 @@ workflow ValidateScoring {
 			weights = weights
 	}
 
+	call SubsetWeights as SubsetWeightsMain {
+		input:
+			sites = extractImputedIDsMain.ids,
+			weights = weights
+	}
+
 
 	call Scoring.ScoringImputedDataset as ScoreImputed {
 		input:
 			weights = weights,
-			imputed_array_vcf = validationArrays,
+			imputed_array_vcf = select_first([validationArrays, validationArraysMain]),
+			population_basename = population_basename,
+			basename = "imputed",
+			population_loadings = population_loadings,
+			population_meansd = population_meansd,
+			population_pcs = population_pcs,
+			pruning_sites_for_pca = pruning_sites_for_pca,
+			population_vcf = population_vcf,
+			redoPCA = true
+	}
+
+	call ScoringMain.ScoringImputedDataset as ScoreImputedMain {
+		input:
+			weights = weights,
+			imputed_array_vcf = validationArraysMain,
 			population_basename = population_basename,
 			basename = "imputed",
 			population_loadings = population_loadings,
@@ -76,12 +105,16 @@ workflow ValidateScoring {
 		input:
 			arrayScores = ScoreImputed.adjusted_array_scores,
 			wgsScores = ScoreWGS.adjusted_array_scores,
+			arrayScoresMain = ScoreImputedMain.adjusted_array_scores,
+			branch = branch,
 			sample_name_map = sample_name_map
 		}
 
 
 	output {
-		File score_comparison = CompareScores.score_comparison
+		File score_comparison_branch = CompareScores.score_comparison_branch
+		File score_comparison_main_vs_branch = CompareScores.score_comparison_main_vs_branch
+
 		File pc_plot = ScoreImputed.pc_plot
 		Int n_original_sites = SubsetWeights.n_original_sites
 		Int n_subset_sites = SubsetWeights.n_subset_sites
@@ -149,8 +182,10 @@ task ExtractIDs {
 task CompareScores {
 	input {
 		File arrayScores
+		File arrayScoresMain
 		File wgsScores
 		File sample_name_map
+		String branch
 	}
 
 	command <<<
@@ -163,17 +198,31 @@ task CompareScores {
 		array_scores <- read_tsv("~{arrayScores}") %>% transmute(IID, adjusted_score_array=adjusted_score)
 		wgs_score <- read_tsv("~{wgsScores}") %>% transmute(IID, adjusted_score_wgs=adjusted_score)
 
+		array_scores_main <- read_tsv("~{arrayScoresMain}") %>% transmute(IID, adjusted_score_array=adjusted_score)
+
 		sample_names <- read_delim("~{sample_name_map}", delim=":", col_names=FALSE)
 
+
+
 		combined_scores <- inner_join(inner_join(array_scores, sample_names, by=c("IID"="X1")), wgs_score, by=c("X2"="IID"))
+
+		score_main_branch <- inner_join(array_scores %>% transmute(IID, adjusted_score_branch=adjusted_score_array), array_scores_main %>% transmute(IID, adjusted_score_main=adjusted_score_array))
 
 		ggplot(combined_scores, aes(x=adjusted_score_array, y=adjusted_score_wgs)) +
 		geom_point() +
 		geom_abline(intercept=0, slope=1) +
-		xlab("Array Score") +
-		ylab("WGS Score")
+		xlab("Array Score ~{branch}") +
+		ylab("WGS Score ~{branch}")
 
-		ggsave(filename="score_comparison.png")
+		ggsave(filename="score_comparison_~{branch}.png")
+
+		ggplot(score_main_branch, aes(x=adjusted_score_branch, y=adjusted_score_main)) +
+		geom_point() +
+		geom_abline(intercept=0, slope=1) +
+		xlab("Array Score ~{branch}") +
+		ylab("Array Score Main")
+
+		ggsave(filename="score_comparison_main_vs_branch.png")
 
 		EOF
 	>>>
@@ -185,7 +234,8 @@ task CompareScores {
 	}
 
 	output {
-		File score_comparison = "score_comparison.png"
+		File score_comparison_branch = "score_comparison_~{branch}.png"
+		File score_comparison_main_vs_branch = "score_comparison_main_vs_branch.png"
 	}
 }
 
