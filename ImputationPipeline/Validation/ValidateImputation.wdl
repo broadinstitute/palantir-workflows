@@ -293,8 +293,8 @@ task plotCorrelations {
 		corr_gathered <- gather(corr, key="type", value="correlation", snp_correlation, indel_correlation) %>%
 				mutate(variant_type=ifelse(type=="snp_correlation", "snp", "indel"))
 		ggplot(corr_gathered %>% filter(!is.na(correlation)), aes(x=bin_center, y=correlation^2)) +
-			geom_point(size=0.2, alpha=0.1) +
-			geom_smooth(se=FALSE) +
+			geom_point(size=0.2, alpha=0.1, aes(color=branch)) +
+			geom_smooth(se=FALSE, aes(color=branch)) +
 			facet_grid(variant_type~sub_population) + scale_x_log10() + theme_bw() +
 			xlab("Minor Allele Frequency") + ylab(bquote(R^2))
 
