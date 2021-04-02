@@ -28,6 +28,8 @@ workflow FindSamplesToCompare {
         File? runs_file_override
         String comparison_docker
 
+        String? analysis_region
+
         Boolean remove_symbolic_alleles=false
 
         Array[File] stratIntervals = [
@@ -127,7 +129,7 @@ workflow FindSamplesToCompare {
 
             call Benchmark.Benchmark as BenchmarkVCF{
                 input:
-                     analysisRegion = "chr9",
+                     analysisRegion = analysis_region,
                      evalVcf = ExtractSampleFromCallset.output_vcf,
                      evalLabel = match.leftSample,
                      evalVcfIndex = ExtractSampleFromCallset.output_vcf_index,
