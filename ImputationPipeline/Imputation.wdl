@@ -38,6 +38,25 @@ workflow ImputationPipeline {
   File vcf_to_impute = select_first([multi_sample_vcf, MergeSingleSampleVcfs.output_vcf])
   File vcf_index_to_impute = select_first([multi_sample_vcf_index, MergeSingleSampleVcfs.output_vcf_index])
 
+  call SetIDs {
+    input:
+        vcf = vcf_to_impute,
+        vcfIndex = vcf_index_to_impute,
+        output_basename = "input_samples_with_variant_ids"
+  }
+
+  call SortIds as SortIdsVcfToImpute {
+    input:
+        vcf = SetIDs.output_vcf,
+        basename = "input_samples_with_variant_ids_sorted"
+  }
+
+  call ExtractIDs as ExtractIdsVcfToImpute {
+      input:
+          vcf = SortIdsVcfToImpute.output_vcf,
+          output_basename = "imputed_sites"
+    }
+
   call CountSamples {
     	input:
     		vcf = vcf_to_impute
@@ -159,6 +178,37 @@ workflow ImputationPipeline {
       output_vcf_basename = output_callset_name
   }
 
+  call ExtractIDs {
+    input:
+        vcf = GatherVcfs.output_vcf,
+        output_basename = "imputed_sites"
+  }
+
+  call FindSitesFileTwoOnly {
+    input:
+        file1 = ExtractIDs.ids,
+        file2 = ExtractIdsVcfToImpute.ids
+  }
+
+  call SelectVariantsByIds {
+    input:
+        vcf = SortIdsVcfToImpute.output_vcf,
+        ids = FindSitesFileTwoOnly.missing_sites,
+        basename = "imputed_sites_to_recover"
+  }
+
+  call RemoveAnnotations {
+    input:
+        vcf = SelectVariantsByIds.output_vcf,
+        basename = "imputed_sites_to_recover_annotations_removed"
+  }
+
+  call InterleaveVariants {
+    input:
+        vcfs = [RemoveAnnotations.output_vcf, GatherVcfs.output_vcf],
+        basename = output_callset_name
+  }
+
   call MergeImputationQCMetrics {
   	input:
   		metrics = flatten(aggregatedImputationMetrics),
@@ -179,8 +229,8 @@ workflow ImputationPipeline {
 
 
   output {
-    File imputed_multisample_vcf = GatherVcfs.output_vcf
-    File imputed_multisample_vcf_index = GatherVcfs.output_vcf_index
+    File imputed_multisample_vcf = InterleaveVariants.output_vcf
+    File imputed_multisample_vcf_index = InterleaveVariants.output_vcf_index
     File aggregated_imputation_metrics = MergeImputationQCMetrics.aggregated_metrics
     File chunks_info = StoreChunksInfo.chunks_info
     File failed_chunks = StoreChunksInfo.failed_chunks
@@ -234,8 +284,8 @@ task GenerateChunk {
     Int end
     String chrom
     String basename
-    String vcf
-    String vcf_index
+    File vcf
+    File vcf_index
     Int disk_size = 400 # not sure how big the disk size needs to be since we aren't downloading the entire VCF here 
   }
   command {
@@ -709,5 +759,157 @@ task MergeImputationQCMetrics {
 
 	output {
 		File aggregated_metrics = "~{basename}_aggregated_imputation_metrics.tsv"
+	}
+}
+
+task SetIDs {
+    input {
+        File vcf
+        File vcfIndex
+        String output_basename
+    }
+
+    Int disk_size = 100 + ceil(2.2 * size(vcf, "GB"))
+
+    command <<<
+        bcftools annotate ~{vcf} --set-id '%CHROM\:%POS\:%REF\:%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
+        bcftools index -t ~{output_basename}.vcf.gz
+    >>>
+
+    runtime {
+        docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+        disks: "local-disk " + disk_size + " HDD"
+        memory: "4 GB"
+    }
+
+    output {
+        File output_vcf = "~{output_basename}.vcf.gz"
+        File output_vcf_index = "~{output_basename}.vcf.gz.tbi"
+    }
+}
+
+task ExtractIDs {
+     input {
+         File vcf
+         String output_basename
+         Int disk_size = 2*ceil(size(vcf, "GB")) + 100
+     }
+
+     command <<<
+         bcftools query -f "%ID\n" ~{vcf} -o ~{output_basename}.ids
+     >>>
+     output {
+         File ids = "~{output_basename}.ids"
+     }
+     runtime {
+         docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+         disks: "local-disk " + disk_size + " HDD"
+         memory: "4 GB"
+     }
+ }
+
+task SelectVariantsByIds {
+    input {
+        File vcf
+        File ids
+        String basename
+    }
+
+    Int disk_size = ceil(1.2*size(vcf, "GB")) + 100
+
+    parameter_meta {
+        vcf: {
+          description: "vcf",
+          localization_optional: true
+          }
+    }
+
+    command <<<
+        cp ~{ids} sites.list
+        gatk SelectVariants -V ~{vcf} --exclude-filtered --keep-ids sites.list -O ~{basename}.vcf.gz
+    >>>
+
+    runtime {
+            docker: "us.gcr.io/broad-gatk/gatk:4.2.0.0"
+            disks: "local-disk " + disk_size + " SSD"
+            memory: "16 GB"
+        }
+
+    output {
+        File output_vcf = "~{basename}.vcf.gz"
+        File output_vcf_index = "~{basename}.vcf.gz.tbi"
+    }
+ }
+
+task RemoveAnnotations {
+    input {
+        File vcf
+        String basename
+    }
+
+    Int disk_size = ceil(2.2*size(vcf, "GB")) + 100
+
+    command <<<
+        bcftools annotate ~{vcf} -x FORMAT,INFO -Oz -o ~{basename}.vcf.gz
+        bcftools index -t ~{basename}.vcf.gz
+    >>>
+
+    runtime {
+        docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+        memory: "3 GiB"
+        disks: "local-disk " + disk_size + " HDD"
+      }
+
+    output {
+        File output_vcf = "~{basename}.vcf.gz"
+        File output_vcf_index = "~{basename}.vcf.gz.tbi"
+    }
+}
+
+task InterleaveVariants {
+    input {
+        Array[File] vcfs
+        String basename
+    }
+
+    Int disk_size = ceil(3.2*size(vcfs, "GB")) + 100
+
+    command <<<
+        gatk MergeVcfs -I ~{sep=" -I " vcfs} -O ~{basename}.vcf.gz
+    >>>
+
+
+    runtime {
+        docker: "us.gcr.io/broad-gatk/gatk:4.2.0.0"
+        disks: "local-disk " + disk_size + " SSD"
+        memory: "16 GB"
+    }
+
+    output {
+        File output_vcf = "~{basename}.vcf.gz"
+        File output_vcf_index = "~{basename}.vcf.gz.tbi"
+    }
+}
+
+task FindSitesFileTwoOnly {
+	input {
+		File file1
+		File file2
+	}
+
+	Int disk_size = ceil(size(file1, "GB") + 2*size(file2, "GB")) + 100
+
+	command <<<
+		comm -13 <(sort ~{file1}) <(sort ~{file2}) > missing_sites.ids
+	>>>
+
+	runtime {
+		docker: "ubuntu:20.04"
+		disks: "local-disk " + disk_size + " SSD"
+		memory: "16 GB"
+	}
+
+	output {
+		File missing_sites = "missing_sites.ids"
 	}
 }
