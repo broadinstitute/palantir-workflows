@@ -22,8 +22,7 @@ workflow ImputationPipeline {
     Array[ReferencePanelContig] referencePanelContigs
     String genetic_maps_eagle = "/genetic_map_hg19_withX.txt.gz" # this is for Eagle, it is in the docker image 
     String output_callset_name = "broad_imputation" # the output callset name
-#    String path_to_reference_panel = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/eagle_panels/" # from the "Imputation and Polygenic Risk Score Files" workspace in Terra
-#    String path_to_m3vcf = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/minimac3_files/" # from the same workspace ^
+	Boolean split_output_to_single_sample = false
   }
 
   if (defined(single_sample_vcfs)) {
@@ -227,8 +226,17 @@ workflow ImputationPipeline {
   		basename = output_callset_name
   }
 
+  if (split_output_to_single_sample) {
+  	call SplitMultiSampleVcf {
+  		input:
+  			multiSampleVcf = InterleaveVariants.output_vcf
+  	}
+  }
+
 
   output {
+    Array[File]? imputed_single_sample_vcfs = SplitMultiSampleVcf.single_sample_vcfs
+    Array[File]? imputed_single_sample_vcf_indices = SplitMultiSampleVcf.single_sample_vcf_indices
     File imputed_multisample_vcf = InterleaveVariants.output_vcf
     File imputed_multisample_vcf_index = InterleaveVariants.output_vcf_index
     File aggregated_imputation_metrics = MergeImputationQCMetrics.aggregated_metrics
@@ -911,5 +919,33 @@ task FindSitesFileTwoOnly {
 
 	output {
 		File missing_sites = "missing_sites.ids"
+	}
+}
+
+task SplitMultiSampleVcf {
+	input {
+		File multiSampleVcf
+		Int mem = 8
+	}
+
+	Int disk_size = ceil(3*size(multiSampleVcf, "GB")) + 100
+
+	command <<<
+		mkdir out_dir
+		bcftools +split ~{multiSampleVcf} -Oz -o out_dir
+		for vcf in out_dir/*.vcf.gz; do
+			bcftools index -t $vcf
+		done
+	>>>
+
+	runtime {
+		docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+		disks: "local-disk " + disk_size + " SSD"
+		memory: mem + " GB"
+	}
+
+	output {
+		Array[File] single_sample_vcfs = glob("out_dir/*.vcf.gz")
+		Array[File] single_sample_vcf_indices = glob("out_dir/*.vcf.gz.tbi")
 	}
 }
