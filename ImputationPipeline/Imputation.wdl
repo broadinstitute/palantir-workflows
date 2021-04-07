@@ -23,6 +23,7 @@ workflow ImputationPipeline {
     String genetic_maps_eagle = "/genetic_map_hg19_withX.txt.gz" # this is for Eagle, it is in the docker image 
     String output_callset_name = "broad_imputation" # the output callset name
 	Boolean split_output_to_single_sample = false
+	File haplotype_database
   }
 
   if (defined(single_sample_vcfs)) {
@@ -226,11 +227,31 @@ workflow ImputationPipeline {
   		basename = output_callset_name
   }
 
+  call CrosscheckFingerprints {
+  	input:
+  		firstInputs = if (defined(multi_sample_vcf)) then [multi_sample_vcf] else single_sample_vcfs,
+  		firstInputIndices = if (defined(multi_sample_vcf)) then [multi_sample_vcf_index] else single_sample_vcf_indices,
+  		secondInputs = [InterleaveVariants.output_vcf],
+  		secondInputIndices = [InterleaveVariants.output_vcf_index],
+  		haplotypeDatabase = haplotype_database,
+  		basename = output_callset_name
+  }
+
   if (split_output_to_single_sample) {
   	call SplitMultiSampleVcf {
   		input:
   			multiSampleVcf = InterleaveVariants.output_vcf
   	}
+
+  	call CrosscheckFingerprints as CrosscheckFingerprintsSplit {
+      	input:
+      		firstInputs = SplitMultiSampleVcf.single_sample_vcfs,
+      		firstInputIndices = SplitMultiSampleVcf.single_sample_vcf_indices,
+      		secondInputs = [InterleaveVariants.output_vcf],
+      		secondInputIndices = [InterleaveVariants.output_vcf_index],
+      		haplotypeDatabase = haplotype_database,
+      		basename = output_callset_name + ".split"
+      }
   }
 
 
@@ -243,6 +264,8 @@ workflow ImputationPipeline {
     File chunks_info = StoreChunksInfo.chunks_info
     File failed_chunks = StoreChunksInfo.failed_chunks
     Int n_failed_chunks = StoreChunksInfo.n_failed_chunks
+    File crosscheck = CrosscheckFingerprints.crosscheck
+    File? crosscheck_split = CrosscheckFingerprintsSplit.crosscheck
   }
 }
 
@@ -947,5 +970,46 @@ task SplitMultiSampleVcf {
 	output {
 		Array[File] single_sample_vcfs = glob("out_dir/*.vcf.gz")
 		Array[File] single_sample_vcf_indices = glob("out_dir/*.vcf.gz.tbi")
+	}
+}
+
+task CrosscheckFingerprints {
+	input {
+		Array[File]+ firstInputs
+		Array[File]+ secondInputs
+		Array[File]+ firstInputIndices
+		Array[File]+ secondInputIndices
+		File haplotypeDatabase
+		String basename
+		Int mem = 8
+	}
+
+	Int disk_size = ceil(1.2*(size(firstInputs, "GB") + size(secondInputs, "GB") + size(haplotypeDatabase, "GB"))) + 100
+
+	command <<<
+		# add links to ensure correctly located indices
+		array_vcfs=( ~{sep=" " firstInputs} )
+		array_indices=( ~{sep=" " firstInputIndices}
+		for i in ${!array_vcfs[@]}; do
+			ln -s ${array_indices[i]} $(dirname ${array_vcfs[i]})
+		done
+
+		array_vcfs2=( ~{sep=" " secondInputs} )
+		array_indices2=( ~{sep=" " secondInputIndices}
+		for i in ${!array_vcfs2[@]}; do
+			ln -s ${array_indices2[i]} $(dirname ${array_vcfs2[i]})
+		done
+
+		gatk CrosscheckFingerprints -I ~{sep=" -I " firstInputs} -SI ~{sep=" -SI " secondInputs} -H ~{haplotypeDatabase} -O ~{basename}.crosscheck
+	>>>
+
+	runtime {
+		docker: "us.gcr.io/broad-gatk/gatk:4.2.0.0"
+		disks: "local-disk " + disk_size + " HDD"
+		memory: "16 GB"
+	}
+
+	output {
+		File crosscheck = "~{basename}.crosscheck"
 	}
 }
