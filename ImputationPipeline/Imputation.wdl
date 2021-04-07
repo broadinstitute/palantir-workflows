@@ -229,8 +229,8 @@ workflow ImputationPipeline {
 
   call CrosscheckFingerprints {
   	input:
-  		firstInputs = if (defined(multi_sample_vcf)) then [multi_sample_vcf] else single_sample_vcfs,
-  		firstInputIndices = if (defined(multi_sample_vcf)) then [multi_sample_vcf_index] else single_sample_vcf_indices,
+  		firstInputs = if (defined(multi_sample_vcf)) then select_all([multi_sample_vcf]) else select_first([single_sample_vcfs]),
+  		firstInputIndices = if (defined(multi_sample_vcf)) then select_all([multi_sample_vcf_index]) else select_first([single_sample_vcf_indices]),
   		secondInputs = [InterleaveVariants.output_vcf],
   		secondInputIndices = [InterleaveVariants.output_vcf_index],
   		haplotypeDatabase = haplotype_database,
@@ -245,10 +245,10 @@ workflow ImputationPipeline {
 
   	call CrosscheckFingerprints as CrosscheckFingerprintsSplit {
       	input:
-      		firstInputs = SplitMultiSampleVcf.single_sample_vcfs,
-      		firstInputIndices = SplitMultiSampleVcf.single_sample_vcf_indices,
-      		secondInputs = [InterleaveVariants.output_vcf],
-      		secondInputIndices = [InterleaveVariants.output_vcf_index],
+      		firstInputs = if (defined(multi_sample_vcf)) then select_all([multi_sample_vcf]) else select_first([single_sample_vcfs]),
+      		firstInputIndices = if (defined(multi_sample_vcf)) then select_all([multi_sample_vcf_index]) else select_first([single_sample_vcf_indices]),
+      		secondInputs = SplitMultiSampleVcf.single_sample_vcfs,
+      		secondInputIndices = SplitMultiSampleVcf.single_sample_vcf_indices,
       		haplotypeDatabase = haplotype_database,
       		basename = output_callset_name + ".split"
       }
@@ -975,10 +975,10 @@ task SplitMultiSampleVcf {
 
 task CrosscheckFingerprints {
 	input {
-		Array[File]+ firstInputs
-		Array[File]+ secondInputs
-		Array[File]+ firstInputIndices
-		Array[File]+ secondInputIndices
+		Array[File] firstInputs
+		Array[File] secondInputs
+		Array[File] firstInputIndices
+		Array[File] secondInputIndices
 		File haplotypeDatabase
 		String basename
 		Int mem = 8
