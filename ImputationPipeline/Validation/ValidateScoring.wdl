@@ -5,53 +5,41 @@ import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main
 
 workflow ValidateScoring {
 	input {
-		File? validationArrays
-		File validationArraysMain
-		File validationWgs
+		File? validationArrays #array to score with this branch
+		File validationArraysMain #array to score with main branch (will be used for this branch also if validationArrays not provided)
+		File validationWgs #wgs to score for comparison
 
-		String population_basename
+		String population_basename #sets name of population related output files
 
-		File population_loadings
-		File population_meansd
-		File population_pcs
+		File population_loadings #population pca
+		File population_meansd #population pca
+		File population_pcs #population pca
 		File pruning_sites_for_pca # and the sites used for PCA
 		File population_vcf
 
 		File weights
-		File sample_name_map
-		String branch
+		File sample_name_map #file mapping sample names in arrays to sample names in wgs.  ":" used as separator
+		String branch #name of branch being tested.  used for display in plots, does not effect computation
 
 		Int wgs_vcf_to_plink_mem = 8
 	}
 
-
-
+	#Extract the sites which are in the imputed vcf.  We will score the wgs over only the sites included in the imputed vcf
 	call ExtractIDs as extractImputedIDs {
 		input:
 			vcf = select_first([validationArrays, validationArraysMain]),
 			output_basename = "imputed"
 	}
 
-	call ExtractIDs as extractImputedIDsMain {
-		input:
-			vcf = validationArraysMain,
-			output_basename = "imputed"
-	}
 
-
+	#Subset the weights to only the sites in the imputed vcf
 	call SubsetWeights {
 		input:
 			sites = extractImputedIDs.ids,
 			weights = weights
 	}
 
-	call SubsetWeights as SubsetWeightsMain {
-		input:
-			sites = extractImputedIDsMain.ids,
-			weights = weights
-	}
-
-
+	#run scoring on this branch, using imputed data from this branch, or shared imputed data is we are studying only changes in scoring
 	call Scoring.ScoringImputedDataset as ScoreImputed {
 		input:
 			weights = weights,
@@ -66,6 +54,7 @@ workflow ValidateScoring {
 			redoPCA = true
 	}
 
+	#run scoring on main branch
 	call ScoringMain.ScoringImputedDataset as ScoreImputedMain {
 		input:
 			weights = weights,
@@ -80,12 +69,14 @@ workflow ValidateScoring {
 			redoPCA = true
 	}
 
+	#remove sites with any no-call genotypes from the wgs scoring.  otherwise no-calls in the wgs would skew the wgs scores in a way that would not be accounted for by the score adjustment
 	call QCSites {
 		input:
 			input_vcf = validationWgs,
 			output_vcf_basename = "wgsValidation"
 	}
 
+	#score wgs over only sites in the imputed array which are called in every wgs sample
 	call Scoring.ScoringImputedDataset as ScoreWGS {
 		input:
 			weights = SubsetWeights.subset_weights,
@@ -101,6 +92,7 @@ workflow ValidateScoring {
 			vcf_to_plink_mem = wgs_vcf_to_plink_mem
 	}
 
+	#compare this branch scores to wgs scores and to main branch scores
 	call CompareScores {
 		input:
 			arrayScores = ScoreImputed.adjusted_array_scores,

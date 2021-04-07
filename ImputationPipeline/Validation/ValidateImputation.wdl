@@ -6,27 +6,28 @@ import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main
 
 workflow validateImputation {
 	input {
-		File validationArrays
+		File validationArrays #input array vcf to use for validation
 		File validationArraysIndex
-		File validationWGS
-		String branch
+		File validationWGS #input wgs vcf to use for validation
+		String branch #name of branch being tested.  used for display in plots, does not effect computation
 
-		File? af_resource
-		String? gnomad_vcf_prefix
-		String? chr_prefix
-		Array[String]? expressions
+		File? af_resource #resource vcf containing population allele frequencies for sites
+		String? gnomad_vcf_prefix #gnomad vcf prefix, for annotating with population af if af_resource not provided
+		String? chr_prefix #"chr" is hg38, "" is hg19
+		Array[String]? expressions #population allele frequency annotation to extract from gnomad if af_resource is not provided
 
 		File? reference_fasta
 		File? reference_index
 		File? reference_dict
 
-		File subpopulation_af_expression
-		File samplePopulations
-		File? sample_map
+		File subpopulation_af_expression #File which maps sample to what allele frequence annotation should be used to extract subpopulation af from af_reource for each sample.  ":" used as separator
+		File samplePopulations #tsv which maps sample to it's subpopulation, for grouping samples in plots
+		File? sample_map #File which maps sample names in array to sample names in wgs.  ":" used as separator
 
 		Array[ReferencePanelContig] referencePanelContigs
 	}
 
+	#run imputation on this branch
 	call Imputation.ImputationPipeline {
 		input:
 			multi_sample_vcf = validationArrays,
@@ -35,6 +36,7 @@ workflow validateImputation {
 			perform_extra_qc_steps = false
 	}
 
+	#run imputation on main branch
 	call ImputationMain.ImputationPipeline as ImputationPipelineMain {
 		input:
 			multi_sample_vcf = validationArrays,
@@ -43,6 +45,7 @@ workflow validateImputation {
 			perform_extra_qc_steps = false
 	}
 
+	#if we do not have a af_resource from input, we need to make one by adding gnomad allele frequencies to a sites-only vcf of the imputed sites
 	if(!defined(af_resource)) {
 		call MakeSitesOnlyVcf {
 			input:
@@ -90,6 +93,7 @@ workflow validateImputation {
 		}
 	}
 
+	#imputation of this branch
 	call PearsonCorrelation {
 		input:
 			evalVcf = ImputationPipeline.imputed_multisample_vcf,
@@ -100,6 +104,7 @@ workflow validateImputation {
 			output_basename = "validation"
 	}
 
+	#imputation performance of main branch
 	call PearsonCorrelation as PearsonCorrelationMain{
 		input:
 			evalVcf = ImputationPipelineMain.imputed_multisample_vcf,
