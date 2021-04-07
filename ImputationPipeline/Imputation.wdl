@@ -989,13 +989,13 @@ task CrosscheckFingerprints {
 	command <<<
 		# add links to ensure correctly located indices
 		array_vcfs=( ~{sep=" " firstInputs} )
-		array_indices=( ~{sep=" " firstInputIndices}
+		array_indices=( ~{sep=" " firstInputIndices} )
 		for i in ${!array_vcfs[@]}; do
 			ln -s ${array_indices[i]} $(dirname ${array_vcfs[i]})
 		done
 
 		array_vcfs2=( ~{sep=" " secondInputs} )
-		array_indices2=( ~{sep=" " secondInputIndices}
+		array_indices2=( ~{sep=" " secondInputIndices} )
 		for i in ${!array_vcfs2[@]}; do
 			ln -s ${array_indices2[i]} $(dirname ${array_vcfs2[i]})
 		done
