@@ -900,7 +900,7 @@ task FindSitesFileTwoOnly {
 	Int disk_size = ceil(size(file1, "GB") + 2*size(file2, "GB")) + 100
 
 	command <<<
-		comm -13 <(sort ~{file1}) <(sort ~{file2}) > missing_sites.ids
+		comm -13 <(sort ~{file1} | uniq) <(sort ~{file2} | uniq) > missing_sites.ids
 	>>>
 
 	runtime {
