@@ -37,6 +37,7 @@ workflow FullImputationPRSValidation {
 		String branch
 
 		Int wgs_vcf_to_plink_mem = 8
+		File haplotype_database
 	}
 
 	call ValidateImputation.validateImputation {
@@ -54,7 +55,8 @@ workflow FullImputationPRSValidation {
 			subpopulation_af_expression = subpopulation_af_expression,
 			sample_map = sample_map,
 			referencePanelContigs = referencePanelContigs,
-			branch = branch
+			branch = branch,
+			haplotype_database = haplotype_database
 	}
 
 	call ValidateScoring.ValidateScoring {

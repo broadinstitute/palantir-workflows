@@ -25,6 +25,7 @@ workflow validateImputation {
 		File? sample_map #File which maps sample names in array to sample names in wgs.  ":" used as separator
 
 		Array[ReferencePanelContig] referencePanelContigs
+		File haplotype_database
 	}
 
 	#run imputation on this branch
@@ -33,7 +34,8 @@ workflow validateImputation {
 			multi_sample_vcf = validationArrays,
 			multi_sample_vcf_index = validationArraysIndex,
 			referencePanelContigs = referencePanelContigs,
-			perform_extra_qc_steps = false
+			perform_extra_qc_steps = false,
+			haplotype_database = haplotype_database
 	}
 
 	#run imputation on main branch
