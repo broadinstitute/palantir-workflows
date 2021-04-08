@@ -23,8 +23,6 @@ workflow ImputationPipeline {
     Array[ReferencePanelContig] referencePanelContigs
     String genetic_maps_eagle = "/genetic_map_hg19_withX.txt.gz" # this is for Eagle, it is in the docker image 
     String output_callset_name = "broad_imputation" # the output callset name
-#    String path_to_reference_panel = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/eagle_panels/" # from the "Imputation and Polygenic Risk Score Files" workspace in Terra
-#    String path_to_m3vcf = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/minimac3_files/" # from the same workspace ^
   }
 
   if (defined(single_sample_vcfs)) {
