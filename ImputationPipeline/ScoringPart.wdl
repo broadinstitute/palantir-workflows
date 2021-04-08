@@ -28,7 +28,7 @@ workflow ScoringImputedDataset {
     Boolean redoPCA = false
   }
 
-  call ExtractIDs as ExtractIDsPopulation{
+  call ExtractIDs as ExtractIDsPopulation {
   	input:
   		vcf = population_vcf,
   		output_basename = population_basename
@@ -41,7 +41,7 @@ workflow ScoringImputedDataset {
   	weights = weights,
   	base_mem = scoring_mem,
   	extra_args = columns_for_scoring,
-  	sites = ExtractIDsPopulation.sites
+  	sites = ExtractIDsPopulation.ids
   }
 
   call ExtractIDs {
