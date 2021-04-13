@@ -73,8 +73,7 @@ workflow FullImputationPRSValidation {
 			weights = weights,
 			sample_name_map = sample_name_map,
 			wgs_vcf_to_plink_mem = wgs_vcf_to_plink_mem,
-			branch = branch,
-			haplotype_database = haplotype_database
+			branch = branch
 	}
 
 	output {
