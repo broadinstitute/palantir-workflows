@@ -44,7 +44,8 @@ workflow validateImputation {
 			multi_sample_vcf = validationArrays,
 			multi_sample_vcf_index = validationArraysIndex,
 			referencePanelContigs = referencePanelContigs,
-			perform_extra_qc_steps = false
+			perform_extra_qc_steps = false,
+			haplotype_database = haplotype_database
 	}
 
 	#if we do not have a af_resource from input, we need to make one by adding gnomad allele frequencies to a sites-only vcf of the imputed sites
