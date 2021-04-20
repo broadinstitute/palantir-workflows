@@ -1134,12 +1134,12 @@ task SummariseVcfEval {
                 table_vcfeval$UNK[table_vcfeval$Type=="SNP"]=args[6]
                 table_vcfeval$UNK[table_vcfeval$Type=="INDEL"]=args[7]
             }
-            write(table_vcfeval[table_vcfeval$Type=="SNP",]$Precision,"snpPrecision.txt")
-            write(table_vcfeval[table_vcfeval$Type=="INDEL",]$Precision,"indelPrecision.txt")
-            write(table_vcfeval[table_vcfeval$Type=="SNP",]$Recall,"snpRecall.txt")
-            write(table_vcfeval[table_vcfeval$Type=="INDEL",]$Recall,"indelRecall.txt")
-            write(table_vcfeval[table_vcfeval$Type=="SNP",]$F1_Score,"snpF1Score.txt")
-            write(table_vcfeval[table_vcfeval$Type=="INDEL",]$F1_Score,"indelF1Score.txt")
+            write(ifelse(is.na(table_vcfeval[table_vcfeval$Type=="SNP",  ]$Precision), 0, table_vcfeval[table_vcfeval$Type=="SNP",  ]$Precision), "snpPrecision.txt")
+            write(ifelse(is.na(table_vcfeval[table_vcfeval$Type=="INDEL",]$Precision), 0, table_vcfeval[table_vcfeval$Type=="INDEL",]$Precision), "indelPrecision.txt")
+            write(ifelse(is.na(table_vcfeval[table_vcfeval$Type=="SNP",  ]$Recall),    0, table_vcfeval[table_vcfeval$Type=="SNP",  ]$Recall),    "snpRecall.txt")
+            write(ifelse(is.na(table_vcfeval[table_vcfeval$Type=="INDEL",]$Recall),    0, table_vcfeval[table_vcfeval$Type=="INDEL",]$Recall),    "indelRecall.txt")
+            write(ifelse(is.na(table_vcfeval[table_vcfeval$Type=="SNP",  ]$F1_Score),  0, table_vcfeval[table_vcfeval$Type=="SNP",  ]$F1_Score),  "snpF1Score.txt")
+            write(ifelse(is.na(table_vcfeval[table_vcfeval$Type=="INDEL",]$F1_Score),  0, table_vcfeval[table_vcfeval$Type=="INDEL",]$F1_Score),  "indelF1Score.txt")
         } else {
             types <- c("INDEL","SNP")
             recall <- c(NA,NA)
