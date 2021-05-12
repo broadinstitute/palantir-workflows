@@ -253,11 +253,11 @@ task CrosscheckFingerprints {
   }
   parameter_meta {
     input_data: {
-      localization_optional: true
+      localization_optional: false
     }
    
     ground_truth_files: {
-      localization_optional: true
+      localization_optional: false
     }
   }  
   
