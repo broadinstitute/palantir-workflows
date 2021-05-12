@@ -253,11 +253,11 @@ task CrosscheckFingerprints {
   }
   parameter_meta {
     input_data: {
-      localization_optional: false
+      localization_optional: true
     }
    
     ground_truth_files: {
-      localization_optional: false
+      localization_optional: true
     }
   }  
   
@@ -266,7 +266,8 @@ task CrosscheckFingerprints {
   command <<<
     bash ~{monitoring_script} > /cromwell_root/monitoring.log &
 
-    
+    gsutil cp ~{sep=" " ground_truth_files} .
+
     java -Xmx7g -jar ~{picard_jar} CrosscheckFingerprints \
       INPUT=~{sep=" INPUT=" input_data} \
       SECOND_INPUT=~{sep=" SECOND_INPUT=" ground_truth_files} \
