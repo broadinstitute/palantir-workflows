@@ -279,8 +279,8 @@ task CompareRawScores {
 		library(ggplot2)
 		library(purrr)
 
-		array_scores <- read_tsv("~{arrayScores}") %>% transmute(#IID, raw_score_array=SCORE1_SUM)
-		wgs_score <- read_tsv("~{wgsScores}") %>% transmute(#IID, raw_score_wgs=SCORE1_SUM)
+		array_scores <- read_tsv("~{arrayScores}") %>% transmute(`#IID`, raw_score_array=SCORE1_SUM)
+		wgs_score <- read_tsv("~{wgsScores}") %>% transmute(`#IID`, raw_score_wgs=SCORE1_SUM)
 
 		sample_names <- read_delim("~{sample_name_map}", delim=":", col_names=FALSE)
 
