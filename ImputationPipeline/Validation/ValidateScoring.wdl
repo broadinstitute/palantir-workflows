@@ -286,7 +286,7 @@ task CompareRawScores {
 
 
 
-		combined_scores <- inner_join(inner_join(array_scores, sample_names, by=c("IID"="X1")), wgs_score, by=c("X2"="IID"))
+		combined_scores <- inner_join(inner_join(array_scores, sample_names, by=c("#IID"="X1")), wgs_score, by=c("X2"="#IID"))
 
 		ggplot(combined_scores, aes(x=raw_score_array, y=raw_score_wgs)) +
 		geom_point() +
