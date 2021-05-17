@@ -244,7 +244,7 @@ task CrosscheckFingerprints {
     File monitoring_script
     Array[String] input_data
     String metrics_basename
-    Array[File] ground_truth_files
+    Array[String] ground_truth_files
     File haplotype_database
     Int disk_size
     Int preemptible_tries
