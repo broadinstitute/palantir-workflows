@@ -82,11 +82,13 @@ workflow FullImputationPRSValidation {
 		File correlations_plot = validateImputation.correlations_plot
 		File aggregated_imputation_metrics = validateImputation.aggregated_imputation_metrics
 
-		File score_comparison_branch = ValidateScoring.score_comparison_branch
-		File score_comparison_main_vs_branch = ValidateScoring.score_comparison_main_vs_branch
-		File pc_plot = ValidateScoring.pc_plot
+		File? score_comparison_branch = ValidateScoring.score_comparison_branch
+		File? score_comparison_main_vs_branch = ValidateScoring.score_comparison_main_vs_branch
+		File? pc_plot = ValidateScoring.pc_plot
+		File? raw_score_comparison_branch = ValidateScoring.raw_score_comparison_branch
 		Int n_original_sites = ValidateScoring.n_original_sites
 		Int n_subset_sites = ValidateScoring.n_subset_sites
+		Int? n_subset_sites_wgs = ValidateScoring.n_subset_sites_wgs
 	}
 }
 
