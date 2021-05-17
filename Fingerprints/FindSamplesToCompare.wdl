@@ -242,7 +242,7 @@ struct Match{
 task CrosscheckFingerprints {
   input {
     File monitoring_script
-    Array[File] input_data
+    Array[String] input_data
     String metrics_basename
     Array[File] ground_truth_files
     File haplotype_database
@@ -251,15 +251,6 @@ task CrosscheckFingerprints {
     String docker
     File picard_jar
   }
-  parameter_meta {
-    input_data: {
-      localization_optional: true
-    }
-   
-    ground_truth_files: {
-      localization_optional: true
-    }
-  }  
   
   String tsv_out="~{metrics_basename}.fingerprints_metrics"
 
