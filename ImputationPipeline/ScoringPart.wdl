@@ -245,7 +245,6 @@ task ProjectArray {
 # This does the scoring adjustment
 task AdjustScores {
 	input {
-#		File adjusting_Rscript
 		File population_pcs
 		File population_scores 
 		File array_pcs
