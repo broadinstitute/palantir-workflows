@@ -270,9 +270,6 @@ task AdjustScores {
 
 			# calculate adjusted score on population data,  make sure it's standardized to N(0, 1)
 			population_data$adjusted_score = (population_data$residual_score - population_resid_mean)/population_resid_sd
-			print("check that adjusted population distribution follows N(0,1)")
-			print(round(mean(population_data$adjusted_score),5) == 0)
-			print(round(sd(population_data$adjusted_score), 5) == 1)
 
 			# this calculates the adjusted score for the new data
 			generate_adjusted_scores = function(new_data) {
