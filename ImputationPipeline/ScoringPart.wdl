@@ -252,7 +252,7 @@ task AdjustScores {
 		Int mem = 2
 	}
 	command <<<
-		Rscript <<- "EOF"
+		Rscript - <<- "EOF"
 			library(ggplot2)
 			library(dplyr)
 
