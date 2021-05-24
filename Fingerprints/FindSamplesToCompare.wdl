@@ -24,8 +24,8 @@ workflow FindSamplesToCompare {
 
         String docker 
 
-        File? interval_list_override
-        File? runs_file_override
+        File? interval_list_override = "gs://concordance/interval_lists/chr9.hg38.interval_list"
+        File? runs_file_override = "gs://concordance/hg38/runs.conservative.bed"
         String comparison_docker
 
         String? analysis_region
@@ -47,12 +47,7 @@ workflow FindSamplesToCompare {
         Array[String] variantSelectorLabels = ["deletion","insertion"]
     }
 
-
-    File interval_list = select_first([interval_list_override, "gs://concordance/interval_lists/chr9.hg38.interval_list"])
-    File runs_file = select_first([runs_file_override, "gs://concordance/hg38/runs.conservative.bed"])
-    
-
-    Int VCF_disk_size = 50
+    Int VCF_disk_size = size(input_callset, "GiB") + 10
     File monitoring_script="gs://broad-dsde-methods-monitoring/cromwell_monitoring_script.sh"
 
     call MakeStringMap as intervalsMap {input: keys=ground_truth_files, values=ground_truth_intervals}
@@ -62,16 +57,6 @@ workflow FindSamplesToCompare {
     Map[File, File]   truthIntervals = intervalsMap.map
     Map[File, String] truthLabels    = lablesMap.map
     Map[File, File]   truthIndex     = indexesMap.map
-
-    #call SwitchFilterAnnotation {
-    #    input:
-    #        input_vcf = input_callset[0],
-    #        INFO_TAG_OLD="VQSLOD",
-    #        INFO_TAG_NEW="TREE_SCORE",
-    #        output_vcf_basename = "callset_swapped_score",
-    #        preemptible_tries = 0,
-    #        disk_size = 2*size(input_callset, "GiB") + 20
-    #  }
 
     call CrosscheckFingerprints {
          input:
@@ -179,28 +164,6 @@ workflow FindSamplesToCompare {
 
 
             Pair[File,File] vcf_and_index_to_compare = select_first([vcf_and_index_symbolic_removed,vcf_and_index_original])
-
-            #call CompareToGroundTruth {
-            #    input:
-            #        monitoring_script=monitoring_script,
-            #        left_sample_name = match.leftSample,
-            #        right_sample_name = match.rightSample,
-            #        input_vcf = vcf_and_index_to_compare.left,
-            #        input_vcf_index = vcf_and_index_to_compare.right,
-            #        input_vcf_name = match.leftSample,
-            #        truth_vcf = match.rightFile,
-            #        truth_vcf_index = truthIndex[match.rightFile],
-            #        truth_high_confidence = truthIntervals[match.rightFile],
-            #        interval_list=interval_list,
-            #        runs_file=runs_file,
-            #        ref_fasta=ref_fasta,
-            #        ref_fasta_sdf=ref_fasta_sdf,
-            #        annotation_intervals=annotation_intervals,
-            #        preemptible_tries=3,
-            #        disk_size=compareSize+20,
-            #        docker=comparison_docker,
-            #        no_address=true
-            #}
 
     }
     call Benchmark.CombineSummaries as CombineSummaries{
