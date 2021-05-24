@@ -20,7 +20,6 @@ workflow ScoringImputedDataset {
     File pruning_sites_for_pca # and the sites used for PCA
     File population_vcf # population VCF, output from PerformPopulationPCA.  The variant IDs must exactly match those in the weights file
 
-    File adjust_scores_rscript = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/ScoringAdjustment.R" 
     String? columns_for_scoring # Plink expects the first 3 columns in your weights file to be variant ID, effect allele, effect weight
     # if this isn't true, then you should give it the correct column #s in that order
     # example: if you were to set columns_for_scoring = "11 12 13" would mean that the 11th column is the variant ID, the 12th column 
@@ -98,7 +97,6 @@ workflow ScoringImputedDataset {
 
   call AdjustScores {
   	input:
-  	adjusting_Rscript = adjust_scores_rscript,
   	population_pcs = select_first([PerformPCA.pcs, population_pcs]),
   	population_scores = ScorePopulation.score,
   	array_pcs = ProjectArray.projections,
@@ -247,7 +245,6 @@ task ProjectArray {
 # This does the scoring adjustment
 task AdjustScores {
 	input {
-		File adjusting_Rscript
 		File population_pcs
 		File population_scores 
 		File array_pcs
@@ -255,9 +252,38 @@ task AdjustScores {
 		Int mem = 2
 	}
 
-	command {
-		Rscript ~{adjusting_Rscript} ~{population_pcs} ~{population_scores} ~{array_pcs} ~{array_scores}
-	}
+	command <<<
+		Rscript - <<- "EOF"
+			library(ggplot2)
+			library(dplyr)
+
+			population_pcs = read.csv("~{population_pcs}", sep="\t", header = T)
+			population_scores = read.csv("~{population_scores}", sep="\t", header = T)
+
+			population_data = merge(population_pcs, population_scores, by.x="IID", by.y="X.IID")
+
+			# generate the linear model from the population data using the first 5 PCs
+			population_model = glm(SCORE1_SUM ~ PC1 + PC2 + PC3 + PC4 + PC5, data = population_data, family = "gaussian")
+
+			population_data$residual_score = resid(population_model)
+			population_resid_mean = mean(population_data$residual_score)
+			population_resid_sd = sd(population_data$residual_score)
+
+			# calculate adjusted score on population data,  make sure it's standardized to N(0, 1)
+			population_data$adjusted_score = (population_data$residual_score - population_resid_mean)/population_resid_sd
+
+			# this calculates the adjusted score for the new data
+			generate_adjusted_scores = function(new_data) {
+			subset_data_for_model = new_data %>% transmute(raw_score = SCORE1_SUM, PC1=PC1, PC2=PC2, PC3=PC3, PC4=PC4, PC5=PC5)
+			new_data$residual_score = subset_data_for_model$raw_score - predict(population_model, subset_data_for_model) # calculate the residual score from the model
+			new_data$adjusted_score = (new_data$residual_score - population_resid_mean)/population_resid_sd # again adjust compared to population
+			new_data %>% rowwise() %>% mutate(percentile=pnorm(adjusted_score, round(mean(population_data$adjusted_score),5),
+			round(sd(population_data$adjusted_score), 5) == 1))
+			}
+
+			array_scores = merge(read.csv("~{array_pcs}",  sep = "\t", header = T),
+				read.csv("~{array_scores}",  sep = "\t", header = T), by.x="IID", by.y="X.IID")
+	>>>
 
 	output {
 		File pca_plot = "PCA_plot.png"
