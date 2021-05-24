@@ -20,6 +20,7 @@ workflow ScoringImputedDataset {
     File pruning_sites_for_pca # and the sites used for PCA
     File population_vcf # population VCF, output from PerformPopulationPCA.  The variant IDs must exactly match those in the weights file
 
+    File adjust_scores_rscript = "gs://fc-6413177b-e99c-4476-b085-3da80d320081/ScoringAdjustment.R" 
     String? columns_for_scoring # Plink expects the first 3 columns in your weights file to be variant ID, effect allele, effect weight
     # if this isn't true, then you should give it the correct column #s in that order
     # example: if you were to set columns_for_scoring = "11 12 13" would mean that the 11th column is the variant ID, the 12th column 
@@ -97,6 +98,7 @@ workflow ScoringImputedDataset {
 
   call AdjustScores {
   	input:
+  	adjusting_Rscript = adjust_scores_rscript,
   	population_pcs = select_first([PerformPCA.pcs, population_pcs]),
   	population_scores = ScorePopulation.score,
   	array_pcs = ProjectArray.projections,
@@ -245,12 +247,14 @@ task ProjectArray {
 # This does the scoring adjustment
 task AdjustScores {
 	input {
+		File adjusting_Rscript
 		File population_pcs
 		File population_scores 
 		File array_pcs
 		File array_scores
 		Int mem = 2
 	}
+
 	command <<<
 		Rscript - <<- "EOF"
 			library(ggplot2)
@@ -282,21 +286,6 @@ task AdjustScores {
 
 			array_scores = merge(read.csv("~{array_pcs}",  sep = "\t", header = T),
 				read.csv("~{array_scores}",  sep = "\t", header = T), by.x="IID", by.y="X.IID")
-
-			adjusted_array_scores = generate_adjusted_scores(array_scores)
-
-			# make sure the PCs fit well between the array and the population data
-			ggplot(population_data, aes(x=PC1, y=PC2, color="Population Data")) + geom_point() + geom_point() +
-			geom_point(data = array_scores, aes(x=PC1, y=PC2, color="Array Data")) + labs(x="PC1", y="PC2") + theme_bw()
-			ggsave(filename = "PCA_plot.png", dpi=300, width = 6, height = 6)
-
-			# return population scores
-			write.table(population_data %>% subset(select = -residual_score), file = "population_data_scores.tsv", sep="\t", row.names=F, quote = F)
-
-			# return array scores
-			write.table(adjusted_array_scores %>% subset(select = -residual_score), file = "array_data_scores.tsv", sep="\t", row.names=F, quote = F)
-
-		EOF
 	>>>
 
 	output {
