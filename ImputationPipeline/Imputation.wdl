@@ -25,6 +25,7 @@ workflow ImputationPipeline {
     String output_callset_name = "broad_imputation" # the output callset name
 	Boolean split_output_to_single_sample = false
 	File haplotype_database
+    Int merge_ssvcf_mem = 3 # the memory allocation for MergeSingleSampleVcfs (in GiB)
   }
 
   if (defined(single_sample_vcfs)) {
@@ -32,7 +33,8 @@ workflow ImputationPipeline {
       input:
         input_vcfs = select_first([single_sample_vcfs, []]),
         input_vcf_indices = select_first([single_sample_vcf_indices, []]),
-        output_vcf_basename = "merged_input_samples"
+        output_vcf_basename = "merged_input_samples",
+        mem = merge_ssvcf_mem
     }
   }
 
@@ -647,6 +649,7 @@ task MergeSingleSampleVcfs {
     Array[File] input_vcfs
     Array[File] input_vcf_indices
     String output_vcf_basename
+    Int mem
    }
 
    Int disk_size = 3* ceil(size(input_vcfs, "GB") + size(input_vcf_indices, "GB")) + 20
@@ -658,7 +661,7 @@ task MergeSingleSampleVcfs {
 
   runtime {
     docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
-    memory: "3 GiB"
+    memory: mem + " GiB"
     disks: "local-disk " + disk_size + " HDD"
   }
   output {
