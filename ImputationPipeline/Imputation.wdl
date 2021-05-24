@@ -33,6 +33,8 @@ workflow ImputationPipeline {
   String gatk_docker_tag = "us.gcr.io/broad-gatk/gatk:4.1.9.0"
   String minimac4_docker_tag = "us.gcr.io/broad-dsde-methods/imputation-minimac-docker:v1.0.0" #"us.gcr.io/broad-dsde-methods/skwalker-imputation:test" # this has the exact version of minimac and eagle we want to perfectly match Michigan Server
   String eagle_docker_tag = "us.gcr.io/broad-dsde-methods/imputation_eagle_docker:v1.0.0"
+  String ubuntu_docker_tag = "ubuntu:20.04"
+  String rtidyverse_docker_tag = "rocker/tidyverse:4.1.0"
 
   if (defined(single_sample_vcfs)) {
     call MergeSingleSampleVcfs {
@@ -164,7 +166,8 @@ workflow ImputationPipeline {
           	input:
           		infoFile = minimac4.info,
           		nSamples = CountSamples.nSamples,
-          		basename = output_callset_name + "chrom_" + referencePanelContig.contig + "_chunk_" + i
+          		basename = output_callset_name + "chrom_" + referencePanelContig.contig + "_chunk_" + i,
+                rtidyverse_docker = rtidyverse_docker_tag
           }
 
         call UpdateHeader {
@@ -226,7 +229,8 @@ workflow ImputationPipeline {
   call FindSitesFileTwoOnly {
     input:
         file1 = ExtractIDs.ids,
-        file2 = ExtractIdsVcfToImpute.ids
+        file2 = ExtractIdsVcfToImpute.ids,
+        ubuntu_docker = ubuntu_docker_tag
   }
 
   call SelectVariantsByIds {
@@ -254,7 +258,8 @@ workflow ImputationPipeline {
   call MergeImputationQCMetrics {
   	input:
   		metrics = flatten(aggregatedImputationMetrics),
-  		basename = output_callset_name
+  		basename = output_callset_name,
+        rtidyverse_docker = rtidyverse_docker_tag
   }
 
 
@@ -266,7 +271,8 @@ workflow ImputationPipeline {
   		vars_in_array = flatten(CountChunks.var_in_original),
   		vars_in_panel = flatten(CountChunks.var_in_reference),
   		valids = flatten(CheckChunks.valid),
-  		basename = output_callset_name
+  		basename = output_callset_name,
+        rtidyverse_docker = rtidyverse_docker_tag
   }
 
   call CrosscheckFingerprints {
@@ -753,7 +759,7 @@ task CountSamples {
 	>>>
 
 	runtime {
-		docker: bcftools_docker #"biocontainers/bcftools:v1.9-1-deb_cv1"
+		docker: bcftools_docker
 		memory: "3 GiB"
 		disks: "local-disk " + disk_size + " HDD"
   	}
@@ -768,6 +774,7 @@ task AggregateImputationQCMetrics {
 		File infoFile
 		Int nSamples
 		String basename
+        String rtidyverse_docker
 	}
 
 	Int disk_size = 100 + ceil(size(infoFile, "GB"))
@@ -793,7 +800,7 @@ task AggregateImputationQCMetrics {
 	>>>
 
 	runtime {
-		docker: "rocker/tidyverse"
+		docker: rtidyverse_docker
 		disks : "local-disk " + disk_size + " HDD"
 		preemptible : 3
 	}
@@ -812,6 +819,7 @@ task StoreChunksInfo {
 		Array[Int] vars_in_panel
 		Array[Boolean] valids
 		String basename
+        String rtidyverse_docker
 	}
 
 	command <<<
@@ -829,7 +837,7 @@ task StoreChunksInfo {
 	>>>
 
 	runtime {
-		docker: "rocker/tidyverse"
+		docker: rtidyverse_docker
 		preemptible : 3
 	}
 
@@ -844,6 +852,7 @@ task MergeImputationQCMetrics {
 	input {
 		Array[File] metrics
 		String basename
+        String rtidyverse_docker
 	}
 
 	Int disk_size = 100 + ceil(size(metrics, "GB"))
@@ -863,7 +872,7 @@ task MergeImputationQCMetrics {
 	>>>
 
 	runtime {
-		docker: "rocker/tidyverse"
+		docker: rtidyverse_docker
 		disks : "local-disk " + disk_size + " HDD"
 		preemptible : 3
 	}
@@ -889,7 +898,7 @@ task SetIDs {
     >>>
 
     runtime {
-        docker: bcftools_docker #"biocontainers/bcftools:v1.9-1-deb_cv1"
+        docker: bcftools_docker
         disks: "local-disk " + disk_size + " HDD"
         memory: "4 GB"
     }
@@ -915,7 +924,7 @@ task ExtractIDs {
          File ids = "~{output_basename}.ids"
      }
      runtime {
-         docker: bcftools_docker #"biocontainers/bcftools:v1.9-1-deb_cv1"
+         docker: bcftools_docker
          disks: "local-disk " + disk_size + " HDD"
          memory: "4 GB"
      }
@@ -944,7 +953,7 @@ task SelectVariantsByIds {
     >>>
 
     runtime {
-            docker: gatk_docker #"us.gcr.io/broad-gatk/gatk:4.2.0.0"
+            docker: gatk_docker
             disks: "local-disk " + disk_size + " SSD"
             memory: "16 GB"
         }
@@ -970,7 +979,7 @@ task RemoveAnnotations {
     >>>
 
     runtime {
-        docker: bcftools_docker #"biocontainers/bcftools:v1.9-1-deb_cv1"
+        docker: bcftools_docker
         memory: "3 GiB"
         disks: "local-disk " + disk_size + " HDD"
       }
@@ -996,7 +1005,7 @@ task InterleaveVariants {
 
 
     runtime {
-        docker: gatk_docker #"us.gcr.io/broad-gatk/gatk:4.2.0.0"
+        docker: gatk_docker
         disks: "local-disk " + disk_size + " SSD"
         memory: "16 GB"
     }
@@ -1011,6 +1020,7 @@ task FindSitesFileTwoOnly {
 	input {
 		File file1
 		File file2
+        String ubuntu_docker
 	}
 
 	Int disk_size = ceil(size(file1, "GB") + 2*size(file2, "GB")) + 100
@@ -1020,7 +1030,7 @@ task FindSitesFileTwoOnly {
 	>>>
 
 	runtime {
-		docker: "ubuntu:20.04"
+		docker: ubuntu_docker
 		disks: "local-disk " + disk_size + " SSD"
 		memory: "16 GB"
 	}
@@ -1048,7 +1058,7 @@ task SplitMultiSampleVcf {
 	>>>
 
 	runtime {
-		docker: bcftools_docker #"biocontainers/bcftools:v1.9-1-deb_cv1"
+		docker: bcftools_docker
 		disks: "local-disk " + disk_size + " SSD"
 		memory: mem + " GB"
 	}
@@ -1091,7 +1101,7 @@ task CrosscheckFingerprints {
 	>>>
 
 	runtime {
-		docker: gatk_docker #"us.gcr.io/broad-gatk/gatk:4.2.0.0"
+		docker: gatk_docker
 		disks: "local-disk " + disk_size + " HDD"
 		memory: "16 GB"
 	}
