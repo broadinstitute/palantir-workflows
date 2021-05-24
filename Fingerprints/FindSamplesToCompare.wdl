@@ -11,8 +11,8 @@ workflow FindSamplesToCompare {
         Array[String] truth_labels
         Array[File] annotation_intervals
 
-        File gatkJarForAnnotation
-        String annotationName
+        File? gatkJarForAnnotation
+        String? annotationName
   
         File ref_fasta
         File ref_fasta_index
