@@ -58,7 +58,7 @@ workflow Benchmark {
         passingOnly: {description:"Have vcfEval only consider the passing variants"}
         vcfScoreField: {description:"Have vcfEval use this field for making the roc-plot. If this is an info field (like VSQLOD) it should be provided as INFO.VQSLOD, otherewise it is assumed to be a format field."}
         gatkJarForAnnotation: {description:"GATK jar that can calculate necessary annotations for jexl Selections when using VCFEval."}
-        annotationName: {description:"Annotation argument to GATK (-A argument)"}
+        annotationNames: {description:"Annotation arguments to GATK (-A argument, multiple OK)"}
     }
 
 
@@ -317,7 +317,7 @@ workflow Benchmark {
                     gatkTag=gatkTag,
                     preemptible=preemptible,
                     gatkJarForAnnotation = gatkJarForAnnotation,
-                    annotationName = annotationName,
+                    annotationNames = annotationNames,
                     reference = reference,
                     refDict = refDict,
                     refIndex = refIndex
@@ -373,7 +373,7 @@ workflow Benchmark {
                             gatkTag=gatkTag,
                             preemptible=preemptible,
                             gatkJarForAnnotation = gatkJarForAnnotation,
-                            annotationName = annotationName,
+                            annotationNames = annotationNames,
                             reference = reference,
                             refDict = refDict,
                             refIndex = refIndex
@@ -946,7 +946,7 @@ task EvalForVariantSelection {
         String sampleBase
         String gatkTag
 
-        String? annotationName
+        Array[String] annotationNames=[]
         File? gatkJarForAnnotation
         File reference
         File refDict
@@ -969,7 +969,7 @@ task EvalForVariantSelection {
 
         VCF=~{vcf}
         if [[ ! -z "~{gatkJarForAnnotation}" ]]; then
-            java -jar ~{gatkJarForAnnotation} VariantAnnotator -V ~{vcf} -O annotated.vcf.gz -A ~{annotationName} -R ~{reference}
+            java -jar ~{gatkJarForAnnotation} VariantAnnotator -V ~{vcf} -O annotated.vcf.gz ~{length(annotationNames)>0 true="-A" false=""} ~{sep=" -A " annotationNames} -R ~{reference}            
             VCF=annotated.vcf.gz
         fi
 
