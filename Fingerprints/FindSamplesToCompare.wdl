@@ -12,7 +12,7 @@ workflow FindSamplesToCompare {
         Array[File] annotation_intervals
 
         File gatkJarForAnnotation
-        String annotationNames
+        Array[String] annotationNames
   
         File ref_fasta
         File ref_fasta_index
