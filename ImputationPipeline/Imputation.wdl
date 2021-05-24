@@ -156,7 +156,7 @@ workflow ImputationPipeline {
             phased_vcf = PrePhaseVariantsEagle.dataset_prephased_vcf,
             prefix = "chrom" + "_chunk_" + i +"_imputed",
             chrom = referencePanelContig.contig,
-            minimac4_docker = minimac4_docker_tag
+            minimac4_docker = minimac4_docker_tag,
             start = start,
             end = end,
             window = chunkOverlaps
