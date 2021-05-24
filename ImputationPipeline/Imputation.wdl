@@ -74,7 +74,8 @@ workflow ImputationPipeline {
 
   call CountSamples {
     	input:
-    		vcf = vcf_to_impute
+    		vcf = vcf_to_impute,
+            bcftools_docker = bcftools_docker_tag
     }
 
   scatter (referencePanelContig in referencePanelContigs) {
