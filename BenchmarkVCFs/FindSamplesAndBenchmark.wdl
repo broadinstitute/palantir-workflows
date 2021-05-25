@@ -1,7 +1,7 @@
 version 1.0
-import "../BenchmarkVCFs/BenchmarkVCFs.wdl" as Benchmark
+import "BenchmarkVCFs.wdl" as Benchmark
 
-workflow FindSamplesToCompare {
+workflow FindSamplesAndBenchmark {
     
     input {
         Array[File] input_callset

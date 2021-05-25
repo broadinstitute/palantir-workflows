@@ -24,6 +24,6 @@ workflows:
   - name: FullImputationPRSValidation
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/Validation/FullImputationPRSValidation.wdl
-  - name: FindSamplesToCompare
+  - name: FindSamplesAndBenchmark
     subclass: WDL
-    primaryDescriptorPath: /Fingerprints/FindSamplesToCompare.wdl
+    primaryDescriptorPath: /BenchmarkVCFs/FindSamplesAndBenchmark.wdl
