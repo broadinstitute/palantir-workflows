@@ -47,7 +47,7 @@ workflow FindSamplesToCompare {
         Array[String] variantSelectorLabels = ["deletion","insertion"]
     }
 
-    Float VCF_disk_size = size(input_callset, "GiB") + 10
+    Int VCF_disk_size = ciel(size(input_callset, "GiB")) + 10
     File monitoring_script="gs://broad-dsde-methods-monitoring/cromwell_monitoring_script.sh"
 
     call MakeStringMap as intervalsMap {input: keys=ground_truth_files, values=ground_truth_intervals}
@@ -209,7 +209,7 @@ task CrosscheckFingerprints {
     String metrics_basename
     Array[File] ground_truth_files
     File haplotype_database
-    Float disk_size
+    Int disk_size
     Int preemptible_tries
     String docker
     File picard_jar
