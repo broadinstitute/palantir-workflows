@@ -47,7 +47,7 @@ workflow FindSamplesToCompare {
         Array[String] variantSelectorLabels = ["deletion","insertion"]
     }
 
-    Int VCF_disk_size = ciel(size(input_callset, "GiB")) + 10
+    Int VCF_disk_size = ceil(size(input_callset, "GiB")) + 10
     File monitoring_script="gs://broad-dsde-methods-monitoring/cromwell_monitoring_script.sh"
 
     call MakeStringMap as intervalsMap {input: keys=ground_truth_files, values=ground_truth_intervals}
