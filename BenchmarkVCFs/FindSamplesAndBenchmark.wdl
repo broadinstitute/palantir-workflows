@@ -24,19 +24,13 @@ workflow FindSamplesAndBenchmark {
 
         String docker 
 
-        File? interval_list_override = "gs://concordance/interval_lists/chr9.hg38.interval_list"
-        File? runs_file_override = "gs://concordance/hg38/runs.conservative.bed"
-        String comparison_docker
+        File? interval_list_override
 
         String? analysis_region
 
         Boolean remove_symbolic_alleles=false
 
-        Array[File] stratIntervals = [
-                         "gs://concordance/hg38/runs.conservative.bed",
-                         "gs://concordance/hg38/LCR-hs38.bed",
-                         "gs://concordance/hg38/mappability.0.bed",
-                         "gs://concordance/hg38/exome.twist.bed"]
+        Array[File] stratIntervals
         Array[String] stratLabels = [
                          "HMER_7_and_up",
                          "LCR-hs38",
@@ -45,10 +39,12 @@ workflow FindSamplesAndBenchmark {
 
         Array[String] jexlVariantSelectors = ["vc.isSimpleIndel()  && vc.getIndelLengths().0<0", "vc.isSimpleIndel() && vc.getIndelLengths().0>0"]
         Array[String] variantSelectorLabels = ["deletion","insertion"]
+        # Input for monitoring_script can be found here:https://github.com/broadinstitute/palantir-workflows/blob/main/Scripts/monitoring/cromwell_monitoring_script.sh.
+        # It must be copied to a google bucket and then the google bucket path can be used as the input for monitoring_script.
+        File monitoring_script
     }
 
     Int VCF_disk_size = ceil(size(input_callset, "GiB")) + 10
-    File monitoring_script="gs://broad-dsde-methods-monitoring/cromwell_monitoring_script.sh"
 
     call MakeStringMap as intervalsMap {input: keys=ground_truth_files, values=ground_truth_intervals}
     call MakeStringMap as lablesMap    {input: keys=ground_truth_files, values=truth_labels}
@@ -179,8 +175,6 @@ workflow FindSamplesAndBenchmark {
 
    }
 }
-
-
 
 struct Truth {
     File truthVcf
@@ -327,82 +321,6 @@ task ExtractSampleFromCallset {
     }   
 }
 
-
-task CompareToGroundTruth {
-  input {
-    File monitoring_script
-#    File fingerprints_csv
-    String left_sample_name
-    String right_sample_name
-    File input_vcf
-    File input_vcf_index
-    String input_vcf_name
-    File truth_vcf 
-    File truth_vcf_index 
-    File truth_high_confidence
-
-    File interval_list
-
-    File runs_file
-    File ref_fasta
-    File ref_fasta_sdf
-    Array[File] annotation_intervals
-    Int preemptible_tries
-    Float disk_size
-    String docker
-    Boolean no_address
-  }
-  command <<<
-    bash ~{monitoring_script} > /cromwell_root/monitoring.log &
-
-    
-    source ~/.bashrc
-    conda activate genomics.py3
-
-    python -m tarfile -e ~{ref_fasta_sdf} ~{ref_fasta}.sdf
-
-    cd /VariantCalling/src/python/pipelines
-    python run_comparison_pipeline.py \
-            --n_parts 0 \
-            --hpol_filter_length_dist 12 10 \
-            --input_prefix $(echo "~{input_vcf}" | sed 's/\(.vcf.gz\|.vcf\)$//') \
-            --output_file /cromwell_root/~{input_vcf_name}.comp.h5 \
-            --gtr_vcf ~{truth_vcf} \
-            --cmp_intervals ~{interval_list} \
-            --highconf_intervals ~{truth_high_confidence} \
-            --runs_intervals ~{runs_file} \
-            --reference ~{ref_fasta} \
-            --call_sample_name ~{left_sample_name} \
-            --ignore_filter_status \
-            --truth_sample_name ~{right_sample_name}\
-            --annotate_intervals ~{sep=" --annotate_intervals " annotation_intervals} \
-            --output_suffix ''
-    >>>
-  runtime {
-    preemptible: preemptible_tries
-    memory: "16 GB"
-    disks: "local-disk " + ceil(disk_size) + " SSD"
-    docker: docker
-    noAddress: no_address
-  }
-  output {
-    File compare_h5 = "/cromwell_root/~{input_vcf_name}.comp.h5"
-    File monitoring_log = "/cromwell_root/monitoring.log"
-    File snp_fp_bed = "/cromwell_root/~{input_vcf_name}.comp_snp_fp.bed"
-    File snp_fn_bed = "/cromwell_root/~{input_vcf_name}.comp_snp_fn.bed"
-    File hmer_fp_1_3_bed = "/cromwell_root/~{input_vcf_name}.comp_hmer_fp_1_3.bed"
-    File hmer_fn_1_3_bed = "/cromwell_root/~{input_vcf_name}.comp_hmer_fn_1_3.bed"
-    File hmer_fp_4_7_bed = "/cromwell_root/~{input_vcf_name}.comp_hmer_fp_4_7.bed"
-    File hmer_fn_4_7_bed = "/cromwell_root/~{input_vcf_name}.comp_hmer_fn_4_7.bed"
-    File hmer_fp_8_end_bed = "/cromwell_root/~{input_vcf_name}.comp_hmer_fp_8_end.bed"
-    File hmer_fn_8_end_bed = "/cromwell_root/~{input_vcf_name}.comp_hmer_fn_8_end.bed"
-    File non_hmer_fp_bed = "/cromwell_root/~{input_vcf_name}.comp_non_hmer_fp.bed"
-    File non_hmer_fn_bed = "/cromwell_root/~{input_vcf_name}.comp_non_hmer_fn.bed"
-    File genotyping_errors_fp_bed = "/cromwell_root/~{input_vcf_name}.comp_genotyping_errors_fp.bed"
-    File genotyping_errors_fn_bed = "/cromwell_root/~{input_vcf_name}.comp_genotyping_errors_fn.bed"
-  }
-}
-
 # only works with simple maps (two columns)
 task MakeStringMap {
     input {
@@ -475,48 +393,6 @@ task FilterSymbolicAlleles {
     File output_vcf = "~{output_basename}.vcf.gz"
     File output_vcf_index = "~{output_basename}.vcf.gz.tbi"
     File monitoring_log = "monitoring.log"
-  }
-}
-
-
-
-task SwitchFilterAnnotation {
-  input {
-    File input_vcf
-    String INFO_TAG_OLD
-    String INFO_TAG_NEW
-    String output_vcf_basename
-    Int preemptible_tries
-    Float disk_size
-  }
-
-  command <<<
-    set -xe
-
-    # assumes gziped file 
-    zgrep -m1 "##INFO=<ID=~{INFO_TAG_OLD}," ~{input_vcf} | sed 's/~{INFO_TAG_OLD}/~{INFO_TAG_NEW}/' > new_header_line.txt
-    
-
-    mkdir links
-    ln -s ~{input_vcf} links/
-    local_vcf=links/$(basename ~{input_vcf})
-
-    bcftools index -t ${local_vcf}
-        
-    bcftools annotate -a ${local_vcf} -h new_header_line.txt -c "+~{INFO_TAG_NEW}:=~{INFO_TAG_OLD}"  ${local_vcf} -O z -o ~{output_vcf_basename}.scored.vcf.gz
-    bcftools index -t ~{output_vcf_basename}.scored.vcf.gz
-
-  >>>
-  output {
-    File output_vcf="~{output_vcf_basename}.scored.vcf.gz"
-    File output_vcf_index="~{output_vcf_basename}.scored.vcf.gz.tbi"
-  }
-  runtime {
-    preemptible: preemptible_tries
-    memory: "16 GB"
-    disks: "local-disk " + ceil(disk_size + 20) + " SSD"
-    docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
-    noAddress: true
   }
 }
 
