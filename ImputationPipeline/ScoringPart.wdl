@@ -283,6 +283,7 @@ task AdjustScores {
 
 			array_scores = merge(read.csv("~{array_pcs}",  sep = "\t", header = T),
 				read.csv("~{array_scores}",  sep = "\t", header = T), by.x="IID", by.y="X.IID")
+	EOF
 	>>>
 
 	output {
