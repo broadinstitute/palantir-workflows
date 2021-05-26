@@ -288,7 +288,7 @@ task AdjustScores {
 
 			# make sure the PCs fit well between the array and the population data
 			ggplot(population_data, aes(x=PC1, y=PC2, color="Population Data")) + geom_point() + geom_point() + 
-			  geom_point(data = array_scores, aes(x=PC1, y=PC2, color="Array Data")) + labs(x="PC1", y="PC2") + theme_bw()
+				geom_point(data = array_scores, aes(x=PC1, y=PC2, color="Array Data")) + labs(x="PC1", y="PC2") + theme_bw()
 			ggsave(filename = "PCA_plot.png", dpi=300, width = 6, height = 6)
 
 			# return population scores
