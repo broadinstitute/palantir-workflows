@@ -22,24 +22,18 @@ workflow FindSamplesAndBenchmark {
         File haplotype_database 
         File picard_cloud_jar
 
-        String docker 
-
-        File? interval_list_override
+        String docker
 
         String? analysis_region
 
         Boolean remove_symbolic_alleles=false
 
         Array[File] stratIntervals
-        Array[String] stratLabels = [
-                         "HMER_7_and_up",
-                         "LCR-hs38",
-                         "mappability=0",
-                         "exome"]
+        Array[String] stratLabels
 
         Array[String] jexlVariantSelectors = ["vc.isSimpleIndel()  && vc.getIndelLengths().0<0", "vc.isSimpleIndel() && vc.getIndelLengths().0>0"]
         Array[String] variantSelectorLabels = ["deletion","insertion"]
-        # Input for monitoring_script can be found here:https://github.com/broadinstitute/palantir-workflows/blob/main/Scripts/monitoring/cromwell_monitoring_script.sh.
+        # Input for monitoring_script can be found here: https://github.com/broadinstitute/palantir-workflows/blob/main/Scripts/monitoring/cromwell_monitoring_script.sh.
         # It must be copied to a google bucket and then the google bucket path can be used as the input for monitoring_script.
         File monitoring_script
     }
