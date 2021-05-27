@@ -283,6 +283,19 @@ task AdjustScores {
 
 			array_scores = merge(read.csv("~{array_pcs}",  sep = "\t", header = T),
 				read.csv("~{array_scores}",  sep = "\t", header = T), by.x="IID", by.y="X.IID")
+
+			adjusted_array_scores = generate_adjusted_scores(array_scores)
+
+			# make sure the PCs fit well between the array and the population data
+			ggplot(population_data, aes(x=PC1, y=PC2, color="Population Data")) + geom_point() + geom_point() + 
+				geom_point(data = array_scores, aes(x=PC1, y=PC2, color="Array Data")) + labs(x="PC1", y="PC2") + theme_bw()
+			ggsave(filename = "PCA_plot.png", dpi=300, width = 6, height = 6)
+
+			# return population scores
+			write.table(population_data %>% subset(select = -residual_score), file = "population_data_scores.tsv", sep="\t", row.names=F, quote = F)
+
+			# return array scores
+			write.table(adjusted_array_scores %>% subset(select = -residual_score), file = "array_data_scores.tsv", sep="\t", row.names=F, quote = F)
 	EOF
 	>>>
 
