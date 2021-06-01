@@ -1,7 +1,7 @@
 version 1.0
-import "FindSamplesToCompare.wdl" as FindSamplesToCompare
+import "FindSamplesAndBenchmark.wdl" as FindSamplesAndBenchmark
 
-workflow Compare1000GSamples {
+workflow CompareSamplesWithoutTruth {
   input {
     Array[String] sample_names_to_compare
     File intersected_hiconf_intervals
@@ -36,7 +36,7 @@ workflow Compare1000GSamples {
     ground_truth_intervals = flatten(ground_truth_intervals, [intersected_hiconf_intervals])
   }
 
-  call FindSamplesToCompare.FindSamplesToCompare as FindSamplesToCompare {
+  call FindSamplesAndBenchmark.FindSamplesAndBenchmark as FindSamplesAndBenchmark {
     input:
       input_callset = input_callset,
       ground_truth_files = ground_truth_files,
