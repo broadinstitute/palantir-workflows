@@ -1,5 +1,5 @@
 version 1.0
-import "BenchmarkVCFs.wdl" as BenchmarkVCFs
+import "BenchmarkVCFs.wdl" as Benchmark
 import "FindSamplesAndBenchmark.wdl" as FindSamplesAndBenchmark
 
 workflow CompareSamplesWithoutTruth {
@@ -109,7 +109,7 @@ workflow CompareSamplesWithoutTruth {
         picard_jar = picard_cloud_jar
     }
 
-    call BenchmarkVCFs.BenchmarkVCFs as BenchmarkVCFs {
+    call Benchmark.Benchmark as BenchmarkVCFs {
       input:
         analysisRegion = analysis_region,
         evalVcf = ExtractFromInput.output_vcf,
@@ -137,7 +137,7 @@ workflow CompareSamplesWithoutTruth {
         annotationName = annotationName
     }
 
-    call BenchmarkVCFs.BenchmarkVCFs as BenchmarkDBSNP {
+    call Benchmark.Benchmark as BenchmarkDBSNP {
       input:
         analysisRegion = analysis_region,
         evalVcf = ExtractFromInput.output_vcf,
@@ -166,13 +166,13 @@ workflow CompareSamplesWithoutTruth {
     }
   }
 
-  call BenchmarkVCFs.CombineSummaries as CombineSummariesWithoutTruth{
+  call Benchmark.CombineSummaries as CombineSummariesWithoutTruth{
     input:
       summaries = select_all(BenchmarkVCFs.summary),
       preemptible = 1
   }
 
-  call BenchmarkVCFs.CombineSummaries as CombineSummariesDBSNP{
+  call Benchmark.CombineSummaries as CombineSummariesDBSNP{
     input:
       summaries = select_all(BenchmarkDBSNP.summary),
       preemptible = 1
