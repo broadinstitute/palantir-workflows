@@ -52,7 +52,7 @@ workflow CompareSamplesWithoutTruth {
     call FindSamplesAndBenchmark.ExtractSampleFromCallset as ExtractTruthSamplesFromInput {
       input:
         callset = input_callset,
-        sample_name = truth_sample_name,
+        sample = truth_sample_name,
         basename = basename(input_callset, ".vcf.gz") + "_extracted_" + truth_sample_name
     }
   }
