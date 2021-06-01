@@ -45,7 +45,7 @@ workflow CompareSamplesWithoutTruth {
     String? analysis_region
   }
 
-  Int VCF_disk_size = ceil(size(input_callset, "GiB")) + 10
+  Int VCF_disk_size = ceil(size(input_callset, "GiB") / length(sample_names_to_compare)) + 10
 
   # Compare samples that have truth data
   scatter (truth_sample_name in ["NA12878","NA24143","NA24149","NA24385","NA24631","NA24694","NA24695"]) {
@@ -98,9 +98,9 @@ workflow CompareSamplesWithoutTruth {
     }
     call FindSamplesAndBenchmark.CrosscheckFingerprints as CheckFingerprintOfExtractedSample {
       input:
-        input_data = ExtractFromInput.output_vcf,
+        input_data = [ExtractFromInput.output_vcf],
         metrics_basename = "crosscheck",
-        ground_truth_files = ExtractFromTruth.output_vcf,
+        ground_truth_files = [ExtractFromTruth.output_vcf],
         haplotype_database = haplotype_database,
         disk_size = VCF_disk_size,
         preemptible_tries = 3,
