@@ -39,7 +39,7 @@ workflow EndToEndPipeline {
 
 	  ## The following are inputs for scoring and performing the adjustment
 
-	  File disease_weights =  # disease weights file. Because we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
+	  File disease_weights  # disease weights file. Because we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
 	  String? columns_for_scoring # Plink expects the first 3 columns in your weights file to be variant ID, effect allele, effect weight
 	  
 	  Int scoring_mem = 16 # update memory for scoring imputed array
@@ -48,6 +48,7 @@ workflow EndToEndPipeline {
 	  # output names (what the files will be named)
 	  String output_callset_name # the name for the imputed callset name
 	  String population_basename  # the basename for the output PCs if `generate_population_pcs` is true
+	  Boolean adjustScores = true
 
 	}
 
@@ -83,7 +84,8 @@ workflow EndToEndPipeline {
 	    population_loadings = select_first([PopulationPCASteps.population_loadings, population_loadings]), # either use your newely generated PC files or the input loadings/meansd/pcs/pruning sites
 	    population_meansd = select_first([PopulationPCASteps.population_meansd, population_meansd]), 
 	    population_pcs = select_first([PopulationPCASteps.population_pcs, population_pcs]),
-	    pruning_sites_for_pca = select_first([PopulationPCASteps.pruning_sites_for_pca, pruning_sites_for_pca])
+	    pruning_sites_for_pca = select_first([PopulationPCASteps.pruning_sites_for_pca, pruning_sites_for_pca]),
+	    adjustScores = adjustScores
 	}
 
 	output {
@@ -102,8 +104,9 @@ workflow EndToEndPipeline {
     File? new_population_dataset_index_with_sorted_variant_ids = PopulationPCASteps.sorted_variant_id_dataset_index
     
 		# results from the scoring part
-    File pc_plot = ScoringSteps.pc_plot
-  	File adjusted_population_scores = ScoringSteps.adjusted_population_scores
-  	File adjusted_array_scores = ScoringSteps.adjusted_array_scores
+    File? pc_plot = ScoringSteps.pc_plot
+  	File? adjusted_population_scores = ScoringSteps.adjusted_population_scores
+  	File? adjusted_array_scores = ScoringSteps.adjusted_array_scores
+  	File raw_scores = ScoringSteps.raw_scores
 	}
 }

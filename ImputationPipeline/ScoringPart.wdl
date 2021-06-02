@@ -2,111 +2,155 @@ version 1.0
 
 workflow ScoringImputedDataset {
 	input { 
-    File weights # disease weights file. Becauase we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
-    #  that will allow you to sort the variants in this weights file (`SortWeights`)
+	File weights # disease weights file. Becauase we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
+	#  that will allow you to sort the variants in this weights file (`SortWeights`)
 
-    File imputed_array_vcf  # imputed VCF for scoring (and optionally PCA projection): make sure the variant IDs exactly match those in the weights file
-    Int scoring_mem = 16
-    Int population_scoring_mem = scoring_mem * 4
-    Int vcf_to_plink_mem = 8
-    
-    String population_basename # for naming the output of population scoring
-    String basename # for naming the output of array scoring and the array projection files
+	File imputed_array_vcf  # imputed VCF for scoring (and optionally PCA projection): make sure the variant IDs exactly match those in the weights file
+	Int scoring_mem = 16
+	Int population_scoring_mem = scoring_mem * 4
+	Int vcf_to_plink_mem = 8
 
-    ## these next 3 files are after performing PCA on your population dataset ( again, make sure all the variant IDs are the same )
-    File population_loadings
-    File population_meansd
-    File population_pcs
-    File pruning_sites_for_pca # and the sites used for PCA
-    File population_vcf # population VCF, output from PerformPopulationPCA.  The variant IDs must exactly match those in the weights file
+	String? population_basename # for naming the output of population scoring
+	String basename # for naming the output of array scoring and the array projection files
 
-    String? columns_for_scoring # Plink expects the first 3 columns in your weights file to be variant ID, effect allele, effect weight
-    # if this isn't true, then you should give it the correct column #s in that order
-    # example: if you were to set columns_for_scoring = "11 12 13" would mean that the 11th column is the variant ID, the 12th column 
-    # is the effect allele, and the 13th column is the effect weight
-    Boolean redoPCA = false
+	## these next 3 files are after performing PCA on your population dataset ( again, make sure all the variant IDs are the same )
+	File? population_loadings
+	File? population_meansd
+	File? population_pcs
+	File? pruning_sites_for_pca # and the sites used for PCA
+	File? population_vcf # population VCF, output from PerformPopulationPCA.  The variant IDs must exactly match those in the weights file
+
+	String? columns_for_scoring # Plink expects the first 3 columns in your weights file to be variant ID, effect allele, effect weight
+	# if this isn't true, then you should give it the correct column #s in that order
+	# example: if you were to set columns_for_scoring = "11 12 13" would mean that the 11th column is the variant ID, the 12th column
+	# is the effect allele, and the 13th column is the effect weight
+	Boolean redoPCA = false
+	Boolean adjustScores = true
   }
 
-  call ExtractIDs as ExtractIDsPopulation {
-  	input:
-  		vcf = population_vcf,
-  		output_basename = population_basename
-  }
-  
-  call ScoreVcf as ScoreImputedArray {
-  	input:
-  	vcf = imputed_array_vcf,
-  	basename = basename,
-  	weights = weights,
-  	base_mem = scoring_mem,
-  	extra_args = columns_for_scoring,
-  	sites = ExtractIDsPopulation.ids
+  if (adjustScores) {
+	#check for required optional inputs
+	if (!defined(population_loadings)) {
+		call ErrorWithMessage as ErrorPopulationLoadings {
+			input:
+				message = "Optional input population_loadings must be included if adjusting scores"
+		}
+	}
+
+	if (!defined(population_meansd)) {
+		call ErrorWithMessage as ErrorMeanSD {
+			input:
+				message = "Optional input population_meansd must be included if adjusting scores"
+		}
+	}
+
+	if (!defined(population_pcs)) {
+		call ErrorWithMessage as ErrorPopulationPCs {
+			input:
+				message = "Optional input population_pcs must be included if adjusting scores"
+		}
+	}
+
+	if (!defined(pruning_sites_for_pca)) {
+		call ErrorWithMessage as ErrorPruningSites {
+			input:
+				message = "Optional input pruning_sites_for_pca must be included if adjusting scores"
+		}
+	}
+
+	if (!defined(population_vcf)) {
+		call ErrorWithMessage as ErrorPopulationVcf {
+			input:
+				message = "Optional input population_vcf must be included if adjusting scores"
+		}
+	}
   }
 
-  call ExtractIDs {
-  	input:
-  		vcf = imputed_array_vcf,
-  		output_basename = basename
-  }
+	if (adjustScores) {
+		call ExtractIDs as ExtractIDsPopulation {
+			input:
+				vcf = select_first([population_vcf]),
+				output_basename = select_first([population_basename])
+		}
+	}
 
-  if (redoPCA) {
-  	call ArrayVcfToPlinkDataset as PopulationArrayVcfToPlinkDataset {
-  		input:
-  			vcf = population_vcf,
-  			pruning_sites = pruning_sites_for_pca,
-  			subset_to_sites = ExtractIDs.ids,
-  			basename = "population"
-  	}
+	call ScoreVcf as ScoreImputedArray {
+		input:
+		vcf = imputed_array_vcf,
+		basename = basename,
+		weights = weights,
+		base_mem = scoring_mem,
+		extra_args = columns_for_scoring,
+		sites = ExtractIDsPopulation.ids
+	}
 
-  	call PerformPCA {
-        input:
-          bim = PopulationArrayVcfToPlinkDataset.bim,
-          bed = PopulationArrayVcfToPlinkDataset.bed,
-          fam = PopulationArrayVcfToPlinkDataset.fam,
-          basename = basename
-      }
-  }
+	if (adjustScores) {
+		call ExtractIDs {
+			input:
+				vcf = imputed_array_vcf,
+				output_basename = basename
+		}
 
-  call ScoreVcf as ScorePopulation {
-  	input:
-  	vcf = population_vcf,
-  	basename = population_basename,
-  	weights = weights,
-  	base_mem = population_scoring_mem,
-  	extra_args = columns_for_scoring,
-  	sites = ExtractIDs.ids
-  }
+		if (redoPCA) {
+			call ArrayVcfToPlinkDataset as PopulationArrayVcfToPlinkDataset {
+				input:
+					vcf = select_first([population_vcf]),
+					pruning_sites = select_first([pruning_sites_for_pca]),
+					subset_to_sites = ExtractIDs.ids,
+					basename = "population"
+			}
 
-  call ArrayVcfToPlinkDataset {
-  	input:
-  	vcf = imputed_array_vcf,
-  	pruning_sites = pruning_sites_for_pca,
-  	basename = basename,
-  	mem = vcf_to_plink_mem
-  }
+			call PerformPCA {
+			  input:
+				bim = PopulationArrayVcfToPlinkDataset.bim,
+				bed = PopulationArrayVcfToPlinkDataset.bed,
+				fam = PopulationArrayVcfToPlinkDataset.fam,
+				basename = basename
+			}
+		}
 
-  call ProjectArray {
-  	input:
-  	pc_loadings = select_first([PerformPCA.pc_loadings, population_loadings]),
-  	pc_meansd = select_first([PerformPCA.mean_sd, population_meansd]),
-  	bed = ArrayVcfToPlinkDataset.bed,
-  	bim = ArrayVcfToPlinkDataset.bim,
-  	fam = ArrayVcfToPlinkDataset.fam,
-  	basename = basename
-  }
+		call ScoreVcf as ScorePopulation {
+			input:
+			vcf = select_first([population_vcf]),
+			basename = select_first([population_basename]),
+			weights = weights,
+			base_mem = population_scoring_mem,
+			extra_args = columns_for_scoring,
+			sites = ExtractIDs.ids
+		}
 
-  call AdjustScores {
-  	input:
-  	population_pcs = select_first([PerformPCA.pcs, population_pcs]),
-  	population_scores = ScorePopulation.score,
-  	array_pcs = ProjectArray.projections,
-  	array_scores = ScoreImputedArray.score
-  }
+		call ArrayVcfToPlinkDataset {
+			input:
+			vcf = imputed_array_vcf,
+			pruning_sites = select_first([pruning_sites_for_pca]),
+			basename = basename,
+			mem = vcf_to_plink_mem
+		}
+
+		call ProjectArray {
+			input:
+			pc_loadings = select_first([PerformPCA.pc_loadings, population_loadings]),
+			pc_meansd = select_first([PerformPCA.mean_sd, population_meansd]),
+			bed = ArrayVcfToPlinkDataset.bed,
+			bim = ArrayVcfToPlinkDataset.bim,
+			fam = ArrayVcfToPlinkDataset.fam,
+			basename = basename
+		}
+
+		call AdjustScores {
+			input:
+			population_pcs = select_first([PerformPCA.pcs, population_pcs]),
+			population_scores = ScorePopulation.score,
+			array_pcs = ProjectArray.projections,
+			array_scores = ScoreImputedArray.score
+		  }
+	}
 
   output {
-  	File pc_plot = AdjustScores.pca_plot
-  	File adjusted_population_scores = AdjustScores.adjusted_population_scores
-  	File adjusted_array_scores = AdjustScores.adjusted_array_scores
+	File? pc_plot = AdjustScores.pca_plot
+	File? adjusted_population_scores = AdjustScores.adjusted_population_scores
+	File? adjusted_array_scores = AdjustScores.adjusted_array_scores
+	File raw_scores = ScoreImputedArray.score
   }
 }
 
@@ -320,8 +364,8 @@ task SortWeights {
 	input {
 		File weights_file
 		Int disk_space = 50
-    Int id_column # the column # of the variant IDs
-     String basename # what you wanted the new weights file to be called
+	Int id_column # the column # of the variant IDs
+	 String basename # what you wanted the new weights file to be called
    }
 
    command <<<
@@ -331,21 +375,21 @@ task SortWeights {
    >>>
 
    output {
-   	File sorted_weights = "~{basename}.txt"
+	File sorted_weights = "~{basename}.txt"
    }
 
    runtime {
-   	docker: "skwalker/imputation:with_vcftools" 
-   	disks: "local-disk " + disk_space + " HDD"
-   	memory: "16 GB"
+	docker: "skwalker/imputation:with_vcftools"
+	disks: "local-disk " + disk_space + " HDD"
+	memory: "16 GB"
    }
  }
 
  task UpdateVariantIds {
- 	input {
- 		File? vcf
- 		String basename
- 		Int disk_space =  3*ceil(size(vcf, "GB"))
+	input {
+		File? vcf
+		String basename
+		Int disk_space =  3*ceil(size(vcf, "GB"))
 	}
 
 	command <<<
@@ -353,70 +397,85 @@ task SortWeights {
 	>>>
 
 	output {
- 		File output_vcf = "~{basename}.vcf.gz"
- 	}
+		File output_vcf = "~{basename}.vcf.gz"
+	}
 
- 	runtime {
- 		docker: "skwalker/imputation:with_vcftools"
- 		disks: "local-disk " + disk_space + " HDD"
- 		memory: "16 GB"
- 	}
+	runtime {
+		docker: "skwalker/imputation:with_vcftools"
+		disks: "local-disk " + disk_space + " HDD"
+		memory: "16 GB"
+	}
  }
 
  task ExtractIDs {
-     input {
-         File vcf
-         String output_basename
-         Int disk_size = 2*ceil(size(vcf, "GB")) + 100
-     }
+	 input {
+		File vcf
+		String output_basename
+		Int disk_size = 2*ceil(size(vcf, "GB")) + 100
+	 }
 
-     command <<<
-         bcftools query -f "%ID\n" ~{vcf} -o ~{output_basename}.original_array.ids
-     >>>
-     output {
-         File ids = "~{output_basename}.original_array.ids"
-     }
-     runtime {
-         docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
-         disks: "local-disk " + disk_size + " HDD"
-         memory: "4 GB"
-     }
+	 command <<<
+		bcftools query -f "%ID\n" ~{vcf} -o ~{output_basename}.original_array.ids
+	 >>>
+	 output {
+		File ids = "~{output_basename}.original_array.ids"
+	 }
+	 runtime {
+		docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+		disks: "local-disk " + disk_size + " HDD"
+		memory: "4 GB"
+	 }
  }
 
  task PerformPCA {
    input {
-     File bim
-     File bed
-     File fam
-     String basename
-     Int mem = 8
+	 File bim
+	 File bed
+	 File fam
+	 String basename
+	 Int mem = 8
    }
 
    # again, based on Wallace commands
    command {
-     cp ~{bim} ~{basename}.bim
-     cp ~{bed} ~{basename}.bed
-     cp ~{fam} ~{basename}.fam
+	cp ~{bim} ~{basename}.bim
+	cp ~{bed} ~{basename}.bed
+	cp ~{fam} ~{basename}.fam
 
-     ~/flashpca/flashpca --bfile ~{basename} -n 16 -d 20 --outpc ${basename}.pc \
-     --outpve ${basename}.pc.variance --outload ${basename}.pc.loadings \
-     --outmeansd ${basename}.pc.meansd
+	~/flashpca/flashpca --bfile ~{basename} -n 16 -d 20 --outpc ${basename}.pc \
+	--outpve ${basename}.pc.variance --outload ${basename}.pc.loadings \
+	--outmeansd ${basename}.pc.meansd
    }
 
    output {
-     File pcs = "${basename}.pc"
-     File pc_variance = "${basename}.pc.variance"
-     File pc_loadings = "${basename}.pc.loadings"
-     File mean_sd = "${basename}.pc.meansd"
-     File eigenvectors = "eigenvectors.txt"
-     File eigenvalues = "eigenvalues.txt"
+	 File pcs = "${basename}.pc"
+	 File pc_variance = "${basename}.pc.variance"
+	 File pc_loadings = "${basename}.pc.loadings"
+	 File mean_sd = "${basename}.pc.meansd"
+	 File eigenvectors = "eigenvectors.txt"
+	 File eigenvalues = "eigenvalues.txt"
    }
 
    runtime {
-     docker: "skwalker/flashpca:v1"
-     disks: "local-disk 400 HDD"
-     memory: mem + " GB"
+	 docker: "skwalker/flashpca:v1"
+	 disks: "local-disk 400 HDD"
+	 memory: mem + " GB"
    }
+ }
+
+ #Print given message to stderr and return an error
+ task ErrorWithMessage{
+	 input {
+		 String message
+	 }
+	command <<<
+		>&2 echo "Error: ~{message}"
+		exit 1
+	>>>
+
+	 runtime {
+		 docker: "ubuntu"
+	 }
  }
 
 
