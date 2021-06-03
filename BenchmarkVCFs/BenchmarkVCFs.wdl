@@ -26,7 +26,7 @@ workflow Benchmark {
         String gatkTag="4.0.11.0"
         Boolean requireMatchingGenotypes=true
         File? gatkJarForAnnotation
-        String? annotationName
+        Array[String] annotationNames
         Boolean passingOnly=true
         String? vcfScoreField
     }
@@ -969,7 +969,7 @@ task EvalForVariantSelection {
 
         VCF=~{vcf}
         if [[ ! -z "~{gatkJarForAnnotation}" ]]; then
-            java -jar ~{gatkJarForAnnotation} VariantAnnotator -V ~{vcf} -O annotated.vcf.gz ~{length(annotationNames)>0 true="-A" false=""} ~{sep=" -A " annotationNames} -R ~{reference}            
+            java -jar ~{gatkJarForAnnotation} VariantAnnotator -V ~{vcf} -O annotated.vcf.gz ~{true="-A" false="" length(annotationNames)>0} ~{sep=" -A " annotationNames} -R ~{reference}            
             VCF=annotated.vcf.gz
         fi
 
