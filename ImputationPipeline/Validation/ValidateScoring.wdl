@@ -116,7 +116,7 @@ workflow ValidateScoring {
 			input:
 				arrayScores = select_first([ScoreImputed.adjusted_array_scores]),
 				wgsScores = select_first([ScoreWGS.adjusted_array_scores]),
-				arrayScoresMain = ScoreImputedMain.adjusted_array_scores,
+				arrayScoresMain = select_first([ScoreImputedMain.adjusted_array_scores]),
 				branch = branch,
 				sample_name_map = sample_name_map
 			}
