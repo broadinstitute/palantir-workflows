@@ -12,7 +12,7 @@ workflow FindSamplesAndBenchmark {
         Array[File] annotation_intervals
 
         File? gatkJarForAnnotation
-        Array[String] annotationNames=[]
+        Array[String]? annotationNames=[]
   
         File ref_fasta
         File ref_fasta_index

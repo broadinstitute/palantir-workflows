@@ -26,7 +26,7 @@ workflow Benchmark {
         String gatkTag="4.0.11.0"
         Boolean requireMatchingGenotypes=true
         File? gatkJarForAnnotation
-        Array[String] annotationNames
+        Array[String]? annotationNames
         Boolean passingOnly=true
         String? vcfScoreField
     }
