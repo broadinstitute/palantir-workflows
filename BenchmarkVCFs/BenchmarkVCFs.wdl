@@ -1007,6 +1007,7 @@ task EvalForVariantSelection {
         File selectedFP="selected.FP.vcf.gz"
         File selectedFN="selected.FN.vcf.gz"
 
+        File annotated = "annotated.vcf.gz"
         File selectedTPCallIndex="selected.TP_CALL.vcf.gz.tbi"
         File selectedTPBaseIndex="selected.TP_BASE.vcf.gz.tbi"
         File selectedFPIndex="selected.FP.vcf.gz.tbi"
