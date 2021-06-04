@@ -47,18 +47,9 @@ workflow CompareSamplesWithoutTruth {
   Int VCF_disk_size = ceil(size(input_callset, "GiB") / length(sample_names_to_compare)) + 10
 
   # Compare samples that have truth data
-  scatter (truth_sample_name in ["NA12878","NA24143","NA24149","NA24385","NA24631","NA24694","NA24695"]) {
-    call FindSamplesAndBenchmark.ExtractSampleFromCallset as ExtractTruthSamplesFromInput {
-      input:
-        callset = input_callset,
-        sample = truth_sample_name,
-        basename = basename(input_callset, ".vcf.gz") + "_extracted_" + truth_sample_name
-    }
-  }
-
   call FindSamplesAndBenchmark.FindSamplesAndBenchmark as BenchmarkFullTruthVcfs {
     input:
-      input_callset = ExtractTruthSamplesFromInput.output_vcf,
+      input_callset = input_callset,
       ground_truth_files = ground_truth_files,
       ground_truth_indexes = ground_truth_indexes,
       ground_truth_intervals = ground_truth_intervals,
