@@ -14,8 +14,6 @@ workflow CompareSamplesWithoutTruth {
     Array[File] ground_truth_files
     Array[File] ground_truth_indexes
     Array [File] ground_truth_intervals
-    File dbsnp_vcf = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf.gz"
-    File dbsnp_vcf_index = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf.gz.tbi"
     File wgs_evaluation_regions = "gs://gcp-public-data--broad-references/hg38/v0/wgs_evaluation_regions.hg38.interval_list"
 
     File gatkJarForAnnotation
@@ -134,35 +132,8 @@ workflow CompareSamplesWithoutTruth {
         passingOnly=true,
         vcfScoreField = "INFO.TREE_SCORE",
         gatkJarForAnnotation = gatkJarForAnnotation,
-        annotationName = annotationName
-    }
-
-    call Benchmark.Benchmark as BenchmarkDBSNP {
-      input:
-        analysisRegion = analysis_region,
-        evalVcf = ExtractFromInput.output_vcf,
-        evalLabel = sample_name,
-        evalVcfIndex = ExtractFromInput.output_vcf_index,
-        truthVcf = dbsnp_vcf,
-        confidenceInterval = wgs_evaluation_regions,
-        truthLabel = "dbsnp",
-        truthVcfIndex = dbsnp_vcf_index,
-        reference = ref_fasta,
-        refIndex = ref_fasta_index,
-        refDict = ref_fasta_dict,
-        hapMap = haplotype_database,
-        stratIntervals = strat_intervals,
-        stratLabels = strat_labels,
-        jexlVariantSelectors = jexl_variant_selectors,
-        variantSelectorLabels = variant_selector_labels,
-        referenceVersion = "1",
-        doIndelLengthStratification=false,
-        gatkTag="4.0.11.0",
-        requireMatchingGenotypes=false,
-        passingOnly=true,
-        vcfScoreField = "INFO.TREE_SCORE",
-        gatkJarForAnnotation = gatkJarForAnnotation,
-        annotationName = annotationName
+        annotationName = annotationName,
+        picardJar = picard_cloud_jar
     }
   }
 
@@ -172,15 +143,8 @@ workflow CompareSamplesWithoutTruth {
       preemptible = 1
   }
 
-  call Benchmark.CombineSummaries as CombineSummariesDBSNP{
-    input:
-      summaries = select_all(BenchmarkDBSNP.summary),
-      preemptible = 1
-  }
-
   output {
     File without_truth_summary = CombineSummariesWithoutTruth.summaryOut
-    File dbsnp_summary = CombineSummariesDBSNP.summaryOut
     File with_truth_summary = BenchmarkFullTruthVcfs.benchmark_vcf_summary
   }
 }

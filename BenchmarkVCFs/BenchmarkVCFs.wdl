@@ -28,6 +28,10 @@ workflow Benchmark {
         File? gatkJarForAnnotation
         String? annotationName
 
+        File picardJar
+        File dbsnpVcf = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf.gz"
+        File dbsnpVcfIndex = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dbsnp138.vcf.gz.tbi"
+
         Boolean passingOnly=true
         String? vcfScoreField
     }
@@ -236,7 +240,10 @@ workflow Benchmark {
                     preemptible=preemptible,
                     requireMatchingGenotypes=requireMatchingGenotypes,
                     passingOnly=passingOnly,
-                    vcfScoreField=vcfScoreField
+                    vcfScoreField=vcfScoreField,
+                    picardJar=picardJar,
+                    dbsnpVcf=dbsnpVcf,
+                    dbsnpVcfIndex=dbsnpVcfIndex
             }
             
             call WriteXMLfile as VcfEvalWriteXMLfile {

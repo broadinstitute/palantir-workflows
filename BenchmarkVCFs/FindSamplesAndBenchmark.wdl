@@ -127,7 +127,8 @@ workflow FindSamplesAndBenchmark {
                      passingOnly=true,
                      vcfScoreField = "INFO.TREE_SCORE",
                      gatkJarForAnnotation = gatkJarForAnnotation,
-                     annotationName = annotationName
+                     annotationName = annotationName,
+                     picardJar = picard_cloud_jar
                  }
 
             Pair[File,File] vcf_and_index_original = zip([ExtractSampleFromCallset.output_vcf],[ExtractSampleFromCallset.output_vcf_index])[0]
