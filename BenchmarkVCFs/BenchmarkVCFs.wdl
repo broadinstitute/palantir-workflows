@@ -242,8 +242,8 @@ workflow Benchmark {
                     passingOnly=passingOnly,
                     vcfScoreField=vcfScoreField,
                     picardJar=picardJar,
-                    dbsnpVcf=dbsnpVcf,
-                    dbsnpVcfIndex=dbsnpVcfIndex
+                    dbsnpVCF=dbsnpVcf,
+                    dbsnpVCFIndex=dbsnpVcfIndex
             }
             
             call WriteXMLfile as VcfEvalWriteXMLfile {
