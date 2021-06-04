@@ -524,6 +524,10 @@ task VcfEval {
         String? memUser
         Int? threads
         Boolean requireMatchingGenotypes
+
+        File picardJar
+        File dbsnpVCF
+        File dbsnpVCFIndex
     }
     String memDefault="16 GB"
     String mem=select_first([memUser,memDefault])
@@ -551,7 +555,9 @@ task VcfEval {
     /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} SNP"   --svg=~{outputPre}.snp.svg   ~{outputPre}_snp_roc.tsv.gz
     /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} INDEL" --svg=~{outputPre}.indel.svg ~{outputPre}_non_snp_roc.tsv.gz
 
-    python3 -<<"EOF" ~{outputPre}_snp_roc.tsv.gz ~{outputPre}_non_snp_roc.tsv.gz ~{outputPre}_summary.csv
+    java -jar ~{picardJar} CollectVariantCallingMetrics --DBSNP ~{dbsnpVCF} --INPUT ~{evalVCF} --OUTPUT ~{outputPre} ~{"--TARGET_INTERVALS" + stratBed}
+
+    python3 -<<"EOF" ~{outputPre}_snp_roc.tsv.gz ~{outputPre}_non_snp_roc.tsv.gz ~{outputPre}_summary.csv ~{outputPre}.variant_calling_detail_metrics
     import gzip
     import sys
 
@@ -602,6 +608,27 @@ task VcfEval {
                 continue
         f_indel.close()
 
+    with open(sys.argv[4], "rt") as f_dbsnp:
+        for line in f_dbsnp:
+            try:
+                total_snps=float(line.split()[5])
+                novel_snps=float(line.split()[7])
+                pct_dbsnp_snps=float(line.split()[9])
+                total_indels=float(line.split()[12])
+                novel_indels=float(line.split()[13])
+                pct_dbsnp_indels=float(line.split()[15])
+                het_homvar_ratio=float(line.split()[1])
+                pct_gq0=float(line.split()[2])
+                dbsnp_titv=float(line.split()[10])
+                novel_titv=float(line.split()[11])
+                dbsnp_ins_del_ratio=float(line.split()[17])
+                novel_ins_del_ratio=float(line.split()[18])
+            except ValueError:
+                continue
+            except IndexError:
+                continue
+        f_dbsnp.close()
+
     str_indel_sensitivity=str(indel_sensitivity)
     str_indel_precision=str(indel_precision)
     str_indel_fscore=str(indel_fscore)
@@ -627,9 +654,9 @@ task VcfEval {
 
 
     with open(sys.argv[3],"wt") as f_out:
-        f_out.write(",".join(["Type","Precision","Recall","F1_Score","TP_Eval","TP_Base","FP","FN"])+"\n")
-        f_out.write(",".join(["SNP",str_snp_precision,str_snp_sensitivity,str_snp_fscore,str(snp_TP_Eval),str(snp_TP_Base),str(snp_FP),str(snp_FN)])+"\n")
-        f_out.write(",".join(["INDEL",str_indel_precision,str_indel_sensitivity,str_indel_fscore,str(indel_TP_Eval),str(indel_TP_Base),str(indel_FP),str(indel_FN)])+"\n")
+        f_out.write(",".join(["Type","Precision","Recall","F1_Score","TP_Eval","TP_Base","FP","FN","Total_Count","Novel_Count","Pct_Dbsnp","Het_Homvar_Ratio","Pct_GQ0","DBSNP_TITV","Novel_TITV","DBSNP_Ins_Del_Ratio","Novel_Ins_Del_Ratio"])+"\n")
+        f_out.write(",".join(["SNP",str_snp_precision,str_snp_sensitivity,str_snp_fscore,str(snp_TP_Eval),str(snp_TP_Base),str(snp_FP),str(snp_FN),str(total_snps),str(novel_snps),str(pct_dbsnp_snps),str(het_homvar_ratio),str(pct_gq0),str(dbsnp_titv),str(novel_titv),str(dbsnp_ins_del_ratio),str(novel_ins_del_ratio)])+"\n")
+        f_out.write(",".join(["INDEL",str_indel_precision,str_indel_sensitivity,str_indel_fscore,str(indel_TP_Eval),str(indel_TP_Base),str(indel_FP),str(indel_FN),str(total_indels),str(novel_indels),str(pct_dbsnp_indels),str(het_homvar_ratio),str(pct_gq0),str(dbsnp_titv),str(novel_titv),str(dbsnp_ins_del_ratio),str(novel_ins_del_ratio)])+"\n")
         f_out.close()
     EOF
     >>>
@@ -651,6 +678,8 @@ task VcfEval {
         File outNonRocPlot="~{outputPre}.indel.svg"
         File outSnpRoc="${outputPre}_snp_roc.tsv.gz"
         File outNonSnpRoc="${outputPre}_non_snp_roc.tsv.gz"
+        File variantSummaryMetrics="${outputPre}.variant_calling_summary_metrics"
+        File variantDetailMetrics="${outputPre}.variant_calling_detail_metrics"
     }
 }
 
