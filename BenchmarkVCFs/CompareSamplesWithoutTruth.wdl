@@ -49,7 +49,7 @@ workflow CompareSamplesWithoutTruth {
   # Compare samples that have truth data
   call FindSamplesAndBenchmark.FindSamplesAndBenchmark as BenchmarkFullTruthVcfs {
     input:
-      input_callset = input_callset,
+      input_callset = [input_callset],
       ground_truth_files = ground_truth_files,
       ground_truth_indexes = ground_truth_indexes,
       ground_truth_intervals = ground_truth_intervals,
