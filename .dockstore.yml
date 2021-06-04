@@ -27,6 +27,6 @@ workflows:
   - name: FindSamplesAndBenchmark
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/FindSamplesAndBenchmark.wdl
-  - name: CompareSamplesWithoutTruth.wdl
+  - name: CompareSamplesWithoutTruth
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/CompareSamplesWithoutTruth.wdl

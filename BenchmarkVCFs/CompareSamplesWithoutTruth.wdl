@@ -7,8 +7,8 @@ workflow CompareSamplesWithoutTruth {
     Array[String] sample_names_to_compare
     File intersected_hiconf_intervals
     File input_callset
-    File NYGenomes_vcf
-    File NYGenomes_vcf_idx
+    Array[File] NYGenomes_vcf
+    Array[File] NYGenomes_vcf_idx
     Array[String] truth_labels
     Array[File] annotation_intervals
     Array[File] ground_truth_files
@@ -38,7 +38,6 @@ workflow CompareSamplesWithoutTruth {
 
     File? interval_list_override
     File? runs_file_override
-    String comparison_docker
 
     File monitoring_script
 
@@ -84,12 +83,22 @@ workflow CompareSamplesWithoutTruth {
 
   # Compare all the samples without truth data
   scatter(sample_name in sample_names_to_compare) {
-    call FindSamplesAndBenchmark.ExtractSampleFromCallset as ExtractFromTruth {
-      input:
-        callset = NYGenomes_vcf,
-        sample = sample_name,
-        basename = basename(NYGenomes_vcf, ".vcf.gz") + sample_name
+    scatter(i in range(length(NYGenomes_vcf))) {
+      call FindSamplesAndBenchmark.ExtractSampleFromCallset as ExtractFromTruth {
+        input:
+          callset = NYGenomes_vcf[i],
+          sample = sample_name,
+          basename = basename(NYGenomes_vcf[i], ".vcf.gz") + sample_name
+      }
     }
+
+    call MergeVCFs {
+      input:
+        input_vcfs = ExtractFromTruth.output_vcf,
+        input_vcfs_indexes = ExtractFromTruth.output_vcf_index,
+        output_vcf_name = "NYGC_1000G_extracted." + sample_name + ".vcf.gz"
+    }
+
     call FindSamplesAndBenchmark.ExtractSampleFromCallset as ExtractFromInput {
       input:
         callset = input_callset,
@@ -100,7 +109,7 @@ workflow CompareSamplesWithoutTruth {
       input:
         input_data = [ExtractFromInput.output_vcf],
         metrics_basename = "crosscheck",
-        ground_truth_files = [ExtractFromTruth.output_vcf],
+        ground_truth_files = [MergeVCFs.output_vcf],
         haplotype_database = haplotype_database,
         disk_size = VCF_disk_size,
         preemptible_tries = 3,
@@ -115,10 +124,10 @@ workflow CompareSamplesWithoutTruth {
         evalVcf = ExtractFromInput.output_vcf,
         evalLabel = sample_name,
         evalVcfIndex = ExtractFromInput.output_vcf_index,
-        truthVcf = ExtractFromTruth.output_vcf,
+        truthVcf = MergeVCFs.output_vcf,
         confidenceInterval = intersected_hiconf_intervals,
         truthLabel = sample_name,
-        truthVcfIndex = ExtractFromTruth.output_vcf_index,
+        truthVcfIndex = MergeVCFs.output_vcf_index,
         reference = ref_fasta,
         refIndex = ref_fasta_index,
         refDict = ref_fasta_dict,
@@ -182,5 +191,41 @@ workflow CompareSamplesWithoutTruth {
     File without_truth_summary = CombineSummariesWithoutTruth.summaryOut
     File dbsnp_summary = CombineSummariesDBSNP.summaryOut
     File with_truth_summary = BenchmarkFullTruthVcfs.benchmark_vcf_summary
+  }
+}
+
+task MergeVCFs {
+  input {
+    File monitoring_script = "gs://broad-dsde-methods-monitoring/cromwell_monitoring_script.sh"
+    Array[File] input_vcfs
+    Array[File] input_vcfs_indexes
+    String output_vcf_name
+    Int disk_size = 100
+    Int preemptible_tries = 1
+    String docker = "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.4.6-1599252698"
+    String gitc_path = "/usr/gitc/"
+    Boolean no_address = false
+  }
+  # Using MergeVcfs instead of GatherVcfs so we can create indices
+  # See https://github.com/broadinstitute/picard/issues/789 for relevant GatherVcfs ticket
+  command {
+    bash ~{monitoring_script} > monitoring.log &
+    java -Xms9000m -jar ~{gitc_path}picard.jar \
+    MergeVcfs \
+    INPUT=~{sep=' INPUT=' input_vcfs} \
+    OUTPUT=~{output_vcf_name}
+  }
+  runtime {
+    preemptible: preemptible_tries
+    memory: "10 GB"
+    disks: "local-disk " + disk_size + " HDD"
+    docker: docker
+    noAddress: no_address
+    maxRetries: 1
+  }
+  output {
+    File output_vcf = "~{output_vcf_name}"
+    File output_vcf_index = "~{output_vcf_name}.tbi"
+    File monitoring_log = "monitoring.log"
   }
 }

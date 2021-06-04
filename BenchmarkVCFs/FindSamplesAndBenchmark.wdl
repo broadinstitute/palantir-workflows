@@ -288,6 +288,7 @@ task ExtractSampleFromCallset {
         String sample
         String basename
     }
+    Int disk_size = ceil(size(callset, "GB")) + 20
     command <<<
 
         set -xe
@@ -308,7 +309,7 @@ task ExtractSampleFromCallset {
         File output_vcf_index = "~{basename}.vcf.gz.tbi"
     } 
     runtime{
-        disks: "local-disk " + 40 + " LOCAL"
+        disks: "local-disk " + disk_size + " LOCAL"
         cpu: 1
         memory: 5 + " GB"
         docker: "broadinstitute/gatk:4.1.4.1"
