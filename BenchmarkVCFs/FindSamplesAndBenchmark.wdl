@@ -28,8 +28,8 @@ workflow FindSamplesAndBenchmark {
 
         Boolean remove_symbolic_alleles=false
 
-        Array[File] stratIntervals
-        Array[String] stratLabels
+        Array[File] stratIntervals=[]
+        Array[String] stratLabels=[]
 
         Array[String] jexlVariantSelectors = ["vc.isSimpleIndel()  && vc.getIndelLengths().0<0", "vc.isSimpleIndel() && vc.getIndelLengths().0>0"]
         Array[String] variantSelectorLabels = ["deletion","insertion"]
