@@ -562,7 +562,7 @@ task VcfEval {
     /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} SNP"   --svg=~{outputPre}.snp.svg   ~{outputPre}_snp_roc.tsv.gz
     /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} INDEL" --svg=~{outputPre}.indel.svg ~{outputPre}_non_snp_roc.tsv.gz
 
-    java -jar ~{picardJar} CollectVariantCallingMetrics --DBSNP ~{dbsnpVCF} --INPUT ~{evalVCF} --OUTPUT ~{outputPre} ~{"--TARGET_INTERVALS" + stratBed}
+    java -jar ~{picardJar} CollectVariantCallingMetrics --DBSNP ~{dbsnpVCF} --INPUT ~{evalVCF} --OUTPUT ~{outputPre} ~{"--TARGET_INTERVALS " + stratBed}
 
     python3 -<<"EOF" ~{outputPre}_snp_roc.tsv.gz ~{outputPre}_non_snp_roc.tsv.gz ~{outputPre}_summary.csv ~{outputPre}.variant_calling_detail_metrics
     import gzip
