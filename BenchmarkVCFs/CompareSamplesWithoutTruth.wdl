@@ -40,6 +40,7 @@ workflow CompareSamplesWithoutTruth {
     File monitoring_script
 
     String? analysis_region
+    Int? preemptible = 5
   }
 
   Int VCF_disk_size = ceil(size(input_callset, "GiB") / length(sample_names_to_compare)) + 10
@@ -67,13 +68,14 @@ workflow CompareSamplesWithoutTruth {
       stratLabels = strat_labels,
       jexlVariantSelectors = jexl_variant_selectors,
       variantSelectorLabels = variant_selector_labels,
-      monitoring_script = monitoring_script
+      monitoring_script = monitoring_script,
+      preemptible = preemptible
   }
 
   # Compare all the samples without truth data
   scatter(sample_name in sample_names_to_compare) {
     scatter(i in range(length(NYGenomes_vcf))) {
-      call FindSamplesAndBenchmark.ExtractSampleFromCallset as ExtractFromTruth {
+      call ExtractSampleFromLargeCallset as ExtractFromTruth {
         input:
           callset = NYGenomes_vcf[i],
           sample = sample_name,
@@ -133,7 +135,8 @@ workflow CompareSamplesWithoutTruth {
         vcfScoreField = "INFO.TREE_SCORE",
         gatkJarForAnnotation = gatkJarForAnnotation,
         annotationName = annotationName,
-        picardJar = picard_cloud_jar
+        picardJar = picard_cloud_jar,
+        preemptible = preemptible
     }
   }
 
@@ -184,3 +187,36 @@ task MergeVCFs {
     File monitoring_log = "monitoring.log"
   }
 }
+
+#callset must have an index
+task ExtractSampleFromLargeCallset {
+  input {
+    File callset
+    String sample
+    String basename
+  }
+  parameter_meta {
+    callset: {localization_optional:true}
+  }
+  Int disk_size = 40
+  command <<<
+    set -xe
+
+    gatk --java-options "-Xmx4g"  \
+    SelectVariants \
+    -V ~{callset} \
+    -sn ~{sample} \
+    -O ~{basename}.vcf.gz
+  >>>
+  output {
+    File output_vcf = "~{basename}.vcf.gz"
+    File output_vcf_index = "~{basename}.vcf.gz.tbi"
+  }
+  runtime{
+    disks: "local-disk " + disk_size + " LOCAL"
+    cpu: 1
+    memory: 5 + " GB"
+    docker: "broadinstitute/gatk:4.1.4.1"
+  }
+}
+

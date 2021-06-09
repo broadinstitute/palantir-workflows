@@ -36,6 +36,8 @@ workflow FindSamplesAndBenchmark {
         # Input for monitoring_script can be found here: https://github.com/broadinstitute/palantir-workflows/blob/main/Scripts/monitoring/cromwell_monitoring_script.sh.
         # It must be copied to a google bucket and then the google bucket path can be used as the input for monitoring_script.
         File monitoring_script
+
+        Int? preemptible
     }
 
     Int VCF_disk_size = ceil(size(input_callset, "GiB")) + 10
@@ -128,7 +130,8 @@ workflow FindSamplesAndBenchmark {
                      vcfScoreField = "INFO.TREE_SCORE",
                      gatkJarForAnnotation = gatkJarForAnnotation,
                      annotationName = annotationName,
-                     picardJar = picard_cloud_jar
+                     picardJar = picard_cloud_jar,
+                     preemptible = preemptible
                  }
 
             Pair[File,File] vcf_and_index_original = zip([ExtractSampleFromCallset.output_vcf],[ExtractSampleFromCallset.output_vcf_index])[0]
