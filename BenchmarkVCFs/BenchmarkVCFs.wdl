@@ -542,7 +542,7 @@ task VcfEval {
     String mem=select_first([memUser,memDefault])
 
     Int cpu=select_first([threads,1])
-    Int disk_size = 10 + ceil(size(truthVCF, "GB") + size(truthVCFIndex, "GB") + 2.2 * size(evalVCF, "GB") + size(evalVCFIndex, "GB") + size(confidenceBed, "GB") + size(stratBed, "GB") + size(stratInterval, "GB") + size(dbsnpVCF, "GB") + size(ref, "GB") + size(refDict, "GB") + size(refIndex, "GB"))
+    Int disk_size = 30 + ceil(size(truthVCF, "GB") + size(truthVCFIndex, "GB") + 2.5 * size(evalVCF, "GB") + size(evalVCFIndex, "GB") + size(confidenceBed, "GB") + size(stratBed, "GB") + size(stratInterval, "GB") + size(dbsnpVCF, "GB") + size(ref, "GB") + size(refDict, "GB") + size(refIndex, "GB"))
 
     command <<<
     set -xeuo pipefail
