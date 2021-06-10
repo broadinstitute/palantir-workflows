@@ -84,7 +84,7 @@ workflow CompareSamplesWithoutTruth {
   Array[Array[File]] transposed_indcies = transpose(ExtractFromTruth.single_sample_vcf_indices)
 
   # Compare all the samples without truth data
-  scatter(i in range(sample_names_to_compare)) {
+  scatter(i in range(length(sample_names_to_compare))) {
     String sample_name = sample_names_to_compare[i]
     call MergeVCFs {
       input:
