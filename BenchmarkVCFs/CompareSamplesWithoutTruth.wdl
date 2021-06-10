@@ -72,21 +72,24 @@ workflow CompareSamplesWithoutTruth {
       preemptible = preemptible
   }
 
-  # Compare all the samples without truth data
-  scatter(sample_name in sample_names_to_compare) {
-    scatter(i in range(length(NYGenomes_vcf))) {
-      call ExtractSampleFromLargeCallset as ExtractFromTruth {
-        input:
-          callset = NYGenomes_vcf[i],
-          sample = sample_name,
-          basename = basename(NYGenomes_vcf[i], ".vcf.gz") + sample_name
-      }
+  scatter(i in range(length(NYGenomes_vcf))) {
+    call SplitMultiSampleVcf as ExtractFromTruth {
+      input:
+        multiSampleVcf = NYGenomes_vcf[i],
+        samples = sample_names_to_compare
     }
+  }
 
+  Array[Array[File]] transposed_vcfs = transpose(ExtractFromTruth.single_sample_vcfs)
+  Array[Array[File]] transposed_indcies = transpose(ExtractFromTruth.single_sample_vcf_indices)
+
+  # Compare all the samples without truth data
+  scatter(i in range(sample_names_to_compare)) {
+    String sample_name = sample_names_to_compare[i]
     call MergeVCFs {
       input:
-        input_vcfs = ExtractFromTruth.output_vcf,
-        input_vcfs_indexes = ExtractFromTruth.output_vcf_index,
+        input_vcfs = transposed_vcfs[i],
+        input_vcfs_indexes = transposed_indcies[i],
         output_vcf_name = "NYGC_1000G_extracted." + sample_name + ".vcf.gz"
     }
 
@@ -188,35 +191,37 @@ task MergeVCFs {
   }
 }
 
-#callset must have an index
-task ExtractSampleFromLargeCallset {
+task SplitMultiSampleVcf {
   input {
-    File callset
-    String sample
-    String basename
+    File multiSampleVcf
+    Array[String] samples
+    Int mem = 8
+    Int bcftools_docker = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0"
   }
-  parameter_meta {
-    callset: {localization_optional:true}
-  }
-  Int disk_size = 40
-  command <<<
-    set -xe
+  File sampleNamesToExtract = write_lines(samples)
+  Int disk_size = ceil(3*size(multiSampleVcf, "GB")) + 100
 
-    gatk --java-options "-Xmx4g"  \
-    SelectVariants \
-    -V ~{callset} \
-    -sn ~{sample} \
-    -O ~{basename}.vcf.gz
+  command <<<
+    set -e
+    mkdir out_dir
+    sed -e 's/^/out_dir\//' ~{sampleNamesToExtract} > samples.tmp
+    sed -e 's/$/.vcf.gz/' samples.tmp > vcfs.txt
+    sed -e 's/$/.tbi/' vcfs.txt > indices.txt
+
+    bcftools +split ~{multiSampleVcf} -Oz -o out_dir -S ~{sampleNamesToExtract} -i'GT="alt"'
+    for vcf in out_dir/*.vcf.gz; do
+    bcftools index -t $vcf
+    done
   >>>
-  output {
-    File output_vcf = "~{basename}.vcf.gz"
-    File output_vcf_index = "~{basename}.vcf.gz.tbi"
+
+  runtime {
+    docker: bcftools_docker
+    disks: "local-disk " + disk_size + " SSD"
+    memory: mem + " GB"
   }
-  runtime{
-    disks: "local-disk " + disk_size + " LOCAL"
-    cpu: 1
-    memory: 5 + " GB"
-    docker: "broadinstitute/gatk:4.1.4.1"
+
+  output {
+    Array[File] single_sample_vcfs = read_lines("vcfs.txt")
+    Array[File] single_sample_vcf_indices = read_lines("indices.txt")
   }
 }
-
