@@ -196,7 +196,7 @@ task SplitMultiSampleVcf {
     File multiSampleVcf
     Array[String] samples
     Int mem = 8
-    Int bcftools_docker = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0"
+    String bcftools_docker = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0"
   }
   File sampleNamesToExtract = write_lines(samples)
   Int disk_size = ceil(3*size(multiSampleVcf, "GB")) + 100
