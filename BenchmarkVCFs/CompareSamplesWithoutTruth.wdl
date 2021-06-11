@@ -223,5 +223,7 @@ task SplitMultiSampleVcf {
   output {
     Array[File] single_sample_vcfs = read_lines("vcfs.txt")
     Array[File] single_sample_vcf_indices = read_lines("indices.txt")
+    Array[File] vcfs = glob("out_dir/*.vcf.gz")
+    Array[File] vcf_indices = glob("out_dir/*.vcf.gz.tbi")
   }
 }
