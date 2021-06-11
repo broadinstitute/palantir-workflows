@@ -4,6 +4,7 @@ import "FindSamplesAndBenchmark.wdl" as FindSamplesAndBenchmark
 
 workflow CompareSamplesWithoutTruth {
   input {
+    #must be in glob order
     Array[String] sample_names_to_compare
     File intersected_hiconf_intervals
     File input_callset
@@ -204,10 +205,6 @@ task SplitMultiSampleVcf {
   command <<<
     set -e
     mkdir out_dir
-    sed -e 's/^/out_dir\//' ~{sampleNamesToExtract} > samples.tmp
-    sed -e 's/$/.vcf.gz/' samples.tmp > vcfs.txt
-    sed -e 's/$/.tbi/' vcfs.txt > indices.txt
-
     bcftools +split ~{multiSampleVcf} -Oz -o out_dir -S ~{sampleNamesToExtract} -i'GT="alt"'
     for vcf in out_dir/*.vcf.gz; do
     bcftools index -t $vcf
@@ -221,9 +218,7 @@ task SplitMultiSampleVcf {
   }
 
   output {
-    Array[File] single_sample_vcfs = read_lines("vcfs.txt")
-    Array[File] single_sample_vcf_indices = read_lines("indices.txt")
-    Array[File] vcfs = glob("out_dir/*.vcf.gz")
-    Array[File] vcf_indices = glob("out_dir/*.vcf.gz.tbi")
+    Array[File] single_sample_vcfs = glob("out_dir/*.vcf.gz")
+    Array[File] single_sample_vcf_indices = glob("out_dir/*.vcf.gz.tbi")
   }
 }
