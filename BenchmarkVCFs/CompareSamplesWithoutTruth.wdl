@@ -113,7 +113,7 @@ workflow CompareSamplesWithoutTruth {
         picard_jar = picard_cloud_jar
     }
 
-    call Benchmark.Benchmark as BenchmarkVCFs {
+    call FindSamplesAndBenchmark.FindSamplesAndBenchmark as BenchmarkNonTruthVcfs {
       input:
         analysisRegion = analysis_region,
         evalVcf = ExtractFromInput.output_vcf,
@@ -146,7 +146,7 @@ workflow CompareSamplesWithoutTruth {
 
   call Benchmark.CombineSummaries as CombineSummariesWithoutTruth{
     input:
-      summaries = select_all(BenchmarkVCFs.summary),
+      summaries = select_all(BenchmarkNonTruthVcfs.summary),
       preemptible = 1
   }
 
