@@ -195,6 +195,9 @@ struct Match{
 }
 
 task CrosscheckFingerprints {
+  meta {
+    volatile: true
+  }
   input {
     File monitoring_script
     Array[File] input_data
