@@ -146,7 +146,7 @@ workflow CompareSamplesWithoutTruth {
 
   call Benchmark.CombineSummaries as CombineSummariesWithoutTruth{
     input:
-      summaries = select_all(BenchmarkNonTruthVcfs.summary),
+      summaries = select_all(BenchmarkNonTruthVcfs.benchmark_vcf_summary),
       preemptible = 1
   }
 
