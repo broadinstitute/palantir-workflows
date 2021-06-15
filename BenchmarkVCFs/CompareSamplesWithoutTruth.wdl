@@ -35,9 +35,6 @@ workflow CompareSamplesWithoutTruth {
 
     String docker
 
-    File? interval_list_override
-    File? runs_file_override
-
     File monitoring_script
 
     String? analysis_region
