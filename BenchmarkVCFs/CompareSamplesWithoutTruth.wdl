@@ -113,9 +113,9 @@ workflow CompareSamplesWithoutTruth {
     call FindSamplesAndBenchmark.FindSamplesAndBenchmark as BenchmarkNonTruthVcfs {
       input:
         input_callset = ExtractFromInput.output_vcf,
-        ground_truth_files = MergeVCFs.output_vcf,
-        ground_truth_indexes = MergeVCFs.output_vcf_index,
-        ground_truth_intervals = intersected_hiconf_intervals,
+        ground_truth_files = [MergeVCFs.output_vcf],
+        ground_truth_indexes = [MergeVCFs.output_vcf_index],
+        ground_truth_intervals = [intersected_hiconf_intervals],
         truth_labels = [sample_name],
         annotation_intervals = annotation_intervals,
         gatkJarForAnnotation = gatkJarForAnnotation,
