@@ -22,11 +22,6 @@ workflow RNAWithUMIsPipeline {
 			starIndex = starIndex
 	}
 
-	call GroupByUMIs {
-		input:
-			bam = STAR.aligned_bam
-	}
-
 	call MarkDuplicates {
 		input:
 			bam = STAR.aligned_bam
