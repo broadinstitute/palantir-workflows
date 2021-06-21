@@ -29,7 +29,7 @@ workflow RNAWithUMIsPipeline {
 
 	call MarkDuplicates {
 		input:
-			bam = STAR.aligned_bam
+			bam = GroupByUMIs.grouped_bam
 	}
 
 	call SortSam {
