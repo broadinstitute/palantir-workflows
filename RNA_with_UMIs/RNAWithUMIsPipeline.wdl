@@ -71,9 +71,9 @@ task STAR {
 	command <<<
 		echo $(date +"[%b %d %H:%M:%S] Extracting STAR index")
 		mkdir star_index
-		tar -xvvf ${star_index} -C star_index --strip-components=1
+		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
-		STAR --readFilesIn ~{bam} --readFilesType BAM --readFilesCommand samtools view --runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted > star.aligned.bam
+		STAR --readFilesIn ~{bam} --readFilesType SAM --readFilesCommand samtools view --runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted > star.aligned.bam
 	>>>
 
 	runtime {
