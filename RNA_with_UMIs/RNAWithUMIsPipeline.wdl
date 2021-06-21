@@ -73,7 +73,7 @@ task STAR {
 		mkdir star_index
 		tar -xvvf ${star_index} -C star_index --strip-components=1
 
-		STAR --inputBAMFile ~{bam} --runMode inputAlignmentsFromBam --genomeDir star_index --outSAMtype BAM > star.aligned.bam
+		STAR --readFilesIn ~{bam} --readFilesType BAM --readFilesCommand samtools view --runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted > star.aligned.bam
 	>>>
 
 	runtime {
