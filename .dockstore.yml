@@ -27,3 +27,6 @@ workflows:
   - name: FindSamplesAndBenchmark
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/FindSamplesAndBenchmark.wdl
+  - name: RNAWithUMIsPipeline
+    subclass: WDL
+    primaryDescriptorPath: /RNA_with_UMIs/RNAWithUMIsPipeline.wdl
