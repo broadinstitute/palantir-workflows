@@ -77,7 +77,7 @@ task STAR {
 	>>>
 
 	runtime {
-		docker : "us.gcr.io/tag-team-160914/neovax-tag-rnaseq:v1"
+		docker : "quay.io/biocontainers/star@sha256:d80ae2e0354e890d55ad0009e9ad9667d1113a679659071e6e02d50e46c8bba1"
 		disks : "local-disk " + disk_space + " HDD"
 		preemptible: 0
 	}
