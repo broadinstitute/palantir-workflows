@@ -66,19 +66,22 @@ task STAR {
 		File bam
 		File starIndex
 	}
-	Int disk_space = ceil(2.2 * size(bam, "GB") + size(starIndex, "GB")) + 50
+	Int disk_space = ceil(2.2 * size(bam, "GB") + size(starIndex, "GB")) + 250
 
 	command <<<
 		echo $(date +"[%b %d %H:%M:%S] Extracting STAR index")
 		mkdir star_index
 		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
-		STAR --readFilesIn ~{bam} --readFilesType SAM PE --readFilesCommand samtools view --runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted > star.aligned.bam
+		STAR --readFilesIn ~{bam} --readFilesType SAM PE --readFilesCommand samtools view \
+			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 > star.aligned.bam
 	>>>
 
 	runtime {
 		docker : "us.gcr.io/tag-team-160914/neovax-tag-rnaseq:v1"
 		disks : "local-disk " + disk_space + " HDD"
+		memory : "64GB"
+		cpu : "8"
 		preemptible: 0
 	}
 
