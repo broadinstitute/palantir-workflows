@@ -74,7 +74,8 @@ task STAR {
 		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
 		STAR --readFilesIn ~{bam} --readFilesType SAM PE --readFilesCommand samtools view \
-			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 > star.aligned.bam
+			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
+			--outSAMtype BAM Unsorted --outFileNamePrefix star.aligned
 	>>>
 
 	runtime {
