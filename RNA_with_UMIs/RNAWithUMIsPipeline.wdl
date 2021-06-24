@@ -52,7 +52,8 @@ task GroupByUMIs {
 
 	Int disk_space = ceil(2.2 * size(bam, "GB")) + 50
 	command <<<
-		umi_tools group -I ~{bam} --paired --no-sort-output --unpaired-reads output --output-bam --stdout umis.grouped.bam --umi-tag-delimiter "-"
+		umi_tools group -I ~{bam} --paired --no-sort-output --unpaired-reads output --output-bam --stdout umis.grouped.bam --umi-tag-delimiter "-" \
+			--extract-umi-method tag --umi-tag RX
 	>>>
 
 	output {
