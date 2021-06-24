@@ -71,24 +71,27 @@ task STAR {
 		File bam
 		File starIndex
 	}
-	Int disk_space = ceil(2.2 * size(bam, "GB") + size(starIndex, "GB")) + 50
+	Int disk_space = ceil(2.2 * size(bam, "GB") + size(starIndex, "GB")) + 250
 
 	command <<<
 		echo $(date +"[%b %d %H:%M:%S] Extracting STAR index")
 		mkdir star_index
-		tar -xvvf ${star_index} -C star_index --strip-components=1
+		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
-		STAR --inputBAMFile ~{bam} --runMode inputAlignmentsFromBam --genomeDir star_index --outSAMtype BAM > star.aligned.bam
+		STAR --readFilesIn ~{bam} --readFilesType SAM PE --readFilesCommand samtools view -h \
+			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8
 	>>>
 
 	runtime {
 		docker : "us.gcr.io/tag-team-160914/neovax-tag-rnaseq:v1"
 		disks : "local-disk " + disk_space + " HDD"
+		memory : "64GB"
+		cpu : "8"
 		preemptible: 0
 	}
 
 	output {
-		File aligned_bam = "star.aligned.bam"
+		File aligned_bam = "Aligned.out.bam "
 	}
 }
 
@@ -127,11 +130,12 @@ task MarkDuplicates {
 
 	Int disk_size = ceil(2.2 * size(bam, "GB")) + 50
 	command <<<
-		gatk MarkDuplicates -I ~{bam} --BARCODE_TAG BX --DUPLEX_UMI -O duplicate.marked.bam
+		gatk MarkDuplicates -I ~{bam} --BARCODE_TAG BX -O duplicate.marked.bam --METRICS_FILE duplicate.metrics --ASSUME_SORT_ORDER queryname
 	>>>
 
 	output {
 		File duplicate_marked_bam = "duplicate.marked.bam"
+		File duplicate_metrics = "duplicate.metrics"
 	}
 
 	runtime {
