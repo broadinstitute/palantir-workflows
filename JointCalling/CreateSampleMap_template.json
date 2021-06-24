@@ -1,0 +1,10 @@
+{
+  "CreateSampleMapFile.gvcfs": [
+    "gs://bucket/file_HG00096.g.vcf.gz", 
+    "gs://bucket/file_HG00419.g.vcf.gz" 
+  ],
+  "CreateSampleMapFile.sample_names": [
+    "HG00096",
+    "HG00419"
+  ]
+}

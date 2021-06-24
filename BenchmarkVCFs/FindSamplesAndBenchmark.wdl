@@ -12,7 +12,7 @@ workflow FindSamplesAndBenchmark {
         Array[File] annotation_intervals
 
         File? gatkJarForAnnotation
-        String? annotationName
+        Array[String]? annotationNames=[]
   
         File ref_fasta
         File ref_fasta_index
@@ -28,8 +28,8 @@ workflow FindSamplesAndBenchmark {
 
         Boolean remove_symbolic_alleles=false
 
-        Array[File] stratIntervals
-        Array[String] stratLabels
+        Array[File] stratIntervals=[]
+        Array[String] stratLabels=[]
 
         Array[String] jexlVariantSelectors = ["vc.isSimpleIndel()  && vc.getIndelLengths().0<0", "vc.isSimpleIndel() && vc.getIndelLengths().0>0"]
         Array[String] variantSelectorLabels = ["deletion","insertion"]
@@ -127,7 +127,7 @@ workflow FindSamplesAndBenchmark {
                      passingOnly=true,
                      vcfScoreField = "INFO.TREE_SCORE",
                      gatkJarForAnnotation = gatkJarForAnnotation,
-                     annotationName = annotationName
+                     annotationNames = annotationNames
                  }
 
             Pair[File,File] vcf_and_index_original = zip([ExtractSampleFromCallset.output_vcf],[ExtractSampleFromCallset.output_vcf_index])[0]
