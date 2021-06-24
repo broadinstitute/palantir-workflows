@@ -1,0 +1,600 @@
+---
+output: pdf_document
+---
+
+# Comparing picard metrics from two difference sources
+
+```{r startup, echo=FALSE,warning=FALSE}
+library(knitr)
+library(plyr)
+library(reshape2)
+library(ggplot2)
+library(stringr)
+library(methods)
+
+if (!requireNamespace("BiocManager", quietly = TRUE)){
+    install.packages("BiocManager", repos = "https://cran.r-project.org")
+    BiocManager::install("AnVIL")
+}
+library(AnVIL)
+
+# might be needed to point to the right gcloud sdk
+options(GCLOUD_SDK_PATH="/Users/farjoun/y/google-cloud-sdk/")
+
+
+#needed in case you are running R-3.1 and knitr was build using R-3.2....
+# trimws=function(x, which = c("both", "left", "right")) 
+# {
+#   which <- match.arg(which)
+#   mysub <- function(re, x) sub(re, "", x, perl = TRUE)
+#   if (which == "left") 
+#     return(mysub("^[ \t\r\n]+", x))
+#   if (which == "right") 
+#     return(mysub("[ \t\r\n]+$", x))
+#   mysub("[ \t\r\n]+$", mysub("^[ \t\r\n]+", x))
+# }
+
+
+opts_chunk$set(fig.width=10, fig.height=8,fig.align='center', fig.path='figures/',comment="",echo=FALSE,width=100,warning=FALSE,dev=c("png","pdf"))
+options(bitmapType='cairo')
+
+opts_knit$set(width=120)
+
+#fix bug in markdown conversion for plots
+plot_hook_markdown=function(x,options){
+  sprintf("![](%s)",str_join(x,sep=".",collapse="."))
+}
+knit_hooks$set(plot=plot_hook_markdown)
+
+# show the top 3 results from each "variable"
+kableIfData<-function(x){
+  if(nrow(x)>0)
+    show(kable(ddply(x,.(variable),function(xx) head(n=3,xx[order(abs(log(xx$y)),decreasing=TRUE),])),row.names = F))
+}
+
+readMetricsFile=function(file){
+  
+  startFinder <- scan(textConnection(gsutil_cat(as.character(file))), what="character", sep="\n", quiet=TRUE, blank.lines.skip=FALSE)
+  
+  firstBlankLine=0
+  
+  for (i in 1:length(startFinder)) {
+    if (startFinder[i] == "") {
+      if (firstBlankLine==0) {
+        firstBlankLine=i+1
+      } else {
+        secondBlankLine=i+1
+        break
+      }
+    }
+  }
+  data.frame(FILE=file,read.table(textConnection(gsutil_cat(as.character(file))),skip=firstBlankLine,header=TRUE,stringsAsFactors=FALSE,sep='\t',comment.char = "#",nrows=secondBlankLine-firstBlankLine-3))
+}
+
+
+
+readMetricsFileHistogram=function(file){
+  # show(file)
+  startFinder <- scan(textConnection(gsutil_cat(as.character(file))), what="character", sep="\n", quiet=TRUE, blank.lines.skip=FALSE)
+  
+  firstBlankLine=0
+  
+  for (i in 1:length(startFinder)) {
+    if (startFinder[i] == "") {
+      if (firstBlankLine==0) {
+        firstBlankLine=i+1
+      } else {
+        secondBlankLine=i+1
+        break
+      }
+    }
+  }
+  # show(secondBlankLine)
+  data.frame(FILE=file,read.table(textConnection(gsutil_cat(as.character(file))),skip=secondBlankLine,header=TRUE,stringsAsFactors=FALSE,sep='\t',comment.char = "#"))
+}
+
+
+
+```
+
+```{r echo,echo=true}
+
+cloud1Dir="gs://broad-gotc-test-storage/germline_single_sample/exome/scientific/truth/master/"
+cloud2Dir="gs://broad-gotc-test-results/dev/germline_single_sample/exome/scientific/2020-10-28-16-45-27/"
+
+v1_label="Master"
+v2_label="Proposal"
+
+```
+
+```{r more functions}
+getReadGroupMetricFiles =function( metrics) {
+  ldply(grep("readgroup|unmapped",metrics,value = T),function(x) { 
+  sample_and_project = x%>%dirname%>%basename
+  sample_and_project=strsplit(sample_and_project,split="\\.")[[1]]
+  sample=sample_and_project[2]
+  project=sample_and_project[1]
+  splited=strsplit(basename(x),split = "\\.")[[1]] 
+  data.frame(FILE=as.character(x),PROJECT=project,SAMPLE=sample,METRIC=rev(splited)[1], ID=basename(x),stringsAsFactors = T)})
+}
+```
+
+
+```{r LaneFiles}
+library(AnVIL)
+
+temp=gsutil_ls(cloud1Dir,recursive=T)
+cloud1Metrics=temp[grepl("metrics$",temp)]
+
+temp=gsutil_ls(cloud2Dir,recursive=T)
+cloud2Metrics=temp[grepl("metrics$",temp)]
+
+cloud1ReadGroupMetrics = getReadGroupMetricFiles(cloud1Metrics) 
+cloud2ReadGroupMetrics = getReadGroupMetricFiles(cloud2Metrics) 
+
+merged_temp=merge(cloud1ReadGroupMetrics,cloud2ReadGroupMetrics,by=c("SAMPLE","PROJECT","METRIC","ID"),suffixes = c(".cloud1",".cloud2"),all = T)
+
+
+if(nrow(merged_temp) !=nrow(cloud2ReadGroupMetrics) || nrow(merged_temp) !=nrow(cloud1ReadGroupMetrics) ) {
+  stop("merge failed to produce right number of rows")
+}
+
+```
+Missing metrics files from the ReadGroup directories:
+```{r MissingLaneFiles}
+missings=subset(merged_temp,is.na(FILE.cloud1) | is.na(FILE.cloud2))
+if(!empty(missings)){
+  rename(subset(melt(missings),measure.vars = c("FILE.cloud1","FILE.cloud2"), is.na(value),select=-c(value)),c(variable="MissingFrom"))
+}
+```
+
+## Lane-level metrics:
+```{r LaneMetrics}
+
+params=read.csv(textConnection(
+  'METRIC, ERROR_RATE, EXTRA_VARIABLE, REMOVE_VARIABLE
+"alignment_summary_metrics", 0.0001, "CATEGORY", "" 
+"base_distribution_by_cycle_metrics", 0.01, "CYCLE", ""
+"detail_metrics", 0.01, "GC", ""
+"summary_metrics", 0.01, "", ""
+"insert_size_metrics", 0.01, "", ""
+"quality_by_cycle_metrics", 0.01, "CYCLE", ""
+"quality_distribution_metrics", 0.01, "QUALITY", ""
+"quality_yield_metrics", 0.01, "", ""
+'))
+
+params$EXTRA_VARIABLE=trimws(params$EXTRA_VARIABLE)
+params$REMOVE_VARIABLE=trimws(params$REMOVE_VARIABLE)
+merged=merge(merged_temp,params)
+
+d_ply(params,.(METRIC),function(row){
+  
+  
+  row=subset(merged, METRIC=="alignment_summary_metrics")
+  
+  # show(row)
+  metric = row$METRIC
+  cat(sprintf("===== Looking at metric %s =====\n", row$METRIC[1] ))
+  
+  
+  cloud1Data=ddply(subset(cloud1ReadGroupMetrics,as.character(METRIC)==as.character(row$METRIC)[1]),.(FILE,METRIC),function(x) {data.frame(SOURCE="cloud.1",SAMPLE=x$SAMPLE[1],PROJECT=x$PROJECT[1], readMetricsFile(as.character(x$FILE)))})
+  cloud2Data=ddply(subset(cloud2ReadGroupMetrics,as.character(METRIC)==as.character(row$METRIC)[1]),.(FILE,METRIC),function(x) {data.frame(SOURCE="cloud.2",SAMPLE=x$SAMPLE[1],PROJECT=x$PROJECT[1], readMetricsFile(as.character(x$FILE)))})
+  
+  if(nrow(cloud1Data)==0 || nrow(cloud2Data)==0 ){ cat("no data")}
+  
+  if(nrow(cloud1Data) && is.na(match("READ_GROUP",names(cloud1Data)))) cloud1Data$READ_GROUP=NA
+  if(nrow(cloud2Data) && is.na(match("READ_GROUP",names(cloud2Data)))) cloud2Data$READ_GROUP=NA
+  
+  cloud1Data$FLOWCELL = with(cloud1Data,ifelse(is.na(READ_GROUP),gsub(".*/(H.*?XX)[0-9]*\\..*","\\1",cloud1Data$FILE),gsub("(H.*XX).*","\\1",READ_GROUP)))
+  cloud2Data$FLOWCELL = with(cloud2Data,ifelse(is.na(READ_GROUP),gsub(".*/(H.*?XX)[0-9]*\\..*","\\1",cloud2Data$FILE),gsub("(H.*XX).*","\\1",READ_GROUP)))
+  
+  cloud1Data$LANE=
+    with(cloud1Data,ifelse( is.na(READ_GROUP),gsub("/.*H.*XX[0-9]*\\.([0-9]*)\\..*","\\1",FILE),gsub("H.*?XX[0-9]*\\.([0-9]*)\\..*","\\1",READ_GROUP)))
+  cloud2Data$LANE=
+    with(cloud2Data,ifelse( is.na(READ_GROUP),gsub("/.*H.*XX[0-9]*\\.([0-9]*)\\..*","\\1",FILE),gsub("H.*?XX[0-9]*\\.([0-9]*)\\..*","\\1",READ_GROUP)))
+  
+  cat(sprintf("===== Looking for differences =====\n", row$METRIC[1] ))
+  
+  difference=union(setdiff(names(cloud1Data), names(cloud2Data)),setdiff(names(cloud1Data), names(cloud2Data)))
+  if(length(difference)>0){
+    cat(sprintf("There's a difference in the columns:\n"))
+    show(difference)
+    
+    cat(sprintf("subsetting....\n"))
+    cloud1Data=subset(cloud1Data,select = ! names(cloud2Data) %in% difference)
+    cloud2Data=subset(cloud2Data,select = ! names(cloud1Data) %in% difference)
+    
+  }
+  both=rbind(cloud1Data, cloud2Data)
+  
+  normalVars=c("PROJECT","SAMPLE","SOURCE","FLOWCELL","LANE")
+  normalVars=normalVars[! normalVars %in% row$REMOVE_VARIABLE[1]]
+  
+  
+  vars=c(row$EXTRA_VARIABLE[1],normalVars)
+  vars=vars[!is.na(vars) & vars!=""]
+  formulaParts=c(as.character(row$EXTRA_VARIABLE[1]),c("PROJECT","SAMPLE","FLOWCELL","LANE","variable"))
+  formulaParts=formulaParts[! formulaParts %in% row$REMOVE_VARIABLE[1]]
+  formulaParts=formulaParts[formulaParts!=""]
+  
+  recasted=recast(both,id.var = vars,formula = formula(paste0(paste(formulaParts, sep = '+',collapse = "+"),"~SOURCE")))
+  
+  recasted=transform(recasted,y=as.numeric(as.character(cloud.1))/as.numeric(as.character(cloud.2)),x=sqrt(as.numeric(as.character(cloud.1))*as.numeric(as.character(cloud.2))))
+  show(ggplot(subset(recasted,!is.na(y) & variable!="DATE") )+ geom_point(aes(color=variable,x=x,y=y))+ scale_x_log10()+labs(title=metric) +xlab("Mean value") +ylab(paste(v1_label,"over", v2_label)))
+  kableIfData(subset(recasted, abs(y-1)>row$ERROR_RATE[1]))
+  
+})
+
+```
+
+
+## readgroup distributions
+```{r LaneMetricsHistograms}
+
+params=read.csv(textConnection(
+  'METRIC, ERROR_RATE, EXTRA_VARIABLE, REMOVE_VARIABLE
+"quality_by_cycle_metrics", 0.01, "CYCLE", "" 
+"quality_distribution_metrics", 0.01, "QUALITY", ""
+"insert_size_metrics", 0.01, "insert_size", "READ_GROUP"
+'))
+
+params$EXTRA_VARIABLE=trimws(params$EXTRA_VARIABLE)
+params$REMOVE_VARIABLE=trimws(params$REMOVE_VARIABLE)
+merged=merge(merged_temp,params)
+
+d_ply(params,.(METRIC),function(row){
+  
+  
+   row=subset(merged, METRIC=="insert_size_metrics")
+  
+  # show(row)
+  metric = row$METRIC[1]
+  cat(sprintf("===== Looking at metric %s =====\n", row$METRIC[1] ))
+  
+  
+  cloud1Data=ddply(subset(cloud1ReadGroupMetrics,as.character(METRIC)==as.character(row$METRIC)[1]),.(FILE,METRIC),function(x) {data.frame(SOURCE="cloud.1",SAMPLE=x$SAMPLE[1],PROJECT=x$PROJECT[1], readMetricsFileHistogram(as.character(x$FILE)))})
+  cloud2Data=ddply(subset(cloud2ReadGroupMetrics,as.character(METRIC)==as.character(row$METRIC)[1]),.(FILE,METRIC),function(x) {data.frame(SOURCE="cloud.2",SAMPLE=x$SAMPLE[1],PROJECT=x$PROJECT[1], readMetricsFileHistogram(as.character(x$FILE)))})
+  
+  if(nrow(cloud1Data)==0 || nrow(cloud2Data)==0 ){ cat("no data")}
+  
+  if(nrow(cloud1Data) && is.na(match("READ_GROUP",names(cloud1Data)))) cloud1Data$READ_GROUP=NA
+  if(nrow(cloud2Data) && is.na(match("READ_GROUP",names(cloud2Data)))) cloud2Data$READ_GROUP=NA
+  
+  cloud1Data$FLOWCELL = with(cloud1Data,ifelse(is.na(READ_GROUP),gsub(".*/(H.*?XX)[0-9]*\\..*","\\1",cloud1Data$FILE),gsub("(H.*XX).*","\\1",READ_GROUP)))
+  cloud2Data$FLOWCELL = with(cloud2Data,ifelse(is.na(READ_GROUP),gsub(".*/(H.*?XX)[0-9]*\\..*","\\1",cloud2Data$FILE),gsub("(H.*XX).*","\\1",READ_GROUP)))
+  
+  cloud1Data$LANE=
+    with(cloud1Data,ifelse( is.na(READ_GROUP),gsub(".*/H.*?XX[0-9]*\\.([0-9]*)\\..*","\\1",FILE),gsub("H.*?XX\\.([0-9]*)\\..*","\\1",READ_GROUP)))
+  cloud2Data$LANE=
+    with(cloud2Data,ifelse( is.na(READ_GROUP),gsub(".*/H.*?XX[0-9]*\\.([0-9]*)\\..*","\\1",FILE),gsub("H.*?XX\\.([0-9]*)\\..*","\\1",READ_GROUP)))
+  
+  cat(sprintf("===== Looking for differences =====\n", row$METRIC[1] ))
+  
+  difference=union(setdiff(names(cloud1Data), names(cloud2Data)),setdiff(names(cloud1Data), names(cloud2Data)))
+  if(length(difference)>0){
+    cat(sprintf("There's a difference in the columns:\n"))
+    show(difference)
+    
+    cat(sprintf("subsetting....\n"))
+    cloud1Data=subset(cloud1Data,select = ! names(cloud2Data) %in% difference)
+    cloud2Data=subset(cloud2Data,select = ! names(cloud1Data) %in% difference)
+    
+  }
+  both=rbind(cloud1Data, cloud2Data)
+  
+  normalVars=c("PROJECT","SAMPLE","SOURCE","FLOWCELL","LANE")
+  normalVars=normalVars[! normalVars %in% row$REMOVE_VARIABLE[1]]
+  
+  show(row$EXTRA_VARIABLE[1])
+  
+  vars=c(row$EXTRA_VARIABLE[1],normalVars)
+  vars=vars[!is.na(vars) & vars!=""]
+  formulaParts=c(as.character(row$EXTRA_VARIABLE[1]),c("PROJECT","SAMPLE","FLOWCELL","LANE","variable"))
+  formulaParts=formulaParts[! formulaParts %in% row$REMOVE_VARIABLE[1]]
+  formulaParts=formulaParts[formulaParts!=""]
+  
+  recasted=recast(both,id.var = vars,formula = formula(paste0(paste(formulaParts, sep = '+',collapse = "+"),"~SOURCE")))
+  
+  recasted=transform(recasted,y=as.numeric(as.character(cloud.1))/as.numeric(as.character(cloud.2)),x=sqrt(as.numeric(as.character(cloud.1))*as.numeric(as.character(cloud.2))))
+  
+  notDate<-subset(recasted,!is.na(y) & variable!="DATE") 
+  xdata=notDate[,row$EXTRA_VARIABLE[1]]
+  xlabel=row$EXTRA_VARIABLE[1]
+  p=ggplot(notDate)+ geom_point(position=position_jitter(height=0,width =.4))+ scale_y_log10()+labs(title=metric)
+  p=p+aes(color=variable,y=y)+aes_string(x=xlabel)
+  p=p+ xlab(xlabel)+ylab(paste(v1_label,"over", v2_label))
+  show(p )
+  
+  kableIfData(subset(notDate, abs(y-1)>row$ERROR_RATE[1]))
+  
+})
+
+```
+
+## Aggregation-level metrics
+
+```{r AggregationFiles}
+
+getAggregetaionMetricFiles=function(allmetrics) ldply(grep(invert = T,"unmapped|readgroup|H[A-Z]*XX",allmetrics,value = T),function(x) { splited=strsplit(basename(x),split = "\\.")[[1]]; data.frame(FILE=as.character(x),PROJECT="test",SAMPLE=splited[1],METRIC=paste0(splited[-1],collapse = "."),stringsAsFactors = T)})
+
+cloud1AggregationMetrics=getAggregetaionMetricFiles(cloud1Metrics)
+cloud2AggregationMetrics=getAggregetaionMetricFiles(cloud2Metrics)
+
+merged_temp=merge(cloud1AggregationMetrics,cloud2AggregationMetrics,by=c("METRIC","PROJECT","SAMPLE"),suffixes = c(".cloud1",".cloud2"),all = T)
+
+```
+Here are the missing files (at the aggregation level):
+```{r missingAggregationFiles}
+missings=subset(merged,is.na(FILE.cloud1) | is.na(FILE.cloud2))
+if(!empty(missings)){
+  rename(subset(melt(missing),measure.vars = c("FILE.cloud1","FILE.cloud2"), is.na(value) ,select = -value),c(variable="MissingFrom"))
+}
+
+```
+
+
+```{r AggregationMetrics}
+
+params=read.csv(as.is = T, quote = "'",textConnection(
+  'METRIC, ERROR_RATE, EXTRA_VARIABLE, REMOVE_VARIABLE
+bait_bias_detail_metrics, 0.01,\'c(\"CONTEXT\",\"ALT_BASE\")\',""
+bait_bias_summary_metrics, 0.01,\'c(\"REF_BASE\",\"ALT_BASE\")\',""
+duplicate_metrics, 0.01,"",""
+fingerprinting_detail_metrics, 0.01,"SNP",\"LIBRARY\"
+fingerprinting_summary_metrics, 0.01,"",\"LIBRARY\"
+pre_adapter_detail_metrics, .01,\'c(\"CONTEXT\",\"ALT_BASE\")\',""
+pre_adapter_summary_metrics, 0.01,\'c(\"REF_BASE\",\"ALT_BASE\")\',""
+alignment_summary_metrics, 0.01,\"CATEGORY\",""
+gc_bias.detail_metrics, 0.01,\"GC\",""
+gc_bias.summary_metrics, 0.01,"",""
+insert_size_metrics, 0.01,"",""
+raw_wgs_metrics, 0.01,"",\'c(\"LIBRARY\")\'
+wgs_metrics, 0.01,"",\"LIBRARY\"'))
+
+params$EXTRA_VARIABLE=trimws(params$EXTRA_VARIABLE)
+merged=merge(merged_temp,params)
+merged$EXTRA_VARIABLE=as.character(merged$EXTRA_VARIABLE)
+merged$FILE.cloud1=as.character(merged$FILE.cloud1)
+merged$FILE.cloud2=as.character(merged$FILE.cloud2)
+merged$METRIC=as.character(merged$METRIC)
+
+d_ply(merged,.(METRIC),function(row){
+  
+  
+   # row=subset(merged, METRIC=="alignment_summary_metrics")
+  # show(row)
+  metric = row$METRIC
+  
+  cat(sprintf("Looking for differences in metric %s\n", metric[1] ))
+  cloud1=ldply(row$FILE.cloud1,readMetricsFile)
+  cloud1$PROJECT="test"
+  cloud1$SAMPLE_FROM_FILE=gsub(basename(as.character(cloud1$FILE)),pattern = "\\..*",replacement = "")
+  cloud1$SOURCE="cloud1"
+  
+  cloud2=ldply(row$FILE.cloud2,readMetricsFile)
+  cloud2$SAMPLE_FROM_FILE=gsub(basename(as.character(cloud2$FILE)),pattern = "\\..*",replacement = "")
+  cloud2$PROJECT="test"
+  cloud2$SOURCE="cloud2"
+  
+  difference=union(setdiff(names(cloud1), names(cloud2)),setdiff(names(cloud2), names(cloud1)))
+  if(length(difference)>0){
+    cat(sprintf("There's a difference in the columns:\n"))
+    show(difference)
+    
+    cat(sprintf("subsetting....\n"))
+    cloud1=subset(cloud1,select = ! names(cloud1) %in% difference)
+    cloud2=subset(cloud2,select = ! names(cloud2) %in% difference)
+    
+  }
+  both=rbind(cloud1, cloud2)
+  
+  normalVars=c("SAMPLE_FROM_FILE","LIBRARY","PROJECT","SOURCE","FILE")
+  remove=eval(parse(text=row$REMOVE_VARIABLE))
+  normalVars=normalVars[! normalVars %in% remove ]
+  
+  vars=c(eval(parse(text=row$EXTRA_VARIABLE)),normalVars)
+  vars=vars[vars!=""]
+  formulaParts=c(as.character(eval(parse(text=row$EXTRA_VARIABLE))),c("SAMPLE_FROM_FILE","PROJECT","LIBRARY","variable"))
+  formulaParts=formulaParts[! formulaParts %in% eval(parse(text=row$REMOVE_VARIABLE))]
+  formulaParts=formulaParts[formulaParts!=""]
+  
+  formula = formula(paste0(paste(formulaParts, sep = '+',collapse = "+"),"~SOURCE"))
+  recasted=recast(both,id.var = vars,formula = formula)
+  recasted=transform(recasted,y=as.numeric(as.character(cloud1))/as.numeric(as.character(cloud2)),x=sqrt(as.numeric(as.character(cloud1))*as.numeric(as.character(cloud2))))
+  show(ggplot(subset(recasted, variable !="DATE" & !is.na(y))) + geom_point(aes(color=variable,x=x,y=y))+ scale_x_log10()+labs(title=metric) +xlab("Mean value") +ylab(paste(v1_label,"over", v2_label)))
+  kableIfData(subset(recasted, abs(y-1)> row$ERROR_RATE))
+})
+```
+
+
+```{r aggregationDistributions}
+
+params=read.csv(as.is = T, quote = '\"',textConnection(
+  'METRIC, ERROR_RATE, EXTRA_VARIABLE 
+raw_wgs_metrics, 0.01, coverage
+wgs_metrics, 0.01, coverage
+quality_distribution_metrics, 0.01, QUALITY
+insert_size_metrics, 0.01, insert_size'))
+
+
+params$EXTRA_VARIABLE=trimws(params$EXTRA_VARIABLE)
+merged=merge(merged_temp,params)
+merged$EXTRA_VARIABLE=as.character(merged$EXTRA_VARIABLE)
+merged$FILE.cloud1=as.character(merged$FILE.cloud1)
+merged$FILE.cloud2=as.character(merged$FILE.cloud2)
+merged$METRIC=as.character(merged$METRIC)
+
+ d_ply(merged,.(METRIC),function(row){
+  
+  
+ # row=subset(merged, METRIC=="insert_size_metrics")
+  #show(row)
+  metric = row$METRIC
+  
+  cat(sprintf("Looking for differences in metric %s\n", metric[1] ))
+  cloud1=ldply(row$FILE.cloud1,readMetricsFileHistogram)
+  cloud1$PROJECT="test"
+  cloud1$SAMPLE_FROM_FILE=gsub(basename(as.character(cloud1$FILE)),pattern = "\\..*",replacement = "")
+  cloud1$SOURCE="cloud1"
+  
+  cloud2=ldply(row$FILE.cloud2,readMetricsFileHistogram)
+  cloud2$SAMPLE_FROM_FILE=gsub(basename(as.character(cloud2$FILE)),pattern = "\\..*",replacement = "")
+  cloud2$PROJECT="test"
+  cloud2$SOURCE="cloud2"
+  
+  difference=union(setdiff(names(cloud1), names(cloud2)),setdiff(names(cloud2), names(cloud1)))
+  if(length(difference)>0){
+    cat(sprintf("There's a difference in the columns:\n"))
+    show(difference)
+    
+    cat(sprintf("subsetting....\n"))
+    cloud1=subset(cloud1,select = ! names(cloud1) %in% difference)
+    cloud2=subset(cloud2,select = ! names(cloud2) %in% difference)
+    
+  }
+  both=rbind(cloud1, cloud2)
+  
+  
+  normalVars=c("SAMPLE_FROM_FILE","PROJECT","SOURCE","FILE")
+  
+  vars=c(row$EXTRA_VARIABLE,normalVars)
+  vars=vars[vars!=""]
+  formulaParts=c(row$EXTRA_VARIABLE,c("SAMPLE_FROM_FILE","PROJECT","variable"))
+  formulaParts=formulaParts[formulaParts!=""]
+  
+  formula = formula(paste0(paste(formulaParts, sep = '+',collapse = "+"),"~SOURCE"))
+  recasted=recast(both,id.var = vars,formula = formula)
+  recasted=transform(recasted,y=as.numeric(as.character(cloud1))/as.numeric(as.character(cloud2)),x=sqrt(as.numeric(as.character(cloud1))*as.numeric(as.character(cloud2))))
+  
+  data=subset(recasted,!is.na(y) & variable!="DATE") 
+  p= ggplot(data )+ geom_point()+ scale_y_log10()+labs(title=metric) 
+  p=p+aes(color=variable,y=y)
+  p=p+ylab(paste(v1_label,"over", v2_label))
+  if(!is.na(row$EXTRA_VARIABLE)){
+    xlabel=row$EXTRA_VARIABLE[1]
+    p=p+aes_string(x=xlabel) + xlab(xlabel)
+  } else {
+    p=p+aes(x=x)+scale_x_log10() +xlab("Mean value")
+  }
+  show(p)
+  
+  kableIfData(subset(recasted, abs(y-1)> row$ERROR_RATE))
+ })
+```
+
+
+# GVCF metrics
+```{r Gvcf_Metrics}
+cloud1File=subset(cloud1AggregationMetrics,METRIC=="variant_calling_detail_metrics")
+cloud2File=subset(cloud2AggregationMetrics,METRIC=="variant_calling_detail_metrics")
+
+cloud1=ldply(as.character(cloud1File$FILE),readMetricsFile)
+cloud1$PROJECT="test"
+cloud1$SOURCE="cloud1"
+
+cloud2=ldply(as.character(cloud2File$FILE),readMetricsFile)
+cloud2$PROJECT="test"
+cloud2$SOURCE="cloud2"
+
+both=rbind(cloud1,cloud2)  
+
+metric = "variant_calling_detail_metrics"
+normalVars=c("SOURCE","SAMPLE_ALIAS","PROJECT","FILE")
+vars=normalVars
+
+recasted= recast(both,id.var = vars,formula = variable + SAMPLE_ALIAS + PROJECT ~ SOURCE)
+recasted=transform(recasted,y=as.numeric(as.character(cloud1))/as.numeric(as.character(cloud2)),x=sqrt(as.numeric(as.character(cloud1))*as.numeric(as.character(cloud2))))
+
+p=ggplot(subset(recasted,variable !="DATE")) + geom_point(aes(color=variable,x=x,y=y))+ scale_x_log10()+labs(title=metric) +xlab("Mean value") +ylab(paste(v1_label,"over", v2_label))
+show(p)
+kableIfData(subset(recasted, abs(y-1)> 0.001))
+
+```
+
+```{r compare-vcfs, eval=FALSE}
+
+vcfMetricsFiles=grep("filtered",value=T,grep("detail",dir("/dsde/data/datasets/func_equiv/","*metrics$",full.names = T),value = T))
+
+vcfMetrics=ldply(vcfMetricsFiles,readMetricsFile)
+vcfMetrics$SOURCE = ifelse(grepl("original",vcfMetrics$FILE),"cloud1","cloud2")
+
+normalVars=c("SOURCE","PROJECT","SAMPLE_ALIAS","FILE")
+vars=normalVars
+
+recasted= recast(vcfMetrics,id.var = vars,formula = variable + SAMPLE_ALIAS ~ SOURCE)
+recasted=transform(recasted,y=as.numeric(as.character(cloud1))/as.numeric(as.character(cloud2)),x=sqrt(as.numeric(as.character(cloud1))*as.numeric(as.character(cloud2))))
+show(ggplot(subset(recasted,variable !="DATE")) + geom_point(aes(color=variable,x=x,y=y))+ scale_x_log10()+labs(title=metric) +xlab("Mean value") +ylab(paste(v1_label,"over", v2_label)))
+
+ggplot(melt(subset(recasted,variable %in% unique(subset(recasted, abs(y-1)> 0.01)$variable),select=c(variable,SAMPLE_ALIAS,cloud1,cloud2))%>%subset(variable!="NUM_SINGLETONS" & variable !="TOTAL_MULTIALLELIC_SNPS"),mapping = variable+SAMPLE_ALIAS~SOURCE,variable.name = "SOURCE"))+geom_point(aes(x=SOURCE,y=value,color=variable))+geom_line(aes(x=SOURCE,y=value,group=SAMPLE_ALIAS,color=variable))+expand_limits(y=0)+facet_wrap(~variable,scale='free')
+
+kableIfData(subset(recasted, abs(y-1)> 0.001))
+```  
+
+```{r MendelianViolations, eval=FALSE}
+vcfMetricsFiles=dir("/dsde/data/datasets/func_equiv/","*violation$",full.names = T)
+vcfMetrics=ldply(vcfMetricsFiles,readMetricsFile)
+vcfMetrics$SOURCE = ifelse(grepl("original",vcfMetrics$FILE),"cloud1","cloud2")
+
+normalVars=c("SOURCE","OFFSPRING","FAMILY_ID","FILE")
+vars=normalVars
+metric="Mendelian Violations"
+
+recasted= recast(vcfMetrics,id.var = vars,formula = variable + OFFSPRING ~ SOURCE)
+recasted=transform(recasted,y=as.numeric(as.character(cloud1))/as.numeric(as.character(cloud2)),x=sqrt(as.numeric(as.character(cloud1))*as.numeric(as.character(cloud2))))
+show(ggplot(subset(recasted,variable !="DATE")) + geom_point(aes(color=variable,x=x,y=y))+ scale_x_log10()+labs(title=metric) +xlab("Mean value")+ylab(paste(v1_label,"over", v2_label)))
+
+
+kableIfData(subset(recasted, abs(y-1)> 0.01))
+```
+
+
+```{r CrossCheckRGFingerprints, eval=FALSE}
+
+metric="ReadGroupCrossCheckFingerprints"
+
+cat(sprintf("Looking for differences in metric %s\n", metric ))
+
+cloud1MetricsFiles=dir(cloud1Dir,"*crosscheck$",full.names = T)
+cloud2MetricsFiles=dir(cloud2Dir,"*crosscheck$",full.names = T)
+
+cloud1CrossCheck=read.table(cloud1MetricsFiles,header = T,sep = '\t')
+cloud1CrossCheck$SOURCE="cloud1"
+cloud2CrossCheck=read.table(cloud2MetricsFiles,header = T,sep = '\t')
+cloud2CrossCheck$SOURCE="cloud2"
+
+both=rbind(cloud1CrossCheck,cloud2CrossCheck)
+
+vars=apply(expand.grid(c("LEFT","RIGHT"),c("LANE","LIBRARY","RUN_BARCODE","SAMPLE", "MOLECULAR_BARCODE_SEQUENCE")), 1, paste, collapse="_")
+
+formulaParts=c(vars,"variable")
+
+formula=formula(paste0(paste(formulaParts, sep = '+',collapse = "+"),"~SOURCE"))
+
+recasted=recast(both,id.var = c("SOURCE",vars),formula = formula)
+
+recasted=transform(recasted,y=as.numeric(as.character(cloud1))/as.numeric(as.character(cloud2)),x=sqrt(as.numeric(as.character(cloud1))*as.numeric(as.character(cloud2))))
+show(ggplot(subset(recasted,variable !="DATE")) + geom_point(aes(color=variable,x=x,y=y))+ scale_x_log10()+labs(title=metric) +xlab("Mean value") +ylab(paste(v1_label,"over", v2_label)))
+kableIfData(subset(recasted, abs(y-1)> 0.01,select=!names(recasted) %in% apply(expand.grid(c("LEFT_","RIGHT_"),c("SAMPLE","MOLECULAR_BARCODE_SEQUENCE","LIBRARY","RUN_BARCODE")),1,paste0,collapse="")))
+```
+
+```{r ContaminationFiles, eval=FALSE}
+metric="Contamination"
+cloud1ContamFile=dir(cloud1Dir,"selfSM",full.names = T)
+cloud2ContamFile=dir(cloud2Dir,"selfSM",full.names = T)
+
+cloud1Contam=read.table(cloud1ContamFile,sep="\t",header = T,comment.char = "")
+cloud2Contam=read.table(cloud2ContamFile,sep="\t",header = T,comment.char = "")
+
+cloud1Contam$SOURCE="cloud1"
+cloud2Contam$SOURCE="cloud2"
+```
+
+```{r Contamination, eval=FALSE}
+both=rbind(cloud1Contam,cloud2Contam)
+
+recasted=recast(both,id.var = c("X.SEQ_ID","SOURCE"),formula = X.SEQ_ID+variable~SOURCE)
+recasted=transform(recasted,YY=as.numeric(as.character(cloud1))/as.numeric(as.character(cloud2)),XX=as.numeric(as.character(cloud1))*as.numeric(as.character(cloud2)))
+show(ggplot(subset(recasted,variable !="DATE" & !is.na(YY))) + geom_point(aes(color=variable,x=XX,y=YY))+ scale_x_log10()+labs(title=metric)+expand_limits(y=c(.99,1.01))  +xlab("Mean value") +ylab(paste(v1_label,"over", v2_label)))
+kableIfData(subset(recasted, abs(YY-1)>.01))
+
+```
