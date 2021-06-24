@@ -13,6 +13,6 @@
   "FindSamplesAndBenchmark.annotationNames": ["TandemRepeat"],
   "FindSamplesAndBenchmark.ref_fasta_sdf": " gs://broad-dsde-methods-hydro-gen-truth-data-public/reference/hg38/reference_sdf.tar",
   "FindSamplesAndBenchmark.truth_labels": ["HG001","HG002","HG003","HG004","HG005","HG006","HG007"],
-  "FindSamplesAndBenchmark.monitoring_script": "File",
+  "FindSamplesAndBenchmark.monitoring_script": "gs://broad-dsde-methods-hydro-gen-truth-data-public/scripts/cromwell_monitoring_script.sh",
   "FindSamplesAndBenchmark.docker": "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.4.6-1599252698"
 }
