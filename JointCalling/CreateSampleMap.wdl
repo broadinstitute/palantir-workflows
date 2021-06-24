@@ -53,8 +53,8 @@ task CreateSampleMap {
     >>>
     runtime {
         docker: "python:3.6"
-        memory: "7 GB"
-        cpu: "2"
+        memory: "2 GB"
+        cpu: "1"
         disks: "local-disk " + 50 + " HDD"
     }
     output {
