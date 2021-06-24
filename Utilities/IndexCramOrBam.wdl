@@ -32,9 +32,9 @@ task indexFile{
 	}
 	runtime {
 		preemptible: 3
-    	memory: "2 GB"
-    	cpu: "1"
-    	disks: "local-disk " + ceil(size(file,'GiB')+30) +" LOCAL"
-    	docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.3.2-1510681135"
+		memory: "2 GB"
+		cpu: "1"
+		disks: "local-disk " + ceil(size(file,'GiB') + 30) +" LOCAL"
+		docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.3.2-1510681135"
 	}
 }

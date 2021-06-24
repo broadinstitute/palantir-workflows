@@ -30,3 +30,6 @@ workflows:
   - name: CreateIGVSession
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/CreateIGVSession.wdl
+  - name: IndexCramOrBam
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/IndexCramOrBam.wdl

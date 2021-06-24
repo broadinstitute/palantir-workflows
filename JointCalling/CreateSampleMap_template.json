@@ -1,0 +1,11 @@
+{
+  "CreateSampleMapFile.gvcfs": [
+  	"gs://fc-2bed42a2-4872-4f5e-a915-471ad9acd519/HapMap_Controls/HG00096.49d42cf6-ce32-4fb5-a03b-9f90a5fd881b.g.vcf.gz", 
+  	"gs://fc-2bed42a2-4872-4f5e-a915-471ad9acd519/HapMap_Controls/HG00419.2209f8b5-c5e0-43f6-8619-3ed97885ead4.g.vcf.gz" 
+  ],
+  "CreateSampleMapFile.sample_names": [
+  	"HG00096",
+  	"HG00419"
+  ]
+}
+
