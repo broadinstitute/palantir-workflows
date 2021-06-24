@@ -75,7 +75,7 @@ task STAR {
 
 		STAR --readFilesIn ~{bam} --readFilesType SAM PE --readFilesCommand samtools view \
 			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
-			--outSAMtype BAM Unsorted --outFileNamePrefix star.aligned
+			--outFileNamePrefix star.aligned
 	>>>
 
 	runtime {
