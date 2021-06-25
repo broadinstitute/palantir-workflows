@@ -52,6 +52,6 @@ task GetFingerprintMetricsTask{
     	memory: "2 GB"
     	cpu: "1"
     	disks: "local-disk 100 LOCAL"
-    	docker: "docker pull broadinstitute/picard:2.25.6"
+    	docker: "broadinstitute/picard:2.25.6"
 	}
 }
