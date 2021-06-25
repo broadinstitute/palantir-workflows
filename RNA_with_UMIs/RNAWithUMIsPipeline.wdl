@@ -30,7 +30,8 @@ workflow RNAWithUMIsPipeline {
 
 	call GroupByUMIs {
 		input:
-			bam = STAR.aligned_bam
+			bam = SortSamSTAR.output_bam
+			bam_index = SortSamSTAR.output_bam_index
 	}
 
 	call MarkDuplicates {
@@ -54,6 +55,7 @@ workflow RNAWithUMIsPipeline {
 task GroupByUMIs {
 	input {
 		File bam
+		File bam_index
 	}
 
 	Int disk_space = ceil(2.2 * size(bam, "GB")) + 50
