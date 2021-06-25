@@ -30,7 +30,7 @@ workflow RNAWithUMIsPipeline {
 
 	call GroupByUMIs {
 		input:
-			bam = SortSamSTAR.output_bam
+			bam = SortSamSTAR.output_bam,
 			bam_index = SortSamSTAR.output_bam_index
 	}
 
