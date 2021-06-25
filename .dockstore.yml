@@ -33,3 +33,6 @@ workflows:
   - name: IndexCramOrBam
     subclass: WDL
     primaryDescriptorPath: /Utilities/IndexCramOrBam.wdl
+-   ame: GetFingerprintMetrics
+    subclass: WDL
+    primaryDescriptorPath: /Fingerprints/GetFingerprintMetrics.wdl
