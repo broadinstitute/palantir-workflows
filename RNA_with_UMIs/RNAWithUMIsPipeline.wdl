@@ -25,7 +25,7 @@ workflow RNAWithUMIsPipeline {
 	call SortSam as SortSamSTAR{
 		input:
 			input_bam = STAR.aligned_bam,
-			output_bam_basename = "star.aligned.sorted"
+			output_bam_basename = "STAR.aligned.sorted"
 	}
 
 	call GroupByUMIs {
