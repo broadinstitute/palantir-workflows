@@ -58,7 +58,7 @@ task GroupByUMIs {
 		File bam_index
 	}
 
-	Int disk_space = ceil(2.2 * size(bam, "GB")) + 50
+	Int disk_space = ceil(2.2 * size(bam, "GB")) + 300
 	command <<<
 		umi_tools group -I ~{bam} --paired --no-sort-output --unpaired-reads output --output-bam --stdout umis.grouped.bam --umi-tag-delimiter "-" \
 			--extract-umi-method tag --umi-tag RX
@@ -72,6 +72,8 @@ task GroupByUMIs {
 		docker : "us.gcr.io/tag-team-160914/tag-gtex-umi-tools:v1"
 		disks : "local-disk " + disk_space + " HDD"
 		preemptible: 0
+		cpu: "8"
+		memory: "52GB"
 	}
 }
 
