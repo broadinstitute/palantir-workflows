@@ -148,7 +148,7 @@ task MarkDuplicates {
 
 	Int disk_size = ceil(2.2 * size(bam, "GB")) + 50
 	command <<<
-		gatk MarkDuplicates -I ~{bam} --BARCODE_TAG BX -O duplicate.marked.bam --METRICS_FILE duplicate.metrics --ASSUME_SORT_ORDER queryname
+		gatk MarkDuplicates -I ~{bam} --READ_ONE_BARCODE_TAG BX -O duplicate.marked.bam --METRICS_FILE duplicate.metrics --ASSUME_SORT_ORDER queryname
 	>>>
 
 	output {
