@@ -7,6 +7,7 @@ workflow RNAWithUMIsPipeline {
 		String read2Structure
 		File starIndex
 		String output_basename
+		File gtf
 	}
 
 	call ExtractUMIs {
@@ -45,10 +46,29 @@ workflow RNAWithUMIsPipeline {
 			output_bam_basename = output_basename
 	}
 
+	call GetSampleName {
+		input:
+			bam = bam
+	}
+
+	call rnaseqc2 {
+		input:
+			bam_file = SortSam.output_bam,
+			genes_gtf = gtf,
+			sample_id = GetSampleName.sample_name
+
+	}
+
   output {
 	File output_bam = SortSam.output_bam
 	File output_bam_index = SortSam.output_bam_index
 	File output_bam_md5 = SortSam.output_bam_md5
+	File gene_tpm = rnaseqc2.gene_tpm
+	File gene_counts = rnaseqc2.gene_counts
+	File exon_counts = rnaseqc2.exon_counts
+	File metrics = rnaseqc2.metrics
+	File insertsize_distr = rnaseqc2.insertsize_distr
+	File gene_dup = rnaseqc2.gene_dup
   }
 }
 
@@ -60,7 +80,7 @@ task GroupByUMIs {
 
 	Int disk_space = ceil(2.2 * size(bam, "GB")) + 300
 	command <<<
-		umi_tools group -I ~{bam} --paired --no-sort-output --unpaired-reads output --output-bam --stdout umis.grouped.bam --umi-tag-delimiter "-" \
+		umi_tools group -I ~{bam} --paired --no-sort-output --output-bam --stdout umis.grouped.bam --umi-tag-delimiter "-" \
 			--extract-umi-method tag --umi-tag RX
 	>>>
 
@@ -165,8 +185,8 @@ task MarkDuplicates {
 
 task SortSam {
   input {
-    File input_bam
-    String output_bam_basename
+	File input_bam
+	String output_bam_basename
   }
   # SortSam spills to disk a lot more because we are only store 300000 records in RAM now because its faster for our data so it needs
   # more disk space.  Also it spills to disk in an uncompressed format so we need to account for that with a larger multiplier
@@ -174,26 +194,87 @@ task SortSam {
   Int disk_size = ceil(sort_sam_disk_multiplier * size(input_bam, "GiB")) + 20
 
   command {
-    java -Xms4000m -jar /usr/picard/picard.jar \
-      SortSam \
-      INPUT=~{input_bam} \
-      OUTPUT=~{output_bam_basename}.bam \
-      SORT_ORDER="coordinate" \
-      CREATE_INDEX=true \
-      CREATE_MD5_FILE=true \
-      MAX_RECORDS_IN_RAM=300000
+	java -Xms4000m -jar /usr/picard/picard.jar \
+		SortSam \
+		INPUT=~{input_bam} \
+		OUTPUT=~{output_bam_basename}.bam \
+		SORT_ORDER="coordinate" \
+		CREATE_INDEX=true \
+		CREATE_MD5_FILE=true \
+		MAX_RECORDS_IN_RAM=300000
 
   }
   runtime {
-    docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
-    disks: "local-disk " + disk_size + " HDD"
-    cpu: "1"
-    memory: "5000 MiB"
-    preemptible: 0
+	docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
+	disks: "local-disk " + disk_size + " HDD"
+	cpu: "1"
+	memory: "5000 MiB"
+	preemptible: 0
   }
   output {
-    File output_bam = "~{output_bam_basename}.bam"
-    File output_bam_index = "~{output_bam_basename}.bai"
-    File output_bam_md5 = "~{output_bam_basename}.bam.md5"
+	File output_bam = "~{output_bam_basename}.bam"
+	File output_bam_index = "~{output_bam_basename}.bai"
+	File output_bam_md5 = "~{output_bam_basename}.bam.md5"
   }
+}
+
+task rnaseqc2 {
+	input {
+		File bam_file
+		File genes_gtf
+		String sample_id
+	}
+	Int disk_space = ceil(size(bam_file, 'GB') + size(genes_gtf, 'GB')) + 100
+
+	command {
+		set -euo pipefail
+		echo $(date +"[%b %d %H:%M:%S] Running RNA-SeQC 2")
+		touch ~{sample_id}.fragmentSizes.txt
+		touch ~{sample_id}.gene_duplicates.gct
+		rnaseqc ~{genes_gtf} ~{bam_file} . -s ~{sample_id} -vv
+		echo "  * compressing outputs"
+		gzip *.gct
+		echo $(date +"[%b %d %H:%M:%S] done")
+	}
+
+	output {
+		File gene_tpm = "${sample_id}.gene_tpm.gct.gz"
+		File gene_counts = "${sample_id}.gene_reads.gct.gz"
+		File exon_counts = "${sample_id}.exon_reads.gct.gz"
+		File metrics = "${sample_id}.metrics.tsv"
+		File insertsize_distr = "${sample_id}.fragmentSizes.txt"
+		File gene_dup = "${sample_id}.gene_duplicates.gct.gz"
+	}
+
+	runtime {
+		docker: "us.gcr.io/tag-team-160914/neovax-tag-rnaseq:v1"
+		memory: "10GB"
+		disks: "local-disk " + disk_space + " HDD"
+		preemptible: 0
+	}
+}
+
+task GetSampleName {
+	input {
+		File bam
+	}
+
+	parameter_meta {
+		bam : {
+			localization_optional : true
+		}
+	}
+
+	command <<<
+		gatk GetSampleName -I ~{bam} -O sample_name.txt
+	>>>
+
+	runtime {
+		docker: "us.gcr.io/broad-gatk/gatk:4.2.0.0"
+		disks: "local-disk 100 HDD"
+	}
+
+	output {
+		String sample_name = read_string("sample_name.txt")
+	}
 }
