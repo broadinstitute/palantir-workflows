@@ -312,6 +312,5 @@ task RemoveMateUnmappedReads {
 
 	output {
 		File output_bam = "filtered.bam"
-		File output_bam_index = "filtered.bam.bai"
 	}
 }
