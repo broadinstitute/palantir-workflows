@@ -258,7 +258,7 @@ task rnaseqc2 {
 	}
 
 	runtime {
-		docker: "us.gcr.io/tag-team-160914/neovax-tag-rnaseq:v1"
+		docker: "us.gcr.io/tag-team-160914/tag-gtex-rnaseqc-dup:v1"
 		memory: "10GB"
 		disks: "local-disk " + disk_space + " HDD"
 		preemptible: 0
