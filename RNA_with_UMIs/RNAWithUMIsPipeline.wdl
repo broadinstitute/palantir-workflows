@@ -51,12 +51,23 @@ workflow RNAWithUMIsPipeline {
 			bam = bam
 	}
 
+	call RemoveMateUnmappedReads {
+		input:
+			bam = SortSam.output_bam
+	}
+
 	call rnaseqc2 {
 		input:
 			bam_file = SortSam.output_bam,
 			genes_gtf = gtf,
 			sample_id = GetSampleName.sample_name
+	}
 
+	call rnaseqc2 as rnaseqcMateUnmappedRemoved {
+		input:
+			bam_file = RemoveMateUnmappedReads.output_bam,
+			genes_gtf = gtf,
+			sample_id = GetSampleName.sample_name
 	}
 
   output {
@@ -276,5 +287,31 @@ task GetSampleName {
 
 	output {
 		String sample_name = read_string("sample_name.txt")
+	}
+}
+
+task RemoveMateUnmappedReads {
+	input {
+		File bam
+	}
+
+	parameter_meta {
+		bam : {
+			localization_optional : true
+		}
+	}
+
+	command <<<
+		gatk PrintReads --read-filter MATE_UNMAPPED_AND_UNMAPPED_READ_FILTER -I ~{bam} -O filtered.bam
+	>>>
+
+	runtime {
+		docker: "us.gcr.io/broad-gatk/gatk:4.2.0.0"
+		disks: "local-disk 100 HDD"
+	}
+
+	output {
+		File output_bam = "filtered.bam"
+		File output_bam_index = "filtered.bam.bai"
 	}
 }
