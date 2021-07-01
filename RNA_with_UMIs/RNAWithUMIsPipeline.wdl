@@ -302,7 +302,7 @@ task RemoveMateUnmappedReads {
 	}
 
 	command <<<
-		gatk PrintReads --read-filter MateUnmappedAndUnmappedReadFilter -I ~{bam} -O filtered.bam
+		gatk PrintReads --read-filter MateUnmappedAndUnmappedReadFilter --disable-tool-default-read-filters -I ~{bam} -O filtered.bam
 	>>>
 
 	runtime {
