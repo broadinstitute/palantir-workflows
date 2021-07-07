@@ -33,3 +33,6 @@ workflows:
   - name: IndexCramOrBam
     subclass: WDL
     primaryDescriptorPath: /Utilities/IndexCramOrBam.wdl
+  - name: FunctionalEquivalence
+    subclass: WDL
+    primaryDescriptorPath: /FunctionalEquivalence/FunctionalEquivalence.wdl

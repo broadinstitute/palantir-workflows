@@ -27,6 +27,7 @@ workflow Benchmark {
         Boolean requireMatchingGenotypes=true
         File? gatkJarForAnnotation
         Array[String]? annotationNames
+        Boolean enableRefOverlap = false
         Boolean passingOnly=true
         String? vcfScoreField
     }
@@ -235,7 +236,8 @@ workflow Benchmark {
                     preemptible=preemptible,
                     requireMatchingGenotypes=requireMatchingGenotypes,
                     passingOnly=passingOnly,
-                    vcfScoreField=vcfScoreField
+                    vcfScoreField=vcfScoreField,
+                    enableRefOverlap = enableRefOverlap
             }
             
             call WriteXMLfile as VcfEvalWriteXMLfile {
@@ -423,6 +425,8 @@ workflow Benchmark {
         Float indelRecall = SummariseVcfEval.indelRecall[0]
         Float snpF1Score = SummariseVcfEval.snpF1Score[0]
         Float indelF1Score = SummariseVcfEval.indelF1Score[0]
+        Array[File?] snpRocs = StandardVcfEval.outSnpRoc
+        Array[File?] nonSnpRocs = StandardVcfEval.outNonSnpRoc
     }
 }
 
@@ -523,6 +527,7 @@ task VcfEval {
         String? memUser
         Int? threads
         Boolean requireMatchingGenotypes
+        Boolean enableRefOverlap = false
     }
     String memDefault="16 GB"
     String mem=select_first([memUser,memDefault])
@@ -538,6 +543,7 @@ task VcfEval {
         ~{false="--all-records" true="" passingOnly} \
         ~{"--vcf-score-field=" + vcfScoreField} \
         ~{false="--squash-ploidy" true="" requireMatchingGenotypes} \
+        ~{true="--ref-overlap" false="" enableRefOverlap} \
         -b ~{truthVCF} -c ~{evalVCF} \
         -e ~{confidenceBed} ~{"--bed-regions " + stratBed} \
         --output-mode combine --decompose -t rtg_ref \
