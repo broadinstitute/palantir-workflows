@@ -35,9 +35,15 @@ workflow RNAWithUMIsPipeline {
 			bam_index = SortSamSTAR.output_bam_index
 	}
 
+	call SortSamQuery {
+		input:
+			input_bam = GroupByUMIs.grouped_bam,
+			output_bam_basename = "Grouped.queryname.sorted"
+	}
+
 	call MarkDuplicates {
 		input:
-			bam = GroupByUMIs.grouped_bam
+			bam = SortSamQuery.output_bam
 	}
 
 	call SortSam {
@@ -227,6 +233,39 @@ task SortSam {
 	File output_bam_index = "~{output_bam_basename}.bai"
 	File output_bam_md5 = "~{output_bam_basename}.bam.md5"
   }
+}
+
+task SortSamQuery {
+	input {
+		File input_bam
+		String output_bam_basename
+	}
+	# SortSam spills to disk a lot more because we are only store 300000 records in RAM now because its faster for our data so it needs
+	# more disk space.  Also it spills to disk in an uncompressed format so we need to account for that with a larger multiplier
+	Float sort_sam_disk_multiplier = 3.25
+	Int disk_size = ceil(sort_sam_disk_multiplier * size(input_bam, "GiB")) + 20
+
+	command {
+		java -Xms4000m -jar /usr/picard/picard.jar \
+		SortSam \
+		INPUT=~{input_bam} \
+		OUTPUT=~{output_bam_basename}.bam \
+		SORT_ORDER="queryname" \
+		CREATE_INDEX=true \
+		CREATE_MD5_FILE=true \
+		MAX_RECORDS_IN_RAM=300000
+
+	}
+	runtime {
+		docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
+		disks: "local-disk " + disk_size + " HDD"
+		cpu: "1"
+		memory: "5000 MiB"
+		preemptible: 0
+	}
+	output {
+		File output_bam = "~{output_bam_basename}.bam"
+	}
 }
 
 task rnaseqc2 {
