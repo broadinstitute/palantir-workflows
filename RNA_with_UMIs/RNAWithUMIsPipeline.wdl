@@ -51,7 +51,7 @@ workflow RNAWithUMIsPipeline {
 			bam = bam
 	}
 
-	call RemoveDuplicateReads {
+	call RemoveUnwantedReads {
 		input:
 			bam = SortSam.output_bam
 	}
@@ -65,7 +65,7 @@ workflow RNAWithUMIsPipeline {
 
 	call rnaseqc2 as rnaseqcRemoveDuplicateReads {
 		input:
-			bam_file = RemoveDuplicateReads.output_bam,
+			bam_file = RemoveUnwantedReads.output_bam,
 			genes_gtf = gtf,
 			sample_id = GetSampleName.sample_name
 	}
@@ -290,7 +290,7 @@ task GetSampleName {
 	}
 }
 
-task RemoveDuplicateReads {
+task RemoveUnwantedReads {
 	input {
 		File bam
 	}
@@ -302,7 +302,7 @@ task RemoveDuplicateReads {
 	}
 
 	command <<<
-		gatk PrintReads --read-filter NotDuplicateReadFilter --disable-tool-default-read-filters -I ~{bam} -O filtered.bam
+		gatk PrintReads --read-filter NotDuplicateReadFilter -read-filter MateUnmappedAndUnmappedReadFilter --disable-tool-default-read-filters -I ~{bam} -O filtered.bam
 	>>>
 
 	runtime {
