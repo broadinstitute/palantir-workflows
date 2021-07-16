@@ -132,11 +132,6 @@ EOF
         File best_fscore = dataset_name + "_best_fscore.tsv"
     }
 
-    # Disable call caching since we fetch the script from a HTTP(S) URL which might have changed
-    meta {
-        volatile: true
-    }
-
     runtime {
         docker: "rocker/tidyverse"
         preemptible: select_first([preemptible, 0])

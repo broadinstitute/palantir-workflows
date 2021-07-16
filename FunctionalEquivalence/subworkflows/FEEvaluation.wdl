@@ -231,11 +231,6 @@ EOF
         File fe_summary = "fe_summary.tsv"
     }
 
-    # Disable call caching since we fetch the script from a HTTP(S) URL which might have changed
-    meta {
-        volatile: true
-    }
-
     runtime {
         docker: "michaelgatzen/fe_evaluation"
         preemptible: select_first([preemptible, 0])
