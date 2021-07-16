@@ -1,6 +1,9 @@
 version 1.0
 
 import "../BenchmarkVCFs/BenchmarkVCFs.wdl" as BenchmarkVCFs
+import "subworkflows/FEEvaluation.wdl" as FEEvaluation
+import "subworkflows/F1Evaluation.wdl" as F1Evaluation
+import "subworkflows/PlotROC.wdl" as PlotROC
 
 workflow FunctionalEquivalence {
     input{
@@ -34,10 +37,6 @@ workflow FunctionalEquivalence {
         String? additional_label
 
         Boolean signed_difference = false
-
-        String f1_script_http_url = "https://github.com/broadinstitute/palantir-workflows/raw/main/FunctionalEquivalence/scripts/f1_evaluation.py"
-        String fe_script_http_url = "https://github.com/broadinstitute/palantir-workflows/raw/main/FunctionalEquivalence/scripts/fe_evaluation.py"
-        String roc_script_http_url = "https://github.com/broadinstitute/palantir-workflows/raw/main/FunctionalEquivalence/scripts/plot_rocs.R"
 
         String gatkTag="4.0.11.0"
         Boolean passingOnly=true
@@ -109,9 +108,8 @@ workflow FunctionalEquivalence {
             ])
         
             if (create_roc_plot[i]) {
-                call PlotROC as ROCPlot {
+                call PlotROC.PlotROC as ROCPlot {
                     input:
-                        rscript_http_url = roc_script_http_url,
                         dataset_name = dataset[i],
                         files = roc_tables_1,
                         preemptible = preemptible
@@ -272,9 +270,8 @@ workflow FunctionalEquivalence {
     # We also need to flatten the roc_tables_2 array which has been created over the scatter i.
     Array[File] roc_tables_3 = flatten(roc_tables_2)
 
-    call FEEvaluation {
+    call FEEvaluation.FEEvaluation {
         input:
-            script_http_url = fe_script_http_url,
             tool1_label = tool1_label,
             tool2_label = tool2_label,
             additional_label = additional_label,
@@ -282,9 +279,8 @@ workflow FunctionalEquivalence {
             preemptible = preemptible
     }
 
-    call F1Evaluation {
+    call F1Evaluation.F1Evaluation {
         input:
-            script_http_url = f1_script_http_url,
             tool1_label = tool1_label,
             tool2_label = tool2_label,
             additional_label = additional_label,
@@ -324,141 +320,6 @@ workflow FunctionalEquivalence {
         File merged_roc_plots = MergeROC.plots
         File fe_summary = FEEvaluation.fe_summary
         File f1_summary = F1Evaluation.f1_summary
-    }
-}
-
-task PlotROC {
-    input {
-        String rscript_http_url
-        String dataset_name
-        Array[File] files
-        Int? preemptible
-    }
-
-    command {
-        for file in ${sep=' ' files}; do
-            cp $file .
-        done
-
-        wget -O script.R ~{rscript_http_url}
-
-        Rscript script.R ~{dataset_name}
-
-        ls >> result.txt
-        echo "end ls" >> result.txt
-    }
-
-    output {
-        File result = "result.txt"
-        File snp_plot = dataset_name + "_snp.png"
-        File snp_plot_zoomed = dataset_name + "_snp_zoomed.png"
-        File snp_plot_zoomed_LCR = dataset_name + "_snp_zoomed_LCR.png"
-        File indel_plot = dataset_name + "_indel.png"
-        File indel_plot_zoomed = dataset_name + "_indel_zoomed.png"
-        File indel_plot_zoomed_LCR = dataset_name + "_indel_zoomed_LCR.png"
-        File table = dataset_name + ".tsv"
-        File best_fscore = dataset_name + "_best_fscore.tsv"
-    }
-
-    # Disable call caching since we fetch the script from a HTTP(S) URL which might have changed
-    meta {
-        volatile: true
-    }
-
-    runtime {
-        docker: "rocker/tidyverse"
-        preemptible: select_first([preemptible, 0])
-        disks: "local-disk 200 HDD"
-    }
-}
-
-task FEEvaluation {
-    input {
-        String tool1_label
-        String tool2_label
-        String? additional_label
-        Array[File] summaries
-        String script_http_url
-        Int? mem_gb
-        Int? preemptible
-    }
-    Int machine_mem_gb = select_first([mem_gb, 8])
-
-    String additional_label_arg = if defined(additional_label) then "--additional-label \"" + additional_label + "\"" else ""
-
-    command {
-        set -xeuo pipefail
-        
-        source activate fe_evaluation
-
-        wget -O script.py ~{script_http_url}
-
-        python script.py \
-        --tool1 "~{tool1_label}" \
-        --tool2 "~{tool2_label}" \
-        ~{additional_label_arg} \
-        --summaries ~{sep=' ' summaries}
-    }
-
-    output {
-        Array[File] fe_plots = glob("*.png")
-        File fe_summary = "fe_summary.tsv"
-    }
-
-    # Disable call caching since we fetch the script from a HTTP(S) URL which might have changed
-    meta {
-        volatile: true
-    }
-
-    runtime {
-        docker: "michaelgatzen/fe_evaluation"
-        preemptible: select_first([preemptible, 0])
-        memory: machine_mem_gb + " GB"
-        disks: "local-disk 20 HDD"
-    }
-}
-
-task F1Evaluation {
-    input {
-        Array[File] roc_tables
-        String tool1_label
-        String tool2_label
-        String? additional_label
-        Boolean signed_difference = false
-        String script_http_url
-        Int? mem_gb
-        Int? preemptible
-    }
-    
-    Int machine_mem_gb = select_first([mem_gb, 8])
-
-    String additional_label_arg = if defined(additional_label) then "--additional-label \"" + additional_label + "\"" else ""
-
-    command {
-        set -xeuo pipefail
-        
-        source activate fe_evaluation
-
-        wget -O script.py ~{script_http_url}
-
-        python script.py --tool1 "~{tool1_label}" --tool2 "~{tool2_label}" ~{additional_label_arg} ~{true="--signed-difference" false="" signed_difference} --roc-tables ~{sep=' ' roc_tables}
-    }
-
-    output {
-        Array[File] f1_plots = glob("*.png")
-        File f1_summary = "f1_summary.tsv"
-    }
-
-    # Disable call caching since we fetch the script from a HTTP(S) URL which might have changed
-    meta {
-        volatile: true
-    }
-
-    runtime {
-        docker: "michaelgatzen/fe_evaluation"
-        preemptible: select_first([preemptible, 0])
-        memory: machine_mem_gb + " GB"
-        disks: "local-disk 20 HDD"
     }
 }
 
