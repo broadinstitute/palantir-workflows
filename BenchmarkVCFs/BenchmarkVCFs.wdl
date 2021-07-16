@@ -977,6 +977,8 @@ task EvalForVariantSelection {
         if [[ ! -z "~{gatkJarForAnnotation}" ]]; then
             java -jar ~{gatkJarForAnnotation} VariantAnnotator -V ~{vcf} -O annotated.vcf.gz ~{true="-A" false="" length(annotationNames)>0} ~{sep=" -A " annotationNames} -R ~{reference}            
             VCF=annotated.vcf.gz
+        else
+            touch annotated.vcf.gz
         fi
 
         gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V $VCF -O selected.TP_CALL.vcf.gz -select "~{selectionTPCall}" -sn ~{sampleCall}
