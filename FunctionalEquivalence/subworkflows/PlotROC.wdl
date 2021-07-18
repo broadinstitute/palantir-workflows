@@ -35,7 +35,7 @@ task PlotROCTask {
     }
 
     command <<<
-        for file in ${sep=' ' files}; do
+        for file in ~{sep=' ' files}; do
             cp $file .
         done
 
