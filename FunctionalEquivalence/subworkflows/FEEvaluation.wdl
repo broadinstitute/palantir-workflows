@@ -6,6 +6,7 @@ workflow FEEvaluation {
         String tool2_label
         String? additional_label
         Array[File] summaries
+        Array[String] stratifiers
         Int? mem_gb
         Int? preemptible
     }
@@ -16,6 +17,7 @@ workflow FEEvaluation {
             tool2_label = tool2_label,
             additional_label = additional_label,
             summaries = summaries,
+            stratifiers = stratifiers,
             mem_gb = mem_gb,
             preemptible = preemptible
     }
@@ -32,6 +34,7 @@ task FEEvaluationTask {
         String tool2_label
         String? additional_label
         Array[File] summaries
+        Array[String] stratifiers
         Int? mem_gb
         Int? preemptible
     }
@@ -52,15 +55,17 @@ import re
 import matplotlib
 import csv
 import re
+import os
 
 matplotlib.rcParams['text.usetex'] = False
 matplotlib.rcParams['mathtext.default'] = 'regular'
 matplotlib.rcParams['font.family'] = 'serif'
 
 class FEEvaluation:
-    def __init__(self):
+    def __init__(self, stratifiers):
         self.data = dict()
         self.datasets = set()
+        self.stratifiers = stratifiers
 
     def read_jaccards_from_summary_csv(self, filename):
         jaccard_data = dict()
@@ -71,7 +76,7 @@ class FEEvaluation:
 
                     if line['Stratifier'] == 'NA':
                         region = 'all'
-                    elif line['Stratifier'] in ('LCR', 'HCR'):
+                    elif line['Stratifier'] in self.stratifiers:
                         region = line['Stratifier']
                     else:
                         raise RuntimeError('Invalid stratifier {} in file {}'.format(line['Stratifier'], filename))
@@ -85,7 +90,7 @@ class FEEvaluation:
         return jaccard_data
 
     def _add_to_data(self, filename):
-        basename = re.sub(r'\.csv$', '', filename[filename.rfind('/') + 1:])
+        basename = re.sub(r'\.csv$', '', os.path.basename(filename))
 
         evaluation = basename[:5]
         if evaluation not in ('tool1', 'tool2', 'inter'):
@@ -99,7 +104,7 @@ class FEEvaluation:
         jaccard_data = self.read_jaccards_from_summary_csv(filename)
 
         for var_type in ('snp', 'indel'):
-            for region in ('all', 'HCR', 'LCR'):
+            for region in self.stratifiers:
                 index = (dataset, var_type, region, evaluation)
                 if index not in self.data:
                     self.data[index] = []
@@ -151,10 +156,10 @@ class FEEvaluation:
         tool1_mean, tool1_sd, tool2_mean, tool2_sd, inter_mean, inter_sd = self.calculate_data(summary_file, dataset, var_type, region)
 
         x = np.array([0, 1, 2])
-        xticklabels = [tool2_label, 'Inter', tool1_label]
+        xticklabels = [tool1_label, 'Inter', tool2_label]
 
-        y = np.array([tool2_mean, inter_mean, tool1_mean])
-        y_err = np.array([tool2_sd, inter_sd, tool1_sd])
+        y = np.array([tool1_mean, inter_mean, tool2_mean])
+        y_err = np.array([tool1_sd, inter_sd, tool2_sd])
 
         ax.set_xticks(x)
         ax.set_xticklabels(xticklabels)
@@ -178,9 +183,11 @@ class FEEvaluation:
             for dataset in sorted(self.datasets, reverse=True):
                 if (dataset, 'snp', 'all', 'tool1') not in self.data:
                     continue
-                fig, axes = plt.subplots(2, 3, figsize=(9,6))
+
+                num_columns = max(len(self.stratifiers), 3)
+                fig, axes = plt.subplots(2, num_columns, figsize=(3*num_columns,6))
                 for row, var_type in enumerate(['snp', 'indel']):
-                    for col, region in enumerate(['all', 'HCR', 'LCR']):
+                    for col, region in enumerate(self.stratifiers):
                         if (dataset, var_type, region, 'tool1') not in self.data:
                             print('No data for {}'.format((dataset, var_type, region, 'tool1')))
                             continue
@@ -191,7 +198,18 @@ class FEEvaluation:
                             print('No data for {}'.format((dataset, var_type, region, 'inter')))
                             continue
 
-                        self.plot_data(axes[row, col], summary_file, dataset, var_type, region, tool1_label, tool2_label)
+                        column_to_plot = col if len(self.stratifiers) > 1 else 1
+                        self.plot_data(axes[row, column_to_plot], summary_file, dataset, var_type, region, tool1_label, tool2_label)
+    
+                # Clear non-used axes if plotting less than 3 columns
+                if len(self.stratifiers) == 1:
+                    axes[0, 0].axis('off')
+                    axes[0, 2].axis('off')
+                    axes[1, 0].axis('off')
+                    axes[1, 2].axis('off')
+                if len(self.stratifiers) == 2:
+                    axes[0, 2].axis('off')
+                    axes[1, 2].axis('off')
                         
                 fig.suptitle('Dataset: {}'.format(dataset) + ('' if not additional_label else ', {}'.format(additional_label)) + '\n' + 
                 r'Concordance (# values {}: {} / {}: {} / inter: {})'.format(
@@ -203,20 +221,26 @@ class FEEvaluation:
                 plt.tight_layout()
                 fig.savefig('fe_plot_{}.png'.format(dataset), dpi=100)
 
-def main(tool1_label, tool2_label, additional_label, summaries):
-    fe = FEEvaluation()
+def main(tool1_label, tool2_label, stratifiers, additional_label, summaries):
+    if stratifiers is None:
+        stratifiers = ['all']
+    else:
+        stratifiers.insert(0, 'all')
+
+    fe = FEEvaluation(stratifiers)
     fe.read_data(summaries)
     fe.plot(tool1_label, tool2_label, additional_label)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create functional equivalence plots.')
     parser.add_argument('--additional-label', type=str)
+    parser.add_argument('--stratifiers', type=str, nargs='*')
     required_named = parser.add_argument_group('Required named arguments')
     required_named.add_argument('--tool1', required=True, type=str)
     required_named.add_argument('--tool2', required=True, type=str)
     required_named.add_argument('--summaries', required=True, type=str, nargs='+')
     args = parser.parse_args()
-    main(args.tool1, args.tool2, args.additional_label, args.summaries)
+    main(args.tool1, args.tool2, args.stratifiers, args.additional_label, args.summaries)
 EOF
 
         python script.py \
@@ -224,6 +248,7 @@ EOF
         --tool2 "~{tool2_label}" \
         ~{additional_label_arg} \
         --summaries ~{sep=' ' summaries}
+        --stratifiers ~{sep=' ' stratifiers}
     >>>
 
     output {

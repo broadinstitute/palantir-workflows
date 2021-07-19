@@ -15,13 +15,7 @@ workflow PlotROC {
     }
 
     output {
-        File result = PlotROCTask.result
-        File snp_plot = PlotROCTask.snp_plot
-        File snp_plot_zoomed = PlotROCTask.snp_plot_zoomed
-        File snp_plot_zoomed_LCR = PlotROCTask.snp_plot_zoomed_LCR
-        File indel_plot = PlotROCTask.indel_plot
-        File indel_plot_zoomed = PlotROCTask.indel_plot_zoomed
-        File indel_plot_zoomed_LCR = PlotROCTask.indel_plot_zoomed_LCR
+        Array[File] plots = PlotROCTask.plots
         File table = PlotROCTask.table
         File best_fscore = PlotROCTask.best_fscore
     }
@@ -52,7 +46,7 @@ files = list.files(home, pattern = "*.tsv", full.names = TRUE)
 df_all = tibble()
 
 for (file in files){
-  matches=str_match(basename(file), pattern = "([[:alnum:]-]+)_([:alnum:]+)_([:upper:]{3})?_?vcfeval_([a-z_]+)_roc.tsv")
+  matches=str_match(basename(file), pattern = "([[:alnum:]-]+)_([:alnum:]+)_([:alnum:]+)?_?vcfeval_([a-z_]+)_roc.tsv")
   tool=matches[2]
   data=matches[3]
   region=ifelse(is.na(matches[4]), "all", matches[4])
@@ -65,6 +59,8 @@ for (file in files){
 p_snp = ggplot(df_all %>% filter(type == "snp")) + geom_point(aes(x = false_positives, y = sensitivity, color = tool)) + #, size = 0.001 after tool)
   ggtitle(str_c("snp: ", dataset)) + facet_grid(. ~ region, scale = "free_x") + theme(legend.position = "bottom")
 ggsave(filename = str_c(dataset, "_snp.png"), plot = p_snp, width = 8.5, height = 9)
+
+# zoomed
 if (df_all %>% filter(type == "snp") %>% filter(sensitivity > 0.93) %>% count() > 0) {
   p_snp_zoomed = ggplot(df_all %>% filter(type == "snp") %>% filter(sensitivity > 0.93)) + geom_point(aes(x = false_positives, y = sensitivity, color = tool)) +
     ggtitle(str_c("snp: ", dataset)) + facet_grid(. ~ region, scale = "free_x")  + theme(legend.position = "bottom")
@@ -72,18 +68,14 @@ if (df_all %>% filter(type == "snp") %>% filter(sensitivity > 0.93) %>% count() 
   p_snp_zoomed = ggplot() + annotate("text", x = 0, y = 0, size=5, label = str_c("No data for ", dataset, " SNPs with sensitivity > 0.93")) + theme_void()
 }
 ggsave(filename = str_c(dataset, "_snp_zoomed.png"), plot = p_snp_zoomed, width = 8.5, height = 9)
-if (df_all %>% filter(type == "snp" & region == "LCR") %>% filter(sensitivity > 0.75) %>% count() > 0) {
-  p_snp_zoomed_LCR = ggplot(df_all %>% filter(type == "snp" & region == "LCR") %>% filter(sensitivity > 0.75)) + geom_point(aes(x = false_positives, y = sensitivity, color = tool)) +
-    ggtitle(str_c("snp: ", dataset)) + facet_grid(. ~ region, scale = "free_x")  + theme(legend.position = "bottom")
-} else {
-  p_snp_zoomed_LCR = ggplot() + annotate("text", x = 0, y = 0, size=5, label = str_c("No data for ", dataset, " LCR SNPs with sensitivity > 0.75")) + theme_void()
-}
-ggsave(filename = str_c(dataset, "_snp_zoomed_LCR.png"), plot = p_snp_zoomed_LCR, width = 8.5, height = 9)
+
 
 ### INDELs
 p_indel= ggplot(df_all %>% filter(type == "non_snp")) + geom_point(aes(x = false_positives, y = sensitivity, color = tool)) +
   ggtitle(str_c("non_snp: ", dataset)) + facet_grid(. ~ region, scale = "free_x") + theme(legend.position = "bottom")
 ggsave(filename = str_c(dataset, "_indel.png"), plot = p_indel, width = 8.5, height = 9)
+
+# zoomed
 if (df_all %>% filter(type == "non_snp") %>% filter(sensitivity > 0.8) %>% count() > 0) {
   p_indel_zoomed = ggplot(df_all %>% filter(type == "non_snp") %>% filter(sensitivity > 0.8)) + geom_point(aes(x = false_positives, y = sensitivity, color = tool)) +
     ggtitle(str_c("non_snp: ", dataset)) + facet_grid(. ~ region, scale = "free_x") + theme(legend.position = "bottom")
@@ -91,13 +83,6 @@ if (df_all %>% filter(type == "non_snp") %>% filter(sensitivity > 0.8) %>% count
   p_indel_zoomed = ggplot() + annotate("text", x = 0, y = 0, size=5, label = str_c("No data for ", dataset, " INDELs with sensitivity > 0.8")) + theme_void()
 }
 ggsave(filename = str_c(dataset, "_indel_zoomed.png"), plot = p_indel_zoomed, width = 8.5, height = 9)
-if (df_all %>% filter(type == "non_snp" & region == "LCR") %>% filter(sensitivity > 0.7) %>% count() > 0) {
-  p_indel_zoomed_LCR = ggplot(df_all %>% filter(type == "non_snp" & region == "LCR") %>% filter(sensitivity > 0.7)) + geom_point(aes(x = false_positives, y = sensitivity, color = tool)) +
-    ggtitle(str_c("non_snp: ", dataset)) + facet_grid(. ~ region, scale = "free_x") + theme(legend.position = "bottom")
-} else {
-  p_indel_zoomed_LCR = ggplot() + annotate("text", x = 0, y = 0, size=5, label = str_c("No data for ", dataset, " LCR INDELs with sensitivity > 0.7")) + theme_void()
-}
-ggsave(filename = str_c(dataset, "_indel_zoomed_LCR.png"), plot = p_indel_zoomed_LCR, width = 8.5, height = 9)
 
 write_tsv(df_all, str_c(dataset, ".tsv"))
 
@@ -115,19 +100,10 @@ write(indel_qual_threshold, "indel_qual_threshold.txt")
 EOF
 
         Rscript script.R ~{dataset_name}
-
-        ls >> result.txt
-        echo "end ls" >> result.txt
     >>>
 
     output {
-        File result = "result.txt"
-        File snp_plot = dataset_name + "_snp.png"
-        File snp_plot_zoomed = dataset_name + "_snp_zoomed.png"
-        File snp_plot_zoomed_LCR = dataset_name + "_snp_zoomed_LCR.png"
-        File indel_plot = dataset_name + "_indel.png"
-        File indel_plot_zoomed = dataset_name + "_indel_zoomed.png"
-        File indel_plot_zoomed_LCR = dataset_name + "_indel_zoomed_LCR.png"
+        Array[File] plots = glob("*.png")
         File table = dataset_name + ".tsv"
         File best_fscore = dataset_name + "_best_fscore.tsv"
     }

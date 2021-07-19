@@ -111,7 +111,7 @@ workflow FunctionalEquivalence {
                     files = roc_tables_1,
                     preemptible = preemptible
             }
-            Array[File] roc_plots_1 = [ROCPlot.snp_plot, ROCPlot.snp_plot_zoomed, ROCPlot.snp_plot_zoomed_LCR, ROCPlot.indel_plot, ROCPlot.indel_plot_zoomed, ROCPlot.indel_plot_zoomed_LCR]
+            Array[File] roc_plots_1 = ROCPlot.plots
         } # if truth_vcf[i] != "null"
 
         call BenchmarkVCFs.Benchmark as VcfEval_Inter {
@@ -260,6 +260,7 @@ workflow FunctionalEquivalence {
             tool2_label = tool2_label,
             additional_label = additional_label,
             summaries = summaries4,
+            stratifiers = select_first([stratLabels, []]),
             preemptible = preemptible
     }
 
@@ -267,6 +268,7 @@ workflow FunctionalEquivalence {
         input:
             tool1_label = tool1_label,
             tool2_label = tool2_label,
+            stratifiers = select_first([stratLabels, []]),
             additional_label = additional_label,
             signed_difference = signed_difference,
             roc_tables = roc_tables_3,

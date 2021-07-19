@@ -5,6 +5,7 @@ workflow F1Evaluation {
         Array[File] roc_tables
         String tool1_label
         String tool2_label
+        Array[String] stratifiers
         String? additional_label
         Boolean signed_difference = false
         Int? mem_gb
@@ -16,6 +17,7 @@ workflow F1Evaluation {
             roc_tables = roc_tables,
             tool1_label = tool1_label,
             tool2_label = tool2_label,
+            stratifiers = stratifiers,
             additional_label = additional_label,
             signed_difference = signed_difference,
             mem_gb = mem_gb,
@@ -34,6 +36,7 @@ task F1EvaluationTask {
         Array[File] roc_tables
         String tool1_label
         String tool2_label
+        Array[String] stratifiers
         String? additional_label
         Boolean signed_difference = false
         Int? mem_gb
@@ -57,6 +60,7 @@ import csv
 import statistics as stat
 import gzip
 import argparse
+import os
 
 matplotlib.rcParams['text.usetex'] = False
 matplotlib.rcParams['mathtext.default'] = 'regular'
@@ -85,8 +89,8 @@ def read_roc_to_f1_dict(filename):
                                     
     return f1_mean_dict
 
-def read_file(data, filename):
-    basename = filename[filename.rfind('/') + 1:]
+def read_file(data, filename, stratifiers):
+    basename = os.path.basename(filename)
     info = basename.split('_')
     evalinfo = info[0].split('.')
     dataset = evalinfo[0]
@@ -107,8 +111,12 @@ def read_file(data, filename):
     if dataset not in data:
         data[dataset] = dict()
     if replicate not in data[dataset]:
-        data[dataset][replicate] = {'tool1': {'all': dict(), 'HCR': dict(), 'LCR': dict()},
-                                    'tool2': {'all': dict(), 'HCR': dict(), 'LCR': dict()}, }
+        stratifier_dict = {'tool1': dict(), 'tool2': dict()}
+        for stratifier in stratifiers:
+            stratifier_dict['tool1'][stratifier] = dict()
+            stratifier_dict['tool2'][stratifier] = dict()
+        
+        data[dataset][replicate] = stratifier_dict
     data[dataset][replicate][tool][region][var_type] = f1_data
 
 def extract_data_from_dict(score_range, data, dataset, tool, region, var_type):
@@ -122,23 +130,23 @@ def extract_data_from_dict(score_range, data, dataset, tool, region, var_type):
     
 
 
-def aggregate_data(data, dataset, signed_difference):
+def aggregate_data(data, stratifiers, dataset, signed_difference):
     max_score = 200
     # Don't start the range at anything other than 0 because it will mess up the conversion to numpy arrays
-    score_range = range(0,max_score)
+    score_range = range(max_score)
 
     aggregated_data = dict()
     
-    for region in ('all', 'HCR', 'LCR'):
+    for region in stratifiers:
         for var_type in ('snp', 'indel'):
             for dataset in (dataset,):
                 tool1_data = extract_data_from_dict(score_range, data, dataset, 'tool1', region, var_type)
                 tool2_data = extract_data_from_dict(score_range, data, dataset, 'tool2', region, var_type)
                 
-                means_tool1 = [np.nanmean(tool1_data[score]) if not np.isnan(tool1_data[score]).all() else np.nan for score in score_range]
-                sd_tool1 = [np.std(tool1_data[score], ddof=1) for score in score_range]
-                means_tool2 = [np.nanmean(tool2_data[score]) if not np.isnan(tool2_data[score]).all() else np.nan for score in score_range]
-                sd_tool2 = [np.std(tool2_data[score], ddof=1) for score in score_range]
+                means_tool1 = [np.nanmean(tool1_data[score]) for score in score_range]
+                sd_tool1 = [np.nanstd(tool1_data[score], ddof=1) for score in score_range]
+                means_tool2 = [np.nanmean(tool2_data[score]) for score in score_range]
+                sd_tool2 = [np.nanstd(tool2_data[score], ddof=1) for score in score_range]
                 
                 tool1_differences = dict()
                 tool2_differences = dict()
@@ -193,10 +201,10 @@ def aggregate_data(data, dataset, signed_difference):
     return aggregated_data
     
 
-def read_datasets(roc_tables):
+def read_datasets(roc_tables, stratifiers):
     data = dict()
     for filename in roc_tables:
-        read_file(data, filename)
+        read_file(data, filename, stratifiers)
     return data
 
 def diff_plot(ax, data, dataset, var_type, region, tool1_label, tool2_label, signed_difference, summary_file):
@@ -257,55 +265,74 @@ def diff_plot(ax, data, dataset, var_type, region, tool1_label, tool2_label, sig
             data['inter_difference_sd'][threshold]
         ))
 
-def plot_aggregated_data_compact(data, dataset, tool1_label, tool2_label, additional_label, signed_difference, summary_file):
-    aggregated_data = aggregate_data(data, dataset, signed_difference)
-    fig, axes = plt.subplots(3, 3, figsize=(9,8))
+def plot_aggregated_data_compact(data, stratifiers, dataset, tool1_label, tool2_label, additional_label, signed_difference, summary_file):
+    aggregated_data = aggregate_data(data, stratifiers, dataset, signed_difference)
+    num_columns = max(len(stratifiers), 3)
+    fig, axes = plt.subplots(3, num_columns, figsize=(3*num_columns,8))
     for row, var_type in enumerate(['snp', 'indel']):
-        for col, region in enumerate(['all', 'HCR', 'LCR']):
+        for col, region in enumerate(stratifiers):
+            column_to_plot = col if len(stratifiers) > 1 else 1
             plot_data = aggregated_data[dataset][(region, var_type)]
-            ax = axes[row, col]
+            ax = axes[row, column_to_plot]
             diff_plot(ax, plot_data, dataset, var_type, region, tool1_label, tool2_label, signed_difference, summary_file)
     
-    axes[2, 0].axis('off')
-    axes[2, 1].axis('off')
-    axes[2, 2].axis('off')
+    # Clear axes for legend
+    for i in range(num_columns):
+        axes[2, i].axis('off')
+    
+    # Clear non-used axes if plotting less than 3 columns
+    if len(stratifiers) == 1:
+        axes[0, 0].axis('off')
+        axes[0, 2].axis('off')
+        axes[1, 0].axis('off')
+        axes[1, 2].axis('off')
+    if len(stratifiers) == 2:
+        axes[0, 2].axis('off')
+        axes[1, 2].axis('off')
+    
             
     fig.suptitle('Dataset: {}'.format(dataset) + ('' if not additional_label else ', {}'.format(additional_label)) + '\n' +
                 ('Signed ' if signed_difference else 'Absolute ') +
                 r'$F_1 = \frac{TP}{TP + \frac{1}{2} (FP + FN)}$ score differences for calls with $QUAL \geq q$' +
                 ' (# replicates: {})'.format(len(data[dataset])))
     if signed_difference:
-        inter_label = 'Inter: $F_{1, ' + tool1_label + ' rep 1} - F_{1, ' + tool2_label + ' rep 1}$'
+        inter_label = 'Inter: $F_{1, ' + tool1_label + '\\ rep 1} - F_{1, ' + tool2_label + '\\ rep 1}$'
     else:
-        inter_label = 'Inter: $|F_{1, ' + tool1_label + ' rep 1} - F_{1, ' + tool2_label + ' rep 1}|$'
+        inter_label = 'Inter: $|F_{1, ' + tool1_label + '\\ rep 1} - F_{1, ' + tool2_label + '\\ rep 1}|$'
     legend_inter_line = matplotlib.lines.Line2D([], [], color='C2', label=inter_label)
-    legend_intra_tool1_line = matplotlib.lines.Line2D([], [], color='C0', label='Intra: $|F_{1, ' + tool1_label + ' rep 1} - F_{1, ' + tool1_label + ' rep 2}|$')
-    legend_intra_tool2_line = matplotlib.lines.Line2D([], [], color='C1', label='Intra: $|F_{1, ' + tool2_label + ' rep 1} - F_{1, ' + tool2_label + ' rep 2}|$')
+    legend_intra_tool1_line = matplotlib.lines.Line2D([], [], color='C0', label='Intra: $|F_{1, ' + tool1_label + '\\ rep 1} - F_{1, ' + tool1_label + '\\ rep 2}|$')
+    legend_intra_tool2_line = matplotlib.lines.Line2D([], [], color='C1', label='Intra: $|F_{1, ' + tool2_label + '\\ rep 1} - F_{1, ' + tool2_label + '\\ rep 2}|$')
     fig.legend(bbox_to_anchor=(0.5, 0.2), loc='center', handles=[legend_inter_line, legend_intra_tool1_line, legend_intra_tool2_line])
     plt.tight_layout()
     fig.savefig('f1_plot_{}.png'.format(dataset), dpi=100)
 
-def main(roc_tables, tool1_label, tool2_label, additional_label, signed_difference):
-    data = read_datasets(roc_tables)
+def main(roc_tables, tool1_label, tool2_label, stratifiers, additional_label, signed_difference):
+    if stratifiers is None:
+        stratifiers = ['all']
+    else:
+        stratifiers.insert(0, 'all')
+
+    data = read_datasets(roc_tables, stratifiers)
     datasets = data.keys()
     with open('f1_summary.tsv', 'w') as summary_file:
         summary_file.write('Dataset\tVar_Type\tRegion\tThreshold\tabs_deltaF1_tool1_mean\tabs_deltaF1_tool1_sd\tabs_deltaF1_tool2_mean\tabs_deltaF1_tool2_sd\tabs_deltaF1_inter_mean\tabs_deltaF1_inter_sd\n')
         for dataset in datasets:
-            plot_aggregated_data_compact(data, dataset, tool1_label, tool2_label, additional_label, signed_difference, summary_file)
+            plot_aggregated_data_compact(data, stratifiers, dataset, tool1_label, tool2_label, additional_label, signed_difference, summary_file)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create F1 functional equivalence plots.')
     parser.add_argument('--additional-label', type=str)
     parser.add_argument('--signed-difference', action='store_true')
+    parser.add_argument('--stratifiers', type=str, nargs='*')
     required_named = parser.add_argument_group('Required named arguments')
     required_named.add_argument('--tool1', required=True, type=str)
     required_named.add_argument('--tool2', required=True, type=str)
     required_named.add_argument('--roc-tables', required=True, type=str, nargs='+')
     args = parser.parse_args()
-    main(args.roc_tables, args.tool1, args.tool2, args.additional_label, args.signed_difference)
+    main(args.roc_tables, args.tool1, args.tool2, args.stratifiers, args.additional_label, args.signed_difference)
 EOF
         
-        python script.py --tool1 "~{tool1_label}" --tool2 "~{tool2_label}" ~{additional_label_arg} ~{true="--signed-difference" false="" signed_difference} --roc-tables ~{sep=' ' roc_tables}
+        python script.py --tool1 "~{tool1_label}" --tool2 "~{tool2_label}" ~{additional_label_arg} ~{true="--signed-difference" false="" signed_difference} --roc-tables ~{sep=' ' roc_tables} --stratifiers ~{sep=' ' stratifiers}
     >>>
 
     output {
