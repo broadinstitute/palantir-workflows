@@ -49,7 +49,7 @@ task F1EvaluationTask {
         
         source activate fe_evaluation
         
-        cat <<EOF > script.py
+        cat <<'EOF' > script.py
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
