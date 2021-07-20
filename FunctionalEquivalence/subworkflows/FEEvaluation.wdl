@@ -45,8 +45,6 @@ task FEEvaluationTask {
     command <<<
         set -xeuo pipefail
         
-        source activate fe_evaluation
-        
         cat <<EOF > script.py
 import matplotlib.pyplot as plt
 import argparse
