@@ -342,7 +342,9 @@ task RemoveUnwantedReads {
 
 	command <<<
 		gatk PrintReads --read-filter NotDuplicateReadFilter --read-filter MateUnmappedAndUnmappedReadFilter \
-			--read-filter NotSecondaryAlignmentReadFilter --disable-tool-default-read-filters -I ~{bam} -O filtered.bam
+			--read-filter NotSecondaryAlignmentReadFilter --disable-tool-default-read-filters -I ~{bam} -O intermediate.filtered.bam
+
+		samtools view intermediate.filtered.bam -G 2176 -b -o filtered.bam
 	>>>
 
 	runtime {
