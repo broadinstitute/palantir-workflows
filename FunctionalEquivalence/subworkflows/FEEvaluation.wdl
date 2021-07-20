@@ -92,14 +92,14 @@ class FEEvaluation:
     def _add_to_data(self, filename):
         basename = re.sub(r'\.csv$', '', os.path.basename(filename))
 
-        evaluation = basename[:5]
+        info = basename.split('.')
+
+        evaluation = info[0]
+
         if evaluation not in ('tool1', 'tool2', 'inter'):
             raise RuntimeError('Invalid evaluation in file {}'.format(filename))
 
-        # For tool1/tool2, remove last two digits, for inter, remove the last digit.
-        # These are the replicate numbers.
-        # Modify here to allow more than 9 replicates
-        dataset = basename[5:(-1 if evaluation == 'inter' else -2)]
+        dataset = info[1]
 
         jaccard_data = self.read_jaccards_from_summary_csv(filename)
 

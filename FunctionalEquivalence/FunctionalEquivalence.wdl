@@ -9,7 +9,6 @@ workflow FunctionalEquivalence {
     input{
         Array[String] sample_id
         Array[String] dataset
-        Array[String] replicate_no
 
         Array[String] confidence_intervals
 
@@ -50,7 +49,7 @@ workflow FunctionalEquivalence {
                 input:
                     confidenceInterval = confidence_intervals[i],
                     truthLabel = "truth",
-                    evalLabel = dataset[i] + "." + replicate_no[i] + ".tool1",
+                    evalLabel = dataset[i] + "." + i + ".tool1",
                     truthVcf = truth_vcf[i],
                     truthVcfIndex = truth_vcf_index[i],
                     evalVcf = tool1_vcf[i],
@@ -76,7 +75,7 @@ workflow FunctionalEquivalence {
                 input:
                     confidenceInterval = confidence_intervals[i],
                     truthLabel = "truth",
-                    evalLabel = dataset[i] + "." + replicate_no[i] + ".tool2",
+                    evalLabel = dataset[i] + "." + i + ".tool2",
                     truthVcf = truth_vcf[i],
                     truthVcfIndex = truth_vcf_index[i],
                     evalVcf = tool2_vcf[i],
@@ -120,8 +119,8 @@ workflow FunctionalEquivalence {
 
         call BenchmarkVCFs.Benchmark as VcfEval_Inter {
             input:
-                evalLabel = "tool1" + dataset[i] + replicate_no[i],
-                truthLabel = "tool2" + dataset[i] + replicate_no[i],
+                evalLabel = "tool1." + dataset[i] + "." + i,
+                truthLabel = "tool2." + dataset[i] + "." + i,
                 evalVcf = tool1_vcf[i],
                 evalVcfIndex = tool1_vcf_index[i],
                 truthVcf = tool2_vcf[i],
@@ -147,7 +146,7 @@ workflow FunctionalEquivalence {
         call RenameSummary as RenameSummaryInter {
             input:
                 input_summary = select_first([VcfEval_Inter.summary]),
-                name = "inter" + dataset[i] + replicate_no[i],
+                name = "inter." + dataset[i] + "." + i,
                 preemptible = preemptible
         }
 
@@ -161,8 +160,8 @@ workflow FunctionalEquivalence {
             if (dataset[i] == dataset[j]) {
                 call BenchmarkVCFs.Benchmark as VcfEval_IntraTool1 {
                     input:
-                        evalLabel = "tool1" + dataset[i] + replicate_no[i],
-                        truthLabel = "tool1" + dataset[j] + replicate_no[j],
+                        evalLabel = "tool1." + dataset[i] + "." + i,
+                        truthLabel = "tool1." + dataset[i] + "." + j,
                         evalVcf = tool1_vcf[i],
                         evalVcfIndex = tool1_vcf_index[i],
                         truthVcf = tool1_vcf[j],
@@ -188,14 +187,14 @@ workflow FunctionalEquivalence {
                 call RenameSummary as RenameSummaryIntraTool1 {
                     input:
                         input_summary = select_first([VcfEval_IntraTool1.summary]),
-                        name = "tool1" + dataset[i] + replicate_no[i] + replicate_no[j],
+                        name = "tool1." + dataset[i] + "." + i + "." + j,
                         preemptible = preemptible
                 }
 
                 call BenchmarkVCFs.Benchmark as VcfEval_IntraTool2 {
                     input:
-                        evalLabel = "tool2" + dataset[i] + replicate_no[i],
-                        truthLabel = "tool2" + dataset[j] + replicate_no[j],
+                        evalLabel = "tool2." + dataset[i] + "." + i,
+                        truthLabel = "tool2." + dataset[j] + "." + j,
                         evalVcf = tool2_vcf[i],
                         evalVcfIndex = tool2_vcf_index[i],
                         truthVcf = tool2_vcf[j],
@@ -221,7 +220,7 @@ workflow FunctionalEquivalence {
                 call RenameSummary as RenameSummaryIntraTool2 {
                     input:
                         input_summary = select_first([VcfEval_IntraTool2.summary]),
-                        name = "tool2" + dataset[i] + replicate_no[i] + replicate_no[j],
+                        name = "tool2." + dataset[i] + "." + i + "." + j,
                         preemptible = preemptible
                 }
             } # if dataset[i] == dataset[j]
