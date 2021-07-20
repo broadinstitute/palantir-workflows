@@ -8,10 +8,7 @@ Generally, the workflow is designed to operate on a `sample_set` in the Terra da
 
 Required arguments:
 - `Array[String] sample_id`: Only used for iterating over the the rows, can be arbitrary.
-- `Array[Boolean] include_in_fe_analysis`: True if the sample should be included in the analysis, otherwise it will be ignored.
-- `Array[Boolean] create_roc_plot`: True if a ROC plot should be created. A truth VCF must be provided for this sample.
-- `Array[String] dataset`: Dataset name that must be shared for all samples that should be compared to each other.
-- `Array[String] replicate_no`: The replicate number, must be unique within each dataset. **Must only be one character long. If more than 10 replicates should be provided, please use letters instead.**
+- `Array[String] dataset`: Dataset name that must be shared for all samples that should be compared to each other. **Must not contain a period (`.`).**
 - `Array[String] confidence_intervals`: Confidence intervals where the analysis should be carried out. Should be the same for each replicate within a dataset.
 - `String tool1_label`: Label the tool1 VCFs.
 - `Array[String] tool1_vcf`: The VCF generated with tool 1.
@@ -21,8 +18,8 @@ Required arguments:
 - `Array[String] tool2_vcf_index`
 - `Array[String] truth_vcf`: A truth VCF, if available. **If no truth is available for a given row, this field must be set to the string `"null"` and must not be left empty.**
 - `Array[String] truth_vcf_index`: A truth VCF index, if available. **If no truth is available for a given row, this field must be set to the string `"null"` and must not be left empty.**
-- `Array[String]? stratLabels`: **Currently not optional. Must be `["LCR", "HCR"]`**.
-- `Array[File]? stratIntervals`: **Currently not optional. Must be set to intervals representing low complexity regions and high complexity regions, in this order.** Use for example `["gs://broad-dsde-methods-ckachulis/benchmarking/stratifiers/LCR_Hg38.interval_list","gs://broad-dsde-methods-ckachulis/benchmarking/stratifiers/HCR_hg38.bed"]`.
+- `Array[String]? stratLabels`: Labels for an arbitrary number of intervals for which to produce output statistics and plots.
+- `Array[File]? stratIntervals`: Interval files corresponding to the labels in `stratLabels`. Supported file types are `.interval_list` and `.bed`.
 - `String referenceVersion = "hg38"`: Required for the call to the BenchmarkVCFs subworkflow.
 - `File reference`: .fasta
 - `File refIndex`: .fai
@@ -31,9 +28,6 @@ Required arguments:
 
 Optional arguments:
 - `String? additional_label`: Optional label that will be displayed on the plots to distinguish, for example, different tool versions.
-- `String f1_script_http_url = ...`: By default, the script for generating the F1 plots will be fetched from the master branch of the palantir-workflows repo. **If you are working in a different branch or want to use a custom script you must modify this path to a valid HTTP(S) path.**
-- `String fe_script_http_url = ...`: By default, the script for generating the F1 plots will be fetched from the master branch of the palantir-workflows repo. **If you are working in a different branch or want to use a custom script you must modify this path to a valid HTTP(S) path.**
-- `String roc_script_http_url = ...`: By default, the script for generating the ROC plots will be fetched from the master branch of the palantir-workflows repo. **If you are working in a different branch or want to use a custom script you must modify this path to a valid HTTP(S) path.**
 - `String gatkTag = "4.0.11.0"`: GATK Docker tag to use in various sub-tasks.
 - `Boolean passingOnly = true`: When this is true, only calls that pass the VCF filters will be considered for the evaluation.
 - `Boolean requireMatchingGenotypes = true`: When this is false, the ploidy of calls will be ignored. (see `--squash-ploidy` documentation for `vcfeval`).
@@ -70,11 +64,9 @@ J = TP / (TP + FP + FN)
 
 where TP refers to calls that are in both sample 1 and sample 2, and FP and FN refer to calls that are in one sample but not the other. A higher score relates to a high concordance or more similar calls. Note that the terms _true positive_, _false positive_ and _false negative_ only represent the output from `vcfeval` and do not reflect any relation to acutal _true_ calls, since no actual _truth_ VCF is provided for this comparison.
 
-From all comparisons 
+An example FE plot (with annotations added for clarity) is shown below:
 
-An examplary FE plot (with annotations added for clarity) is shown below:
-
-![Examplary FE plot](doc/fe_plot.png)
+![Example FE plot](doc/fe_plot.png)
 
 The left bars represent the intra tool concordance when comparing different replicates called with DRAGEN and the right bars represent the intra tool concordance between samples called with GATK. The middle bar represents the inter tool concordance.
 
@@ -86,7 +78,7 @@ The points in the bars refer to the mean Jaccard score among the comparisons wit
 
 For evaluating performance differences between tools, F1 plots are also created:
 
-![Examplary F1 plot](doc/f1_plot.png)
+![Example F1 plot](doc/f1_plot.png)
 
 In this plot, the absolute difference in F1 score vs. truth for a given quality threshold is visualized. In the above plot, we can expect a mean intra tool difference between replicates called with GATK of 0.002 when filtering with a quality threshold of 10. That means, if the F1 score hard-filtered with that quality threshold of replicate 1 is, for example, 0.9 then the F1 score of replicate 2 could be, for example, 0.902. This is the background noise that is expected when looking at different replicates of the same individual.
 
