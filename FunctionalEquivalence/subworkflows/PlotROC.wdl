@@ -196,7 +196,7 @@ EOF
     }
 
     runtime {
-        docker: "rocker/tidyverse"
+        docker: "michaelgatzen/fe_evaluation"
         preemptible: select_first([preemptible, 0])
         disks: "local-disk 200 HDD"
     }
