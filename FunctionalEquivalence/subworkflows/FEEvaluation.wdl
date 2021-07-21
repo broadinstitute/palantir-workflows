@@ -247,7 +247,7 @@ EOF
         --tool1 "~{tool1_label}" \
         --tool2 "~{tool2_label}" \
         ~{additional_label_arg} \
-        --summaries ~{sep=' ' summaries}
+        --summaries ~{sep=' ' summaries} \
         --stratifiers ~{sep=' ' stratifiers}
     >>>
 
