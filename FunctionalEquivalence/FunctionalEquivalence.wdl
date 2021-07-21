@@ -107,8 +107,12 @@ workflow FunctionalEquivalence {
         
             call PlotROC.PlotROC as ROCPlot {
                 input:
-                    dataset_name = dataset[i],
-                    files = roc_tables_1,
+                    sample_id = sample_id[i],
+                    roc_tables = roc_tables_1,
+                    tool1_label = tool1_label,
+                    tool2_label = tool2_label,
+                    stratifiers = select_first([stratLabels, []]),
+                    additional_label = additional_label,
                     preemptible = preemptible
             }
             Array[File] roc_plots_1 = ROCPlot.plots
