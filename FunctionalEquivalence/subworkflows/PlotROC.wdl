@@ -123,7 +123,8 @@ def plot_roc(ax, data, best_qual, region, var_type):
     ax.plot([best_coordinates_tool1[0]], [best_coordinates_tool1[1]], c='C0', marker='x', markersize=15, linestyle=' ')
     ax.plot([best_coordinates_tool2[0]], [best_coordinates_tool2[1]], c='C1', marker='x', markersize=15, linestyle=' ')
 
-    ax.text(best_coordinates_tool1[0], best_coordinates_tool1[1], '{:.3f}@Q{:.0f}'.format(best_qual_tool1[1], best_qual_tool1[0])) 
+    ax.annotate(r'$F_{1, max}$ = '+'{:.3f} @ Q{:.0f}'.format(best_qual_tool1[1], best_qual_tool1[0]), (0.95, 0.05), xycoords='axes fraction', xytext=(0, 12), textcoords='offset points', c='C0', ha='right', va='bottom')
+    ax.annotate(r'$F_{1, max}$ = '+'{:.3f} @ Q{:.0f}'.format(best_qual_tool2[1], best_qual_tool2[0]), (0.95, 0.05), xycoords='axes fraction', xytext=(0, 0), textcoords='offset points', c='C1', ha='right', va='bottom')
 
     ax.set_xlabel(r'FP')
     ax.set_ylabel(r'Sensitivity')
