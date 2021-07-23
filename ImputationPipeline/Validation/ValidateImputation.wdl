@@ -261,7 +261,7 @@ task PearsonCorrelation {
 		touch sample_map.list
 		~{"cp " + sample_map + " sample_map.list"}
 
-		gatk --java-options "-Xmx~{mem - 2}G" ArrayImputationCorrelation --eval ~{evalVcf} --truth ~{truthVcf} --af-annotations af_expressions.list --resource ~{af_resource} \
+		gatk --java-options "-Xmx~{mem - 2}G" EvaluateGenotypingPerformance --eval ~{evalVcf} --truth ~{truthVcf} --af-annotations af_expressions.list --resource ~{af_resource} \
 		~{"--ids " + sites} ~{"-L " + intervals} --sample-map sample_map.list ~{"--dosage-field " + dosage_field} -O ~{output_basename}.correlations.tsv \
 		-OA ~{output_basename}.accuracy.tsv ~{"-nBins " + n_bins} ~{"-firstBinRightEdge " + right_edge_first_bin} ~{"-minAfForAccuracyMetrics " + min_af_for_accuracy_metrics}
 	>>>
