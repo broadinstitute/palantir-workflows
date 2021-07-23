@@ -257,7 +257,7 @@ EOF
     }
 
     runtime {
-        docker: "michaelgatzen/fe_evaluation"
+        docker: "us.gcr.io/broad-dsde-methods/functionalequivalence/fe_evaluation:1.0.0"
         preemptible: select_first([preemptible, 0])
         memory: machine_mem_gb + " GB"
         disks: "local-disk 20 HDD"

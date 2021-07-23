@@ -323,7 +323,7 @@ task MergePNGs {
     }
 
     runtime {
-        docker: "michaelgatzen/mergepngs"
+        docker: "us.gcr.io/broad-dsde-methods/functionalequivalence/merge_pngs:1.0.0"
         preemptible: select_first([preemptible, 0])
         memory: "8 GB"
         disks: "local-disk 20 HDD"
