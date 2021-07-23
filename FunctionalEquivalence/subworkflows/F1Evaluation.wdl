@@ -50,6 +50,8 @@ task F1EvaluationTask {
     command <<<
         set -xeuo pipefail
         
+        source activate fe_evaluation
+        
         cat <<'EOF' > script.py
 import numpy as np
 import matplotlib
