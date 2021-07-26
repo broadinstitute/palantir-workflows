@@ -4,52 +4,80 @@
 #
 # Inputs:
 #
-# 1. Genotyped multisample GVCF
-# 2. Header file. Standard SAM header (should match header of files to be fingerprinted)
+# 1. Genotyped multisample VCF or GVCF
+# 2. Sequence dictionary for hapmap header (should match header of files to be fingerprinted)
 # 3. Pruning parameters, see https://www.cog-genomics.org/plink/2.0/ld for more info. 
 #    In general, higher values for prune window and prune slide result in more pruning, while lower values for prune cutoff and maf result in less pruning
 #  
 #   
 #
 
+# Filter out indels and variants that weren't called in every sample
+
 task vcftools {
     String intermediates_prefix
     File input_vcf
     
     command <<<
-  	vcftools --vcf ${input_vcf} --max-missing-count 0 --remove-indels --recode --recode-INFO-all --out ${intermediates_prefix}
+    vcftools --vcf ${input_vcf} --max-missing-count 0 --remove-indels --recode --recode-INFO-all --out ${intermediates_prefix}
     >>>
-	
+  
     runtime {
     disks: "local-disk 1000 HDD"
     memory: "3500 MB"
-    docker: "jeltje/vcftools"
+    docker: "biocontainers/vcftools:v0.1.16-1-deb_cv1"
   }
 
-	output {
+  output {
     File recode_vcf = "${intermediates_prefix}.recode.vcf"
   }
 }
+
+# Set missing variant IDs to chr:pos
+
+task bcftools {
+    String intermediates_prefix
+    File input_vcf
+    
+    command <<<
+    bcftools annotate ${input_vcf} --set-id '%CHROM\:%POS' -o ${intermediates_prefix}.annotated.vcf
+    >>>
+  
+    runtime {
+    disks: "local-disk 1000 HDD"
+    memory: "3500 MB"
+    docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
+  }
+
+  output {
+    File annotated_vcf = "${intermediates_prefix}.annotated.vcf"
+  }
+}
+
+# Prune variants that are in high LD, as well as variants with a low MAF
 
 task plink {
   File input_vcf
   String intermediates_prefix
   String output_prefix
-  Int prune_window
-  Int prune_slide
-  Float prune_cutoff
-  Float min_maf
+  Int? prune_window
+  Int? prune_slide
+  Float? prune_cutoff
+  Float? min_maf
   
-  String set_missing = "@:#"
+  Float maf = select_first([min_maf, 0.4])
+  Int window = select_first([prune_window, 50])
+  Int slide = select_first([prune_slide, 5])
+  Float cutoff = select_first([prune_cutoff, 0.5])
 
   command <<<
-  	plink --vcf ${input_vcf} --snps-only --maf ${min_maf} --biallelic-only --set-missing-var-ids ${set_missing} --indep-pairwise ${prune_window} ${prune_slide} ${prune_cutoff} --out ${intermediates_prefix}
+    plink1.9 --vcf ${input_vcf} --snps-only --maf ${maf} --biallelic-only --indep-pairwise ${window} ${slide} ${cutoff} --out ${intermediates_prefix}
     >>>
 
   runtime {
     disks: "local-disk 1000 HDD"
     memory: "3500 MB"
-    docker: "jrose77/plinkdocker"
+    docker: "biocontainers/plink1.9:v1.90b3.45-170113-1-deb_cv1"
   }
 
   output {
@@ -57,60 +85,48 @@ task plink {
   }
 }
 
-task reformat{
-	String output_prefix
-	File prune_in
-    File recode_vcf
-	File header_file
+# Format remaining variants into haplotype map format readable by Picard tools
 
-	command <<<
+task reformat{
+  String output_prefix
+  File prune_in
+    File input_vcf
+  File sequence_dict
+
+  command <<<
 python <<CODE
 import pandas as pd
 import vcf
 
-
-vcf_file = "${recode_vcf}"
-prune_in = "${prune_in}"
-header = open("${header_file}")
-new_map = open("${output_prefix}.hapmap.txt", 'w')
-vcf_reader = vcf.Reader(open(vcf_file, 'r', encoding='utf-8'))
-vcf_chr = False
-first = next(vcf_reader)
-if str(first.CHROM)[0:3] == 'chr':
-	vcf_chr = True
-sites_to_include = open(prune_in)
-sites_list = []
-for line in sites_to_include:
-	if vcf_chr and (line[0:3] != 'chr'):
-		sites_list.append('chr'+line)
-	else:
-		sites_list.append(line)
-for line in header:
-	new_map.write(line)
-new_map.write("\n")
-header.close()
-for record in vcf_reader:
-	if record.ID == None:
-		if str(record.CHROM) + ":" + str(record.POS) + "\n" not in sites_list:
-			continue
-	elif record.ID not in sites_list:
-		continue
-	ref = record.REF[0]
-	alt = record.ALT[0]
-	if len(alt) > 1:
-		continue
-	if alt == '*':
-		continue
-	maf = record.INFO['AF'][0]
-	newline = str(record.CHROM) + '\t' \
-              + str(record.POS) + '\t' \
-              + str(record.CHROM) + ":" + str(record.POS) + '\t' \
-              + str(ref) + '\t' \
-              + str(alt) + '\t' \
-              + str(maf) + '\t' \
-              + '\t' + "" + '\t' + '\n'
-	new_map.write(newline)
-new_map.close()
+with open("${output_prefix}" + ".hapmap.txt", 'w') as new_map:
+  sites_set = set()
+  with open("${prune_in}") as p:
+    for line in p:
+      sites_set.add(line[:-1])
+  with open("${sequence_dict}") as h:
+    for line in h:
+      new_map.write(line)
+  vcf_reader = vcf.Reader(open("${input_vcf}"), 'r', encoding='utf-8')
+  for record in vcf_reader:
+    if record.ID == None:
+      if str(record.CHROM) + ":" + str(record.POS) + "\n" not in sites_set:
+        continue
+    if record.ID not in sites_set:
+      continue
+    ref = record.REF[0]
+    alt = record.ALT[0]
+    if len(alt) > 1:
+      continue
+    if alt == '*':
+      continue
+    maf = record.INFO['AF'][0]
+    newline = str(record.CHROM) + '\t' \
+                + str(record.POS) + '\t' \
+                + str(record.CHROM) + ":" + str(record.POS) + '\t' \
+                + str(ref) + '\t' \
+                + str(alt) + '\t' \
+                + str(maf) + '\n'
+    new_map.write(newline)
 CODE
   >>>
   
@@ -127,24 +143,31 @@ CODE
 
 workflow BuildHapMap {
   File input_vcf
-  File header_file
+  File sequence_dict
   String intermediates_prefix
   String output_prefix
-  Int prune_window
-  Int prune_slide
-  Float prune_cutoff
-  Float min_maf
+  Int? prune_window
+  Int? prune_slide
+  Float? prune_cutoff
+  Float? min_maf
   
   call vcftools {
-  	input:
-    	input_vcf = input_vcf,
+    input:
+      input_vcf = input_vcf,
+        intermediates_prefix = intermediates_prefix
+  
+  }
+  
+  call bcftools {
+    input:
+      input_vcf = vcftools.recode_vcf,
         intermediates_prefix = intermediates_prefix
   
   }
 
   call plink {
     input:
-      input_vcf=vcftools.recode_vcf,
+      input_vcf=bcftools.annotated_vcf,
       intermediates_prefix = intermediates_prefix,
       output_prefix = output_prefix,
       prune_window = prune_window,
@@ -154,11 +177,11 @@ workflow BuildHapMap {
   }
 
   call reformat {
-  	input:
-    	output_prefix = output_prefix,
-  		recode_vcf = vcftools.recode_vcf,
+    input:
+      output_prefix = output_prefix,
+      input_vcf = bcftools.annotated_vcf,
         prune_in = plink.prune_in,
-  		header_file = header_file
+      sequence_dict = sequence_dict
   }
   
   output {
