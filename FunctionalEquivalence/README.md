@@ -1,21 +1,29 @@
 # Functional Equivalence Workflow
 
+*Michael Gatzen, Geraldine Van der Auwera, Takuto Sato, Christopher Kachulis*
+
+This workflow performs an evaluation of *functional equivalence*. Prompted by scientific need to combine results from multiple sources into larger datasets, functional equivalence is answering the question of how we can ensure that genomic data from different sources, processed with different pipelines, can be used interchangeably without risking batch effects.
+
+**A citable preprint on this topic will be available soon, we appreciate your patience. Please reach out to [Michael Gatzen](https://github.com/michaelgatzen) (email in GitHub profile) any time if you have questions.**
+
 ## Usage
+
+A demonstration of this workflow is available in this workspace in Terra, an open cloud platform for accessing and analyzing data securely and collaboratively in the cloud. 
 
 ### Inputs
 
 Generally, the workflow is designed to operate on a `sample_set` in the Terra data model. If the main data table is called `sample` then the array inputs for this workflow should be provided as `this.samples.[column name]`
 
 Required arguments:
-- `Array[String] sample_id`: Only used for iterating over the the rows, can be arbitrary.
+- `Array[String] sample_id`: Arbitrary name for each sample in the table. Will be used to as a label for ROC plots.
 - `Array[String] dataset`: Dataset name that must be shared for all samples that should be compared to each other. **Must not contain a period (`.`).**
-- `Array[String] confidence_intervals`: Confidence intervals where the analysis should be carried out. Should be the same for each replicate within a dataset.
+- `Array[String] confidence_intervals`: Confidence intervals where the analysis should be carried out. Should be the same for each replicate within a dataset. Supported file types are `.interval_list` and `.bed`.
 - `String tool1_label`: Label the tool1 VCFs.
-- `Array[String] tool1_vcf`: The VCF generated with tool 1.
-- `Array[String] tool1_vcf_index`
+- `Array[String] tool1_vcf`: The VCF generated with tool 1. Also supports `.vcf.gz` files.
+- `Array[String] tool1_vcf_index`: The VCF index (`.tbi`) file for tool 1.
 - `String tool2_label`: Label the tool2 VCFs.
-- `Array[String] tool2_vcf`: The VCF generated with tool 2.
-- `Array[String] tool2_vcf_index`
+- `Array[String] tool2_vcf`: The VCF generated with tool 2. Also supports `.vcf.gz` files.
+- `Array[String] tool2_vcf_index`: The VCF index (`.tbi`) file for tool 2.
 - `Array[String] truth_vcf`: A truth VCF, if available. **If no truth is available for a given row, this field must be set to the string `"null"` and must not be left empty.**
 - `Array[String] truth_vcf_index`: A truth VCF index, if available. **If no truth is available for a given row, this field must be set to the string `"null"` and must not be left empty.**
 - `Array[String]? stratLabels`: Labels for an arbitrary number of intervals for which to produce output statistics and plots.
@@ -68,7 +76,7 @@ An example FE plot (with annotations added for clarity) is shown below:
 
 ![Example FE plot](doc/fe_plot.png)
 
-The left bars represent the intra tool concordance when comparing different replicates called with DRAGEN and the right bars represent the intra tool concordance between samples called with GATK. The middle bar represents the inter tool concordance.
+The left bars represent the intra tool concordance when comparing different replicates called with Tool A and the right bars represent the intra tool concordance between samples called with Tool B. The middle bar represents the inter tool concordance.
 
 The points in the bars refer to the mean Jaccard score among the comparisons with multiple replicates and the error bars represents the standard deviation.
 
@@ -80,7 +88,7 @@ For evaluating performance differences between tools, F1 plots are also created:
 
 ![Example F1 plot](doc/f1_plot.png)
 
-In this plot, the absolute difference in F1 score vs. truth for a given quality threshold is visualized. In the above plot, we can expect a mean intra tool difference between replicates called with GATK of 0.002 when filtering with a quality threshold of 10. That means, if the F1 score hard-filtered with that quality threshold of replicate 1 is, for example, 0.9 then the F1 score of replicate 2 could be, for example, 0.902. This is the background noise that is expected when looking at different replicates of the same individual.
+In this plot, the absolute difference in F1 score vs. truth for a given quality threshold is visualized. In the above plot, we can expect a mean intra tool difference between replicates called with Tool A of 0.002 when filtering with a quality threshold of 10. That means, if the F1 score hard-filtered with that quality threshold of replicate 1 is, for example, 0.9 then the F1 score of replicate 2 could be, for example, 0.902. This is the background noise that is expected when looking at different replicates of the same individual.
 
 The absolute inter tool difference between tools (green line) is very small and well below the intra tool differences.
 
