@@ -57,21 +57,9 @@ workflow RNAWithUMIsPipeline {
 			bam = bam
 	}
 
-	call RemoveUnwantedReads {
-		input:
-			bam = SortSam.output_bam
-	}
-
 	call rnaseqc2 {
 		input:
 			bam_file = SortSam.output_bam,
-			genes_gtf = gtf,
-			sample_id = GetSampleName.sample_name
-	}
-
-	call rnaseqc2 as rnaseqcRemoveDuplicateReads {
-		input:
-			bam_file = RemoveUnwantedReads.output_bam,
 			genes_gtf = gtf,
 			sample_id = GetSampleName.sample_name
 	}
@@ -98,7 +86,7 @@ task GroupByUMIs {
 	Int disk_space = ceil(2.2 * size(bam, "GB")) + 300
 	command <<<
 		umi_tools group -I ~{bam} --paired --no-sort-output --output-bam --stdout umis.grouped.bam --umi-tag-delimiter "-" \
-			--extract-umi-method tag --umi-tag RX
+			--extract-umi-method tag --umi-tag RX --unmapped-reads use
 	>>>
 
 	output {
@@ -326,33 +314,5 @@ task GetSampleName {
 
 	output {
 		String sample_name = read_string("sample_name.txt")
-	}
-}
-
-task RemoveUnwantedReads {
-	input {
-		File bam
-	}
-
-	parameter_meta {
-		bam : {
-			localization_optional : true
-		}
-	}
-
-	command <<<
-		gatk PrintReads --read-filter NotDuplicateReadFilter --read-filter MateUnmappedAndUnmappedReadFilter \
-			--read-filter NotSecondaryAlignmentReadFilter --disable-tool-default-read-filters -I ~{bam} -O intermediate.filtered.bam
-
-		samtools view intermediate.filtered.bam -G 2176 -b -o filtered.bam
-	>>>
-
-	runtime {
-		docker: "us.gcr.io/broad-gatk/gatk:4.2.0.0"
-		disks: "local-disk 100 HDD"
-	}
-
-	output {
-		File output_bam = "filtered.bam"
 	}
 }
