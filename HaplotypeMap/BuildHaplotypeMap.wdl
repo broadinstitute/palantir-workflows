@@ -5,7 +5,7 @@
 # Inputs:
 #
 # 1. Genotyped multisample VCF or GVCF
-# 2. Sequence dictionary for hapmap header (should match header of files to be fingerprinted)
+# 2. Sequence dictionary for hap map header (should match header of files to be fingerprinted)
 # 3. Pruning parameters, see https://www.cog-genomics.org/plink/2.0/ld for more info. 
 #    In general, higher values for prune window and prune slide result in more pruning, while lower values for prune cutoff and maf result in less pruning
 #  
@@ -15,11 +15,15 @@
 # Filter out indels and variants that weren't called in every sample
 
 task vcftools {
-    String intermediates_prefix
+    String? intermediates_prefix
     File input_vcf
+    Int? max_missing
+    
+    Int max_missing = select_first([max_missing, 0])
+    String intermediates_prefix = select_first([intermediates_prefix, "int"])
     
     command <<<
-    vcftools --vcf ${input_vcf} --max-missing-count 0 --remove-indels --recode --recode-INFO-all --out ${intermediates_prefix}
+    vcftools --vcf ${input_vcf} --max-missing-count ${max_missing} --remove-indels --recode --recode-INFO-all --out ${intermediates_prefix}
     >>>
   
     runtime {
@@ -36,8 +40,10 @@ task vcftools {
 # Set missing variant IDs to chr:pos
 
 task bcftools {
-    String intermediates_prefix
+    String? intermediates_prefix
     File input_vcf
+    
+    String intermediates_prefix = select_first([intermediates_prefix, "int"])
     
     command <<<
     bcftools annotate ${input_vcf} --set-id '%CHROM\:%POS' -o ${intermediates_prefix}.annotated.vcf
@@ -58,13 +64,14 @@ task bcftools {
 
 task plink {
   File input_vcf
-  String intermediates_prefix
+  String? intermediates_prefix
   String output_prefix
   Int? prune_window
   Int? prune_slide
   Float? prune_cutoff
   Float? min_maf
   
+  String intermediates_prefix = select_first([intermediates_prefix, "int"])
   Float maf = select_first([min_maf, 0.4])
   Int window = select_first([prune_window, 50])
   Int slide = select_first([prune_slide, 5])
@@ -90,7 +97,7 @@ task plink {
 task reformat{
   String output_prefix
   File prune_in
-    File input_vcf
+  File input_vcf
   File sequence_dict
 
   command <<<
@@ -144,12 +151,13 @@ CODE
 workflow BuildHapMap {
   File input_vcf
   File sequence_dict
-  String intermediates_prefix
+  String? intermediates_prefix
   String output_prefix
   Int? prune_window
   Int? prune_slide
   Float? prune_cutoff
   Float? min_maf
+  Int? max_missing
   
   call vcftools {
     input:
