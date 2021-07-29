@@ -17,7 +17,7 @@ Generally, the workflow is designed to operate on a `sample_set` in the Terra da
 Required arguments:
 - `Array[String] sample_id`: Arbitrary name for each sample in the table. Will be used to as a label for ROC plots.
 - `Array[String] dataset`: Dataset name that must be shared for all samples that should be compared to each other. **Must not contain a period (`.`).**
-- `Array[String] confidence_intervals`: Confidence intervals where the analysis should be carried out. Should be the same for each replicate within a dataset. Supported file types are `.interval_list` and `.bed`.
+- `Array[String] confidence_intervals`: High confidence intervals of the truth set where the analysis should be carried out. Should be the same for each replicate within a dataset. Supported file types are `.interval_list` and `.bed`.
 - `String tool1_label`: Label the tool1 VCFs.
 - `Array[String] tool1_vcf`: The VCF generated with tool 1. Also supports `.vcf.gz` files.
 - `Array[String] tool1_vcf_index`: The VCF index (`.tbi`) file for tool 1.
@@ -28,7 +28,7 @@ Required arguments:
 - `Array[String] truth_vcf_index`: A truth VCF index, if available. **If no truth is available for a given row, this field must be set to the string `"null"` and must not be left empty.**
 - `Array[String]? stratLabels`: Labels for an arbitrary number of intervals for which to produce output statistics and plots.
 - `Array[File]? stratIntervals`: Interval files corresponding to the labels in `stratLabels`. Supported file types are `.interval_list` and `.bed`.
-- `String referenceVersion = "hg38"`: Required for the call to the BenchmarkVCFs subworkflow.
+- `String referenceVersion = "hg38"`: Required for the call to the BenchmarkVCFs subworkflow. Can be "hg38" or "hg19".
 - `File reference`: .fasta
 - `File refIndex`: .fai
 - `File refDict`: .dict

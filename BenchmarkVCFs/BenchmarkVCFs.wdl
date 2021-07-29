@@ -1433,21 +1433,6 @@ task MatchEvalTruth {
     Int memoryRam=memoryJava+2
     Int disk_size = 10 + ceil(size(hapMap, "GB"))
 
-    parameter_meta {
-        evalVcf: {
-            localization_optional: true
-        }
-        truthVcf: {
-            localization_optional: true
-        }
-        evalVcfIndex: {
-            localization_optional: true
-        }
-        truthVcfIndex: {
-            localization_optional: true
-        }
-    }
-
     command <<<
         gatk --java-options "-Xmx~{memoryJava}G" CrosscheckFingerprints -I ~{evalVcf} -SI ~{truthVcf} -H ~{hapMap} --CROSSCHECK_MODE CHECK_ALL_OTHERS --CROSSCHECK_BY FILE --EXPECT_ALL_GROUPS_TO_MATCH
     >>>
