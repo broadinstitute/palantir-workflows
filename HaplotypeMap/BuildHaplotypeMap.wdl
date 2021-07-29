@@ -19,21 +19,21 @@ task vcftools {
     File input_vcf
     Int? max_missing
     
-    Int max_missing = select_first([max_missing, 0])
-    String intermediates_prefix = select_first([intermediates_prefix, "int"])
+    Int maxmissing = select_first([max_missing, 0])
+    String int_prefix = select_first([intermediates_prefix, "int"])
     
-    command <<<
-    vcftools --vcf ${input_vcf} --max-missing-count ${max_missing} --remove-indels --recode --recode-INFO-all --out ${intermediates_prefix}
+  command <<<
+    vcftools --vcf ${input_vcf} --max-missing-count ${maxmissing} --remove-indels --recode --recode-INFO-all --out ${int_prefix}
     >>>
   
-    runtime {
+  runtime {
     disks: "local-disk 1000 HDD"
     memory: "3500 MB"
     docker: "biocontainers/vcftools:v0.1.16-1-deb_cv1"
   }
 
   output {
-    File recode_vcf = "${intermediates_prefix}.recode.vcf"
+    File recode_vcf = "${int_prefix}.recode.vcf"
   }
 }
 
@@ -43,20 +43,20 @@ task bcftools {
     String? intermediates_prefix
     File input_vcf
     
-    String intermediates_prefix = select_first([intermediates_prefix, "int"])
+    String int_prefix = select_first([intermediates_prefix, "int"])
     
-    command <<<
-    bcftools annotate ${input_vcf} --set-id '%CHROM\:%POS' -o ${intermediates_prefix}.annotated.vcf
+  command <<<
+    bcftools annotate ${input_vcf} --set-id '%CHROM\:%POS' -o ${int_prefix}.annotated.vcf
     >>>
   
-    runtime {
+  runtime {
     disks: "local-disk 1000 HDD"
     memory: "3500 MB"
     docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
   }
 
   output {
-    File annotated_vcf = "${intermediates_prefix}.annotated.vcf"
+    File annotated_vcf = "${int_prefix}.annotated.vcf"
   }
 }
 
@@ -71,14 +71,14 @@ task plink {
   Float? prune_cutoff
   Float? min_maf
   
-  String intermediates_prefix = select_first([intermediates_prefix, "int"])
+  String int_prefix = select_first([intermediates_prefix, "int"])
   Float maf = select_first([min_maf, 0.4])
   Int window = select_first([prune_window, 50])
   Int slide = select_first([prune_slide, 5])
   Float cutoff = select_first([prune_cutoff, 0.5])
 
   command <<<
-    plink1.9 --vcf ${input_vcf} --snps-only --maf ${maf} --biallelic-only --indep-pairwise ${window} ${slide} ${cutoff} --out ${intermediates_prefix}
+    plink1.9 --vcf ${input_vcf} --snps-only --maf ${maf} --biallelic-only --indep-pairwise ${window} ${slide} ${cutoff} --out ${int_prefix}
     >>>
 
   runtime {
@@ -88,7 +88,7 @@ task plink {
   }
 
   output {
-    File prune_in = "${intermediates_prefix}.prune.in"
+    File prune_in = "${int_prefix}.prune.in"
   }
 }
 
@@ -144,7 +144,7 @@ CODE
     }
     
     output {
-    File map = "${output_prefix}.hapmap.txt"
+      File map = "${output_prefix}.hapmap.txt"
   }
 }
 
@@ -162,14 +162,14 @@ workflow BuildHapMap {
   call vcftools {
     input:
       input_vcf = input_vcf,
-        intermediates_prefix = intermediates_prefix
+      intermediates_prefix = intermediates_prefix
   
   }
   
   call bcftools {
     input:
       input_vcf = vcftools.recode_vcf,
-        intermediates_prefix = intermediates_prefix
+      intermediates_prefix = intermediates_prefix
   
   }
 
@@ -188,7 +188,7 @@ workflow BuildHapMap {
     input:
       output_prefix = output_prefix,
       input_vcf = bcftools.annotated_vcf,
-        prune_in = plink.prune_in,
+      prune_in = plink.prune_in,
       sequence_dict = sequence_dict
   }
   
