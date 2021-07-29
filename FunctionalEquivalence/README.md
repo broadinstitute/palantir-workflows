@@ -8,7 +8,7 @@ This workflow performs an evaluation of *functional equivalence*. Prompted by sc
 
 ## Usage
 
-A demonstration of this workflow is available in this workspace in Terra, an open cloud platform for accessing and analyzing data securely and collaboratively in the cloud. 
+A demonstration of this workflow is available in [this workspace](https://app.terra.bio/#workspaces/broad-firecloud-dsde-methods/FunctionalEquivalence) in Terra, an open cloud platform for accessing and analyzing data securely and collaboratively in the cloud. 
 
 ### Inputs
 
