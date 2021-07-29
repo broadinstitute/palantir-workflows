@@ -27,6 +27,7 @@ workflow Benchmark {
         Boolean requireMatchingGenotypes=true
         File? gatkJarForAnnotation
         Array[String]? annotationNames
+        Boolean enableRefOverlap = false
         Boolean passingOnly=true
         String? vcfScoreField
     }
@@ -235,7 +236,8 @@ workflow Benchmark {
                     preemptible=preemptible,
                     requireMatchingGenotypes=requireMatchingGenotypes,
                     passingOnly=passingOnly,
-                    vcfScoreField=vcfScoreField
+                    vcfScoreField=vcfScoreField,
+                    enableRefOverlap = enableRefOverlap
             }
             
             call WriteXMLfile as VcfEvalWriteXMLfile {
@@ -423,6 +425,8 @@ workflow Benchmark {
         Float indelRecall = SummariseVcfEval.indelRecall[0]
         Float snpF1Score = SummariseVcfEval.snpF1Score[0]
         Float indelF1Score = SummariseVcfEval.indelF1Score[0]
+        Array[File?] snpRocs = StandardVcfEval.outSnpRoc
+        Array[File?] nonSnpRocs = StandardVcfEval.outNonSnpRoc
     }
 }
 
@@ -523,12 +527,13 @@ task VcfEval {
         String? memUser
         Int? threads
         Boolean requireMatchingGenotypes
+        Boolean enableRefOverlap = false
     }
     String memDefault="16 GB"
     String mem=select_first([memUser,memDefault])
 
     Int cpu=select_first([threads,1])
-    Int disk_size = 10 + ceil(size(truthVCF, "GB") + size(truthVCFIndex, "GB") + 2.2 * size(evalVCF, "GB") + size(evalVCFIndex, "GB") + size(confidenceBed, "GB") + size(stratBed, "GB") + size(ref, "GB") + size(refDict, "GB") + size(refIndex, "GB"))
+    Int disk_size = 50 + ceil(size(truthVCF, "GB") + size(truthVCFIndex, "GB") + 2.2 * size(evalVCF, "GB") + size(evalVCFIndex, "GB") + size(confidenceBed, "GB") + size(stratBed, "GB") + size(ref, "GB") + size(refDict, "GB") + size(refIndex, "GB"))
 
     command <<<
     set -xeuo pipefail
@@ -538,6 +543,7 @@ task VcfEval {
         ~{false="--all-records" true="" passingOnly} \
         ~{"--vcf-score-field=" + vcfScoreField} \
         ~{false="--squash-ploidy" true="" requireMatchingGenotypes} \
+        ~{true="--ref-overlap" false="" enableRefOverlap} \
         -b ~{truthVCF} -c ~{evalVCF} \
         -e ~{confidenceBed} ~{"--bed-regions " + stratBed} \
         --output-mode combine --decompose -t rtg_ref \
@@ -971,6 +977,8 @@ task EvalForVariantSelection {
         if [[ ! -z "~{gatkJarForAnnotation}" ]]; then
             java -jar ~{gatkJarForAnnotation} VariantAnnotator -V ~{vcf} -O annotated.vcf.gz ~{true="-A" false="" length(annotationNames)>0} ~{sep=" -A " annotationNames} -R ~{reference}            
             VCF=annotated.vcf.gz
+        else
+            touch annotated.vcf.gz
         fi
 
         gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V $VCF -O selected.TP_CALL.vcf.gz -select "~{selectionTPCall}" -sn ~{sampleCall}
@@ -1424,21 +1432,6 @@ task MatchEvalTruth {
     Int memoryJava=select_first([memoryMaybe,memoryDefault])
     Int memoryRam=memoryJava+2
     Int disk_size = 10 + ceil(size(hapMap, "GB"))
-
-    parameter_meta {
-        evalVcf: {
-            localization_optional: true
-        }
-        truthVcf: {
-            localization_optional: true
-        }
-        evalVcfIndex: {
-            localization_optional: true
-        }
-        truthVcfIndex: {
-            localization_optional: true
-        }
-    }
 
     command <<<
         gatk --java-options "-Xmx~{memoryJava}G" CrosscheckFingerprints -I ~{evalVcf} -SI ~{truthVcf} -H ~{hapMap} --CROSSCHECK_MODE CHECK_ALL_OTHERS --CROSSCHECK_BY FILE --EXPECT_ALL_GROUPS_TO_MATCH
