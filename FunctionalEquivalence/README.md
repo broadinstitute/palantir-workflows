@@ -6,6 +6,8 @@ This workflow performs an evaluation of *functional equivalence*. Prompted by sc
 
 **A citable preprint on this topic will be available soon, we appreciate your patience. Please reach out to [Michael Gatzen](https://github.com/michaelgatzen) (email in GitHub profile) any time if you have questions.**
 
+Note: This branch has also been merged into the [main branch](https://github.com/broadinstitute/palantir-workflows/tree/main/FunctionalEquivalence).
+
 ## Usage
 
 A demonstration of this workflow is available in [this workspace](https://app.terra.bio/#workspaces/broad-firecloud-dsde-methods/FunctionalEquivalence) in Terra, an open cloud platform for accessing and analyzing data securely and collaboratively in the cloud. 
