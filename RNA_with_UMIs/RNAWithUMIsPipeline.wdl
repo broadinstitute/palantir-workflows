@@ -349,8 +349,8 @@ task CollectMultipleMetrics {
 	}
 
 	command <<<
-		gatk CollectMultipleMetrics -I ~{bam} -PROGRAM CollectAlignmentSummaryMetrics -PROGRAM CollectRnaSeqMetrics -R ~{ref} -REF_FLAT ~{refFlat} \
-			-RIBOSOMAL_INTERVALS ~{ribosomalIntervals} -O ~{basename}
+		gatk CollectMultipleMetrics -I ~{bam} --PROGRAM CollectAlignmentSummaryMetrics --PROGRAM CollectRnaSeqMetrics -R ~{ref} --REF_FLAT ~{refFlat} \
+			--INTERVALS ~{ribosomalIntervals} -O ~{basename}
 	>>>
 
 	runtime {
