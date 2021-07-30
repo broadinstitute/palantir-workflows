@@ -36,4 +36,7 @@ workflows:
   - name: BuildHaplotypeMap
     subclass: WDL
     primaryDescriptorPath: /HaplotypeMap/BuildHaplotypeMap.wdl
+  - name: FunctionalEquivalence
+    subclass: WDL
+    primaryDescriptorPath: /FunctionalEquivalence/FunctionalEquivalence.wdl
 
