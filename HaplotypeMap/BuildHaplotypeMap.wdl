@@ -22,11 +22,11 @@ task vcftools {
     Int maxmissing = select_first([max_missing, 0])
     String int_prefix = select_first([intermediates_prefix, "int"])
     
-  command <<<
+    command <<<
     vcftools --vcf ${input_vcf} --max-missing-count ${maxmissing} --remove-indels --recode --recode-INFO-all --out ${int_prefix}
     >>>
   
-  runtime {
+    runtime {
     disks: "local-disk 1000 HDD"
     memory: "3500 MB"
     docker: "biocontainers/vcftools:v0.1.16-1-deb_cv1"
@@ -45,11 +45,11 @@ task bcftools {
     
     String int_prefix = select_first([intermediates_prefix, "int"])
     
-  command <<<
+    command <<<
     bcftools annotate ${input_vcf} --set-id '%CHROM\:%POS' -o ${int_prefix}.annotated.vcf
     >>>
   
-  runtime {
+    runtime {
     disks: "local-disk 1000 HDD"
     memory: "3500 MB"
     docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
@@ -97,7 +97,7 @@ task plink {
 task reformat{
   String output_prefix
   File prune_in
-  File input_vcf
+    File input_vcf
   File sequence_dict
 
   command <<<
@@ -113,6 +113,8 @@ with open("${output_prefix}" + ".hapmap.txt", 'w') as new_map:
   with open("${sequence_dict}") as h:
     for line in h:
       new_map.write(line)
+  column_headers= "#CHROM POS ID  REF ALT INFO" + "\n"
+  new_map.write(column_headers)
   vcf_reader = vcf.Reader(open("${input_vcf}"), 'r', encoding='utf-8')
   for record in vcf_reader:
     if record.ID == None:
@@ -144,13 +146,41 @@ CODE
     }
     
     output {
-      File map = "${output_prefix}.hapmap.txt"
+    File map = "${output_prefix}.hapmap.txt"
+  }
+}
+
+task Picard{
+    File hapmap
+    File reference
+    File reference_index
+    File reference_dict
+    File picard_jar
+    String output_prefix
+
+  command <<<
+    java -jar ${picard_jar} ConvertHaplotypeDatabaseToVcf \
+      OUTPUT=${output_prefix}.hapmap.vcf \
+      INPUT=${hapmap} \
+      R=${reference}
+  >>>
+  runtime {
+    memory: "32 GB"
+    disks: "local-disk 1500 HDD"
+    docker: "broadinstitute/picard"
+  }
+  output {
+    File map_vcf = "${output_prefix}.hapmap.vcf"    
   }
 }
 
 workflow BuildHapMap {
   File input_vcf
   File sequence_dict
+  File reference
+  File reference_index
+  File reference_dict
+  File picard_jar
   String? intermediates_prefix
   String output_prefix
   Int? prune_window
@@ -162,14 +192,14 @@ workflow BuildHapMap {
   call vcftools {
     input:
       input_vcf = input_vcf,
-      intermediates_prefix = intermediates_prefix
+        intermediates_prefix = intermediates_prefix
   
   }
   
   call bcftools {
     input:
       input_vcf = vcftools.recode_vcf,
-      intermediates_prefix = intermediates_prefix
+        intermediates_prefix = intermediates_prefix
   
   }
 
@@ -188,11 +218,21 @@ workflow BuildHapMap {
     input:
       output_prefix = output_prefix,
       input_vcf = bcftools.annotated_vcf,
-      prune_in = plink.prune_in,
+        prune_in = plink.prune_in,
       sequence_dict = sequence_dict
   }
   
+  call Picard {
+    input:
+      output_prefix = output_prefix,
+        hapmap = reformat.map,
+        reference = reference,
+        reference_index = reference_index,
+        reference_dict = reference_dict,
+        picard_jar = picard_jar
+  }
   output {
     File map = reformat.map
+    File map_vcf = Picard.map_vcf
   }
 }
