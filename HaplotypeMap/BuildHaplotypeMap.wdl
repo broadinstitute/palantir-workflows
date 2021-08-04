@@ -150,7 +150,7 @@ CODE
   }
 }
 
-task Picard{
+task make_vcf{
     File hapmap
     File reference
     File reference_index
@@ -222,7 +222,7 @@ workflow BuildHapMap {
       sequence_dict = sequence_dict
   }
   
-  call Picard {
+  call make_vcf {
     input:
       output_prefix = output_prefix,
         hapmap = reformat.map,
@@ -233,6 +233,6 @@ workflow BuildHapMap {
   }
   output {
     File map = reformat.map
-    File map_vcf = Picard.map_vcf
+    File map_vcf = make_vcf.map_vcf
   }
 }
