@@ -218,18 +218,18 @@ workflow BuildHapMap {
     input:
       output_prefix = output_prefix,
       input_vcf = bcftools.annotated_vcf,
-        prune_in = plink.prune_in,
+      prune_in = plink.prune_in,
       sequence_dict = sequence_dict
   }
   
   call make_vcf {
     input:
       output_prefix = output_prefix,
-        hapmap = reformat.map,
-        reference = reference,
-        reference_index = reference_index,
-        reference_dict = reference_dict,
-        picard_jar = picard_jar
+      hapmap = reformat.map,
+      reference = reference,
+      reference_index = reference_index,
+      reference_dict = reference_dict,
+      picard_jar = picard_jar
   }
   output {
     File map = reformat.map
