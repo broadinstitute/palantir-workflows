@@ -382,7 +382,7 @@ task CollectRnaSeqMetrics {
 	}
 
 	command <<<
-		gatk CollectRnaSeqMetrics -I ~{bam} --REF_FLAT ~{refFlat} --STRAND_SPECIFICITY SECOND_READ_TRANSCRIPTION_STRAND \
+		gatk --java-options "-Xms5G" CollectRnaSeqMetrics -I ~{bam} --REF_FLAT ~{refFlat} --STRAND_SPECIFICITY SECOND_READ_TRANSCRIPTION_STRAND \
 		-O ~{basename}.rna_seq.metrics
 	>>>
 
