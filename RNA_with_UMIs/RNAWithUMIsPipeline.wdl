@@ -82,6 +82,15 @@ workflow RNAWithUMIsPipeline {
 			basename = output_basename
 	}
 
+	call CollectRnaSeqMetrics {
+		input:
+			bam = SortSam.output_bam,
+			bamIndex = SortSam.output_bam_index,
+			refFlat = refFlat,
+			ribosomalIntervals = ribosomalIntervals,
+			basename = output_basename
+	}
+
   output {
 	File output_bam = SortSam.output_bam
 	File output_bam_index = SortSam.output_bam_index
@@ -349,8 +358,8 @@ task CollectMultipleMetrics {
 	}
 
 	command <<<
-		gatk CollectMultipleMetrics -I ~{bam} --PROGRAM CollectAlignmentSummaryMetrics --PROGRAM CollectRnaSeqMetrics -R ~{ref} --REF_FLAT ~{refFlat} \
-			--INTERVALS ~{ribosomalIntervals} -O ~{basename}
+		gatk CollectMultipleMetrics -I ~{bam} --PROGRAM CollectAlignmentSummaryMetrics -R ~{ref} \
+			-O ~{basename}
 	>>>
 
 	runtime {
@@ -360,5 +369,29 @@ task CollectMultipleMetrics {
 
 	output {
 		Array[File] metrics = glob(basename + ".*")
+	}
+}
+
+task CollectRnaSeqMetrics {
+	input {
+		File bam
+		File bamIndex
+		File refFlat
+		File ribosomalIntervals
+		String basename
+	}
+
+	command <<<
+		gatk CollectRnaSeqMetrics -I ~{bam} --REF_FLAT ~{refFlat} \
+		--RIBOSOMAL_INTERVALS ~{ribosomalIntervals} -O ~{basename}.rna_seq.metrics
+	>>>
+
+	runtime {
+		docker: "us.gcr.io/broad-gatk/gatk:4.2.0.0"
+		disks: "local-disk 100 HDD"
+	}
+
+	output {
+		Array[File] metrics = "~{basename}.rna_seq.metrics"
 	}
 }
