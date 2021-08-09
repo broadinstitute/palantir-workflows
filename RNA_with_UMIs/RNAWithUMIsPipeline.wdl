@@ -389,6 +389,7 @@ task CollectRnaSeqMetrics {
 	runtime {
 		docker: "us.gcr.io/broad-gatk/gatk:4.2.0.0"
 		disks: "local-disk 100 HDD"
+		memory: "10GB"
 	}
 
 	output {
