@@ -382,7 +382,7 @@ task CollectRnaSeqMetrics {
 	}
 
 	command <<<
-		gatk CollectRnaSeqMetrics -I ~{bam} --REF_FLAT ~{refFlat} \
+		gatk CollectRnaSeqMetrics -I ~{bam} --REF_FLAT ~{refFlat} --STRAND_SPECIFICITY SECOND_READ_TRANSCRIPTION_STRAND \
 		--RIBOSOMAL_INTERVALS ~{ribosomalIntervals} -O ~{basename}.rna_seq.metrics
 	>>>
 
