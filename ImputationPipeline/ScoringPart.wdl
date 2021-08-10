@@ -200,9 +200,8 @@ task ScoreVcf {
 	Int disk_space =  3*ceil(size(vcf, "GB")) + 20 
 
 	command {
-		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation --set-all-var-ids @:#:$1:$2 \
-		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
-
+		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation \
+		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --set-all-var-ids @:#:$1:$2 --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
 		~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem}
 	}
 
