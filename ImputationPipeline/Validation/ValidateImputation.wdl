@@ -312,7 +312,7 @@ task plotCorrelations {
 	>>>
 
 	runtime {
-		docker: "rocker/tidyverse"
+		docker: "rocker/tidyverse@sha256:f9671fa9329160cc57f76ec822896467f420f4b8d55bf3a811293b9f94283a3e"
 		disks: "local-disk 100 HDD"
 		memory: "16 GB"
 	}
