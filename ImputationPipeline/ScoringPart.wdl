@@ -200,8 +200,9 @@ task ScoreVcf {
 	Int disk_space =  3*ceil(size(vcf, "GB")) + 20 
 
 	command {
-		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation \
+		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation --set-all-var-ids @:#:$1:$2 \
 		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
+
 		~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem}
 	}
 
@@ -233,7 +234,7 @@ task ArrayVcfToPlinkDataset {
 
 	command {
 
-		/plink2 --vcf ~{vcf} --extract-intersect ~{pruning_sites} ~{subset_to_sites} --allow-extra-chr \
+		/plink2 --vcf ~{vcf} --extract-intersect ~{pruning_sites} ~{subset_to_sites} --allow-extra-chr --set-all-var-ids @:#:$1:$2 \
 		--out ~{basename} --make-bed --rm-dup force-first
 	}
 
