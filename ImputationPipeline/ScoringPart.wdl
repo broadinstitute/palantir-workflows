@@ -318,7 +318,7 @@ task AdjustScores {
 			# this calculates the adjusted score for the new data
 			generate_adjusted_scores = function(new_data) {
 			new_data_adjusted <- new_data %>% mutate(adjusted_score = (SCORE1_SUM - predict(population_model, new_data))/sqrt(predict(population_var_model, new_data)))
-			new_data_adjusted %>% mutate(percentile=pnorm(adjusted_score,5)
+			new_data_adjusted %>% mutate(percentile=pnorm(adjusted_score,5))
 			}
 
 			# calculate adjusted score on population data,  make sure it's standardized to N(0, 1)
