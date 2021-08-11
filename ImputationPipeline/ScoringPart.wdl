@@ -308,25 +308,28 @@ task AdjustScores {
 			population_model = glm(SCORE1_SUM ~ PC1 + PC2 + PC3 + PC4 + PC5, data = population_data, family = "gaussian")
 
 			population_data$residual_score = resid(population_model)
+			population_data$residual_score2 = resid(population_model)^2
 			population_resid_mean = mean(population_data$residual_score)
 			population_resid_sd = sd(population_data$residual_score)
 
-			# calculate adjusted score on population data,  make sure it's standardized to N(0, 1)
-			population_data$adjusted_score = (population_data$residual_score - population_resid_mean)/population_resid_sd
+			# generate the linear model for the variance of the score using the first 5 PCs
+			population_var_model <- glm(residual_score2 ~ PC1 + PC2 + PC3 + PC4 + PC5, data = population_data, family = "gaussian")
 
 			# this calculates the adjusted score for the new data
 			generate_adjusted_scores = function(new_data) {
-			subset_data_for_model = new_data %>% transmute(raw_score = SCORE1_SUM, PC1=PC1, PC2=PC2, PC3=PC3, PC4=PC4, PC5=PC5)
-			new_data$residual_score = subset_data_for_model$raw_score - predict(population_model, subset_data_for_model) # calculate the residual score from the model
-			new_data$adjusted_score = (new_data$residual_score - population_resid_mean)/population_resid_sd # again adjust compared to population
-			new_data %>% rowwise() %>% mutate(percentile=pnorm(adjusted_score, round(mean(population_data$adjusted_score),5),
-			round(sd(population_data$adjusted_score), 5) == 1))
+			new_data_adjusted <- new_data %>% mutate(adjusted_score = (SCORE1_SUM - predict(population_model, new_data))/sqrt(predict(population_var_model, new_data)))
+			new_data_adjusted %>% mutate(percentile=pnorm(adjusted_score,5)
 			}
+
+			# calculate adjusted score on population data,  make sure it's standardized to N(0, 1)
+			population_data <- generate_adjusted_score(population_data)
+
+
 
 			array_scores = merge(read.csv("~{array_pcs}",  sep = "\t", header = T),
 				read.csv("~{array_scores}",  sep = "\t", header = T), by.x="IID", by.y="X.IID")
 
-			adjusted_array_scores = generate_adjusted_scores(array_scores)
+			adjusted_array_scores <- generate_adjusted_scores(array_scores)
 
 			# make sure the PCs fit well between the array and the population data
 			ggplot(population_data, aes(x=PC1, y=PC2, color="Population Data")) + geom_point() + geom_point() + 
@@ -334,10 +337,10 @@ task AdjustScores {
 			ggsave(filename = "PCA_plot.png", dpi=300, width = 6, height = 6)
 
 			# return population scores
-			write.table(population_data %>% subset(select = -residual_score), file = "population_data_scores.tsv", sep="\t", row.names=F, quote = F)
+			write.table(population_data %>% subset(-residual_score, -residual_score2), file = "population_data_scores.tsv", sep="\t", row.names=F, quote = F)
 
 			# return array scores
-			write.table(adjusted_array_scores %>% subset(select = -residual_score), file = "array_data_scores.tsv", sep="\t", row.names=F, quote = F)
+			write.table(adjusted_array_scores, file = "array_data_scores.tsv", sep="\t", row.names=F, quote = F)
 	EOF
 	>>>
 
