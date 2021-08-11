@@ -196,7 +196,7 @@ task ScoreVcf {
 	}
 
 	Int runtime_mem = base_mem + 2
-	Int plink_mem = base_mem * 1000
+	Int plink_mem = ceil(base_mem * 0.75 * 1000)
 	Int disk_space =  3*ceil(size(vcf, "GB")) + 20 
 
 	command {
