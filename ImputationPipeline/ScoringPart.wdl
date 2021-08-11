@@ -322,7 +322,7 @@ task AdjustScores {
 			}
 
 			# calculate adjusted score on population data,  make sure it's standardized to N(0, 1)
-			population_data <- generate_adjusted_score(population_data)
+			population_data <- generate_adjusted_scores(population_data)
 
 
 
