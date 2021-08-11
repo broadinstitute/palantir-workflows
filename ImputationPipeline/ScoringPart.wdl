@@ -193,7 +193,6 @@ task ScoreVcf {
 		Int base_mem = 8
 		String? extra_args
 		File? sites
-		File monitoring_script = "gs://broad-dsde-methods-ckachulis/cromwell_monitoring_script/cromwell_monitoring_script.sh"
 	}
 
 	Int runtime_mem = base_mem + 2
@@ -201,7 +200,6 @@ task ScoreVcf {
 	Int disk_space =  3*ceil(size(vcf, "GB")) + 20 
 
 	command {
-		bash ~{monitoring_script} > monitoring.log &
 		/plink2 --score ~{weights} header ignore-dup-ids list-variants-zs no-mean-imputation \
 		cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
 		~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem}
@@ -211,7 +209,6 @@ task ScoreVcf {
 		File score = "~{basename}.sscore"
 		File log = "~{basename}.log"
 		File sites_scored = "~{basename}.sscore.vars.zst"
-		File monitoring_log = "monitoring.log"
 	}
 
 	runtime {
