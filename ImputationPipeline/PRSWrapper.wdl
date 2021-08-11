@@ -53,7 +53,7 @@ task SelectValuesOfInterest {
     library(dplyr)
     score <- read_tsv("~{score_result}")
     if (score %>% pull(`#IID`) == ~{sample_id}) {
-      
+
     }
     EOF
   >>>
