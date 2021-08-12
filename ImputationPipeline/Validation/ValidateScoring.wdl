@@ -47,25 +47,23 @@ workflow ValidateScoring {
 			output_vcf_basename = "wgsValidation"
 	}
 
-	if (!adjustScores) {
-		#if not adjusting scores, must subset weights also to only sites with no-calls in wgs
-		call ExtractIDs as extractWGSIDs {
-			input:
-				vcf = QCSites.output_vcf,
-				output_basename = "wgs"
-		}
+	#subset weights also to only sites without no-calls in wgs
+	call ExtractIDs as extractWGSIDs {
+		input:
+			vcf = QCSites.output_vcf,
+			output_basename = "wgs"
+	}
 
-		call SubsetWeights as SubsetWeightsWGS {
-			input:
-				sites = extractWGSIDs.ids,
-				weights = SubsetWeights.subset_weights
-		}
+	call SubsetWeights as SubsetWeightsWGS {
+		input:
+			sites = extractWGSIDs.ids,
+			weights = SubsetWeights.subset_weights
 	}
 
 	#run scoring on this branch, using imputed data from this branch, or shared imputed data is we are studying only changes in scoring
 	call Scoring.ScoringImputedDataset as ScoreImputed {
 		input:
-			weights = select_first([SubsetWeightsWGS.subset_weights, weights]),
+			weights = SubsetWeightsWGS.subset_weights,
 			imputed_array_vcf = select_first([validationArrays, validationArraysMain]),
 			population_basename = population_basename,
 			basename = "imputed",
@@ -81,7 +79,7 @@ workflow ValidateScoring {
 	#run scoring on main branch
 	call ScoringMain.ScoringImputedDataset as ScoreImputedMain {
 		input:
-			weights = weights,
+			weights = SubsetWeights.subset_weights,
 			imputed_array_vcf = validationArraysMain,
 			population_basename = population_basename,
 			basename = "imputed",
@@ -96,7 +94,7 @@ workflow ValidateScoring {
 	#score wgs over only sites in the imputed array which are called in every wgs sample
 	call Scoring.ScoringImputedDataset as ScoreWGS {
 		input:
-			weights = select_first([SubsetWeightsWGS.subset_weights, SubsetWeights.subset_weights]),
+			weights = SubsetWeightsWGS.subset_weights,
 			imputed_array_vcf = QCSites.output_vcf,
 			population_basename = population_basename,
 			basename = "imputed",
@@ -142,7 +140,7 @@ workflow ValidateScoring {
 		File? raw_score_comparison_branch = CompareRawScores.raw_score_comparison_branch
 		Int n_original_sites = SubsetWeights.n_original_sites
 		Int n_subset_sites = SubsetWeights.n_subset_sites
-		Int? n_subset_sites_wgs = SubsetWeightsWGS.n_subset_sites
+		Int n_subset_sites_wgs = SubsetWeightsWGS.n_subset_sites
 	}
 }
 
