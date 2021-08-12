@@ -18,6 +18,7 @@ workflow PRSWrapper {
     File population_pcs
     File pruning_sites_for_pca # and the sites used for PCA
     File population_vcf
+    String population_basename
   }
 
   if (length(condition_names) != length(score_condition) || length(condition_names) != length(weights_files) || length(condition_names) != length(percentile_thresholds)) {
@@ -39,6 +40,7 @@ workflow PRSWrapper {
           pruning_sites_for_pca = pruning_sites_for_pca,
           population_vcf = population_vcf,
           basename = sample_id,
+          population_basename = population_basename,
           redoPCA = redoPCA
       }
 
@@ -98,7 +100,7 @@ task SelectValuesOfInterest {
     percentile <- (score %>% pull(percentile))[[1]]
 
     result <- tibble(sample_id = "~{sample_id}", ~{condition_name}_raw = raw_score, ~{condition_name}_adjusted = adjusted_score, ~{condition_name}_high = (percentile > threshold))
-    write_csv(result, "result.csv")
+    write_csv(result, "results.csv")
 
     EOF
   >>>
@@ -121,8 +123,8 @@ task CreateUnscoredResult {
   }
 
   command <<<
-    echo "sample_id, ~{condition_name}_raw, ~{condition_name}_adjusted, ~{condition_name}_high" > result.csv
-    echo "~{sample_id}, NA, NA, NA" >> result.csv
+    echo "sample_id, ~{condition_name}_raw, ~{condition_name}_adjusted, ~{condition_name}_high" > results.csv
+    echo "~{sample_id}, NA, NA, NA" >> results.csv
   >>>
 
   runtime {
