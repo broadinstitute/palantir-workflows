@@ -70,28 +70,8 @@ workflow RNAWithUMIsPipeline {
 			sample_id = GetSampleName.sample_name
 	}
 
-	call CollectMultipleMetrics {
-		input:
-			bam = SortSam.output_bam,
-			bamIndex = SortSam.output_bam_index,
-			ref = ref,
-			refIndex = refIndex,
-			refDict = refDict,
-			refFlat = refFlat,
-			ribosomalIntervals = ribosomalIntervals,
-			basename = output_basename
-	}
-
-	call CollectRnaSeqMetrics {
-		input:
-			bam = SortSam.output_bam,
-			bamIndex = SortSam.output_bam_index,
-			refFlat = refFlat,
-			ribosomalIntervals = ribosomalIntervals,
-			basename = output_basename
-	}
-
   output {
+	File transcriptome_bam = STAR.transcriptome_bam
 	File output_bam = SortSam.output_bam
 	File output_bam_index = SortSam.output_bam_index
 	File output_bam_md5 = SortSam.output_bam_md5
@@ -101,7 +81,6 @@ workflow RNAWithUMIsPipeline {
 	File metrics = rnaseqc2.metrics
 	File insertsize_distr = rnaseqc2.insertsize_distr
 	File gene_dup = rnaseqc2.gene_dup
-	Array[File] picard_metrics = CollectMultipleMetrics.metrics
   }
 }
 
@@ -149,7 +128,7 @@ task STAR {
 			--outFilterMatchNminOverLread 0.33 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.1 \
 			--alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --alignSJoverhangMin 8 \
 			--alignSJDBoverhangMin 1 --alignSoftClipAtReferenceEnds Yes --chimSegmentMin 15 --chimMainSegmentMultNmax 1 \
-			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic
+			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM
 
 	>>>
 
@@ -162,7 +141,8 @@ task STAR {
 	}
 
 	output {
-		File aligned_bam = "Aligned.out.bam "
+		File aligned_bam = "Aligned.out.bam"
+		File transcriptome_bam = "Aligned.toTranscriptome.out.bam"
 	}
 }
 
@@ -342,57 +322,5 @@ task GetSampleName {
 
 	output {
 		String sample_name = read_string("sample_name.txt")
-	}
-}
-
-task CollectMultipleMetrics {
-	input {
-		File bam
-		File bamIndex
-		File ref
-		File refIndex
-		File refDict
-		File refFlat
-		File ribosomalIntervals
-		String basename
-	}
-
-	command <<<
-		gatk CollectMultipleMetrics -I ~{bam} --PROGRAM CollectAlignmentSummaryMetrics -R ~{ref} \
-			-O ~{basename}
-	>>>
-
-	runtime {
-		docker: "us.gcr.io/broad-gatk/gatk:4.2.0.0"
-		disks: "local-disk 100 HDD"
-	}
-
-	output {
-		Array[File] metrics = glob(basename + ".*")
-	}
-}
-
-task CollectRnaSeqMetrics {
-	input {
-		File bam
-		File bamIndex
-		File refFlat
-		File ribosomalIntervals
-		String basename
-	}
-
-	command <<<
-		gatk --java-options "-Xms5G" CollectRnaSeqMetrics -I ~{bam} --REF_FLAT ~{refFlat} --STRAND_SPECIFICITY SECOND_READ_TRANSCRIPTION_STRAND \
-		-O ~{basename}.rna_seq.metrics
-	>>>
-
-	runtime {
-		docker: "us.gcr.io/broad-gatk/gatk:4.2.0.0"
-		disks: "local-disk 100 HDD"
-		memory: "10GB"
-	}
-
-	output {
-		Array[File] metrics = "~{basename}.rna_seq.metrics"
 	}
 }
