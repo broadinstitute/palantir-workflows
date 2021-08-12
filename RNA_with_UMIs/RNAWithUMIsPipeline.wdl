@@ -1,5 +1,7 @@
 version 1.0
 
+import "UMIAwareDuplicateMarking.wdl" as UmiMD
+
 workflow RNAWithUMIsPipeline {
 	input {
 		File bam
@@ -29,33 +31,16 @@ workflow RNAWithUMIsPipeline {
 			starIndex = starIndex
 	}
 
-	call SortSam as SortSamSTAR{
+	call UmiMD.UMIAwareDuplicateMarking {
 		input:
-			input_bam = STAR.aligned_bam,
-			output_bam_basename = "STAR.aligned.sorted"
+			aligned_bam = STAR.aligned_bam,
+			output_basename = output_basename
 	}
 
-	call GroupByUMIs {
+	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingTranscriptome {
 		input:
-			bam = SortSamSTAR.output_bam,
-			bam_index = SortSamSTAR.output_bam_index
-	}
-
-	call SortSamQuery {
-		input:
-			input_bam = GroupByUMIs.grouped_bam,
-			output_bam_basename = "Grouped.queryname.sorted"
-	}
-
-	call MarkDuplicates {
-		input:
-			bam = SortSamQuery.output_bam
-	}
-
-	call SortSam {
-		input:
-			input_bam = MarkDuplicates.duplicate_marked_bam,
-			output_bam_basename = output_basename
+			aligned_bam = STAR.transcriptome_bam,
+			output_basename = output_basename + ".transcriptome"
 	}
 
 	call GetSampleName {
@@ -65,48 +50,23 @@ workflow RNAWithUMIsPipeline {
 
 	call rnaseqc2 {
 		input:
-			bam_file = SortSam.output_bam,
+			bam_file = UMIAwareDuplicateMarking.duplicate_marked_bam,
 			genes_gtf = gtf,
 			sample_id = GetSampleName.sample_name
 	}
 
   output {
-	File transcriptome_bam = STAR.transcriptome_bam
-	File output_bam = SortSam.output_bam
-	File output_bam_index = SortSam.output_bam_index
-	File output_bam_md5 = SortSam.output_bam_md5
+	File transcriptome_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam
+	File transcriptome_bam_index = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam_index
+	File transcriptome_duplicate_metrics = UMIAwareDuplicateMarkingTranscriptome.duplicate_metrics
+	File output_bam = UMIAwareDuplicateMarking.duplicate_marked_bam
+	File output_bam_index = UMIAwareDuplicateMarking.duplicate_marked_bam_index
+	File transcriptome_duplicate_metrics = UMIAwareDuplicateMarkingTranscriptome.duplicate_metrics
 	File gene_tpm = rnaseqc2.gene_tpm
 	File gene_counts = rnaseqc2.gene_counts
 	File exon_counts = rnaseqc2.exon_counts
 	File metrics = rnaseqc2.metrics
-	File insertsize_distr = rnaseqc2.insertsize_distr
-	File gene_dup = rnaseqc2.gene_dup
   }
-}
-
-task GroupByUMIs {
-	input {
-		File bam
-		File bam_index
-	}
-
-	Int disk_space = ceil(2.2 * size(bam, "GB")) + 300
-	command <<<
-		umi_tools group -I ~{bam} --paired --no-sort-output --output-bam --stdout umis.grouped.bam --umi-tag-delimiter "-" \
-			--extract-umi-method tag --umi-tag RX --unmapped-reads use
-	>>>
-
-	output {
-		File grouped_bam = "umis.grouped.bam"
-	}
-
-	runtime {
-		docker : "us.gcr.io/tag-team-160914/tag-gtex-umi-tools:v1"
-		disks : "local-disk " + disk_space + " HDD"
-		preemptible: 0
-		cpu: "8"
-		memory: "52GB"
-	}
 }
 
 task STAR {
@@ -174,96 +134,6 @@ task ExtractUMIs {
 	}
 }
 
-task MarkDuplicates {
-	input {
-		File bam
-	}
-
-	Int disk_size = ceil(2.2 * size(bam, "GB")) + 50
-	command <<<
-		gatk MarkDuplicates -I ~{bam} --READ_ONE_BARCODE_TAG BX -O duplicate.marked.bam --METRICS_FILE duplicate.metrics --ASSUME_SORT_ORDER queryname
-	>>>
-
-	output {
-		File duplicate_marked_bam = "duplicate.marked.bam"
-		File duplicate_metrics = "duplicate.metrics"
-	}
-
-	runtime {
-	docker: "us.gcr.io/broad-gatk/gatk:4.1.9.0"
-	disks: "local-disk " + disk_size + " HDD"
-	memory: "16 GB"
-  }
-}
-
-task SortSam {
-  input {
-	File input_bam
-	String output_bam_basename
-  }
-  # SortSam spills to disk a lot more because we are only store 300000 records in RAM now because its faster for our data so it needs
-  # more disk space.  Also it spills to disk in an uncompressed format so we need to account for that with a larger multiplier
-  Float sort_sam_disk_multiplier = 3.25
-  Int disk_size = ceil(sort_sam_disk_multiplier * size(input_bam, "GiB")) + 20
-
-  command {
-	java -Xms4000m -jar /usr/picard/picard.jar \
-		SortSam \
-		INPUT=~{input_bam} \
-		OUTPUT=~{output_bam_basename}.bam \
-		SORT_ORDER="coordinate" \
-		CREATE_INDEX=true \
-		CREATE_MD5_FILE=true \
-		MAX_RECORDS_IN_RAM=300000
-
-  }
-  runtime {
-	docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
-	disks: "local-disk " + disk_size + " HDD"
-	cpu: "1"
-	memory: "5000 MiB"
-	preemptible: 0
-  }
-  output {
-	File output_bam = "~{output_bam_basename}.bam"
-	File output_bam_index = "~{output_bam_basename}.bai"
-	File output_bam_md5 = "~{output_bam_basename}.bam.md5"
-  }
-}
-
-task SortSamQuery {
-	input {
-		File input_bam
-		String output_bam_basename
-	}
-	# SortSam spills to disk a lot more because we are only store 300000 records in RAM now because its faster for our data so it needs
-	# more disk space.  Also it spills to disk in an uncompressed format so we need to account for that with a larger multiplier
-	Float sort_sam_disk_multiplier = 3.25
-	Int disk_size = ceil(sort_sam_disk_multiplier * size(input_bam, "GiB")) + 20
-
-	command {
-		java -Xms4000m -jar /usr/picard/picard.jar \
-		SortSam \
-		INPUT=~{input_bam} \
-		OUTPUT=~{output_bam_basename}.bam \
-		SORT_ORDER="queryname" \
-		CREATE_INDEX=true \
-		CREATE_MD5_FILE=true \
-		MAX_RECORDS_IN_RAM=300000
-
-	}
-	runtime {
-		docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
-		disks: "local-disk " + disk_size + " HDD"
-		cpu: "1"
-		memory: "5000 MiB"
-		preemptible: 0
-	}
-	output {
-		File output_bam = "~{output_bam_basename}.bam"
-	}
-}
-
 task rnaseqc2 {
 	input {
 		File bam_file
@@ -275,8 +145,6 @@ task rnaseqc2 {
 	command {
 		set -euo pipefail
 		echo $(date +"[%b %d %H:%M:%S] Running RNA-SeQC 2")
-		touch ~{sample_id}.fragmentSizes.txt
-		touch ~{sample_id}.gene_duplicates.gct
 		rnaseqc ~{genes_gtf} ~{bam_file} . -s ~{sample_id} -vv
 		echo "  * compressing outputs"
 		gzip *.gct
@@ -288,12 +156,10 @@ task rnaseqc2 {
 		File gene_counts = "${sample_id}.gene_reads.gct.gz"
 		File exon_counts = "${sample_id}.exon_reads.gct.gz"
 		File metrics = "${sample_id}.metrics.tsv"
-		File insertsize_distr = "${sample_id}.fragmentSizes.txt"
-		File gene_dup = "${sample_id}.gene_duplicates.gct.gz"
 	}
 
 	runtime {
-		docker: "us.gcr.io/tag-team-160914/tag-gtex-rnaseqc-dup:v1"
+		docker: "us.gcr.io/broad-dsde-methods/ckachulis/rnaseqc@sha256:ea1f5d7ff895063e50776a7be963e6d65d4ba8e04a8a4e1ad4ecd4f4d950e43b"
 		memory: "10GB"
 		disks: "local-disk " + disk_space + " HDD"
 		preemptible: 0
