@@ -5,7 +5,7 @@ import "ScoringPart.wdl" as Score
 workflow PRSWrapper {
   input {
     Array[String] condition_names
-    Array[Boolean] use_condition
+    Array[Boolean] score_condition
     Array[Float] percentile_thresholds
     Array[File] weights_files
 
@@ -19,7 +19,7 @@ workflow PRSWrapper {
     File population_vcf
   }
 
-  if (length(condition_names) != length(use_condition) || length(condition_names) != length(weights_files) || length(condition_names) != length(percentile_thresholds)) {
+  if (length(condition_names) != length(score_condition) || length(condition_names) != length(weights_files) || length(condition_names) != length(percentile_thresholds)) {
     call PRSTasks.ErrorWithMessage {
       input:
         message = "conditions_names, use_condition, use_ancestry_correction, and weights_files must all be arrays of the same length"
@@ -27,7 +27,7 @@ workflow PRSWrapper {
   }
 
   scatter(i in range(length(condition_names))) {
-    if (use_condition[i]) {
+    if (score_condition[i]) {
       call Score.ScoringImputedDataset {
         input:
           weights = weights_files[i],
@@ -41,12 +41,32 @@ workflow PRSWrapper {
 
       call SelectValuesOfInterest {
         input:
-          score_result = ScoringImputedDataset.adjusted_array_scores,
+          score_result = select_first([ScoringImputedDataset.adjusted_array_scores]),
           sample_id = sample_id,
           condition_name = condition_names[i],
           threshold = percentile_thresholds[i]
       }
     }
+
+    if (!score_condition[i])
+    {
+      call CreateUnscoredResult {
+        input:
+          sample_id = sample_id,
+          condition_name = condition_names[i]
+      }
+    }
+
+    File result_for_condition = select_first([SelectValuesOfInterest.results, CreateUnscoredResult.results])
+  }
+
+  call JoinResults{
+    input:
+      results_in = result_for_condition
+  }
+
+  output {
+    File results = JoinResults.results
   }
 }
 
@@ -75,7 +95,7 @@ task SelectValuesOfInterest {
     percentile <- (score %>% pull(percentile))[[1]]
 
     result <- tibble(sample_id = "~{sample_id}", ~{condition_name}_raw = raw_score, ~{condition_name}_adjusted = adjusted_score, ~{condition_name}_high = (percentile > threshold))
-    write_csv(result, "result.tsv")
+    write_csv(result, "result.csv")
 
     EOF
   >>>
@@ -83,10 +103,58 @@ task SelectValuesOfInterest {
   runtime {
     docker: "rocker/tidyverse@sha256:aaace6c41a258e13da76881f0b282932377680618fcd5d121583f9455305e727"
     disks: "local-disk 100 HDD"
-    memory: "16 GB"
+    memory: "4 GB"
   }
 
   output {
-    File raw_score_comparison_branch = "raw_score_comparison_~{branch}.png"
+    File results = "results.csv"
+  }
+}
+
+task CreateUnscoredResult {
+  input {
+    String condition_name
+    String sample_id
+  }
+
+  command <<<
+    echo "sample_id, ~{condition_name}_raw, ~{condition_name}_adjusted, ~{condition_name}_high" > result.csv
+    echo "~{sample_id}, NA, NA, NA" >> result.csv
+  >>>
+
+  runtime {
+    docker: "rocker/tidyverse@sha256:aaace6c41a258e13da76881f0b282932377680618fcd5d121583f9455305e727"
+    disks: "local-disk 100 HDD"
+    memory: "4 GB"
+  }
+
+  output {
+    File results = "results.csv"
+  }
+}
+
+task JoinResults {
+  input {
+    Array[File] results_in
+  }
+
+  command <<<
+    Rscript - <<- "EOF"
+    library(dplyr)
+    library(readr)
+    library(purrr)
+    results <- c("~{sep = '","' results_in}") %>% map(read_csv) %>% reduce(inner_join)
+    write_csv(results, "results.csv")
+    EOF
+  >>>
+
+  runtime {
+    docker: "rocker/tidyverse@sha256:aaace6c41a258e13da76881f0b282932377680618fcd5d121583f9455305e727"
+    disks: "local-disk 100 HDD"
+    memory: "4 GB"
+  }
+
+  output {
+    File results = "results.csv"
   }
 }
