@@ -11,6 +11,7 @@ workflow PRSWrapper {
 
     File vcf
     String sample_id
+    Boolean redoPCA = false
 
     File population_loadings
     File population_meansd
@@ -36,7 +37,9 @@ workflow PRSWrapper {
           population_meansd = population_meansd,
           population_pcs = population_pcs,
           pruning_sites_for_pca = pruning_sites_for_pca,
-          population_vcf = population_vcf
+          population_vcf = population_vcf,
+          basename = sample_id,
+          redoPCA = redoPCA
       }
 
       call SelectValuesOfInterest {
