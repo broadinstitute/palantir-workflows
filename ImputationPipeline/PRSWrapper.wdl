@@ -91,7 +91,7 @@ task SelectValuesOfInterest {
     if (nrow(score) != 1) {
       quit(1)
     }
-    if ((score %>% pull(`#IID`))[[1]] != ~{sample_id}) {
+    if ((score %>% pull(`#IID`))[[1]] != "~{sample_id}") {
       quit(1)
     }
 
