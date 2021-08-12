@@ -99,7 +99,7 @@ task SelectValuesOfInterest {
     adjusted_score <- (score %>% pull(adjusted_score))[[1]]
     percentile <- (score %>% pull(percentile))[[1]]
 
-    result <- tibble(sample_id = "~{sample_id}", ~{condition_name}_raw = raw_score, ~{condition_name}_adjusted = adjusted_score, ~{condition_name}_high = (percentile > threshold))
+    result <- tibble(sample_id = "~{sample_id}", ~{condition_name}_raw = raw_score, ~{condition_name}_adjusted = adjusted_score, ~{condition_name}_high = (percentile > ~{threshold}))
     write_csv(result, "results.csv")
 
     EOF
