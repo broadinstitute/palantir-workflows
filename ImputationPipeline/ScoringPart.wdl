@@ -67,10 +67,9 @@ workflow ScoringImputedDataset {
   }
 
 	if (adjustScores) {
-		call ExtractIDs as ExtractIDsPopulation {
+		call ExtractIDsPlink as ExtractIDsPopulation {
 			input:
-				vcf = select_first([population_vcf]),
-				output_basename = select_first([population_basename])
+				vcf = select_first([population_vcf])
 		}
 	}
 
@@ -85,10 +84,9 @@ workflow ScoringImputedDataset {
 	}
 
 	if (adjustScores) {
-		call ExtractIDs {
+		call ExtractIDsPlink {
 			input:
-				vcf = imputed_array_vcf,
-				output_basename = basename
+				vcf = imputed_array_vcf
 		}
 
 		if (redoPCA) {
@@ -96,7 +94,7 @@ workflow ScoringImputedDataset {
 				input:
 					vcf = select_first([population_vcf]),
 					pruning_sites = select_first([pruning_sites_for_pca]),
-					subset_to_sites = ExtractIDs.ids,
+					subset_to_sites = ExtractIDsPlink.ids,
 					basename = "population"
 			}
 
@@ -116,7 +114,7 @@ workflow ScoringImputedDataset {
 			weights = weights,
 			base_mem = population_scoring_mem,
 			extra_args = columns_for_scoring,
-			sites = ExtractIDs.ids
+			sites = ExtractIDsPlink.ids
 		}
 
 		call ArrayVcfToPlinkDataset {
@@ -426,6 +424,26 @@ task SortWeights {
 		memory: "4 GB"
 	 }
  }
+
+task ExtractIDsPlink {
+	input {
+		File vcf
+		Int disk_size = 2*ceil(size(vcf, "GB")) + 100
+		Int mem = 8
+	}
+
+	command <<<
+		/plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --write-snplist
+	>>>
+	output {
+		File ids = "~{output_basename}.original_array.ids"
+	}
+	runtime {
+		docker: "skwalker/plink2:first"
+		disks: "local-disk " + disk_size + " HDD"
+		memory: mem + " GB"
+	}
+}
 
  task PerformPCA {
    input {
