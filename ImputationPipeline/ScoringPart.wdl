@@ -436,7 +436,7 @@ task ExtractIDsPlink {
 		/plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --write-snplist
 	>>>
 	output {
-		File ids = "~{output_basename}.original_array.ids"
+		File ids = "plink2.snplist"
 	}
 	runtime {
 		docker: "skwalker/plink2:first"
