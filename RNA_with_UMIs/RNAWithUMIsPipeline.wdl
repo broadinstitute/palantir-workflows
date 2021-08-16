@@ -45,7 +45,7 @@ workflow RNAWithUMIsPipeline {
 
 	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingTranscriptome {
 		input:
-			aligned_bam = STAR.transcriptome_bam,
+			aligned_bam = CopyReadGroupsToHeader.output_bam,
 			output_basename = output_basename + ".transcriptome"
 	}
 
