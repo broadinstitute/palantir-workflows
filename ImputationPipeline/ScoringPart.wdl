@@ -433,7 +433,7 @@ task ExtractIDsPlink {
 	}
 
 	command <<<
-		/plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --write-snplist
+		/plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --write-snplist allow-dups
 	>>>
 	output {
 		File ids = "plink2.snplist"
