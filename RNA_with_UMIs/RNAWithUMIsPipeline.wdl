@@ -31,6 +31,12 @@ workflow RNAWithUMIsPipeline {
 			starIndex = starIndex
 	}
 
+	call CopyReadGroupsToHeader {
+		input:
+			bam_with_readgroups = STAR.aligned_bam,
+			bam_without_readgroups = STAR.transcriptome_bam
+	}
+
 	call UmiMD.UMIAwareDuplicateMarking {
 		input:
 			aligned_bam = STAR.aligned_bam,
@@ -188,5 +194,30 @@ task GetSampleName {
 
 	output {
 		String sample_name = read_string("sample_name.txt")
+	}
+}
+
+task CopyReadGroupsToHeader {
+	input {
+		File bam_with_readgroups
+		File bam_without_readgroups
+	}
+
+	Int disk_size = ceil(2.0 * size([bam_with_readgroups, bam_without_readgroups], "GB")) + 10
+	String basename = basename(bam_without_readgroups)
+
+	command <<<
+		samtools view -H ~{bam_without_readgroups} > header.sam
+		samtools view -H ~{bam_with_readgroups} | grep "@RG" >> header.sam
+		samtools reheader header.sam ~{bam_without_readgroups} > ~{basename}
+	>>>
+
+	runtime {
+		docker: "us.gcr.io/broad-dsde-methods/samtools@sha256:0e49b0a5d91c203b8c07f5242277c2060b4b8ea54df8b1d123f990a1ad0588b2"
+		disks: "local-disk " + disk_size + " HDD"
+	}
+
+	output {
+		File output_bam = basename
 	}
 }
