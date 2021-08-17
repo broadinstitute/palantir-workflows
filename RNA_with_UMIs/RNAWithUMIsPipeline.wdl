@@ -165,7 +165,7 @@ task rnaseqc2 {
 	}
 
 	runtime {
-		docker: "us.gcr.io/broad-dsde-methods/ckachulis/rnaseqc@sha256:ea1f5d7ff895063e50776a7be963e6d65d4ba8e04a8a4e1ad4ecd4f4d950e43b"
+		docker: "us.gcr.io/broad-dsde-methods/ckachulis/rnaseqc:2.4.2"
 		memory: "10GB"
 		disks: "local-disk " + disk_space + " HDD"
 		preemptible: 0
