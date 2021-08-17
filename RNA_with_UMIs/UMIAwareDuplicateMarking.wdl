@@ -47,14 +47,16 @@ task MarkDuplicates {
     File bam
   }
 
+  String basename = basename(bam, ".bam")
+
   Int disk_size = ceil(2.2 * size(bam, "GB")) + 50
   command <<<
-    gatk MarkDuplicates -I ~{bam} --READ_ONE_BARCODE_TAG BX -O duplicate.marked.bam --METRICS_FILE duplicate.metrics --ASSUME_SORT_ORDER queryname
+    gatk MarkDuplicates -I ~{bam} --READ_ONE_BARCODE_TAG BX -O ~{basename}.duplicate.marked.bam --METRICS_FILE ~{basename}.duplicate.metrics --ASSUME_SORT_ORDER queryname
   >>>
 
   output {
-    File duplicate_marked_bam = "duplicate.marked.bam"
-    File duplicate_metrics = "duplicate.metrics"
+    File duplicate_marked_bam = "~{basename}.duplicate.marked.bam"
+    File duplicate_metrics = "~{basename}.duplicate.metrics"
   }
 
   runtime {

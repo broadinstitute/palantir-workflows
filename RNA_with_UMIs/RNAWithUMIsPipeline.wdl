@@ -67,7 +67,7 @@ workflow RNAWithUMIsPipeline {
 	File transcriptome_duplicate_metrics = UMIAwareDuplicateMarkingTranscriptome.duplicate_metrics
 	File output_bam = UMIAwareDuplicateMarking.duplicate_marked_bam
 	File output_bam_index = UMIAwareDuplicateMarking.duplicate_marked_bam_index
-	File transcriptome_duplicate_metrics = UMIAwareDuplicateMarkingTranscriptome.duplicate_metrics
+	File duplicate_metrics = UMIAwareDuplicateMarking.duplicate_metrics
 	File gene_tpm = rnaseqc2.gene_tpm
 	File gene_counts = rnaseqc2.gene_counts
 	File exon_counts = rnaseqc2.exon_counts
@@ -94,7 +94,7 @@ task STAR {
 			--outFilterMatchNminOverLread 0.33 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.1 \
 			--alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --alignSJoverhangMin 8 \
 			--alignSJDBoverhangMin 1 --alignSoftClipAtReferenceEnds Yes --chimSegmentMin 15 --chimMainSegmentMultNmax 1 \
-			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM
+			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM --quantTranscriptomeBan Singleend
 
 	>>>
 
