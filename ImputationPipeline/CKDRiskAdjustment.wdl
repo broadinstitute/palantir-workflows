@@ -67,8 +67,8 @@ task AdjustRisk {
 
       risk_allele_counts <- risk_allele_counts %>% transmute(IID, apol1_high_risk = ifelse(.[[7]] + .[[8]] + .[[9]] >= 3, 1, 0))
       adjusted_scores <- inner_join(adjusted_scores, risk_allele_counts)
-      adjusted_scores <- adjusted_score %>% mutate(adjusted_score = adjusted_score + apol1_high_risk)
-      adjusted_scores <- adjusted_score %>% mutate(percentile = pnorm(adjusted_score))
+      adjusted_scores <- adjusted_scores %>% mutate(adjusted_score = adjusted_score + apol1_high_risk)
+      adjusted_scores <- adjusted_scores %>% mutate(percentile = pnorm(adjusted_score))
 
       write_tsv(adjusted_scores, "adjusted_scores_with_apol1.tsv")
     EOF
