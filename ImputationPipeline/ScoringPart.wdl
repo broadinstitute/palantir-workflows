@@ -384,7 +384,7 @@ task AdjustScores {
 			}
 
 			# use linear model fits as initial parameters for full likelihood fit
-			fit_mu_and_var <- optim(nLL_mu_and_var, par = c(population_model$coefficients, var_model$coefficients), gr = grr, method = "BFGS")
+			fit_mu_and_var <- optim(nLL_mu_and_var, par = c(population_model$coefficients, population_var_model$coefficients), gr = grr, method = "BFGS")
 
 
 			write(ifelse(fit_mu_and_var$convergence == 0, true, false, "fit_converged.txt"))
