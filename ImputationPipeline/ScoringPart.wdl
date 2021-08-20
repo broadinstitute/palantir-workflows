@@ -387,7 +387,7 @@ task AdjustScores {
 			fit_mu_and_var <- optim(nLL_mu_and_var, par = c(population_model$coefficients, population_var_model$coefficients), gr = grr, method = "BFGS")
 
 
-			write(ifelse(fit_mu_and_var$convergence == 0, "true", "false"), "fit_converged.txt"))
+			write(ifelse(fit_mu_and_var$convergence == 0, "true", "false"), "fit_converged.txt")
 
 		# this calculates the adjusted score for the new data
 			generate_adjusted_scores = function(new_data) {
