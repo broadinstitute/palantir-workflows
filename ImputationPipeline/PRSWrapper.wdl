@@ -1,5 +1,4 @@
 version 1.0
-import "PRSTasks.wdl" as PRSTasks
 import "ScoringPart.wdl" as Score
 
 workflow PRSWrapper {
@@ -161,5 +160,20 @@ task JoinResults {
 
   output {
     File results = "results.csv"
+  }
+}
+
+#Print given message to stderr and return an error
+task ErrorWithMessage{
+  input {
+    String message
+  }
+  command <<<
+    >&2 echo "Error: ~{message}"
+    exit 1
+  >>>
+
+  runtime {
+    docker: "ubuntu"
   }
 }
