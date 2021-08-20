@@ -41,6 +41,4 @@ workflows:
     primaryDescriptorPath: /FunctionalEquivalence/FunctionalEquivalence.wdl
   - name: APOL1CKDRiskAdjustment
     subclass: WDL
-    publish: true
     primaryDescriptorPath: /ImputationPipeline/APOL1CKDRiskAdjustment.wdl
-
