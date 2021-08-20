@@ -1,5 +1,6 @@
 version 1.0
 
+	#this is just a comment to test dockstore syncing
 workflow ScoringImputedDataset {
 	input { 
 	File weights # disease weights file. Becauase we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
