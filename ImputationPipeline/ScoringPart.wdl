@@ -355,19 +355,19 @@ task AdjustScores {
 				theta_mu = theta[1:5]
 				theta_var = theta[6:10]
 				d_mu_1 <- 1
-				d_mu_2 <- emerge_fit_population %>% pull(PC1)
-				d_mu_3 <- emerge_fit_population %>% pull(PC2)
-				d_mu_4 <- emerge_fit_population %>% pull(PC3)
-				d_mu_5 <- emerge_fit_population %>% pull(PC4)
+				d_mu_2 <- population_data %>% pull(PC1)
+				d_mu_3 <- population_data %>% pull(PC2)
+				d_mu_4 <- population_data %>% pull(PC3)
+				d_mu_5 <- population_data %>% pull(PC4)
 				d_sig_7 <- 1
-				d_sig_8 <- emerge_fit_population %>% pull(PC1)
-				d_sig_9 <- emerge_fit_population %>% pull(PC2)
-				d_sig_10 <- emerge_fit_population %>% pull(PC3)
-				d_sig_11 <- emerge_fit_population %>% pull(PC4)
+				d_sig_8 <- population_data %>% pull(PC1)
+				d_sig_9 <- population_data %>% pull(PC2)
+				d_sig_10 <- population_data %>% pull(PC3)
+				d_sig_11 <- population_data %>% pull(PC4)
 
-				x <- emerge_fit_population %>% pull(SCORE1_SUM)
-				mu_coeff <- -(x - f_mu(emerge_fit_population, theta_mu))/f_sigma2(emerge_fit_population, theta_var)
-				sig_coeff <- 1/(2*f_sigma2(emerge_fit_population, theta_var)) -(1/2)*(x - f_mu(emerge_fit_population, theta_mu))^2/(f_sigma2(emerge_fit_population, theta_var)^2)
+				x <- population_data %>% pull(SCORE1_SUM)
+				mu_coeff <- -(x - f_mu(population_data, theta_mu))/f_sigma2(population_data, theta_var)
+				sig_coeff <- 1/(2*f_sigma2(population_data, theta_var)) -(1/2)*(x - f_mu(population_data, theta_mu))^2/(f_sigma2(population_data, theta_var)^2)
 
 
 				grad <- c(sum(mu_coeff*d_mu_1),
@@ -391,7 +391,7 @@ task AdjustScores {
 
 		# this calculates the adjusted score for the new data
 			generate_adjusted_scores = function(new_data) {
-			new_data_adjusted <- new_data %>% mutate(adjusted_score = (SCORE1_SUM - f_mu(population_data, fit_mu_and_var$par[1:5]))/sqrt(f_sigma2(emerge, fit_mu_and_var$par[6:10])))
+			new_data_adjusted <- new_data %>% mutate(adjusted_score = (SCORE1_SUM - f_mu(new_data, fit_mu_and_var$par[1:5]))/sqrt(f_sigma2(new_data, fit_mu_and_var$par[6:10])))
 			new_data_adjusted %>% mutate(percentile=pnorm(adjusted_score,0))
 			}
 
