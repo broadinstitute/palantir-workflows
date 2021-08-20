@@ -39,7 +39,7 @@ workflows:
   - name: FunctionalEquivalence
     subclass: WDL
     primaryDescriptorPath: /FunctionalEquivalence/FunctionalEquivalence.wdl
-  - name: APOL1CKDCorrection
+  - name: APOL1CKDRiskAdjustment
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/APOL1CKDCorrection.wdl
+    primaryDescriptorPath: /ImputationPipeline/APOL1CKDRiskAdjustment.wdl
 
