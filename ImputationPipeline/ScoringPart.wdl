@@ -260,7 +260,7 @@ task ProjectArray {
 		Int mem = 8
 	}
 
-	command {
+	command <<<
 
 		cp ~{bim} ~{basename}.bim
 		cp ~{bed} ~{basename}.bed
@@ -269,9 +269,24 @@ task ProjectArray {
 		cp ~{pc_loadings} loadings.txt
 		cp ~{pc_meansd} meansd.txt
 
+		# Check if .bim file, pc loadings, and pc meansd files have the same IDs
+		# 1. extract IDs, removing first column of .bim file and first rows of the pc files
+		cat ~{bim} | awk '{print $2}' | bim_ids.txt
+		cat ~{basename}.pc.loadings |  awk '{print $1}' | tail -n +2 > pcloadings_ids.txt
+		cat ~{basename}.pc.meansd |  awk '{print $1}' | tail -n +2 > meansd_ids.txt
+
+		diff bim_ids.txt pcloadings_ids.txt | diff1.txt
+		diff bim_ids.txt meansd_ids.txt | diff2.txt
+
+		# check if diff files are not empty
+		if ! [[ -s diff1.txt || -s diff2.txt ]]
+		then
+		exit 1
+		fi
+
 		~/flashpca/flashpca --bfile ~{basename} --project --inmeansd meansd.txt \
 		--outproj projections.txt --inload loadings.txt -v
-	}
+	>>>
 
 	output {
 		File projections = "projections.txt"
