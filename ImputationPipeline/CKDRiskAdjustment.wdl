@@ -1,6 +1,6 @@
 version 1.0
 
-workflow APOL1CKDRiskAdjustment {
+workflow CKDRiskAdjustment {
   input {
     File adjustedScores
     File vcf
