@@ -13,6 +13,15 @@ workflow CKDRiskAdjustment {
       risk_alleles = risk_alleles
   }
 
+  call AdjustRisk {
+    input:
+      risk_allele_counts = GenotypeG1G2RiskAlleles.risk_allele_counts,
+      adjusted_scores = adjustedScores
+  }
+
+  output {
+    File adjusted_scores_with_apol1 = AdjustRisk.adjusted_scores_with_apol1
+  }
 }
 
 task GenotypeG1G2RiskAlleles {
