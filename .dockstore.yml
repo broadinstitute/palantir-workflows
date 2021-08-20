@@ -41,5 +41,5 @@ workflows:
     primaryDescriptorPath: /FunctionalEquivalence/FunctionalEquivalence.wdl
   - name: APOL1CKDCorrection
     subclass: WDL
-    primaryDescriptorPath: /ImpuationPipeline/APOL1CKDCorrection.wdl
+    primaryDescriptorPath: /ImputationPipeline/APOL1CKDCorrection.wdl
 
