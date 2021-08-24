@@ -408,7 +408,7 @@ task AdjustScores {
 			ggsave(filename = "PCA_plot.png", dpi=300, width = 6, height = 6)
 
 			# return population scores
-			write.table(population_data %>% select(-residual_score, -residual_score2), file = "population_data_scores.tsv", sep="\t", row.names=F, quote = F)
+			write.table(population_data %>% select(-residual_score2), file = "population_data_scores.tsv", sep="\t", row.names=F, quote = F)
 
 			# return array scores
 			write.table(adjusted_array_scores, file = "array_data_scores.tsv", sep="\t", row.names=F, quote = F)
