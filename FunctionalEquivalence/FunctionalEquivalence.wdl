@@ -300,6 +300,14 @@ workflow FunctionalEquivalence {
             preemptible = preemptible
     }
 
+    call CreateHTMLReport {
+        input:
+            merged_fe_plots = MergeFE.plots,
+            merged_f1_plots = MergeF1.plots,
+            additional_label = additional_label,
+            preemptible = preemptible
+    }
+
     output{
         Array[File] fe_plots = FEEvaluation.fe_plots
         Array[File] f1_plots = F1Evaluation.f1_plots
@@ -309,6 +317,30 @@ workflow FunctionalEquivalence {
         File merged_roc_plots = MergeROC.plots
         File fe_summary = FEEvaluation.fe_summary
         File f1_summary = F1Evaluation.f1_summary
+        File html_report = CreateHTMLReport.report
+    }
+}
+
+task RenameSummary {
+    input {
+        File input_summary
+        String name
+        Int? preemptible
+    }
+
+    command {
+        mv ~{input_summary} ./~{name}.csv
+    }
+
+    runtime {
+        docker: "ubuntu:20.04"
+        preemptible: select_first([preemptible, 0])
+        memory: "2 GB"
+        disks: "local-disk 20 HDD"
+    }
+
+    output{
+        File summary = "~{name}.csv"
     }
 }
 
@@ -334,25 +366,82 @@ task MergePNGs {
     }
 }
 
-task RenameSummary {
+task CreateHTMLReport {
     input {
-        File input_summary
-        String name
+        File merged_fe_plots
+        File merged_f1_plots
+        String additional_label = ""
         Int? preemptible
     }
 
-    command {
-        mv ~{input_summary} ./~{name}.csv
-    }
+    command <<<
+        set -xeuo pipefail
+        
+        source activate fe_evaluation
+
+        fe_plots_base64=$(base64 -w 0 ~{merged_fe_plots})
+        f1_plots_base64=$(base64 -w 0 ~{merged_f1_plots})
+        
+        cat <<EOF > report.html
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>FE Report ~{additional_label}</title>
+        <style>
+            body {
+                font-family: sans-serif;
+                font-size: 14px;
+                padding: 0 26px;
+                line-height: 1.6;
+            }
+            img {
+                max-width: 100%;
+                max-height: 100%;
+            }
+            table {
+                border-collapse: collapse;
+            }
+            th, td {
+                padding: 5px 10px;
+            }
+            table, td {
+                border: 1px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <h2>FE plots</h2>
+        <table>
+            <tr>
+                <th style="text-align: center;">~{additional_label}</th>
+            </tr>
+            <tr>
+                <td><img src="data:image/png;base64,$fe_plots_base64" /></td>
+            </tr>
+        </table>
+        <h2>F1 plots</h2>
+        <table>
+            <tr>
+                <th style="text-align: center;">~{additional_label}</th>
+            </tr>
+            <tr>
+                <td><img src="data:image/png;base64,$f1_plots_base64" /></td>
+            </tr>
+        </table>
+    </body>
+</html>
+EOF
+    >>>
 
     runtime {
-        docker: "ubuntu:20.04"
+        docker: "us.gcr.io/broad-dsde-methods/functionalequivalence/fe_evaluation:1.0.0"
         preemptible: select_first([preemptible, 0])
         memory: "2 GB"
         disks: "local-disk 20 HDD"
     }
 
-    output{
-        File summary = "~{name}.csv"
+    output {
+        File report = "report.html"
     }
 }
