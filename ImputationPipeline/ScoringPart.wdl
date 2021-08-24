@@ -308,7 +308,6 @@ task AdjustScores {
 			# generate the linear model from the population data using the first 4 PCs
 			population_model = glm(SCORE1_SUM ~ PC1 + PC2 + PC3 + PC4, data = population_data, family = "gaussian")
 
-			population_data$residual_score = resid(population_model)
 			population_data$residual_score2 = resid(population_model)^2
 
 			# generate the linear model for the variance of the score using the first 4 PCs
