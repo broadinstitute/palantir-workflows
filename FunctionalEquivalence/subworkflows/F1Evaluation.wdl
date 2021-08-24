@@ -27,6 +27,7 @@ workflow F1Evaluation {
     output {
         Array[File] f1_plots = F1EvaluationTask.f1_plots
         File f1_summary = F1EvaluationTask.f1_summary
+        Int fe_status = F1EvaluationTask.fe_status
     }
 }
 
@@ -208,6 +209,7 @@ def read_datasets(roc_tables, stratifiers):
     return data
 
 def diff_plot(ax, data, dataset, var_type, region, tool1_label, tool2_label, signed_difference, summary_file):
+    fe_status = 0
     X = np.arange(0, 200)
     ax.plot(X, data['inter_difference_means'], label='Inter: $|F_{1, ' + tool1_label + ' rep 1} - F_{1, ' + tool2_label + ' rep 1}|$', c='C2')
     ax.fill_between(X, data['inter_difference_means'] - data['inter_difference_sd'], data['inter_difference_means'] + data['inter_difference_sd'], color='C2', alpha=0.1)
@@ -246,6 +248,7 @@ def diff_plot(ax, data, dataset, var_type, region, tool1_label, tool2_label, sig
 
     if np.any(data['inter_difference_means'][0:30] > data['intra_difference_means_tool1'][0:30]) or np.any(data['inter_difference_means'][0:30] > data['intra_difference_means_tool2'][0:30]):
         titlecolor = 'orange'
+        fe_status = 2
     else:
         titlecolor = 'white'
         
@@ -264,8 +267,10 @@ def diff_plot(ax, data, dataset, var_type, region, tool1_label, tool2_label, sig
             data['inter_difference_means'][threshold],
             data['inter_difference_sd'][threshold]
         ))
+    return fe_status
 
 def plot_aggregated_data_compact(data, stratifiers, dataset, tool1_label, tool2_label, additional_label, signed_difference, summary_file):
+    fe_status = 0
     aggregated_data = aggregate_data(data, stratifiers, dataset, signed_difference)
     num_columns = max(len(stratifiers), 3)
     fig, axes = plt.subplots(3, num_columns, figsize=(3*num_columns,8))
@@ -274,7 +279,7 @@ def plot_aggregated_data_compact(data, stratifiers, dataset, tool1_label, tool2_
             column_to_plot = col if len(stratifiers) > 1 else 1
             plot_data = aggregated_data[dataset][(region, var_type)]
             ax = axes[row, column_to_plot]
-            diff_plot(ax, plot_data, dataset, var_type, region, tool1_label, tool2_label, signed_difference, summary_file)
+            fe_status = max(fe_status, diff_plot(ax, plot_data, dataset, var_type, region, tool1_label, tool2_label, signed_difference, summary_file))
     
     # Clear axes for legend
     for i in range(num_columns):
@@ -305,8 +310,10 @@ def plot_aggregated_data_compact(data, stratifiers, dataset, tool1_label, tool2_
     fig.legend(bbox_to_anchor=(0.5, 0.2), loc='center', handles=[legend_inter_line, legend_intra_tool1_line, legend_intra_tool2_line])
     plt.tight_layout()
     fig.savefig('f1_plot_{}.png'.format(dataset), dpi=100)
+    return fe_status
 
 def main(roc_tables, tool1_label, tool2_label, stratifiers, additional_label, signed_difference):
+    fe_status = 0
     if stratifiers is None:
         stratifiers = ['all']
     else:
@@ -317,7 +324,9 @@ def main(roc_tables, tool1_label, tool2_label, stratifiers, additional_label, si
     with open('f1_summary.tsv', 'w') as summary_file:
         summary_file.write('Dataset\tVar_Type\tRegion\tThreshold\tabs_deltaF1_tool1_mean\tabs_deltaF1_tool1_sd\tabs_deltaF1_tool2_mean\tabs_deltaF1_tool2_sd\tabs_deltaF1_inter_mean\tabs_deltaF1_inter_sd\n')
         for dataset in datasets:
-            plot_aggregated_data_compact(data, stratifiers, dataset, tool1_label, tool2_label, additional_label, signed_difference, summary_file)
+            fe_status = max(fe_status, plot_aggregated_data_compact(data, stratifiers, dataset, tool1_label, tool2_label, additional_label, signed_difference, summary_file))
+    with open('fe_status.txt', 'w') as fe_status_file:
+        fe_status_file.write(str(fe_status))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create F1 functional equivalence plots.')
@@ -338,6 +347,7 @@ EOF
     output {
         Array[File] f1_plots = glob("*.png")
         File f1_summary = "f1_summary.tsv"
+        Int fe_status = read_int("fe_status.txt")
     }
 
     runtime {
