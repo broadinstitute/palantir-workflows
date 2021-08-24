@@ -21,7 +21,7 @@ workflow PRSWrapper {
   }
 
   if (length(condition_names) != length(score_condition) || length(condition_names) != length(weights_files) || length(condition_names) != length(percentile_thresholds)) {
-    call PRSTasks.ErrorWithMessage {
+    call ErrorWithMessage {
       input:
         message = "conditions_names, use_condition, use_ancestry_correction, and weights_files must all be arrays of the same length"
     }
