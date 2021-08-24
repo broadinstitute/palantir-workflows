@@ -1,5 +1,6 @@
 version 1.0
 import "ScoringPart.wdl" as Score
+import "CKDRiskAdjustment.wdl" as CKDRiskAdjustment
 
 workflow PRSWrapper {
   input {
@@ -7,6 +8,7 @@ workflow PRSWrapper {
     Array[Boolean] score_condition
     Array[Float] percentile_thresholds
     Array[File] weights_files
+    File ckd_risk_alleles
 
     File vcf
     String sample_id
@@ -43,9 +45,19 @@ workflow PRSWrapper {
           redoPCA = redoPCA
       }
 
+      if (condition_names[i] == "ckd") {
+        call CKDRiskAdjustment.CKDRiskAdjustment {
+          input:
+            adjustedScores = select_first([ScoringImputedDataset.adjusted_array_scores]),
+            vcf = vcf,
+            risk_alleles = ckd_risk_alleles
+        }
+      }
+
+
       call SelectValuesOfInterest {
         input:
-          score_result = select_first([ScoringImputedDataset.adjusted_array_scores]),
+          score_result = select_first([CKDRiskAdjustment.adjusted_scores_with_apol1, ScoringImputedDataset.adjusted_array_scores]),
           sample_id = sample_id,
           condition_name = condition_names[i],
           threshold = percentile_thresholds[i]
