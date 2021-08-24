@@ -446,9 +446,11 @@ task ExtractIDsPlink {
 		Int disk_size = 2*ceil(size(vcf, "GB")) + 100
 		Int mem = 8
 	}
+	
+	Int plink_mem = ceil(mem * 0.75 * 1000)
 
 	command <<<
-		/plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --write-snplist allow-dups
+		/plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --write-snplist allow-dups --memory ~{plink_mem}
 	>>>
 	output {
 		File ids = "plink2.snplist"
