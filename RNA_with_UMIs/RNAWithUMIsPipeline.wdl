@@ -72,6 +72,7 @@ workflow RNAWithUMIsPipeline {
 	File gene_counts = rnaseqc2.gene_counts
 	File exon_counts = rnaseqc2.exon_counts
 	File metrics = rnaseqc2.metrics
+		
   }
 }
 
