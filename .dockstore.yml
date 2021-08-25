@@ -39,4 +39,6 @@ workflows:
   - name: FunctionalEquivalence
     subclass: WDL
     primaryDescriptorPath: /FunctionalEquivalence/FunctionalEquivalence.wdl
-
+  - name: CKDRiskAdjustment
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/CKDRiskAdjustment.wdl

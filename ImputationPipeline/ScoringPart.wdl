@@ -161,6 +161,7 @@ workflow ScoringImputedDataset {
 	File? pc_plot = AdjustScores.pca_plot
 	File? adjusted_population_scores = AdjustScores.adjusted_population_scores
 	File? adjusted_array_scores = AdjustScores.adjusted_array_scores
+	Boolean? fit_converged = AdjustScores.fit_converged
 	File raw_scores = ScoreImputedArray.score
   }
 }
@@ -340,29 +341,102 @@ task AdjustScores {
 
 			population_data = merge(population_pcs, population_scores, by.x="IID", by.y="X.IID")
 
-			# generate the linear model from the population data using the first 5 PCs
-			population_model = glm(SCORE1_SUM ~ PC1 + PC2 + PC3 + PC4 + PC5, data = population_data, family = "gaussian")
+			# generate the linear model from the population data using the first 4 PCs
+			population_model = glm(SCORE1_SUM ~ PC1 + PC2 + PC3 + PC4, data = population_data, family = "gaussian")
 
-			population_data$residual_score = resid(population_model)
-			population_resid_mean = mean(population_data$residual_score)
-			population_resid_sd = sd(population_data$residual_score)
+			population_data$residual_score2 = resid(population_model)^2
+
+			# generate the linear model for the variance of the score using the first 4 PCs
+			population_var_model <- glm(residual_score2 ~ PC1 + PC2 + PC3 + PC4, data = population_data, family = "gaussian")
+
+			# use linear model to fit full likelihood model
+
+			# linear transformation to predict variance
+			f_sigma2 <- function(t, theta) {
+					PC1 = t %>% pull(PC1)
+					PC2 = t %>% pull(PC2)
+					PC3 = t %>% pull(PC3)
+					PC4 = t %>% pull(PC4)
+					PC5 = t %>% pull(PC5)
+					sigma2 <- theta[[1]] + theta[[2]] * PC1 + theta[[3]] * PC2 + theta[[4]] * PC3 + theta[[5]] * PC4
+					ifelse(sigma2>0, sigma2, 1e-10)
+			}
+
+
+			# linear transformation to predict mean
+			f_mu <- function(t, theta) {
+				PC1 = t %>% pull(PC1)
+				PC2 = t %>% pull(PC2)
+				PC3 = t %>% pull(PC3)
+				PC4 = t %>% pull(PC4)
+				PC5 = t %>% pull(PC5)
+				mu <- theta[[1]] + theta[[2]] * PC1 + theta[[3]] * PC2 + theta[[4]] * PC3 + theta[[5]] * PC4
+			}
+
+
+			# negative log likelihood
+			nLL_mu_and_var <- function(theta) {
+				theta_mu = theta[1:5]
+				theta_var = theta[6:10]
+				x = population_data %>% pull(SCORE1_SUM)
+				sum(log(sqrt(f_sigma2(population_data, theta_var))) + (1/2)*(x-f_mu(population_data, theta_mu))^2/f_sigma2(population_data, theta_var))
+			}
+
+
+			# gradient of negative log likelihood function
+			grr <- function(theta) {
+				theta_mu = theta[1:5]
+				theta_var = theta[6:10]
+				d_mu_1 <- 1
+				d_mu_2 <- population_data %>% pull(PC1)
+				d_mu_3 <- population_data %>% pull(PC2)
+				d_mu_4 <- population_data %>% pull(PC3)
+				d_mu_5 <- population_data %>% pull(PC4)
+				d_sig_7 <- 1
+				d_sig_8 <- population_data %>% pull(PC1)
+				d_sig_9 <- population_data %>% pull(PC2)
+				d_sig_10 <- population_data %>% pull(PC3)
+				d_sig_11 <- population_data %>% pull(PC4)
+
+				x <- population_data %>% pull(SCORE1_SUM)
+				mu_coeff <- -(x - f_mu(population_data, theta_mu))/f_sigma2(population_data, theta_var)
+				sig_coeff <- 1/(2*f_sigma2(population_data, theta_var)) -(1/2)*(x - f_mu(population_data, theta_mu))^2/(f_sigma2(population_data, theta_var)^2)
+
+
+				grad <- c(sum(mu_coeff*d_mu_1),
+				sum(mu_coeff*d_mu_2),
+				sum(mu_coeff*d_mu_3),
+				sum(mu_coeff*d_mu_4),
+				sum(mu_coeff*d_mu_5),
+				sum(sig_coeff*d_sig_7),
+				sum(sig_coeff*d_sig_8),
+				sum(sig_coeff*d_sig_9),
+				sum(sig_coeff*d_sig_10),
+				sum(sig_coeff*d_sig_11)
+				)
+			}
+
+			# use linear model fits as initial parameters for full likelihood fit
+			fit_mu_and_var <- optim(nLL_mu_and_var, par = c(population_model$coefficients, population_var_model$coefficients), gr = grr, method = "BFGS")
+
+
+			write(ifelse(fit_mu_and_var$convergence == 0, "true", "false"), "fit_converged.txt")
+
+		# this calculates the adjusted score for the new data
+			generate_adjusted_scores = function(new_data) {
+			new_data_adjusted <- new_data %>% mutate(adjusted_score = (SCORE1_SUM - f_mu(new_data, fit_mu_and_var$par[1:5]))/sqrt(f_sigma2(new_data, fit_mu_and_var$par[6:10])))
+			new_data_adjusted %>% mutate(percentile=pnorm(adjusted_score,0))
+			}
 
 			# calculate adjusted score on population data,  make sure it's standardized to N(0, 1)
-			population_data$adjusted_score = (population_data$residual_score - population_resid_mean)/population_resid_sd
+			population_data <- generate_adjusted_scores(population_data)
 
-			# this calculates the adjusted score for the new data
-			generate_adjusted_scores = function(new_data) {
-			subset_data_for_model = new_data %>% transmute(raw_score = SCORE1_SUM, PC1=PC1, PC2=PC2, PC3=PC3, PC4=PC4, PC5=PC5)
-			new_data$residual_score = subset_data_for_model$raw_score - predict(population_model, subset_data_for_model) # calculate the residual score from the model
-			new_data$adjusted_score = (new_data$residual_score - population_resid_mean)/population_resid_sd # again adjust compared to population
-			new_data %>% rowwise() %>% mutate(percentile=pnorm(adjusted_score, round(mean(population_data$adjusted_score),5),
-			round(sd(population_data$adjusted_score), 5) == 1))
-			}
+
 
 			array_scores = merge(read.csv("~{array_pcs}",  sep = "\t", header = T),
 				read.csv("~{array_scores}",  sep = "\t", header = T), by.x="IID", by.y="X.IID")
 
-			adjusted_array_scores = generate_adjusted_scores(array_scores)
+			adjusted_array_scores <- generate_adjusted_scores(array_scores)
 
 			# make sure the PCs fit well between the array and the population data
 			ggplot(population_data, aes(x=PC1, y=PC2, color="Population Data")) + geom_point() + geom_point() + 
@@ -370,10 +444,10 @@ task AdjustScores {
 			ggsave(filename = "PCA_plot.png", dpi=300, width = 6, height = 6)
 
 			# return population scores
-			write.table(population_data %>% subset(select = -residual_score), file = "population_data_scores.tsv", sep="\t", row.names=F, quote = F)
+			write.table(population_data %>% select(-residual_score2), file = "population_data_scores.tsv", sep="\t", row.names=F, quote = F)
 
 			# return array scores
-			write.table(adjusted_array_scores %>% subset(select = -residual_score), file = "array_data_scores.tsv", sep="\t", row.names=F, quote = F)
+			write.table(adjusted_array_scores, file = "array_data_scores.tsv", sep="\t", row.names=F, quote = F)
 	EOF
 	>>>
 
@@ -381,6 +455,7 @@ task AdjustScores {
 		File pca_plot = "PCA_plot.png"
 		File adjusted_population_scores = "population_data_scores.tsv"
 		File adjusted_array_scores = "array_data_scores.tsv"
+		Boolean fit_converged = read_boolean("fit_converged.txt")
 	}
 
 	runtime {
