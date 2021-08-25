@@ -125,16 +125,22 @@ workflow ScoringImputedDataset {
 			mem = vcf_to_plink_mem
 		}
 
-		call ProjectArray {
+		call CheckBimIDs {
 			input:
-			pc_loadings = select_first([PerformPCA.pc_loadings, population_loadings]),
-			pc_meansd = select_first([PerformPCA.mean_sd, population_meansd]),
-			bed = ArrayVcfToPlinkDataset.bed,
-			bim = ArrayVcfToPlinkDataset.bim,
-			fam = ArrayVcfToPlinkDataset.fam,
-			basename = basename
+				array_bim = ArrayVcfToPlinkDataset.bim,
+				pop_bim = PopulationArrayVcfToPlinkDataset.bim
 		}
-
+		if (CheckBimIDs.files_are_valid) {
+			call ProjectArray {
+				input:
+				pc_loadings = select_first([PerformPCA.pc_loadings, population_loadings]),
+				pc_meansd = select_first([PerformPCA.mean_sd, population_meansd]),
+				bed = ArrayVcfToPlinkDataset.bed,
+				bim = ArrayVcfToPlinkDataset.bim,
+				fam = ArrayVcfToPlinkDataset.fam,
+				basename = basename
+			}
+		}
 		call AdjustScores {
 			input:
 			population_pcs = select_first([PerformPCA.pcs, population_pcs]),
@@ -506,30 +512,21 @@ task ExtractIDsPlink {
    }
  }
 
-task CheckPCAInputs{
+task CheckBimIDs{
 	input {
-		File bim
-		String basename
+		File array_bim
+		File pop_bim
 	}
 	command <<<
-		# check if .bim file, pca loadings, and pca means are all matching in length and that .bim file contains a subset of pca ids
-		# first check if pca loadings and pca means have the same IDs
+		# check if population .bim file contains a superset of array .bim file ids
 
-		# then check if .bim IDs are all in the pca loadings
-
-		# Check if .bim file, pc loadings, and pc meansd files have the same IDs
 		# 1. extract IDs, removing first column of .bim file and first rows of the pc files
-		cat ~{bim} | awk '{print $2}' > bim_ids.txt
-		cat ~{basename}.pc.loadings |  awk '{print $1}' | tail -n +2 > pcloadings_ids.txt
-		cat ~{basename}.pc.meansd |  awk '{print $1}' | tail -n +2 > meansd_ids.txt
+		cat ~{array_bim} | awk '{print $2}' > array_bim_ids.txt
+		cat ~{pop_bim} | awk '{print $2}' > pop_bim_ids.txt
 
-		diff bim_ids.txt pcloadings_ids.txt > diff1.txt
-		diff bim_ids.txt meansd_ids.txt > diff2.txt
-		diff pcloadings_ids.txt meansd_ids.txt > diff3.txt
-		# check if population PCs contains superset of IDs in .bim; i.e. that the .bim does not contain IDs not present in PCA
-		cat diff1.txt | grep "<" > bim_specific_ids.txt
+		diff array_bim_ids.txt pop_bim_ids.txt | grep "<" > array_specific_ids.txt
 
-		if [[ -s diff2.txt || -s diff2.txt || -s diff3.txt || -s bim_specific_ids.txt ]]
+		if [[ -s array_specific_ids.txt ]]
 		then
 		echo false
 		else
