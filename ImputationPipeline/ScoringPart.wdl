@@ -277,10 +277,18 @@ task ProjectArray {
 
 		diff bim_ids.txt pcloadings_ids.txt > diff1.txt
 		diff bim_ids.txt meansd_ids.txt > diff2.txt
+		diff pcloadings_ids.txt meansd_ids.txt > diff3.txt
+
+		if [[ -s diff3.txt ]]
+		then
+		echo "PC loadings file and PC means file do not contain the same IDs; check your input files and run again."
+		exit 1
+		fi
 
 		# check if diff files are not empty
-		if ! [[ -s diff1.txt || -s diff2.txt ]]
+		if [[ -s diff1.txt || -s diff2.txt ]]
 		then
+		echo "IDs in .bim file are not the same as the IDs in the PCA files; check that you have the right files and run again."
 		exit 1
 		fi
 
@@ -446,7 +454,7 @@ task ExtractIDsPlink {
 		Int disk_size = 2*ceil(size(vcf, "GB")) + 100
 		Int mem = 8
 	}
-	
+
 	Int plink_mem = ceil(mem * 0.75 * 1000)
 
 	command <<<
@@ -497,6 +505,45 @@ task ExtractIDsPlink {
 	 memory: mem + " GB"
    }
  }
+
+task CheckPCAInputs{
+	input {
+		File bim
+		String basename
+	}
+	command <<<
+		# check if .bim file, pca loadings, and pca means are all matching in length and that .bim file contains a subset of pca ids
+		# first check if pca loadings and pca means have the same IDs
+
+		# then check if .bim IDs are all in the pca loadings
+
+		# Check if .bim file, pc loadings, and pc meansd files have the same IDs
+		# 1. extract IDs, removing first column of .bim file and first rows of the pc files
+		cat ~{bim} | awk '{print $2}' > bim_ids.txt
+		cat ~{basename}.pc.loadings |  awk '{print $1}' | tail -n +2 > pcloadings_ids.txt
+		cat ~{basename}.pc.meansd |  awk '{print $1}' | tail -n +2 > meansd_ids.txt
+
+		diff bim_ids.txt pcloadings_ids.txt > diff1.txt
+		diff bim_ids.txt meansd_ids.txt > diff2.txt
+		diff pcloadings_ids.txt meansd_ids.txt > diff3.txt
+		# check if population PCs contains superset of IDs in .bim; i.e. that the .bim does not contain IDs not present in PCA
+		cat diff1.txt | grep "<" > bim_specific_ids.txt
+
+		if [[ -s diff2.txt || -s diff2.txt || -s diff3.txt || -s bim_specific_ids.txt ]]
+		then
+		echo false
+		else
+		echo true
+		fi
+
+	>>>
+	output {
+		Boolean files_are_valid = read_boolean(stout())
+	}
+	runtime {
+		docker: "ubuntu"
+	}
+}
 
  #Print given message to stderr and return an error
  task ErrorWithMessage{
