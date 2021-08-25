@@ -140,14 +140,15 @@ workflow ScoringImputedDataset {
 				fam = ArrayVcfToPlinkDataset.fam,
 				basename = basename
 			}
+
+			call AdjustScores {
+				input:
+				population_pcs = select_first([PerformPCA.pcs, population_pcs]),
+				population_scores = ScorePopulation.score,
+				array_pcs = ProjectArray.projections,
+				array_scores = ScoreImputedArray.score
+			  }
 		}
-		call AdjustScores {
-			input:
-			population_pcs = select_first([PerformPCA.pcs, population_pcs]),
-			population_scores = ScorePopulation.score,
-			array_pcs = ProjectArray.projections,
-			array_scores = ScoreImputedArray.score
-		  }
 	}
 
   output {
