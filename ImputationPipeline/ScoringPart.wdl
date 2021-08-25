@@ -145,7 +145,7 @@ workflow ScoringImputedDataset {
 				input:
 				population_pcs = select_first([PerformPCA.pcs, population_pcs]),
 				population_scores = ScorePopulation.score,
-				array_pcs = ProjectArray.projections,
+				array_pcs = select_first([ProjectArray.projections]),
 				array_scores = ScoreImputedArray.score
 			  }
 		}
