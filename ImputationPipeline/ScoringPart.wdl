@@ -535,7 +535,7 @@ task CheckBimIDs{
 
 	>>>
 	output {
-		Boolean files_are_valid = read_boolean(stout())
+		Boolean files_are_valid = read_boolean(stdout())
 	}
 	runtime {
 		docker: "ubuntu"
