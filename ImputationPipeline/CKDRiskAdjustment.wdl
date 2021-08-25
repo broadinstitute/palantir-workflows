@@ -63,10 +63,12 @@ task AdjustRisk {
     Rscript -<< "EOF"
       library(dplyr)
       library(readr)
+      library(tidyr)
 
       risk_allele_counts <- read_tsv("~{risk_allele_counts}")
       adjusted_scores <- read_tsv("~{adjusted_scores}")
 
+      risk_allele_counts <- risk_allele_counts %>% replace_na(list(.[[7]] = 0, .[[8]] = 0, .[[9]] = 0))
       risk_allele_counts <- risk_allele_counts %>% transmute(IID, apol1_high_risk = ifelse(pmax(.[[7]], .[[8]]) + .[[9]] >= 2, 1, 0))
       adjusted_scores <- inner_join(adjusted_scores, risk_allele_counts)
       adjusted_scores <- adjusted_scores %>% mutate(adjusted_score = adjusted_score + apol1_high_risk)
