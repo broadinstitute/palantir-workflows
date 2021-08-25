@@ -100,10 +100,10 @@ task SelectValuesOfInterest {
     library(readr)
     score <- read_tsv("~{score_result}")
     if (nrow(score) != 1) {
-      quit(1)
+      quit(status=1)
     }
     if ((score %>% pull(`IID`))[[1]] != "~{sample_id}") {
-      quit(1)
+      quit(status=1)
     }
 
     raw_score <- (score %>% pull(SCORE1_SUM))[[1]]
