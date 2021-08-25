@@ -530,6 +530,7 @@ task CheckBimIDs{
 		if [[ -s array_specific_ids.txt ]]
 		then
 		echo false
+		exit 1
 		else
 		echo true
 		fi
