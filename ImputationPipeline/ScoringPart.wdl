@@ -124,11 +124,12 @@ workflow ScoringImputedDataset {
 			basename = basename,
 			mem = vcf_to_plink_mem
 		}
-
+		#				array_bim = ArrayVcfToPlinkDataset.bim,
+		#				pop_pcs = select_first([population_loadings])
 		call CheckBimIDs {
 			input:
-				array_bim = ArrayVcfToPlinkDataset.bim,
-				pop_pcs = select_first([population_loadings])
+				pop_ids = ExtractIDsPopulation.ids
+				array_ids = ExtractIDsPlink.ids
 		}
 		if (CheckBimIDs.files_are_valid) {
 			call ProjectArray {
@@ -596,15 +597,17 @@ task ExtractIDsPlink {
 
 task CheckBimIDs{
 	input {
-		File array_bim
-		File pop_pcs
+		File array_ids #array_bim
+		File pop_ids #pop_pcs
+
 	}
 	command <<<
 		# check if population .bim file contains a superset of array .bim file ids
 
 		# 1. extract IDs, removing first column of .bim file and first rows of the pc files
-		awk '{print $2}' ~{array_bim} > array_ids.txt
-		awk '{print $1}' ~{pop_pcs} | tail -n +2 > pop_ids.txt
+#		awk '{print $2}' ~{array_bim} > array_ids.txt
+#		awk '{print $1}' ~{pop_pcs} | tail -n +2 > pop_ids.txt
+
 
 		comm -23 <(sort array_ids.txt | uniq) <(sort pop_ids.txt | uniq) > array_specific_ids.txt
 		if [[ -s array_specific_ids.txt ]]
