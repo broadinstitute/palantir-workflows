@@ -619,7 +619,7 @@ task CheckBimIDs{
 		Boolean files_are_valid = read_boolean(stdout())
 	}
 	runtime {
-		docker: "alpine:3.14.1"
+		docker: "ubuntu:21.10"
 	}
 }
 
@@ -634,7 +634,7 @@ task CheckBimIDs{
 	>>>
 
 	 runtime {
-		 docker: "alpine:3.14.1"
+		 docker: "ubuntu:21.10"
 	 }
  }
 
