@@ -285,9 +285,9 @@ task ProjectArray {
 
 		# Check if .bim file, pc loadings, and pc meansd files have the same IDs
 		# 1. extract IDs, removing first column of .bim file and first rows of the pc files
-		cat ~{bim} | awk '{print $2}' > bim_ids.txt
-		cat ~{basename}.pc.loadings |  awk '{print $1}' | tail -n +2 > pcloadings_ids.txt
-		cat ~{basename}.pc.meansd |  awk '{print $1}' | tail -n +2 > meansd_ids.txt
+		awk '{print $2}' ~{basename}.bim > bim_ids.txt
+		awk '{print $1}' loadings.txt | tail -n +2 > pcloadings_ids.txt
+		awk '{print $1}' meansd.txt | tail -n +2 > meansd_ids.txt
 
 		diff bim_ids.txt pcloadings_ids.txt > diff1.txt
 		diff bim_ids.txt meansd_ids.txt > diff2.txt
@@ -603,11 +603,10 @@ task CheckBimIDs{
 		# check if population .bim file contains a superset of array .bim file ids
 
 		# 1. extract IDs, removing first column of .bim file and first rows of the pc files
-		cat ~{array_bim} | awk '{print $2}' > array_ids.txt
-		cat ~{pop_pcs} | awk '{print $1}' | tail -n +2 > pop_ids.txt
+		awk '{print $2}' ~{array_bim} > array_ids.txt
+		awk '{print $1}' ~{pop_pcs} | tail -n +2 > pop_ids.txt
 
-		diff array_ids.txt pop_ids.txt | grep "<" > array_specific_ids.txt
-
+		comm -23 <(sort array_ids.txt | uniq) <(sort pop_ids.txt | uniq) > array_specific_ids.txt
 		if [[ -s array_specific_ids.txt ]]
 		then
 		echo false
@@ -620,7 +619,7 @@ task CheckBimIDs{
 		Boolean files_are_valid = read_boolean(stdout())
 	}
 	runtime {
-		docker: "ubuntu"
+		docker: "alpine:3.14.1"
 	}
 }
 
@@ -635,7 +634,7 @@ task CheckBimIDs{
 	>>>
 
 	 runtime {
-		 docker: "ubuntu"
+		 docker: "alpine:3.14.1"
 	 }
  }
 
