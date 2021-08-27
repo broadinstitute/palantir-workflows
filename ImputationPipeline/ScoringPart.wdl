@@ -124,11 +124,13 @@ workflow ScoringImputedDataset {
 			basename = basename,
 			mem = vcf_to_plink_mem
 		}
+
 		call CheckPopulationIdsValid {
 			input:
-				pop_vcf_ids = ExtractIDsPopulation.ids,
+				pop_vcf_ids = select_first([ExtractIDsPopulation.ids]),
 				pop_pc_loadings = select_first([PerformPCA.pc_loadings, population_loadings]),
 		}
+
 		call ProjectArray {
 			input:
 			pc_loadings = select_first([PerformPCA.pc_loadings, population_loadings]),
