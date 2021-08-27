@@ -27,6 +27,11 @@ workflow FindSamplesAndBenchmark {
         String? analysis_region
 
         Boolean remove_symbolic_alleles=false
+        Boolean passingOnly=true
+        Boolean doIndelLengthStratification=false
+        Boolean requireMatchingGenotypes=true
+
+        String vcfScoreField="INFO.TREE_SCORE"
 
         Array[File] stratIntervals=[]
         Array[String] stratLabels=[]
@@ -121,11 +126,11 @@ workflow FindSamplesAndBenchmark {
                      jexlVariantSelectors = jexlVariantSelectors,
                      variantSelectorLabels = variantSelectorLabels,
                      referenceVersion = "1",
-                     doIndelLengthStratification=false,
+                     doIndelLengthStratification=doIndelLengthStratification,
                      gatkTag="4.0.11.0",
-                     requireMatchingGenotypes=true,
-                     passingOnly=true,
-                     vcfScoreField = "INFO.TREE_SCORE",
+                     requireMatchingGenotypes=requireMatchingGenotypes,
+                     passingOnly=passingOnly,
+                     vcfScoreField = vcfScoreField,
                      gatkJarForAnnotation = gatkJarForAnnotation,
                      annotationNames = annotationNames
                  }
