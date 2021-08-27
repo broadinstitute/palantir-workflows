@@ -127,7 +127,7 @@ workflow ScoringImputedDataset {
 
 		call CheckPopulationIdsValid {
 			input:
-				pop_vcf_ids = select_first([ExtractIDsPopulation.ids]),
+				pop_vcf_ids = ExtractIDsPopulation.ids,
 				pop_pc_loadings = select_first([PerformPCA.pc_loadings, population_loadings]),
 		}
 
