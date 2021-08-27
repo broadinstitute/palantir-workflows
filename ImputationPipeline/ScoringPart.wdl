@@ -124,11 +124,11 @@ workflow ScoringImputedDataset {
 			basename = basename,
 			mem = vcf_to_plink_mem
 		}
-#		call CheckPopulationIdEquivalence {
-#			input:
-#				pop_vcf_ids = ExtractIDsPopulation.ids,
-#				pop_pc_loadings = select_first([PerformPCA.pc_loadings, population_loadings]),
-#		}
+		call CheckPopulationIdsValid {
+			input:
+				pop_vcf_ids = ExtractIDsPopulation.ids,
+				pop_pc_loadings = select_first([PerformPCA.pc_loadings, population_loadings]),
+		}
 		call ProjectArray {
 			input:
 			pc_loadings = select_first([PerformPCA.pc_loadings, population_loadings]),
@@ -146,12 +146,12 @@ workflow ScoringImputedDataset {
 			array_pcs = select_first([ProjectArray.projections]),
 			array_scores = ScoreImputedArray.score
 		  }
-#		if (!CheckPopulationIdEquivalence.files_are_valid) {
-#			call ErrorWithMessage {
-#				input:
-#				message = "Array IDs are not a subset of the population IDs; running with these inputs would give an incorrect result."
-#			}
-#		}
+		if (!CheckPopulationIdsValid.files_are_valid) {
+			call ErrorWithMessage {
+				input:
+				message = "Population VCF IDs are not a subset of the population PCA IDs; running with these inputs would give an incorrect result."
+			}
+		}
 	}
 
   output {
@@ -591,34 +591,34 @@ task ExtractIDsPlink {
    }
  }
 
-#task CheckPopulationIdEquivalence{
-#	input {
-#		File pop_vcf_ids
-#		File pop_pc_loadings
-#
-#	}
-#	command <<<
-#		# check if population .bim file contains a superset of array .bim file ids
-#
-#		# 1. extract IDs, removing first column of .bim file and first rows of the pc files
-#		awk '{print $1}' ~{pop_pc_loadings} | tail -n +2 > pop_ids.txt
-#
-#		comm -23 <(sort ~{pop_vcf_ids} | uniq) <(sort pop_ids.txt | uniq) > array_specific_ids.txt
-#		if [[ -s array_specific_ids.txt ]]
-#		then
-#		echo false
-#		else
-#		echo true
-#		fi
-#
-#	>>>
-#	output {
-#		Boolean files_are_valid = read_boolean(stdout())
-#	}
-#	runtime {
-#		docker: "ubuntu:21.10"
-#	}
-#}
+task CheckPopulationIdsValid{
+	input {
+		File pop_vcf_ids
+		File pop_pc_loadings
+
+	}
+	command <<<
+		# check if population VCF file contains a subset of population PC loading ids
+
+		# 1. extract IDs, removing first column of .bim file and first rows of the pc files
+		awk '{print $1}' ~{pop_pc_loadings} | tail -n +2 > pop__pc_ids.txt
+
+		comm -23 <(sort pop_pc_ids.txt | uniq) <(sort ~{pop_vcf_ids} | uniq) > array_specific_ids.txt
+		if [[ -s array_specific_ids.txt ]]
+		then
+		echo false
+		else
+		echo true
+		fi
+
+	>>>
+	output {
+		Boolean files_are_valid = read_boolean(stdout())
+	}
+	runtime {
+		docker: "ubuntu:21.10"
+	}
+}
 
  #Print given message to stderr and return an error
  task ErrorWithMessage{
