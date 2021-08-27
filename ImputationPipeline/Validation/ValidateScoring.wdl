@@ -79,7 +79,7 @@ workflow ValidateScoring {
 	#run scoring on main branch
 	call ScoringMain.ScoringImputedDataset as ScoreImputedMain {
 		input:
-			weights = SubsetWeights.subset_weights,
+			weights = SubsetWeightsWGS.subset_weights,
 			imputed_array_vcf = validationArraysMain,
 			population_basename = population_basename,
 			basename = "imputed",

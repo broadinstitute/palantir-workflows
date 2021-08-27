@@ -125,6 +125,12 @@ workflow ScoringImputedDataset {
 			mem = vcf_to_plink_mem
 		}
 
+		call CheckPopulationIdsValid {
+			input:
+				pop_vcf_ids = select_first([ExtractIDsPopulation.ids]),
+				pop_pc_loadings = select_first([PerformPCA.pc_loadings, population_loadings]),
+		}
+
 		call ProjectArray {
 			input:
 			pc_loadings = select_first([PerformPCA.pc_loadings, population_loadings]),
@@ -139,9 +145,15 @@ workflow ScoringImputedDataset {
 			input:
 			population_pcs = select_first([PerformPCA.pcs, population_pcs]),
 			population_scores = ScorePopulation.score,
-			array_pcs = ProjectArray.projections,
+			array_pcs = select_first([ProjectArray.projections]),
 			array_scores = ScoreImputedArray.score
 		  }
+		if (!CheckPopulationIdsValid.files_are_valid) {
+			call ErrorWithMessage {
+				input:
+				message = "Population VCF IDs are not a subset of the population PCA IDs; running with these inputs would give an incorrect result."
+			}
+		}
 	}
 
   output {
@@ -261,7 +273,7 @@ task ProjectArray {
 		Int mem = 8
 	}
 
-	command {
+	command <<<
 
 		cp ~{bim} ~{basename}.bim
 		cp ~{bed} ~{basename}.bed
@@ -270,9 +282,32 @@ task ProjectArray {
 		cp ~{pc_loadings} loadings.txt
 		cp ~{pc_meansd} meansd.txt
 
+		# Check if .bim file, pc loadings, and pc meansd files have the same IDs
+		# 1. extract IDs, removing first column of .bim file and first rows of the pc files
+		awk '{print $2}' ~{basename}.bim > bim_ids.txt
+		awk '{print $1}' loadings.txt | tail -n +2 > pcloadings_ids.txt
+		awk '{print $1}' meansd.txt | tail -n +2 > meansd_ids.txt
+
+		diff bim_ids.txt pcloadings_ids.txt > diff1.txt
+		diff bim_ids.txt meansd_ids.txt > diff2.txt
+		diff pcloadings_ids.txt meansd_ids.txt > diff3.txt
+
+		if [[ -s diff3.txt ]]
+		then
+		echo "PC loadings file and PC means file do not contain the same IDs; check your input files and run again."
+		exit 1
+		fi
+
+		# check if diff files are not empty
+		if [[ -s diff1.txt || -s diff2.txt ]]
+		then
+		echo "IDs in .bim file are not the same as the IDs in the PCA files; check that you have the right files and run again."
+		exit 1
+		fi
+
 		~/flashpca/flashpca --bfile ~{basename} --project --inmeansd meansd.txt \
 		--outproj projections.txt --inload loadings.txt -v
-	}
+	>>>
 
 	output {
 		File projections = "projections.txt"
@@ -507,8 +542,10 @@ task ExtractIDsPlink {
 		Int mem = 8
 	}
 
+	Int plink_mem = ceil(mem * 0.75 * 1000)
+
 	command <<<
-		/plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --write-snplist allow-dups
+		/plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --write-snplist allow-dups --memory ~{plink_mem}
 	>>>
 	output {
 		File ids = "plink2.snplist"
@@ -556,6 +593,35 @@ task ExtractIDsPlink {
    }
  }
 
+task CheckPopulationIdsValid{
+	input {
+		File pop_vcf_ids
+		File pop_pc_loadings
+
+	}
+	command <<<
+		# check if population VCF file contains a subset of population PC loading ids
+
+		# 1. extract IDs, removing first column of .bim file and first rows of the pc files
+		awk '{print $1}' ~{pop_pc_loadings} | tail -n +2 > pop__pc_ids.txt
+
+		comm -23 <(sort pop_pc_ids.txt | uniq) <(sort ~{pop_vcf_ids} | uniq) > array_specific_ids.txt
+		if [[ -s array_specific_ids.txt ]]
+		then
+		echo false
+		else
+		echo true
+		fi
+
+	>>>
+	output {
+		Boolean files_are_valid = read_boolean(stdout())
+	}
+	runtime {
+		docker: "ubuntu:21.10"
+	}
+}
+
  #Print given message to stderr and return an error
  task ErrorWithMessage{
 	 input {
@@ -567,7 +633,7 @@ task ExtractIDsPlink {
 	>>>
 
 	 runtime {
-		 docker: "ubuntu"
+		 docker: "ubuntu:21.10"
 	 }
  }
 
