@@ -104,10 +104,29 @@ workflow GenerateDuplexConsensusBams {
             preemptible_attempts = preemptible_attempts, 
             disk_pad = disk_pad
       }
+
+      call BQSRWithoutBinning as BQSRRawRealigned {
+         input:
+            bloodbiopsydocker=bloodbiopsydocker,
+            bam_file = AlignRawBamWithBwaMem.output_bam,
+            bam_index = AlignRawBamWithBwaMem.output_bam_index,
+            reference = reference,
+            reference_index = reference_index,
+            reference_dict = reference_dict,
+            dbsnp = dbsnp,
+            dbsnp_index= dbsnp_index,
+            known_indels = known_indels,
+            known_indels_index = known_indels_index,
+            variant_eval_gold_standard = variant_eval_gold_standard,
+            variant_eval_gold_standard_index = variant_eval_gold_standard_index,
+            base_name = base_name,
+            preemptible_attempts = preemptible_attempts,
+            disk_pad = disk_pad
+      }
    }
 
-   File preprocessed_raw_bam = select_first([AlignRawBamWithBwaMem.output_bam, DownsampleSam.output_bam, bam_file])
-   File preprocessed_raw_bam_index = select_first([AlignRawBamWithBwaMem.output_bam_index, DownsampleSam.output_bam_index, bam_index])
+   File preprocessed_raw_bam = select_first([BQSRRawRealigned.output_bam, DownsampleSam.output_bam, bam_file])
+   File preprocessed_raw_bam_index = select_first([BQSRRawRealigned.output_bam_index, DownsampleSam.output_bam_index, bam_index])
 
    # Collect HS or Targeted PCR metrics after deduplication by start and stop
    # position (but not incluing UMIs).
