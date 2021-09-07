@@ -1074,11 +1074,11 @@ task BQSRWithBinning {
       -R ${reference} \
       -I ${bam_file} \
       -bqsr ${base_name}.recalibration_report.grp \
-      --static-quantized-quals 10' \
-      --static-quantized-quals 20' \
-      --static-quantized-quals 30' \
-      --static-quantized-quals 40' \
-      --static-quantized-quals 50' \
+      --static-quantized-quals 10 \
+      --static-quantized-quals 20 \
+      --static-quantized-quals 30 \
+      --static-quantized-quals 40 \
+      --static-quantized-quals 50 \
       -O ${base_name}.bqsr.bam
    }
    runtime {
