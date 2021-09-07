@@ -105,7 +105,7 @@ workflow GenerateDuplexConsensusBams {
             disk_pad = disk_pad
       }
 
-      call BQSRWithoutBinning as BQSRRawRealigned {
+      call BQSRWithBinning as BQSRRawRealigned {
          input:
             bloodbiopsydocker=bloodbiopsydocker,
             bam_file = AlignRawBamWithBwaMem.output_bam,
@@ -1017,6 +1017,69 @@ task BQSRWithoutBinning {
          -I ${bam_file} \
          -bqsr ${base_name}.recalibration_report.grp \
          -O ${base_name}.bqsr.bam
+   }
+   runtime {
+      docker: bloodbiopsydocker
+      disks: "local-disk " + disk_size + " HDD"
+      memory: mem + " GB"
+      maxRetries: 3
+      preemptible: select_first([preemptible_attempts, 10])
+   }
+   output {
+      File output_bam = "${base_name}.bqsr.bam"
+      File output_bam_index = "${base_name}.bqsr.bai"
+      File output_recal_report_grp = "${base_name}.recalibration_report.grp"
+   }
+}
+
+# Base quality score recalibration with the use of binned
+# quality scores.
+task BQSRWithBinning {
+   String bloodbiopsydocker
+   File? gatk_override
+   File bam_file
+   File bam_index
+   File reference
+   File reference_index
+   File reference_dict
+   File dbsnp
+   File dbsnp_index
+   File known_indels
+   File known_indels_index
+   File variant_eval_gold_standard
+   File variant_eval_gold_standard_index
+   String base_name
+   Int? preemptible_attempts
+   Int? memory
+   Int disk_pad
+   Int ref_size = ceil(size(reference, "GB") + size(reference_index, "GB") + size(reference_dict, "GB"))
+   Int disk_size = ceil(size(bam_file, "GB") * 5) + ceil(size(bam_index, "GB")) + ref_size + disk_pad
+   Int mem = select_first([memory, 5])
+   Int compute_mem = mem * 1000 - 500
+
+   command {
+      set -e
+
+      export GATK_LOCAL_JAR=${default="/root/gatk.jar" gatk_override}
+
+      gatk BaseRecalibrator \
+      -R ${reference} \
+      -I ${bam_file} \
+      --known-sites ${dbsnp} \
+      --known-sites ${known_indels} \
+      --known-sites ${variant_eval_gold_standard} \
+      -O ${base_name}.recalibration_report.grp
+
+      gatk ApplyBQSR \
+      -R ${reference} \
+      -I ${bam_file} \
+      -bqsr ${base_name}.recalibration_report.grp \
+      --static-quantized-quals 10' \
+      --static-quantized-quals 20' \
+      --static-quantized-quals 30' \
+      --static-quantized-quals 40' \
+      --static-quantized-quals 50' \
+      -O ${base_name}.bqsr.bam
    }
    runtime {
       docker: bloodbiopsydocker
