@@ -31,7 +31,7 @@ task getHeader{
     REF_PATH='.' samtools view -H ~{file} > ~{basename}.header.txt
   >>>
   output {
-    File index = "~{basename}.header.txt"
+    File header = "~{basename}.header.txt"
   }
   runtime {
     preemptible: 3
