@@ -45,3 +45,6 @@ workflows:
   - name: CKDRiskAdjustment
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/CKDRiskAdjustment.wdl
+  - name: GetCramHeader
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/GetCramHeader.wdl
