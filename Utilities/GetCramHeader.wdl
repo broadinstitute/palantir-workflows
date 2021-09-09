@@ -25,7 +25,7 @@ task getHeader{
   input {
     File file
     String extension
-    File basename = basename(file, extension)
+    String basename = basename(file, extension)
   }
   command <<<
     REF_PATH='.' samtools view -H ~{file} > ~{basename}.header.txt
