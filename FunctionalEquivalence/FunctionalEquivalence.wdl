@@ -278,6 +278,8 @@ workflow FunctionalEquivalence {
             preemptible = preemptible
     }
 
+    Int fe_status_combined = if FEEvaluation.fe_status > F1Evaluation.fe_status then FEEvaluation.fe_status else F1Evaluation.fe_status
+
     # For the ROC plots it's ok to just flatten the array resulting from the scatter over i.
     Array[File] roc_plots_3 = flatten(roc_plots_2)
 
@@ -304,6 +306,7 @@ workflow FunctionalEquivalence {
         input:
             merged_fe_plots = MergeFE.plots,
             merged_f1_plots = MergeF1.plots,
+            fe_status = fe_status_combined,
             additional_label = additional_label,
             preemptible = preemptible
     }
@@ -317,6 +320,7 @@ workflow FunctionalEquivalence {
         File merged_roc_plots = MergeROC.plots
         File fe_summary = FEEvaluation.fe_summary
         File f1_summary = F1Evaluation.f1_summary
+        Int fe_status = fe_status_combined
         File html_report = CreateHTMLReport.report
     }
 }
@@ -370,9 +374,12 @@ task CreateHTMLReport {
     input {
         File merged_fe_plots
         File merged_f1_plots
+        Int fe_status
         String additional_label = ""
         Int? preemptible
     }
+
+    String fe_status_string = if fe_status == 0 then "The analysis suggests that the tools are functionally equivalent." else "The analysis suggests that the tools are NOT functionally equivalent."
 
     command <<<
         set -xeuo pipefail
@@ -411,6 +418,7 @@ task CreateHTMLReport {
         </style>
     </head>
     <body>
+        <h3>~{fe_status_string}</h3>
         <h2>FE plots</h2>
         <table>
             <tr>
