@@ -5,6 +5,7 @@ workflow FindSamplesAndBenchmark {
     
     input {
         Array[File] input_callset
+        Array[String] input_callset_labels
         Array[File] ground_truth_files
         Array[File] ground_truth_indexes
         Array[File] ground_truth_intervals
@@ -43,10 +44,12 @@ workflow FindSamplesAndBenchmark {
     call MakeStringMap as intervalsMap {input: keys=ground_truth_files, values=ground_truth_intervals}
     call MakeStringMap as lablesMap    {input: keys=ground_truth_files, values=truth_labels}
     call MakeStringMap as indexesMap   {input: keys=ground_truth_files, values=ground_truth_indexes}
+    call MakeStringMap as evalLabelsMap {input: keys=input_callset,     values = input_callset_labels}
  
     Map[File, File]   truthIntervals = intervalsMap.map
     Map[File, String] truthLabels    = lablesMap.map
     Map[File, File]   truthIndex     = indexesMap.map
+    Map[File, String] evalLabels     = evalLabelsMap.map
 
     call CrosscheckFingerprints {
          input:
@@ -106,7 +109,7 @@ workflow FindSamplesAndBenchmark {
                 input:
                      analysisRegion = analysis_region,
                      evalVcf = ExtractSampleFromCallset.output_vcf,
-                     evalLabel = match.leftSample,
+                     evalLabel = evalLabels[match.leftFile],
                      evalVcfIndex = ExtractSampleFromCallset.output_vcf_index,
                      truthVcf = match.rightFile,
                      confidenceInterval = truthIntervals[match.rightFile],
