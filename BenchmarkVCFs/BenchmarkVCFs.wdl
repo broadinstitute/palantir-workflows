@@ -66,7 +66,7 @@ workflow Benchmark {
                                                     This will prevent call caching from failing with 'Cache Miss (10 failed copy attempts)'.
                                                     Outside of Terra this can be left empty. This dummy input is only
                                                     needed for tasks that have no inputs specific to the sample being
-                                                    run (such as GetBwaVersion which does not take in any sample data)."}
+                                                    run (such as CreateIntervalList which does not take in any sample data)."}
     }
 
 
