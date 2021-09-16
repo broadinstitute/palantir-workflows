@@ -42,6 +42,8 @@ workflow FindSamplesAndBenchmark {
     }
 
     parameter_meta {
+      input_callset_labels: {description:"Labels for each input callset that is being evaluated. This will include this
+                                          label in the output summary table under the 'Name' column."}
       dummyInputForTerraCallCaching: {description:"When running on Terra, use workspace.name as this input to ensure
                                                 that all tasks will only cache hit to runs in your own workspace.
                                                 This will prevent call caching from failing with 'Cache Miss (10 failed copy attempts)'.
