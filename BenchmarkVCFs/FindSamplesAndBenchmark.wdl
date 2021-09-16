@@ -37,6 +37,17 @@ workflow FindSamplesAndBenchmark {
         # Input for monitoring_script can be found here: https://github.com/broadinstitute/palantir-workflows/blob/main/Scripts/monitoring/cromwell_monitoring_script.sh.
         # It must be copied to a google bucket and then the google bucket path can be used as the input for monitoring_script.
         File monitoring_script
+
+        String? dummyInputForTerraCallCaching
+    }
+
+    parameter_meta {
+      dummyInputForTerraCallCaching: {description:"When running on Terra, use workspace.name as this input to ensure
+                                                that all tasks will only cache hit to runs in your own workspace.
+                                                This will prevent call caching from failing with 'Cache Miss (10 failed copy attempts)'.
+                                                Outside of Terra this can be left empty. This dummy input is only
+                                                needed for tasks that have no inputs specific to the sample being
+                                                run (such as GetBwaVersion which does not take in any sample data)."}
     }
 
     Int VCF_disk_size = ceil(size(input_callset, "GiB")) + 10
