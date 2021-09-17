@@ -44,31 +44,31 @@ workflow CompareSamplesWithoutTruth {
   Int VCF_disk_size = ceil(size(input_callset, "GiB") / length(sample_names_to_compare)) + 10
 
   # Compare samples that have truth data
-  call FindSamplesAndBenchmark.FindSamplesAndBenchmark as BenchmarkFullTruthVcfs {
-    input:
-      input_callset = [input_callset],
-      ground_truth_files = ground_truth_files,
-      ground_truth_indexes = ground_truth_indexes,
-      ground_truth_intervals = ground_truth_intervals,
-      truth_labels = truth_labels,
-      annotation_intervals = annotation_intervals,
-      gatkJarForAnnotation = gatkJarForAnnotation,
-      annotationName = annotationName,
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index,
-      ref_fasta_dict = ref_fasta_dict,
-      ref_fasta_sdf = ref_fasta_sdf,
-      haplotype_database = haplotype_database,
-      picard_cloud_jar = picard_cloud_jar,
-      docker = docker,
-      analysis_region = analysis_region,
-      stratIntervals = strat_intervals,
-      stratLabels = strat_labels,
-      jexlVariantSelectors = jexl_variant_selectors,
-      variantSelectorLabels = variant_selector_labels,
-      monitoring_script = monitoring_script,
-      preemptible = preemptible
-  }
+#  call FindSamplesAndBenchmark.FindSamplesAndBenchmark as BenchmarkFullTruthVcfs {
+#    input:
+#      input_callset = [input_callset],
+#      ground_truth_files = ground_truth_files,
+#      ground_truth_indexes = ground_truth_indexes,
+#      ground_truth_intervals = ground_truth_intervals,
+#      truth_labels = truth_labels,
+#      annotation_intervals = annotation_intervals,
+#      gatkJarForAnnotation = gatkJarForAnnotation,
+#      annotationName = annotationName,
+#      ref_fasta = ref_fasta,
+#      ref_fasta_index = ref_fasta_index,
+#      ref_fasta_dict = ref_fasta_dict,
+#      ref_fasta_sdf = ref_fasta_sdf,
+#      haplotype_database = haplotype_database,
+#      picard_cloud_jar = picard_cloud_jar,
+#      docker = docker,
+#      analysis_region = analysis_region,
+#      stratIntervals = strat_intervals,
+#      stratLabels = strat_labels,
+#      jexlVariantSelectors = jexl_variant_selectors,
+#      variantSelectorLabels = variant_selector_labels,
+#      monitoring_script = monitoring_script,
+#      preemptible = preemptible
+#  }
 
   scatter(i in range(length(NYGenomes_vcf))) {
     call SplitMultiSampleVcf as ExtractFromTruth {
@@ -110,42 +110,42 @@ workflow CompareSamplesWithoutTruth {
         picard_jar = picard_cloud_jar
     }
 
-    call FindSamplesAndBenchmark.FindSamplesAndBenchmark as BenchmarkNonTruthVcfs {
-      input:
-        input_callset = [ExtractFromInput.output_vcf],
-        ground_truth_files = [MergeVCFs.output_vcf],
-        ground_truth_indexes = [MergeVCFs.output_vcf_index],
-        ground_truth_intervals = [intersected_hiconf_intervals],
-        truth_labels = [sample_name],
-        annotation_intervals = annotation_intervals,
-        gatkJarForAnnotation = gatkJarForAnnotation,
-        annotationName = annotationName,
-        ref_fasta = ref_fasta,
-        ref_fasta_index = ref_fasta_index,
-        ref_fasta_dict = ref_fasta_dict,
-        ref_fasta_sdf = ref_fasta_sdf,
-        haplotype_database = haplotype_database,
-        picard_cloud_jar = picard_cloud_jar,
-        docker = docker,
-        analysis_region = analysis_region,
-        stratIntervals = strat_intervals,
-        stratLabels = strat_labels,
-        jexlVariantSelectors = jexl_variant_selectors,
-        variantSelectorLabels = variant_selector_labels,
-        monitoring_script = monitoring_script,
-        preemptible = preemptible
-    }
+#    call FindSamplesAndBenchmark.FindSamplesAndBenchmark as BenchmarkNonTruthVcfs {
+#      input:
+#        input_callset = [ExtractFromInput.output_vcf],
+#        ground_truth_files = [MergeVCFs.output_vcf],
+#        ground_truth_indexes = [MergeVCFs.output_vcf_index],
+#        ground_truth_intervals = [intersected_hiconf_intervals],
+#        truth_labels = [sample_name],
+#        annotation_intervals = annotation_intervals,
+#        gatkJarForAnnotation = gatkJarForAnnotation,
+#        annotationName = annotationName,
+#        ref_fasta = ref_fasta,
+#        ref_fasta_index = ref_fasta_index,
+#        ref_fasta_dict = ref_fasta_dict,
+#        ref_fasta_sdf = ref_fasta_sdf,
+#        haplotype_database = haplotype_database,
+#        picard_cloud_jar = picard_cloud_jar,
+#        docker = docker,
+#        analysis_region = analysis_region,
+#        stratIntervals = strat_intervals,
+#        stratLabels = strat_labels,
+#        jexlVariantSelectors = jexl_variant_selectors,
+#        variantSelectorLabels = variant_selector_labels,
+#        monitoring_script = monitoring_script,
+#        preemptible = preemptible
+#    }
   }
 
-  call Benchmark.CombineSummaries as CombineSummariesWithoutTruth{
-    input:
-      summaries = BenchmarkNonTruthVcfs.benchmark_vcf_summary,
-      preemptible = 1
-  }
+#  call Benchmark.CombineSummaries as CombineSummariesWithoutTruth{
+#    input:
+#      summaries = BenchmarkNonTruthVcfs.benchmark_vcf_summary,
+#      preemptible = 1
+#  }
 
   output {
-    File without_truth_summary = CombineSummariesWithoutTruth.summaryOut
-    File with_truth_summary = BenchmarkFullTruthVcfs.benchmark_vcf_summary
+#    File without_truth_summary = CombineSummariesWithoutTruth.summaryOut
+#    File with_truth_summary = BenchmarkFullTruthVcfs.benchmark_vcf_summary
   }
 }
 
