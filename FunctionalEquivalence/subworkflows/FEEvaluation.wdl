@@ -238,7 +238,7 @@ def main(tool1_label, tool2_label, stratifiers, additional_label, summaries):
     fe.read_data(summaries)
     fe_status = fe.plot(tool1_label, tool2_label, additional_label)
     with open('fe_status.txt', 'w') as fe_status_file:
-        fe_status_file.write(fe_status)
+        fe_status_file.write(str(fe_status))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create functional equivalence plots.')

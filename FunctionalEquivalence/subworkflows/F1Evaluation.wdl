@@ -326,7 +326,7 @@ def main(roc_tables, tool1_label, tool2_label, stratifiers, additional_label, si
         for dataset in datasets:
             fe_status = max(fe_status, plot_aggregated_data_compact(data, stratifiers, dataset, tool1_label, tool2_label, additional_label, signed_difference, summary_file))
     with open('fe_status.txt', 'w') as fe_status_file:
-        fe_status_file.write(fe_status)
+        fe_status_file.write(str(fe_status))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create F1 functional equivalence plots.')
