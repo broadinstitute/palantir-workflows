@@ -1,32 +1,5 @@
 version: 1.2
 workflows:
-  - name: ImputationWorkflow
-    subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/Imputation.wdl
-  - name: PRScoringWorkflow
-    subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/ScoringPart.wdl
-  - name: EndToEndPipeline
-    subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/EndToEndPipeline.wdl
-  - name: PerformPopulationPCA
-    subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/PerformPopulationPCA.wdl
-  - name: BenchmarkVCFs
-    subclass: WDL
-    primaryDescriptorPath: /BenchmarkVCFs/BenchmarkVCFs.wdl
-  - name: ValidateImputation
-    subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/Validation/ValidateImputation.wdl
-  - name: ValidateScoring
-    subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/Validation/ValidateScoring.wdl
-  - name: FullImputationPRSValidation
-    subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/Validation/FullImputationPRSValidation.wdl
-  - name: FindSamplesAndBenchmark
-    subclass: WDL
-    primaryDescriptorPath: /BenchmarkVCFs/FindSamplesAndBenchmark.wdl
   - name: CompareSamplesWithoutTruth
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/CompareSamplesWithoutTruth.wdl
