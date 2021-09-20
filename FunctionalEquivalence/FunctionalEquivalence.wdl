@@ -380,6 +380,7 @@ task CreateHTMLReport {
     }
 
     String fe_status_string = if fe_status == 0 then "The analysis suggests that the tools are functionally equivalent." else "The analysis suggests that the tools are NOT functionally equivalent."
+    String fe_status_color = if fe_status == 0 then "#008000" else "#FF0000"
 
     command <<<
         set -xeuo pipefail
@@ -418,7 +419,7 @@ task CreateHTMLReport {
         </style>
     </head>
     <body>
-        <h3>~{fe_status_string}</h3>
+        <h2 style="color: ~{fe_status_color};">~{fe_status_string}</h2>
         <h2>FE plots</h2>
         <table>
             <tr>
