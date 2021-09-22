@@ -167,7 +167,7 @@ workflow Benchmark {
                         gatkTag=gatkTag,
                         subset_interval=CreateIntervalList.interval_list,
                         preemptible=preemptible,
-                        dummyInputForTerraCallCaching = dummyInputForTerraCallCaching
+                        dummyInputForTerraCallCaching=dummyInputForTerraCallCaching
 
                 }
             }
@@ -190,7 +190,7 @@ workflow Benchmark {
             gatkTag=gatkTag,
             preemptible=preemptible,
             subset_interval=CreateIntervalList.interval_list,
-            dummyInputForTerraCallCaching = dummyInputForTerraCallCaching
+            dummyInputForTerraCallCaching=dummyInputForTerraCallCaching
     }
 
     scatter (stratifier in stratifiers) {

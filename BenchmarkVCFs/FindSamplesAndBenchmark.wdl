@@ -50,7 +50,7 @@ workflow FindSamplesAndBenchmark {
     call MakeStringMap as intervalsMap {input: keys=ground_truth_files, values=ground_truth_intervals}
     call MakeStringMap as lablesMap    {input: keys=ground_truth_files, values=truth_labels}
     call MakeStringMap as indexesMap   {input: keys=ground_truth_files, values=ground_truth_indexes}
-    call MakeStringMap as evalLabelsMap {input: keys=input_callset,     values = input_callset_labels}
+    call MakeStringMap as evalLabelsMap {input: keys=input_callset,     values=input_callset_labels}
  
     Map[File, File]   truthIntervals = intervalsMap.map
     Map[File, String] truthLabels    = lablesMap.map
