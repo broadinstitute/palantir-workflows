@@ -61,6 +61,7 @@ workflow RNAWithUMIsPipeline {
 			sample_id = GetSampleName.sample_name
 	}
 
+	# This should be removed before turning this into production
 	call rnaseqc2 as RNASeQC2Transcriptome {
 		input:
 			bam_file = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam,
