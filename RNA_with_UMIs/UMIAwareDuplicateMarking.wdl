@@ -1,32 +1,33 @@
 version 1.0
 
+# The UMI-*Un*aware version
 workflow UMIAwareDuplicateMarking {
   input {
     File aligned_bam
     String output_basename
   }
 
-  call SortSam as SortSamFirst {
-    input:
-      input_bam = aligned_bam,
-      output_bam_basename = "STAR.aligned.sorted"
-  }
+#  call SortSam as SortSamFirst {
+#    input:
+#      input_bam = aligned_bam,
+#      output_bam_basename = "STAR.aligned.sorted"
+#  }
 
-  call GroupByUMIs {
-    input:
-      bam = SortSamFirst.output_bam,
-      bam_index = SortSamFirst.output_bam_index
-  }
+#  call GroupByUMIs {
+#    input:
+#      bam = SortSamFirst.output_bam,
+#      bam_index = SortSamFirst.output_bam_index
+#  }
 
-  call SortSamQuery {
-    input:
-      input_bam = GroupByUMIs.grouped_bam,
-      output_bam_basename = "Grouped.queryname.sorted"
-  }
+#  call SortSamQuery {
+#    input:
+#      input_bam = GroupByUMIs.grouped_bam,
+#      output_bam_basename = "Grouped.queryname.sorted"
+#  }
 
   call MarkDuplicates {
     input:
-      bam = SortSamQuery.output_bam
+      bam = aligned_bam
   }
 
   call SortSam {

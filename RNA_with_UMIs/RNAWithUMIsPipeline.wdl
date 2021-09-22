@@ -2,11 +2,13 @@ version 1.0
 
 import "UMIAwareDuplicateMarking.wdl" as UmiMD
 
+### The UMI-*Un*aware version of the new RNA pipeline
+### Developed to run on ICE data for protocol evaluation. 
 workflow RNAWithUMIsPipeline {
 	input {
 		File bam
-		String read1Structure
-		String read2Structure
+#		String read1Structure
+#		String read2Structure
 		File starIndex
 		String output_basename
 		File gtf
@@ -18,16 +20,17 @@ workflow RNAWithUMIsPipeline {
 		File ribosomalIntervals
 	}
 
-	call ExtractUMIs {
-		input:
-			bam = bam,
-			read1Structure = read1Structure,
-			read2Structure = read2Structure
-	}
+
+#	call ExtractUMIs {
+#		input:
+#			bam = bam,
+#			read1Structure = read1Structure,
+#			read2Structure = read2Structure
+#	}
 
 	call STAR {
 		input:
-			bam = ExtractUMIs.bam_umis_extracted,
+			bam = bam,
 			starIndex = starIndex
 	}
 
