@@ -2,42 +2,52 @@ version 1.0
 
 workflow UMIAwareDuplicateMarking {
   input {
-    File aligned_bam
+    File aligned_bam # aligned bam sorted by the query (read) name. 
     String output_basename
   }
 
+  # First sort the aligned bam by coordinate, so we can group duplicate sets using UMIs in the next step.
   call SortSam as SortSamFirst {
     input:
       input_bam = aligned_bam,
-      output_bam_basename = "STAR.aligned.sorted"
+      output_bam_basename = "STAR.aligned.sorted",
+      sort_order = "coordinate"
   }
 
+  # Further divide each duplicate set (a set of reads with the same insert start and end coordinates)
+  # into subsets that share the same UMIs i.e. differenciate PCR duplicates from biological duplicates.
+  # (biological duplicates are independent DNA molecules that are sheared such that the inserts are indistinguishable.)
+  # input: a coordinate sorted bam
+  # output: a coordinate sorted bam with UMIs (what are the generated tags?) .
   call GroupByUMIs {
     input:
       bam = SortSamFirst.output_bam,
       bam_index = SortSamFirst.output_bam_index
   }
 
-  call SortSamQuery {
+  # input
+  # output: 
+  call SortSam as SortSamQueryName {
     input:
       input_bam = GroupByUMIs.grouped_bam,
-      output_bam_basename = "Grouped.queryname.sorted"
+      output_bam_basename = "Grouped.queryname.sorted",
+      sort_order = "queryname"
   }
 
   call MarkDuplicates {
     input:
-      bam = SortSamQuery.output_bam
+      bam = SortSamQueryName.output_bam
   }
 
-  call SortSam {
+  call SortSam as SortSamSecond {
     input:
       input_bam = MarkDuplicates.duplicate_marked_bam,
       output_bam_basename = output_basename
   }
 
   output {
-    File duplicate_marked_bam = SortSam.output_bam
-    File duplicate_marked_bam_index = SortSam.output_bam_index
+    File duplicate_marked_bam = SortSamSecond.output_bam
+    File duplicate_marked_bam_index = SortSamSecond.output_bam_index
     File duplicate_metrics = MarkDuplicates.duplicate_metrics
   }
 }
@@ -70,18 +80,20 @@ task SortSam {
   input {
     File input_bam
     String output_bam_basename
+    String sort_order # "queryname" or "coordinate"
   }
+
   # SortSam spills to disk a lot more because we are only store 300000 records in RAM now because its faster for our data so it needs
   # more disk space.  Also it spills to disk in an uncompressed format so we need to account for that with a larger multiplier
-  Float sort_sam_disk_multiplier = 3.25
-  Int disk_size = ceil(sort_sam_disk_multiplier * size(input_bam, "GiB")) + 20
+  Float sort_sam_disk_multiplier = 4.0
+  Int disk_size = ceil(sort_sam_disk_multiplier * size(input_bam, "GiB")) + 256
 
   command {
     java -Xms4000m -jar /usr/picard/picard.jar \
     SortSam \
     INPUT=~{input_bam} \
     OUTPUT=~{output_bam_basename}.bam \
-    SORT_ORDER="coordinate" \
+    SORT_ORDER=~{sort_order} \
     CREATE_INDEX=true \
     CREATE_MD5_FILE=true \
     MAX_RECORDS_IN_RAM=300000
@@ -91,46 +103,13 @@ task SortSam {
     docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
     disks: "local-disk " + disk_size + " HDD"
     cpu: "1"
-    memory: "5000 MiB"
+    memory: "8 MiB"
     preemptible: 0
   }
   output {
     File output_bam = "~{output_bam_basename}.bam"
     File output_bam_index = "~{output_bam_basename}.bai"
     File output_bam_md5 = "~{output_bam_basename}.bam.md5"
-  }
-}
-
-task SortSamQuery {
-  input {
-    File input_bam
-    String output_bam_basename
-  }
-  # SortSam spills to disk a lot more because we are only store 300000 records in RAM now because its faster for our data so it needs
-  # more disk space.  Also it spills to disk in an uncompressed format so we need to account for that with a larger multiplier
-  Float sort_sam_disk_multiplier = 3.25
-  Int disk_size = ceil(sort_sam_disk_multiplier * size(input_bam, "GiB")) + 20
-
-  command {
-    java -Xms4000m -jar /usr/picard/picard.jar \
-    SortSam \
-    INPUT=~{input_bam} \
-    OUTPUT=~{output_bam_basename}.bam \
-    SORT_ORDER="queryname" \
-    CREATE_INDEX=true \
-    CREATE_MD5_FILE=true \
-    MAX_RECORDS_IN_RAM=300000
-
-  }
-  runtime {
-    docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
-    disks: "local-disk " + disk_size + " HDD"
-    cpu: "1"
-    memory: "5000 MiB"
-    preemptible: 0
-  }
-  output {
-    File output_bam = "~{output_bam_basename}.bam"
   }
 }
 
