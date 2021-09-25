@@ -60,7 +60,7 @@ task MarkDuplicates {
 
   String basename = basename(bam, ".bam")
 
-  Int disk_size = ceil(2.2 * size(bam, "GB")) + 50
+  Int disk_size = ceil(3 * size(bam, "GB")) + 128
   command <<<
     gatk MarkDuplicates -I ~{bam} --READ_ONE_BARCODE_TAG BX -O ~{basename}.duplicate.marked.bam --METRICS_FILE ~{basename}.duplicate.metrics --ASSUME_SORT_ORDER queryname
   >>>
@@ -90,7 +90,7 @@ task SortSam {
   Int disk_size = ceil(sort_sam_disk_multiplier * size(input_bam, "GiB")) + 256
 
   command {
-    java -Xms4000m -jar /usr/picard/picard.jar \
+    java -Xms8192m -jar /usr/picard/picard.jar \
     SortSam \
     INPUT=~{input_bam} \
     OUTPUT=~{output_bam_basename}.bam \
@@ -104,7 +104,7 @@ task SortSam {
     docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
     disks: "local-disk " + disk_size + " HDD"
     cpu: "1"
-    memory: "8 MiB"
+    memory: "16 GB"
     preemptible: 0
   }
   output {
@@ -135,6 +135,6 @@ task GroupByUMIs {
     disks : "local-disk " + disk_space + " HDD"
     preemptible: 0
     cpu: "8"
-    memory: "52GB"
+    memory: "64 GB" # Sato: is this too much?
   }
 }
