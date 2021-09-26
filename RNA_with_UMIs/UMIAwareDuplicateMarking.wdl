@@ -19,14 +19,15 @@ workflow UMIAwareDuplicateMarking {
   # (biological duplicates are independent DNA molecules that are sheared such that the inserts are indistinguishable.)
   # input: a coordinate sorted bam
   # output: a coordinate sorted bam with UMIs (what are the generated tags?) .
+  
   call GroupByUMIs {
     input:
       bam = SortSamFirst.output_bam,
-      bam_index = SortSamFirst.output_bam_index,
+      bam_index = select_first([SortSamFirst.output_bam_index, "bam_index_not_found"]),
       output_bam_basename = output_basename + ".grouped_by_UMI"
   }
 
-  # input
+  # input:
   # output: 
   call SortSam as SortSamQueryName {
     input:
@@ -50,7 +51,7 @@ workflow UMIAwareDuplicateMarking {
 
   output {
     File duplicate_marked_bam = SortSamSecond.output_bam
-    File duplicate_marked_bam_index = SortSamSecond.output_bam_index
+    File duplicate_marked_bam_index = select_first([SortSamSecond.output_bam_index, "bam_index_not_found"])
     File duplicate_metrics = MarkDuplicates.duplicate_metrics
   }
 }
@@ -92,15 +93,18 @@ task SortSam {
   Float sort_sam_disk_multiplier = 4.0
   Int disk_size = ceil(sort_sam_disk_multiplier * size(input_bam, "GiB")) + 256
 
+  String extra_args = if sort_order == "coordinate" then "CREATE_INDEX=true" else ""
+
+
   command {
     java -Xms8192m -jar /usr/picard/picard.jar \
     SortSam \
     INPUT=~{input_bam} \
     OUTPUT=~{output_bam_basename}.bam \
     SORT_ORDER=~{sort_order} \
-    CREATE_INDEX=true \
     CREATE_MD5_FILE=true \
-    MAX_RECORDS_IN_RAM=300000
+    MAX_RECORDS_IN_RAM=300000 \
+    ~{extra_args}
 
   }
   runtime {
@@ -112,7 +116,7 @@ task SortSam {
   }
   output {
     File output_bam = "~{output_bam_basename}.bam"
-    File output_bam_index = "~{output_bam_basename}.bai"
+    File? output_bam_index = "~{output_bam_basename}.bai" # Create index for coordinate sort
     File output_bam_md5 = "~{output_bam_basename}.bam.md5"
   }
 }
