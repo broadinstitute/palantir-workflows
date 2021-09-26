@@ -10,7 +10,7 @@ workflow UMIAwareDuplicateMarking {
   call SortSam as SortSamFirst {
     input:
       input_bam = aligned_bam,
-      output_bam_basename = "STAR.aligned.sorted",
+      output_bam_basename = output_basename + ".STAR_aligned.coorinate_sorted",
       sort_order = "coordinate"
   }
 
@@ -22,7 +22,8 @@ workflow UMIAwareDuplicateMarking {
   call GroupByUMIs {
     input:
       bam = SortSamFirst.output_bam,
-      bam_index = SortSamFirst.output_bam_index
+      bam_index = SortSamFirst.output_bam_index,
+      output_bam_basename = output_basename + ".grouped_by_UMI"
   }
 
   # input
@@ -30,19 +31,20 @@ workflow UMIAwareDuplicateMarking {
   call SortSam as SortSamQueryName {
     input:
       input_bam = GroupByUMIs.grouped_bam,
-      output_bam_basename = "Grouped.queryname.sorted",
+      output_bam_basename = output_basename + ".grouped.queryname_sorted",
       sort_order = "queryname"
   }
 
   call MarkDuplicates {
     input:
-      bam = SortSamQueryName.output_bam
+      bam = SortSamQueryName.output_bam,
+      output_basename = output_basename
   }
 
   call SortSam as SortSamSecond {
     input:
       input_bam = MarkDuplicates.duplicate_marked_bam,
-      output_bam_basename = output_basename,
+      output_bam_basename = output_basename + ".duplicate_marked.coordinate_sorted.bam",
       sort_order = "coordinate"
   }
 
@@ -56,18 +58,19 @@ workflow UMIAwareDuplicateMarking {
 task MarkDuplicates {
   input {
     File bam
+    String output_basename
   }
 
-  String basename = basename(bam, ".bam")
+  String output_bam_basename = output_basename + ".dulicate_marked.bam"
 
   Int disk_size = ceil(3 * size(bam, "GB")) + 128
   command <<<
-    gatk MarkDuplicates -I ~{bam} --READ_ONE_BARCODE_TAG BX -O ~{basename}.duplicate.marked.bam --METRICS_FILE ~{basename}.duplicate.metrics --ASSUME_SORT_ORDER queryname
+    gatk MarkDuplicates -I ~{bam} --READ_ONE_BARCODE_TAG BX -O ~{output_bam_basename}.bam --METRICS_FILE ~{output_basename}.duplicate.metrics --ASSUME_SORT_ORDER queryname
   >>>
 
   output {
-    File duplicate_marked_bam = "~{basename}.duplicate.marked.bam"
-    File duplicate_metrics = "~{basename}.duplicate.metrics"
+    File duplicate_marked_bam = "~{output_bam_basename}.bam"
+    File duplicate_metrics = "~{output_basename}.duplicate.metrics"
   }
 
   runtime {
@@ -118,16 +121,17 @@ task GroupByUMIs {
   input {
     File bam
     File bam_index
+    String output_bam_basename
   }
 
   Int disk_space = ceil(2.2 * size(bam, "GB")) + 300
   command <<<
-    umi_tools group -I ~{bam} --paired --no-sort-output --output-bam --stdout umis.grouped.bam --umi-tag-delimiter "-" \
+    umi_tools group -I ~{bam} --paired --no-sort-output --output-bam --stdout ~{output_bam_basename}.bam --umi-tag-delimiter "-" \
     --extract-umi-method tag --umi-tag RX --unmapped-reads use
   >>>
 
   output {
-    File grouped_bam = "umis.grouped.bam"
+    File grouped_bam = "~{output_bam_basename}.bam"
   }
 
   runtime {
