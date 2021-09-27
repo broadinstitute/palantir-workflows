@@ -4,7 +4,7 @@ import "UMIAwareDuplicateMarking.wdl" as UmiMD
 
 workflow RNAWithUMIsPipeline {
 	input {
-		File bam # Sato: Standardize case. change read1Stucture to read1_structure
+		File bam
 		String read1Structure
 		String read2Structure
 		File starIndex
@@ -40,19 +40,13 @@ workflow RNAWithUMIsPipeline {
 	call UmiMD.UMIAwareDuplicateMarking {
 		input:
 			aligned_bam = STAR.aligned_bam,
-			output_basename = output_basename,
-			ref_dict = refDict,
-			ref_fasta = ref,
-			ref_fasta_index = refIndex
+			output_basename = output_basename
 	}
 
 	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingTranscriptome {
 		input:
 			aligned_bam = CopyReadGroupsToHeader.output_bam,
-			output_basename = output_basename + ".transcriptome",
-			ref_dict = refDict,
-			ref_fasta = ref,
-			ref_fasta_index = refIndex
+			output_basename = output_basename + ".transcriptome"
 	}
 
 	call GetSampleName {
@@ -88,6 +82,17 @@ workflow RNAWithUMIsPipeline {
 			preemptible_tries=0
 	}
 
+	call CollectMultipleMetrics {
+		input:
+			input_bam=UMIAwareDuplicateMarking.duplicate_marked_bam,
+			input_bam_index=UMIAwareDuplicateMarking.duplicate_marked_bam_index,
+			output_bam_prefix=GetSampleName.sample_name,
+			ref_dict=refDict,
+			ref_fasta=ref,
+			ref_fasta_index=refIndex,
+			preemptible_tries=0
+	}
+
 
   output {
 	File transcriptome_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam
@@ -99,7 +104,7 @@ workflow RNAWithUMIsPipeline {
 	File gene_tpm = rnaseqc2.gene_tpm
 	File gene_counts = rnaseqc2.gene_counts
 	File exon_counts = rnaseqc2.exon_counts
-	File metrics = rnaseqc2.metrics # Sato. Add picard metrics
+	File metrics = rnaseqc2.metrics
 		
   }
 }
@@ -136,7 +141,7 @@ task STAR {
 	}
 
 	output {
-		File aligned_bam = "Aligned.out.bam" # Sato: Add sample_id to these intermediary files
+		File aligned_bam = "Aligned.out.bam"
 		File transcriptome_bam = "Aligned.toTranscriptome.out.bam"
 	}
 }
@@ -281,11 +286,52 @@ task CollectRNASeqMetrics {
 
 	runtime {
 		docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.4.3-1564508330"
-		memory: "8 GiB"
+		memory: "7 GiB"
 		disks: "local-disk " + disk_size + " HDD"
 		preemptible: preemptible_tries
 	}
 	output {
 		File rna_metrics = output_bam_prefix + ".rna_metrics"
+	}
+}
+
+task CollectMultipleMetrics {
+	input {
+		File input_bam
+		File input_bam_index
+		String output_bam_prefix
+		File ref_dict
+		File ref_fasta
+		File ref_fasta_index
+		Int preemptible_tries
+	}
+
+	Float ref_size = size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(ref_dict, "GiB")
+	Int disk_size = ceil(size(input_bam, "GiB") + ref_size) + 20
+
+	File ref_flat = "gs://gcp-public-data--broad-references/hg38/v0/GRCh38_gencode.v27.refFlat.txt"
+
+	command {
+		java -Xms5000m -jar /usr/gitc/picard.jar CollectMultipleMetrics \
+		INPUT=~{input_bam} \
+		OUTPUT=~{output_bam_prefix} \
+		PROGRAM=CollectInsertSizeMetrics \
+		PROGRAM=CollectAlignmentSummaryMetrics \
+		REFERENCE_SEQUENCE=~{ref_fasta}
+
+		ls > ls.txt
+	}
+
+	runtime {
+		docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.4.3-1564508330"
+		memory: "7 GiB"
+		disks: "local-disk " + disk_size + " HDD"
+		preemptible: preemptible_tries
+	}
+
+	output {
+		File ls = "ls.txt"
+		File alignment_summary_metrics = output_bam_prefix + ".alignment_summary_metrics"
+		File insert_size_metrics = output_bam_prefix + ".insert_size_metrics"
 	}
 }
