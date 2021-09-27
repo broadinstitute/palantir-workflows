@@ -4,6 +4,9 @@ workflow UMIAwareDuplicateMarking {
   input {
     File aligned_bam # aligned bam sorted by the query (read) name. 
     String output_basename
+    File ref_dict
+    File ref_fasta
+    File ref_fasta_index
   }
 
   # First sort the aligned bam by coordinate, so we can group duplicate sets using UMIs in the next step.
@@ -47,6 +50,17 @@ workflow UMIAwareDuplicateMarking {
       input_bam = MarkDuplicates.duplicate_marked_bam,
       output_bam_basename = output_basename + ".duplicate_marked.coordinate_sorted.bam",
       sort_order = "coordinate"
+  }
+
+  call CollectMultipleMetrics {
+    input:
+      input_bam=SortSamSecond.output_bam,
+      input_bam_index=select_first([SortSamSecond.output_bam_index, "bam_index_not_found"]),
+      output_bam_prefix=output_basename,
+      ref_dict=ref_dict,
+      ref_fasta=ref_fasta,
+      ref_fasta_index=ref_fasta_index,
+      preemptible_tries=0
   }
 
   output {
@@ -144,5 +158,49 @@ task GroupByUMIs {
     preemptible: 0
     cpu: "8"
     memory: "64 GB" # Sato: is this too much?
+  }
+}
+
+task CollectMultipleMetrics {
+  input {
+    File input_bam
+    File input_bam_index
+    String output_bam_prefix
+    File ref_dict
+    File ref_fasta
+    File ref_fasta_index
+    Int preemptible_tries
+  }
+
+  Float ref_size = size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(ref_dict, "GiB")
+  Int disk_size = ceil(size(input_bam, "GiB") + ref_size) + 20
+
+  File ref_flat = "gs://gcp-public-data--broad-references/hg38/v0/GRCh38_gencode.v27.refFlat.txt"
+
+  command {
+    java -Xms5000m -jar /usr/gitc/picard.jar CollectMultipleMetrics \
+    INPUT=~{input_bam} \
+    OUTPUT=~{output_bam_prefix} \
+    PROGRAM=CollectInsertSizeMetrics \
+    PROGRAM=CollectAlignmentSummaryMetrics \
+    REFERENCE_SEQUENCE=~{ref_fasta}
+
+    ls > ls.txt
+  }
+
+  runtime {
+    docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.4.3-1564508330"
+    memory: "8 GiB"
+    disks: "local-disk " + disk_size + " HDD"
+    preemptible: preemptible_tries
+  }
+
+  output {
+    File ls = "ls.txt" # Take this out before release
+    File alignment_summary_metrics = output_bam_prefix + ".alignment_summary_metrics"
+    File insert_size_metrics = output_bam_prefix + ".insert_size_metrics"
+    File insert_size_historgram = output_bam_prefix + ".insert_size_histogram.pdf"
+    File base_distribution_by_cycle_metrics = output_bam_prefix + ".base_distribution_by_cycle_metrics"
+    File quality_distribution_metrics = output_bam_prefix + ".quality_distribution_metrics"
   }
 }
