@@ -1437,7 +1437,7 @@ task MatchEvalTruth {
     Int memoryDefault=16
     Int memoryJava=select_first([memoryMaybe,memoryDefault])
     Int memoryRam=memoryJava+2
-    Int disk_size = 10 + ceil(size(hapMap, "GB"))
+    Int disk_size = 10 + ceil(size(hapMap, "GB") + size(evalVcf, "GB") + size(evalVcfIndex, "GB") + size(truthVcf, "GB") + size(truthVcfIndex, "GB"))
 
     command <<<
         gatk --java-options "-Xmx~{memoryJava}G" CrosscheckFingerprints -I ~{evalVcf} -SI ~{truthVcf} -H ~{hapMap} --CROSSCHECK_MODE CHECK_ALL_OTHERS --CROSSCHECK_BY FILE --EXPECT_ALL_GROUPS_TO_MATCH
