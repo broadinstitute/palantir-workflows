@@ -76,6 +76,7 @@ workflow CompareSamplesWithoutTruth {
     call SplitMultiSampleVcf as ExtractFromTruth {
       input:
         multiSampleVcf = NYGenomes_vcf[i],
+        multiSampleVcfIndex = NYGenomes_vcf_idx[i],
         samples = sample_names_to_compare,
         regions_file = fingerprinting_sites
     }
@@ -193,6 +194,7 @@ task MergeVCFs {
 task SplitMultiSampleVcf {
   input {
     File multiSampleVcf
+    File multiSampleVcfIndex
     File regions_file
     Array[String] samples
     Int mem = 8
