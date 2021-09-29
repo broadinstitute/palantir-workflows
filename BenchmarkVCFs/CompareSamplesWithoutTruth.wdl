@@ -37,6 +37,8 @@ workflow CompareSamplesWithoutTruth {
 
     File monitoring_script
 
+    File fingerprinting_sites
+
     String? analysis_region
     Int? preemptible = 5
   }
@@ -74,7 +76,8 @@ workflow CompareSamplesWithoutTruth {
     call SplitMultiSampleVcf as ExtractFromTruth {
       input:
         multiSampleVcf = NYGenomes_vcf[i],
-        samples = sample_names_to_compare
+        samples = sample_names_to_compare,
+        regions_file = fingerprinting_sites
     }
   }
 
@@ -91,24 +94,24 @@ workflow CompareSamplesWithoutTruth {
         output_vcf_name = "NYGC_1000G_extracted." + sample_name + ".vcf.gz"
     }
 
-    call FindSamplesAndBenchmark.ExtractSampleFromCallset as ExtractFromInput {
-      input:
-        callset = input_callset,
-        sample = sample_name,
-        basename = basename(input_callset, ".vcf.gz") + "_extracted_" + sample_name
-    }
-    call FindSamplesAndBenchmark.CrosscheckFingerprints as CheckFingerprintOfExtractedSample {
-      input:
-        input_data = [ExtractFromInput.output_vcf],
-        metrics_basename = "crosscheck",
-        ground_truth_files = [MergeVCFs.output_vcf],
-        haplotype_database = haplotype_database,
-        disk_size = VCF_disk_size,
-        preemptible_tries = 3,
-        docker = docker,
-        monitoring_script = monitoring_script,
-        picard_jar = picard_cloud_jar
-    }
+#    call FindSamplesAndBenchmark.ExtractSampleFromCallset as ExtractFromInput {
+#      input:
+#        callset = input_callset,
+#        sample = sample_name,
+#        basename = basename(input_callset, ".vcf.gz") + "_extracted_" + sample_name
+#    }
+#    call FindSamplesAndBenchmark.CrosscheckFingerprints as CheckFingerprintOfExtractedSample {
+#      input:
+#        input_data = [ExtractFromInput.output_vcf],
+#        metrics_basename = "crosscheck",
+#        ground_truth_files = [MergeVCFs.output_vcf],
+#        haplotype_database = haplotype_database,
+#        disk_size = VCF_disk_size,
+#        preemptible_tries = 3,
+#        docker = docker,
+#        monitoring_script = monitoring_script,
+#        picard_jar = picard_cloud_jar
+#    }
 
 #    call FindSamplesAndBenchmark.FindSamplesAndBenchmark as BenchmarkNonTruthVcfs {
 #      input:
@@ -146,6 +149,8 @@ workflow CompareSamplesWithoutTruth {
   output {
 #    File without_truth_summary = CombineSummariesWithoutTruth.summaryOut
 #    File with_truth_summary = BenchmarkFullTruthVcfs.benchmark_vcf_summary
+    Array[File] truth_vcfs = MergeVCFs.output_vcf
+    Array[File] truth_vcf_indexes = MergeVCFs.output_vcf_index
   }
 }
 
@@ -188,6 +193,7 @@ task MergeVCFs {
 task SplitMultiSampleVcf {
   input {
     File multiSampleVcf
+    File regions_file
     Array[String] samples
     Int mem = 8
     String bcftools_docker = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0"
@@ -198,7 +204,7 @@ task SplitMultiSampleVcf {
   command <<<
     set -e
     mkdir out_dir
-    bcftools +split ~{multiSampleVcf} -Oz -o out_dir -S ~{sampleNamesToExtract} -i'GT="alt"'
+    bcftools +split ~{multiSampleVcf} -Oz -o out_dir -S ~{sampleNamesToExtract} -i'GT="alt"' -R ~{regions_file}
     for vcf in out_dir/*.vcf.gz; do
     bcftools index -t $vcf
     done
