@@ -7,7 +7,7 @@ workflow CompareSamplesWithoutTruth {
     #must be in glob order
     Array[String] sample_names_to_compare
     File intersected_hiconf_intervals
-    File input_callset
+    #File input_callset
     Array[File] NYGenomes_vcf
     Array[File] NYGenomes_vcf_idx
     Array[String] truth_labels
@@ -43,7 +43,7 @@ workflow CompareSamplesWithoutTruth {
     Int? preemptible = 5
   }
 
-  Int VCF_disk_size = ceil(size(input_callset, "GiB") / length(sample_names_to_compare)) + 10
+  #Int VCF_disk_size = ceil(size(input_callset, "GiB") / length(sample_names_to_compare)) + 10
 
   # Compare samples that have truth data
 #  call FindSamplesAndBenchmark.FindSamplesAndBenchmark as BenchmarkFullTruthVcfs {
