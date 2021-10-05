@@ -62,7 +62,7 @@ task MarkDuplicates {
     String output_basename
   }
 
-  String output_bam_basename = output_basename + ".dulicate_marked.bam"
+  String output_bam_basename = output_basename + ".dulicate_marked"
 
   Int disk_size = ceil(3 * size(bam, "GB")) + 128
   command <<<
