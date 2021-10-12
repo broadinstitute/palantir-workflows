@@ -399,7 +399,7 @@ task AdjustScores {
 
 				x <- population_data %>% pull(SCORE1_SUM)
 				mu_coeff <- -(x - f_mu(population_data, theta_mu))/f_sigma2(population_data, theta_var)
-				sig_coeff <- log(1/(2*f_sigma2(population_data, theta_var)) -(1/2)*(x - f_mu(population_data, theta_mu))^2/(f_sigma2(population_data, theta_var)^2))
+				sig_coeff <- 1/(2*f_sigma2(population_data, theta_var)) -(1/2)*(x - f_mu(population_data, theta_mu))^2/(f_sigma2(population_data, theta_var)^2)
 
 
 				grad <- c(sum(mu_coeff*d_mu_1),
