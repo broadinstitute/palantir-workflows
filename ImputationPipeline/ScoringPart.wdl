@@ -358,7 +358,6 @@ task AdjustScores {
 					PC4 = t %>% pull(PC4)
 					PC5 = t %>% pull(PC5)
 					sigma2 <- exp(theta[[1]] + theta[[2]] * PC1 + theta[[3]] * PC2 + theta[[4]] * PC3 + theta[[5]] * PC4)
-					# ifelse(sigma2>0, sigma2, 1e-10)
 			}
 
 
