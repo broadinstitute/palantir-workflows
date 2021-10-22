@@ -23,8 +23,6 @@ workflow FindSamplesAndBenchmark {
         File haplotype_database 
         File picard_cloud_jar
 
-        String vcf_score_field
-
         String docker
 
         String? analysis_region
@@ -136,7 +134,7 @@ workflow FindSamplesAndBenchmark {
                      gatkTag="4.0.11.0",
                      requireMatchingGenotypes=true,
                      passingOnly=true,
-                     vcfScoreField = vcf_score_field,
+                     vcfScoreField = "INFO.TREE_SCORE",
                      gatkJarForAnnotation = gatkJarForAnnotation,
                      annotationNames = annotationNames
                  }
