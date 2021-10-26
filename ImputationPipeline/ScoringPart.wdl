@@ -390,11 +390,11 @@ task AdjustScores {
 				d_mu_3 <- population_data %>% pull(PC2)
 				d_mu_4 <- population_data %>% pull(PC3)
 				d_mu_5 <- population_data %>% pull(PC4)
-				d_sig_7 <- 1
-				d_sig_8 <- population_data %>% pull(PC1)
-				d_sig_9 <- population_data %>% pull(PC2)
-				d_sig_10 <- population_data %>% pull(PC3)
-				d_sig_11 <- population_data %>% pull(PC4)
+				d_sig_7 <- 1 * f_sigma2(population_data, theta_var)
+				d_sig_8 <- population_data %>% pull(PC1) * f_sigma2(population_data, theta_var)
+				d_sig_9 <- population_data %>% pull(PC2) * f_sigma2(population_data, theta_var)
+				d_sig_10 <- population_data %>% pull(PC3) * f_sigma2(population_data, theta_var)
+				d_sig_11 <- population_data %>% pull(PC4) * f_sigma2(population_data, theta_var)
 
 				x <- population_data %>% pull(SCORE1_SUM)
 				mu_coeff <- -(x - f_mu(population_data, theta_mu))/f_sigma2(population_data, theta_var)
