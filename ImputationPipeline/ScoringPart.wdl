@@ -346,7 +346,7 @@ task AdjustScores {
 			population_data$residual_score2 = resid(population_model)^2
 
 			# generate the linear model for the variance of the score using the first 4 PCs
-			population_var_model <- glm(residual_score2 ~ PC1 + PC2 + PC3 + PC4, data = population_data, family = "gaussian")
+			population_var_model <- glm(residual_score2 ~ PC1 + PC2 + PC3 + PC4, data = population_data, family = Gamma(link = "log"))
 
 			# use linear model to fit full likelihood model
 
