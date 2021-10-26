@@ -424,14 +424,14 @@ workflow Benchmark {
 
     output {
         File? summary=CombineSummaries.summaryOut
-        Float snpPrecision = SummariseVcfEval.snpPrecision[0]
-        Float indelPrecision = SummariseVcfEval.indelPrecision[0]
-        Float snpRecall = SummariseVcfEval.snpRecall[0]
-        Float indelRecall = SummariseVcfEval.indelRecall[0]
-        Float snpF1Score = SummariseVcfEval.snpF1Score[0]
-        Float indelF1Score = SummariseVcfEval.indelF1Score[0]
-        Array[File?] snpRocs = StandardVcfEval.outSnpRoc
-        Array[File?] nonSnpRocs = StandardVcfEval.outNonSnpRoc
+        Float snpPrecision=SummariseVcfEval.snpPrecision[0]
+        Float indelPrecision=SummariseVcfEval.indelPrecision[0]
+        Float snpRecall=SummariseVcfEval.snpRecall[0]
+        Float indelRecall=SummariseVcfEval.indelRecall[0]
+        Float snpF1Score=SummariseVcfEval.snpF1Score[0]
+        Float indelF1Score=SummariseVcfEval.indelF1Score[0]
+        Array[File?] snpRocs=StandardVcfEval.outSnpRoc
+        Array[File?] nonSnpRocs=StandardVcfEval.outNonSnpRoc
     }
 }
 
