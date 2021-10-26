@@ -52,7 +52,7 @@ workflow Benchmark {
         stratIntervals: {description: "intervals for stratifiction (can be picard interval_list or bed format)"}
         stratLabels: {description: "labels by which to identify stratification intervals (must be same length as stratIntervals)"}
         jexlVariantSelectors: {description: "variant types to select over (defined by jexl fed to GATK SelectVariants)"}
-        variantSelectorLabels: {description: "labels by wich to identify variant selectors (must be same length as jexlVariantSelectors)"}
+        variantSelectorLabels: {description: "labels by which to identify variant selectors (must be same length as jexlVariantSelectors)"}
         doIndelLengthStratification: {description: "whether or not to perform stratification by indel length"}
         requireMatchingGenotypes: {description: "whether to require genotypes to match in order to be a true positive"}
         gatkTag: {description: "version of gatk docker to use.  Defaults to 4.0.11.0"}
@@ -242,7 +242,7 @@ workflow Benchmark {
                     requireMatchingGenotypes=requireMatchingGenotypes,
                     passingOnly=passingOnly,
                     vcfScoreField=vcfScoreField,
-                    enableRefOverlap = enableRefOverlap
+                    enableRefOverlap=enableRefOverlap
             }
             
             call WriteXMLfile as VcfEvalWriteXMLfile {
@@ -323,11 +323,11 @@ workflow Benchmark {
                     sampleBase="BASELINE",
                     gatkTag=gatkTag,
                     preemptible=preemptible,
-                    gatkJarForAnnotation = gatkJarForAnnotation,
-                    annotationNames = annotationNames,
-                    reference = reference,
-                    refDict = refDict,
-                    refIndex = refIndex
+                    gatkJarForAnnotation=gatkJarForAnnotation,
+                    annotationNames=annotationNames,
+                    reference=reference,
+                    refDict=refDict,
+                    refIndex=refIndex
             }
 
             call WriteXMLfile as VcfEvalIndelWriteXMLfile {
@@ -379,11 +379,11 @@ workflow Benchmark {
                             sampleBase="BASELINE",
                             gatkTag=gatkTag,
                             preemptible=preemptible,
-                            gatkJarForAnnotation = gatkJarForAnnotation,
-                            annotationNames = annotationNames,
-                            reference = reference,
-                            refDict = refDict,
-                            refIndex = refIndex
+                            gatkJarForAnnotation=gatkJarForAnnotation,
+                            annotationNames=annotationNames,
+                            reference=reference,
+                            refDict=refDict,
+                            refIndex=refIndex
                     }
                     
                     call WriteXMLfile as VcfEvalSelectorWriteXMLfile {
@@ -1021,7 +1021,7 @@ task EvalForVariantSelection {
         File selectedFP="selected.FP.vcf.gz"
         File selectedFN="selected.FN.vcf.gz"
 
-        File annotated = "annotated.vcf.gz"
+        File annotated="annotated.vcf.gz"
         File selectedTPCallIndex="selected.TP_CALL.vcf.gz.tbi"
         File selectedTPBaseIndex="selected.TP_BASE.vcf.gz.tbi"
         File selectedFPIndex="selected.FP.vcf.gz.tbi"
@@ -1219,12 +1219,12 @@ task SummariseVcfEval {
 
     output{
         File summaryOut="vcfeval.summary.csv"
-        Float snpPrecision = read_float("snpPrecision.txt")
-        Float indelPrecision = read_float("indelPrecision.txt")
-        Float snpRecall = read_float("snpRecall.txt")
-        Float indelRecall = read_float("indelRecall.txt")
-        Float snpF1Score = read_float("snpF1Score.txt")
-        Float indelF1Score = read_float("indelF1Score.txt")
+        Float snpPrecision=read_float("snpPrecision.txt")
+        Float indelPrecision=read_float("indelPrecision.txt")
+        Float snpRecall=read_float("snpRecall.txt")
+        Float indelRecall=read_float("indelRecall.txt")
+        Float snpF1Score=read_float("snpF1Score.txt")
+        Float indelF1Score=read_float("indelF1Score.txt")
     }
 }
 
