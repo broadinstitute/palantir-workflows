@@ -303,7 +303,7 @@ task ExtractSampleFromCallset {
         String bcftoolsDocker = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0"
     }
     Int disk_size = ceil(size(callset, "GB") + 30)
-    File sampleNamesToExtract = write_lines(sample)
+    File sampleNamesToExtract = write_lines([sample])
     command <<<
         set -xe
         mkdir out_dir
