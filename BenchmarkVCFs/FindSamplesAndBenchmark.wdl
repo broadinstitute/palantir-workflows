@@ -83,14 +83,16 @@ workflow FindSamplesAndBenchmark {
             input:
                 inputIntervals = interval_and_label.left,
                 refDict = ref_fasta_dict,
-                gatkTag = "4.0.11.0"
+                gatkTag = "4.0.11.0",
+                dummyInputForTerraCallCaching = dummyInputForTerraCallCaching
         }
 
         call InvertIntervalList {
             input:
                 interval_list = ConvertIntervals.intervalList,
                 docker = docker,
-                picard_jar = picard_cloud_jar
+                picard_jar = picard_cloud_jar,
+                dummyInputForTerraCallCaching = dummyInputForTerraCallCaching
         }
         String notLabel="NOT_" + interval_and_label.right
     }
@@ -401,6 +403,7 @@ task InvertIntervalList{
         File interval_list
         String docker
         File picard_jar
+        String? dummyInputForTerraCallCaching
     }
 
     command <<<
