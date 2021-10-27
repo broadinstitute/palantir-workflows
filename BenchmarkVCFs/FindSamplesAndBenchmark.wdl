@@ -298,31 +298,26 @@ task ExtractSampleFromCallset {
         File callset
         String sample
         String basename
+        String bcftoolsDocker = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0"
     }
+    Int disk_size = ceil(size(callset, "GB") + 30)
+    File sampleNamesToExtract = write_lines(sample)
     command <<<
-
         set -xe
-
-        # Silly GATK needs an indexed file....
-        gatk --java-options "-Xmx4g"  \
-            IndexFeatureFile \
-            -I ~{callset} 
-
-        gatk --java-options "-Xmx4g"  \
-            SelectVariants \
-            -V ~{callset} \
-            -sn ~{sample} \
-            -O ~{basename}.vcf.gz
+        mkdir out_dir
+        bcftools +split ~{callset} -Oz -o out_dir -S ~{sampleNamesToExtract} -i'GT="alt"'
+        mv outdir/~{sample}.vcf.gz ~{basename}.vcf.gz
+        bcftools index -t ~{basename}.vcf.gz
     >>>
     output {
         File output_vcf = "~{basename}.vcf.gz"
         File output_vcf_index = "~{basename}.vcf.gz.tbi"
     } 
     runtime{
-        disks: "local-disk " + 40 + " LOCAL"
+        disks: "local-disk " + disk_size + " LOCAL"
         cpu: 1
         memory: 5 + " GB"
-        docker: "broadinstitute/gatk:4.1.4.1"
+        docker: bcftoolsDocker
     }   
 }
 
