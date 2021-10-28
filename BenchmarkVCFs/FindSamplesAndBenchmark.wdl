@@ -308,7 +308,7 @@ task ExtractSampleFromCallset {
         set -xe
         mkdir out_dir
         bcftools +split ~{callset} -Oz -o out_dir -S ~{sampleNamesToExtract} -i'GT="alt"'
-        mv outdir/~{sample}.vcf.gz ~{basename}.vcf.gz
+        mv out_dir/~{sample}.vcf.gz ~{basename}.vcf.gz
         bcftools index -t ~{basename}.vcf.gz
     >>>
     output {
