@@ -83,14 +83,16 @@ workflow FindSamplesAndBenchmark {
             input:
                 inputIntervals = interval_and_label.left,
                 refDict = ref_fasta_dict,
-                gatkTag = "4.0.11.0"
+                gatkTag = "4.0.11.0",
+                dummyInputForTerraCallCaching = dummyInputForTerraCallCaching
         }
 
         call InvertIntervalList {
             input:
                 interval_list = ConvertIntervals.intervalList,
                 docker = docker,
-                picard_jar = picard_cloud_jar
+                picard_jar = picard_cloud_jar,
+                dummyInputForTerraCallCaching = dummyInputForTerraCallCaching
         }
         String notLabel="NOT_" + interval_and_label.right
     }
@@ -298,31 +300,26 @@ task ExtractSampleFromCallset {
         File callset
         String sample
         String basename
+        String bcftoolsDocker = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0"
     }
+    Int disk_size = ceil(size(callset, "GB") + 30)
+    File sampleNamesToExtract = write_lines([sample])
     command <<<
-
         set -xe
-
-        # Silly GATK needs an indexed file....
-        gatk --java-options "-Xmx4g"  \
-            IndexFeatureFile \
-            -I ~{callset} 
-
-        gatk --java-options "-Xmx4g"  \
-            SelectVariants \
-            -V ~{callset} \
-            -sn ~{sample} \
-            -O ~{basename}.vcf.gz
+        mkdir out_dir
+        bcftools +split ~{callset} -Oz -o out_dir -S ~{sampleNamesToExtract} -i'GT="alt"'
+        mv out_dir/~{sample}.vcf.gz ~{basename}.vcf.gz
+        bcftools index -t ~{basename}.vcf.gz
     >>>
     output {
         File output_vcf = "~{basename}.vcf.gz"
         File output_vcf_index = "~{basename}.vcf.gz.tbi"
     } 
     runtime{
-        disks: "local-disk " + 40 + " LOCAL"
+        disks: "local-disk " + disk_size + " LOCAL"
         cpu: 1
         memory: 5 + " GB"
-        docker: "broadinstitute/gatk:4.1.4.1"
+        docker: bcftoolsDocker
     }   
 }
 
@@ -406,6 +403,7 @@ task InvertIntervalList{
         File interval_list
         String docker
         File picard_jar
+        String? dummyInputForTerraCallCaching
     }
 
     command <<<
