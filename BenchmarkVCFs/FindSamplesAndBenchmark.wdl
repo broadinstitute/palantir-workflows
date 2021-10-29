@@ -30,6 +30,14 @@ workflow FindSamplesAndBenchmark {
         String? analysis_region
 
         Boolean remove_symbolic_alleles=false
+        Boolean passingOnly=true
+        Boolean doIndelLengthStratification=false
+        Boolean requireMatchingGenotypes=true
+
+        String vcfScoreField="INFO.TREE_SCORE"
+        String referenceVersion = "1"
+        String gatkTag = "4.0.11.0"
+
 
         Array[File] stratIntervals=[]
         Array[String] stratLabels=[]
@@ -53,7 +61,7 @@ workflow FindSamplesAndBenchmark {
     call MakeStringMap as lablesMap    {input: keys=ground_truth_files, values=truth_labels}
     call MakeStringMap as indexesMap   {input: keys=ground_truth_files, values=ground_truth_indexes}
     call MakeStringMap as evalLabelsMap {input: keys=input_callset,     values=input_callset_labels}
- 
+
     Map[File, File]   truthIntervals = intervalsMap.map
     Map[File, String] truthLabels    = lablesMap.map
     Map[File, File]   truthIndex     = indexesMap.map
@@ -133,11 +141,11 @@ workflow FindSamplesAndBenchmark {
                      stratLabels = allStratLabels, 
                      jexlVariantSelectors = jexlVariantSelectors,
                      variantSelectorLabels = variantSelectorLabels,
-                     referenceVersion = "1",
-                     doIndelLengthStratification=false,
-                     gatkTag="4.0.11.0",
-                     requireMatchingGenotypes=true,
-                     passingOnly=true,
+                     referenceVersion = referenceVersion,
+                     doIndelLengthStratification=doIndelLengthStratification,
+                     gatkTag = gatkTag,
+                     requireMatchingGenotypes=requireMatchingGenotypes,
+                     passingOnly=passingOnly,
                      vcfScoreField = vcf_score_field,
                      gatkJarForAnnotation = gatkJarForAnnotation,
                      annotationNames = annotationNames
