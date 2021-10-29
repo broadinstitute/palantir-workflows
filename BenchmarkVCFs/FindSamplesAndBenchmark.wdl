@@ -35,6 +35,9 @@ workflow FindSamplesAndBenchmark {
         Boolean requireMatchingGenotypes=true
 
         String vcfScoreField="INFO.TREE_SCORE"
+        String referenceVersion = "1"
+        String gatkTag = "4.0.11.0"
+
 
         Array[File] stratIntervals=[]
         Array[String] stratLabels=[]
@@ -138,9 +141,9 @@ workflow FindSamplesAndBenchmark {
                      stratLabels = allStratLabels, 
                      jexlVariantSelectors = jexlVariantSelectors,
                      variantSelectorLabels = variantSelectorLabels,
-                     referenceVersion = "1",
+                     referenceVersion = referenceVersion,
                      doIndelLengthStratification=doIndelLengthStratification,
-                     gatkTag="4.0.11.0",
+                     gatkTag = gatkTag,
                      requireMatchingGenotypes=requireMatchingGenotypes,
                      passingOnly=passingOnly,
                      vcfScoreField = vcf_score_field,
