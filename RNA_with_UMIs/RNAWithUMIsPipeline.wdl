@@ -25,6 +25,12 @@ workflow RNAWithUMIsPipeline {
 			read2Structure = read2Structure
 	}
 
+	call FastQC {
+		input:
+			unmapped_bam = bam,
+			sample_id = output_basename
+	}
+
 	call STAR {
 		input:
 			bam = ExtractUMIs.bam_umis_extracted,
@@ -296,6 +302,39 @@ task CollectRNASeqMetrics {
 		File rna_metrics = output_bam_prefix + ".rna_metrics"
 	}
 }
+
+# TODO: add fingerprinting
+
+task FastQC {
+	input {
+		File unmapped_bam
+		String sample_id
+		Float? mem = 4
+	}
+
+	Int disk_size = ceil(size(unmapped_bam, "GiB") * 3)  + 100
+	String bam_basename = basename(unmapped_bam, ".bam")
+
+	command {
+		perl /usr/tag/scripts/FastQC/fastqc ~{unmapped_bam} --extract -o ./
+		ls > ls.txt
+		mv fastqc_data.txt ~{sample_id}_fastqc_data.txt
+	}
+	
+	runtime {
+		docker: "us.gcr.io/tag-public/tag-tools:1.0.0"
+		disks: "local-disk " + disk_size + " HDD"
+		memory: mem + "GB"
+		cpu: "1"
+	}
+
+	output {
+		File ls = "ls.txt"
+		File fastqc_data = "~{sample_id}_fastqc_data.txt"
+		File fastqc_html = "~{bam_basename}_fastqc.html"
+	}
+}
+
 
 task CollectMultipleMetrics {
 	input {
