@@ -55,6 +55,18 @@ workflow RNAWithUMIsPipeline {
 			output_basename = output_basename + ".transcriptome"
 	}
 
+	call CrossCheckFingerprints {
+		input:
+			input_bams = [UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam],
+			input_bam_indexes = [UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam_index],
+			haplotype_database_file = ,
+			metrics_filename = 
+			total_input_size = 
+			preemptible_tries = 0,
+			lod_threshold = 0,
+			cross_check_by = 
+	}
+
 	call GetSampleName {
 		input:
 			bam = bam
@@ -63,14 +75,6 @@ workflow RNAWithUMIsPipeline {
 	call rnaseqc2 {
 		input:
 			bam_file = UMIAwareDuplicateMarking.duplicate_marked_bam,
-			genes_gtf = gtf,
-			sample_id = GetSampleName.sample_name
-	}
-
-	# This should be removed before turning this into production
-	call rnaseqc2 as RNASeQC2Transcriptome {
-		input:
-			bam_file = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam,
 			genes_gtf = gtf,
 			sample_id = GetSampleName.sample_name
 	}
@@ -303,7 +307,48 @@ task CollectRNASeqMetrics {
 	}
 }
 
-# TODO: add fingerprinting
+#### Copied from warp/tasks/broad/Qc.wdl ####
+#### Should be imported instead ####
+
+task CrossCheckFingerprints {
+	input {
+		Array[File] input_bams
+		Array[File] input_bam_indexes
+		File haplotype_database_file
+		String metrics_filename
+		Float total_input_size
+		Int preemptible_tries
+		Float lod_threshold
+		String cross_check_by
+	}
+
+	Int disk_size = ceil(total_input_size) + 20
+
+	command {
+		java -Dsamjdk.buffer_size=131072 \
+		-XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Xms3000m \
+		-jar /usr/picard/picard.jar \
+		CrosscheckFingerprints \
+		OUTPUT=~{metrics_filename} \
+		HAPLOTYPE_MAP=~{haplotype_database_file} \
+		EXPECT_ALL_GROUPS_TO_MATCH=true \
+		INPUT=~{sep=' INPUT=' input_bams} \
+		LOD_THRESHOLD=~{lod_threshold} \
+		CROSSCHECK_BY=~{cross_check_by}
+	}
+
+	runtime {
+		docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
+		preemptible: preemptible_tries
+		memory: "3.5 GiB"
+		disks: "local-disk " + disk_size + " HDD"
+	}
+
+	output {
+		File cross_check_fingerprints_metrics = "~{metrics_filename}"
+	}
+}
+
 
 task FastQC {
 	input {
@@ -318,7 +363,7 @@ task FastQC {
 	command {
 		perl /usr/tag/scripts/FastQC/fastqc ~{unmapped_bam} --extract -o ./
 		ls > ls.txt
-		mv fastqc_data.txt ~{sample_id}_fastqc_data.txt
+		mv ~{bam_basename}_fastqc/fastqc_data.txt ~{unmapped_bam}_fastqc_data.txt
 	}
 	
 	runtime {
@@ -330,7 +375,7 @@ task FastQC {
 
 	output {
 		File ls = "ls.txt"
-		File fastqc_data = "~{sample_id}_fastqc_data.txt"
+		File fastqc_data = "~{bam_basename}_fastqc_data.txt"
 		File fastqc_html = "~{bam_basename}_fastqc.html"
 	}
 }
