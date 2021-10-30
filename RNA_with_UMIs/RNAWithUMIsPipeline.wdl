@@ -55,17 +55,17 @@ workflow RNAWithUMIsPipeline {
 			output_basename = output_basename + ".transcriptome"
 	}
 
-	call CrossCheckFingerprints {
-		input:
-			input_bams = [UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam],
-			input_bam_indexes = [UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam_index],
-			haplotype_database_file = ,
-			metrics_filename = 
-			total_input_size = 
-			preemptible_tries = 0,
-			lod_threshold = 0,
-			cross_check_by = 
-	}
+	# call CrossCheckFingerprints {
+	# 	input:
+	# 		input_bams = [UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam],
+	# 		input_bam_indexes = [UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam_index],
+	# 		haplotype_database_file = ,
+	# 		metrics_filename = 
+	# 		total_input_size = 
+	# 		preemptible_tries = 0,
+	# 		lod_threshold = 0,
+	# 		cross_check_by = 
+	# }
 
 	call GetSampleName {
 		input:
