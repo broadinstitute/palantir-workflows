@@ -362,8 +362,8 @@ task FastQC {
 
 	command {
 		perl /usr/tag/scripts/FastQC/fastqc ~{unmapped_bam} --extract -o ./
+		mv ~{bam_basename}_fastqc/fastqc_data.txt ~{bam_basename}_fastqc_data.txt
 		ls > ls.txt
-		mv ~{bam_basename}_fastqc/fastqc_data.txt ~{unmapped_bam}_fastqc_data.txt
 	}
 	
 	runtime {
