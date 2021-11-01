@@ -346,7 +346,7 @@ task AdjustScores {
 			population_data$residual_score2 = resid(population_model)^2
 
 			# generate the linear model for the variance of the score using the first 4 PCs
-			population_var_model <- glm(residual_score2 ~ PC1 + PC2 + PC3 + PC4, data = population_data, family = "gaussian")
+			population_var_model <- glm(residual_score2 ~ PC1 + PC2 + PC3 + PC4, data = population_data, family = Gamma(link = "log"))
 
 			# use linear model to fit full likelihood model
 
@@ -357,8 +357,7 @@ task AdjustScores {
 					PC3 = t %>% pull(PC3)
 					PC4 = t %>% pull(PC4)
 					PC5 = t %>% pull(PC5)
-					sigma2 <- theta[[1]] + theta[[2]] * PC1 + theta[[3]] * PC2 + theta[[4]] * PC3 + theta[[5]] * PC4
-					ifelse(sigma2>0, sigma2, 1e-10)
+					sigma2 <- exp(theta[[1]] + theta[[2]] * PC1 + theta[[3]] * PC2 + theta[[4]] * PC3 + theta[[5]] * PC4)
 			}
 
 
@@ -391,11 +390,11 @@ task AdjustScores {
 				d_mu_3 <- population_data %>% pull(PC2)
 				d_mu_4 <- population_data %>% pull(PC3)
 				d_mu_5 <- population_data %>% pull(PC4)
-				d_sig_7 <- 1
-				d_sig_8 <- population_data %>% pull(PC1)
-				d_sig_9 <- population_data %>% pull(PC2)
-				d_sig_10 <- population_data %>% pull(PC3)
-				d_sig_11 <- population_data %>% pull(PC4)
+				d_sig_7 <- 1 * f_sigma2(population_data, theta_var)
+				d_sig_8 <- population_data %>% pull(PC1) * f_sigma2(population_data, theta_var)
+				d_sig_9 <- population_data %>% pull(PC2) * f_sigma2(population_data, theta_var)
+				d_sig_10 <- population_data %>% pull(PC3) * f_sigma2(population_data, theta_var)
+				d_sig_11 <- population_data %>% pull(PC4) * f_sigma2(population_data, theta_var)
 
 				x <- population_data %>% pull(SCORE1_SUM)
 				mu_coeff <- -(x - f_mu(population_data, theta_mu))/f_sigma2(population_data, theta_var)
