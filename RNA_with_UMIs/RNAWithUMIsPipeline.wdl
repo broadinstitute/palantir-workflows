@@ -40,19 +40,6 @@ workflow RNAWithUMIsPipeline {
 			read_files_type = read_files_type
 	}
 
-	call CreateUnalignedBam {
-		input:
-			input_bam = STAR.aligned_bam,
-			output_bam_prefix = output_basename,
-			preemptible_tries = 0
-	}
-
-	call FastQC as FastQCAfterSTAR {
-		input:
-			unmapped_bam = CreateUnalignedBam.unaligned_bam,
-			sample_id = output_basename
-	}
-
 	call CopyReadGroupsToHeader {
 		input:
 			bam_with_readgroups = STAR.aligned_bam,
@@ -69,6 +56,20 @@ workflow RNAWithUMIsPipeline {
 		input:
 			aligned_bam = CopyReadGroupsToHeader.output_bam,
 			output_basename = output_basename + ".transcriptome"
+	}
+
+	call CreateUnalignedBam {
+		input:
+			input_bam = UMIAwareDuplicateMarking.duplicate_marked_bam,
+			input_bam_index = UMIAwareDuplicateMarking.duplicate_marked_bam_index,
+			output_bam_prefix = output_basename,
+			preemptible_tries = 0
+	}
+
+	call FastQC as FastQCUnalignablereads {
+		input:
+			unmapped_bam = CreateUnalignedBam.unaligned_bam,
+			sample_id = output_basename
 	}
 
 	# PLACEHOLDER FOR CROSSCHECK
@@ -154,6 +155,8 @@ task STAR {
 			--alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --alignSJoverhangMin 8 \
 			--alignSJDBoverhangMin 1 --alignSoftClipAtReferenceEnds Yes --chimSegmentMin 15 --chimMainSegmentMultNmax 1 \
 			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM --quantTranscriptomeBan Singleend
+
+		ls > "ls.txt"
 	>>>
 
 	runtime {
@@ -165,6 +168,7 @@ task STAR {
 	}
 
 	output {
+		File ls = "ls.txt"
 		File aligned_bam = "Aligned.out.bam"
 		File transcriptome_bam = "Aligned.toTranscriptome.out.bam"
 	}
@@ -400,6 +404,7 @@ task FastQC {
 task CreateUnalignedBam {
 	input {
 		File input_bam
+		File input_bam_index
 		String output_bam_prefix
 		Int preemptible_tries
 	}
