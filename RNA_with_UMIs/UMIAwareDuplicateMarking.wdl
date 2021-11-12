@@ -45,7 +45,7 @@ workflow UMIAwareDuplicateMarking {
   call SortSam as SortSamSecond {
     input:
       input_bam = MarkDuplicates.duplicate_marked_bam,
-      output_bam_basename = output_basename + ".duplicate_marked.coordinate_sorted.bam",
+      output_bam_basename = output_basename + ".duplicate_marked.coordinate_sorted",
       sort_order = "coordinate"
   }
 
