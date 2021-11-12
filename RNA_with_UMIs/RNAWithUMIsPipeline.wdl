@@ -37,6 +37,19 @@ workflow RNAWithUMIsPipeline {
 			starIndex = starIndex
 	}
 
+	call CreateUnalignedBam {
+		input:
+			input_bam = STAR.aligned_bam,
+			output_bam_prefix = output_basename,
+			preemptible_tries = 0
+	}
+
+	call FastQC as FastQCAfterSTAR {
+		input:
+			unmapped_bam = CreateUnalignedBam.unaligned_bam,
+			sample_id = output_basename
+	}
+
 	call CopyReadGroupsToHeader {
 		input:
 			bam_with_readgroups = STAR.aligned_bam,
@@ -55,17 +68,7 @@ workflow RNAWithUMIsPipeline {
 			output_basename = output_basename + ".transcriptome"
 	}
 
-	# call CrossCheckFingerprints {
-	# 	input:
-	# 		input_bams = [UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam],
-	# 		input_bam_indexes = [UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam_index],
-	# 		haplotype_database_file = ,
-	# 		metrics_filename = 
-	# 		total_input_size = 
-	# 		preemptible_tries = 0,
-	# 		lod_threshold = 0,
-	# 		cross_check_by = 
-	# }
+	# PLACEHOLDER FOR CROSSCHECK
 
 	call GetSampleName {
 		input:
@@ -147,7 +150,6 @@ task STAR {
 			--alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --alignSJoverhangMin 8 \
 			--alignSJDBoverhangMin 1 --alignSoftClipAtReferenceEnds Yes --chimSegmentMin 15 --chimMainSegmentMultNmax 1 \
 			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM --quantTranscriptomeBan Singleend
-
 	>>>
 
 	runtime {
@@ -388,6 +390,33 @@ task FastQC {
 	}
 }
 
+
+# Unaligned reads after reads that failed to align to the reference,
+# in contrast to reads that have yet to go through alignment.
+task CreateUnalignedBam {
+	input {
+		File input_bam
+		String output_bam_prefix
+		Int preemptible_tries
+	}
+
+	Int disk_size = ceil(size(input_bam, "GiB")) + 200
+
+	command {
+		samtools view -h -b -o ~{output_bam_prefix}_unaligned.bam ~{input_bam} '*'
+	}
+
+	runtime {
+		docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.4.3-1564508330"
+		memory: "7 GiB"
+		disks: "local-disk " + disk_size + " HDD"
+		preemptible: preemptible_tries
+	}
+
+	output {
+		File unaligned_bam = output_bam_prefix + "_unaligned.bam"
+	}
+}
 
 task CollectMultipleMetrics {
 	input {
