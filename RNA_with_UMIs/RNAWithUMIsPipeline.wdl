@@ -104,10 +104,11 @@ workflow RNAWithUMIsPipeline {
 	}
 
 	call CollectInsertSizeMetrics as InsertSizeTranscriptome {
-		input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam,
-		input_bam_index = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam_index,
-		output_bam_prefix = GetSampleName.sample_name + "_transcriptome",
-		preemptible_tries = 0
+		input:
+			input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam,
+			input_bam_index = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam_index,
+			output_bam_prefix = GetSampleName.sample_name + "_transcriptome",
+			preemptible_tries = 0
 	}
 
 
@@ -437,8 +438,7 @@ task CollectInsertSizeMetrics {
 		Int preemptible_tries
 	}
 
-	Float ref_size = size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(ref_dict, "GiB")
-	Int disk_size = ceil(size(input_bam, "GiB") + ref_size) + 20
+	Int disk_size = ceil(size(input_bam, "GiB")) + 256
 
 	command {
 		java -Xms5000m -jar /usr/gitc/picard.jar CollectInsertSizeMetrics \
