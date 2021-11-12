@@ -16,6 +16,8 @@ workflow RNAWithUMIsPipeline {
 		File refDict
 		File refFlat
 		File ribosomalIntervals
+
+		String read_files_type = "SAM PE"
 	}
 
 	call ExtractUMIs {
@@ -34,7 +36,8 @@ workflow RNAWithUMIsPipeline {
 	call STAR {
 		input:
 			bam = ExtractUMIs.bam_umis_extracted,
-			starIndex = starIndex
+			starIndex = starIndex,
+			read_files_type = read_files_type
 	}
 
 	call CreateUnalignedBam {
@@ -134,6 +137,7 @@ task STAR {
 	input {
 		File bam
 		File starIndex
+		String read_files_type = "SAM PE"
 	}
 	Int disk_space = ceil(2.2 * size(bam, "GB") + size(starIndex, "GB")) + 250
 
@@ -142,7 +146,7 @@ task STAR {
 		mkdir star_index
 		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
-		STAR --readFilesIn ~{bam} --readFilesType SAM PE --readFilesCommand samtools view -h \
+		STAR --readFilesIn ~{bam} --readFilesType ~{read_files_type} --readFilesCommand samtools view -h \
 			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
 			--limitSjdbInsertNsj 1200000 --outSAMstrandField intronMotif --outSAMunmapped Within \
 			--outFilterType BySJout --outFilterMultimapNmax 20 --outFilterScoreMinOverLread 0.33 \
