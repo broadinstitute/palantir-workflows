@@ -103,6 +103,13 @@ workflow RNAWithUMIsPipeline {
 			preemptible_tries=0
 	}
 
+	call CollectInsertSizeMetrics as InsertSizeTranscriptome {
+		input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam,
+		input_bam_index = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam_index,
+		output_bam_prefix = GetSampleName.sample_name + "_transcriptome",
+		preemptible_tries = 0
+	}
+
 
   output {
 	File transcriptome_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam
@@ -419,5 +426,36 @@ task CollectMultipleMetrics {
 		File ls = "ls.txt"
 		File alignment_summary_metrics = output_bam_prefix + ".alignment_summary_metrics"
 		File insert_size_metrics = output_bam_prefix + ".insert_size_metrics"
+	}
+}
+
+task CollectInsertSizeMetrics {
+	input {
+		File input_bam
+		File input_bam_index
+		String output_bam_prefix
+		Int preemptible_tries
+	}
+
+	Float ref_size = size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(ref_dict, "GiB")
+	Int disk_size = ceil(size(input_bam, "GiB") + ref_size) + 20
+
+	command {
+		java -Xms5000m -jar /usr/gitc/picard.jar CollectInsertSizeMetrics \
+		I=~{input_bam} \
+		O=~{output_bam_prefix}_insert_size_metrics.txt \
+		H=~{output_bam_prefix}_insert_size_histogram.pdf \
+		M=0.0
+	}
+
+	runtime {
+		docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.4.3-1564508330"
+		memory: "8 GiB"
+		disks: "local-disk " + disk_size + " HDD"
+		preemptible: preemptible_tries
+	}
+	output {
+		File insert_size_metrics = output_bam_prefix + "_insert_size_metrics.txt"
+		File insert_size_histogram = output_bam_prefix + "_insert_size_histogram.pdf"
 	}
 }
