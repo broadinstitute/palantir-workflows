@@ -51,3 +51,6 @@ workflows:
   - name: AggregatePRSResults
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/AggregatePRSResults.wdl
+  - name: TrainAncestryAdjustmentModel
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/TrainAncestryAdjustmentModel.wdl

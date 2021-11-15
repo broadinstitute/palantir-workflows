@@ -2,6 +2,10 @@ version 1.0
 
 import "../ScoringPart.wdl" as Scoring
 import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/ImputationPipeline/ScoringPart.wdl" as ScoringMain
+import "../TrainAncestryAdjustmentModel.wdl" as TrainModel
+import "../PCATasks.wdl" as PCATasks
+import "../Structs.wdl" as Structs
+import "SubsetWeightSet.wdl" as SubsetWeightSet
 
 workflow ValidateScoring {
 	input {
@@ -17,12 +21,13 @@ workflow ValidateScoring {
 		File pruning_sites_for_pca # and the sites used for PCA
 		File population_vcf
 
-		File weights
+		Array[NamedWeightSet] named_weight_sets
 		File sample_name_map #file mapping sample names in arrays to sample names in wgs.  ":" used as separator
 		String branch #name of branch being tested.  used for display in plots, does not effect computation
 
 		Int wgs_vcf_to_plink_mem = 8
-		Boolean adjustScores = true
+
+		Float max_diff_pretrain_threshold = 0.0000000001 # maximum difference allowed between pretraining model separately and as part of scoring
 	}
 
 	#Extract the sites which are in the imputed vcf.  We will score the wgs over only the sites included in the imputed vcf
@@ -32,155 +37,189 @@ workflow ValidateScoring {
 			output_basename = "imputed"
 	}
 
-
-	#Subset the weights to only the sites in the imputed vcf
-	call SubsetWeights {
+	#need to redo PCA in case input PCA not appropriate for this set of sites
+	call PCATasks.ArrayVcfToPlinkDataset as PopulationArrayVcfToPlinkDataset {
 		input:
-			sites = extractImputedIDs.ids,
-			weights = weights
+			vcf = select_first([population_vcf]),
+			pruning_sites = select_first([pruning_sites_for_pca]),
+			subset_to_sites = extractImputedIDs.ids,
+			basename = "population"
 	}
 
-	#remove sites with any no-call genotypes from the wgs scoring.  otherwise no-calls in the wgs would skew the wgs scores in a way that would not be accounted for by the score adjustment
-	call QCSites {
+	call PCATasks.PerformPCA {
 		input:
-			input_vcf = validationWgs,
-			output_vcf_basename = "wgsValidation"
+			bim = PopulationArrayVcfToPlinkDataset.bim,
+			bed = PopulationArrayVcfToPlinkDataset.bed,
+			fam = PopulationArrayVcfToPlinkDataset.fam,
+			basename = "population"
 	}
 
-	#subset weights also to only sites without no-calls in wgs
-	call ExtractIDs as extractWGSIDs {
-		input:
-			vcf = QCSites.output_vcf,
-			output_basename = "wgs"
-	}
-
-	call SubsetWeights as SubsetWeightsWGS {
-		input:
-			sites = extractWGSIDs.ids,
-			weights = SubsetWeights.subset_weights
-	}
-
-	#run scoring on this branch, using imputed data from this branch, or shared imputed data is we are studying only changes in scoring
-	call Scoring.ScoringImputedDataset as ScoreImputed {
-		input:
-			weight_set = object{linear_weights : SubsetWeightsWGS.subset_weights},
-			imputed_array_vcf = select_first([validationArrays, validationArraysMain]),
-			population_basename = population_basename,
-			basename = "imputed",
-			population_loadings = population_loadings,
-			population_meansd = population_meansd,
-			population_pcs = population_pcs,
-			pruning_sites_for_pca = pruning_sites_for_pca,
-			population_vcf = population_vcf,
-			redoPCA = true,
-			adjustScores = adjustScores
-	}
-
-	#run scoring on main branch
-	call ScoringMain.ScoringImputedDataset as ScoreImputedMain {
-		input:
-			weights = SubsetWeightsWGS.subset_weights,
-			imputed_array_vcf = validationArraysMain,
-			population_basename = population_basename,
-			basename = "imputed",
-			population_loadings = population_loadings,
-			population_meansd = population_meansd,
-			population_pcs = population_pcs,
-			pruning_sites_for_pca = pruning_sites_for_pca,
-			population_vcf = population_vcf,
-			redoPCA = true
-	}
-
-	#score wgs over only sites in the imputed array which are called in every wgs sample
-	call Scoring.ScoringImputedDataset as ScoreWGS {
-		input:
-			weight_set = object{linear_weights : SubsetWeightsWGS.subset_weights},
-			imputed_array_vcf = QCSites.output_vcf,
-			population_basename = population_basename,
-			basename = "imputed",
-			population_loadings = population_loadings,
-			population_meansd = population_meansd,
-			population_pcs = population_pcs,
-			pruning_sites_for_pca = pruning_sites_for_pca,
-			population_vcf = population_vcf,
-			redoPCA = true,
-			vcf_to_plink_mem = wgs_vcf_to_plink_mem,
-			adjustScores = adjustScores
-	}
-
-	if (adjustScores) {
-		#compare this branch scores to wgs scores and to main branch scores
-		call CompareScores {
+	scatter (named_weight_set in named_weight_sets) {
+		String conditions = named_weight_set.condition_name
+		#Subset the weights to only the sites in the imputed vcf
+		call SubsetWeightSet.SubsetWeightSet {
 			input:
-				arrayScores = select_first([ScoreImputed.adjusted_array_scores]),
-				wgsScores = select_first([ScoreWGS.adjusted_array_scores]),
-				arrayScoresMain = select_first([ScoreImputedMain.adjusted_array_scores]),
-				branch = branch,
-				sample_name_map = sample_name_map
-			}
-	}
+				sites_to_subset_to = extractImputedIDs.ids,
+				weight_set = named_weight_set.weight_set
+		}
 
-	if (!adjustScores) {
-		#compare raw scores to wgs.  will add in comparison to main branch later
-		call CompareRawScores {
+		#remove sites with any no-call genotypes from the wgs scoring.  otherwise no-calls in the wgs would skew the wgs scores in a way that would not be accounted for by the score adjustment
+		call QCSites {
 			input:
-				arrayScores = ScoreImputed.raw_scores,
-				wgsScores = ScoreWGS.raw_scores,
-				branch = branch,
-				sample_name_map = sample_name_map
+				input_vcf = validationWgs,
+				output_vcf_basename = "wgsValidation"
+		}
+
+		#subset weights also to only sites without no-calls in wgs
+		call ExtractIDs as extractWGSIDs {
+			input:
+				vcf = QCSites.output_vcf,
+				output_basename = "wgs"
+		}
+
+		call SubsetWeightSet.SubsetWeightSet as SubsetWeightSetWGS {
+			input:
+				sites_to_subset_to = extractWGSIDs.ids,
+				weight_set = SubsetWeightSet.subsetted_weight_set
+		}
+
+		#run scoring on this branch, using imputed data from this branch, or shared imputed data is we are studying only changes in scoring
+		call Scoring.ScoringImputedDataset as ScoreImputed {
+			input:
+				named_weight_set = named_weight_set,
+				imputed_array_vcf = select_first([validationArrays, validationArraysMain]),
+				population_basename = population_basename,
+				basename = "imputed",
+				population_loadings = population_loadings,
+				population_meansd = population_meansd,
+				population_pcs = population_pcs,
+				pruning_sites_for_pca = pruning_sites_for_pca,
+				population_vcf = population_vcf,
+				redoPCA = true
+		}
+
+		call Scoring.ScoringImputedDataset as ScoreImputedForWGSComparison {
+			input:
+				named_weight_set = object{condition_name : conditions, weight_set : SubsetWeightSetWGS.subsetted_weight_set},
+				imputed_array_vcf = select_first([validationArrays, validationArraysMain]),
+				population_basename = population_basename,
+				basename = "imputed",
+				population_loadings = population_loadings,
+				population_meansd = population_meansd,
+				population_pcs = population_pcs,
+				pruning_sites_for_pca = pruning_sites_for_pca,
+				population_vcf = population_vcf,
+				redoPCA = true
+		}
+
+		#run scoring on main branch
+		call ScoringMain.ScoringImputedDataset as ScoreImputedMain {
+			input:
+				weight_set = named_weight_set.weight_set,
+				imputed_array_vcf = validationArraysMain,
+				population_basename = population_basename,
+				basename = "imputed",
+				population_loadings = population_loadings,
+				population_meansd = population_meansd,
+				population_pcs = population_pcs,
+				pruning_sites_for_pca = pruning_sites_for_pca,
+				population_vcf = population_vcf,
+				redoPCA = true
+		}
+
+		#score wgs over only sites in the imputed array which are called in every wgs sample
+		call Scoring.ScoringImputedDataset as ScoreWGS {
+			input:
+				named_weight_set = object{condition_name : conditions, weight_set : SubsetWeightSetWGS.subsetted_weight_set},
+				imputed_array_vcf = QCSites.output_vcf,
+				population_basename = population_basename,
+				basename = "imputed",
+				population_loadings = population_loadings,
+				population_meansd = population_meansd,
+				population_pcs = population_pcs,
+				pruning_sites_for_pca = pruning_sites_for_pca,
+				population_vcf = population_vcf,
+				redoPCA = true,
+				vcf_to_plink_mem = wgs_vcf_to_plink_mem
+		}
+
+		#train ancestry adjustment separately and score.  scores should be indentical to standard run
+
+		call TrainModel.TrainAncestryAdjustmentModel {
+			input:
+				named_weight_set = named_weight_set,
+				population_pcs = PerformPCA.pcs,
+				population_vcf = population_vcf,
+				population_basename = population_basename
+		}
+
+		call Scoring.ScoringImputedDataset as ScoreWithTrainingResults {
+			input:
+				named_weight_set = named_weight_set,
+				imputed_array_vcf = validationArraysMain,
+				basename = "imputed",
+				population_loadings = PerformPCA.pc_loadings,
+				population_meansd = PerformPCA.mean_sd,
+				population_pcs = PerformPCA.pcs,
+				pruning_sites_for_pca = pruning_sites_for_pca,
+				fitted_model_params_and_sites = object{fitted_model_params : TrainAncestryAdjustmentModel.fitted_params, sites_used_in_scoring : TrainAncestryAdjustmentModel.sites_used_in_scoring}
 		}
 	}
 
+	#compare this branch scores to wgs scores and to main branch scores
+	call CompareScores as CompareScoresImputedWGS{
+		input:
+			x_axis_scores = select_all(ScoreImputedForWGSComparison.adjusted_array_scores),
+			y_axis_scores = select_all(ScoreWGS.adjusted_array_scores),
+			conditions = conditions,
+			x_axis_label = "Array Score " + branch,
+			y_axis_label = "WGS Score " + branch,
+			sample_name_map = sample_name_map,
+			output_filename = "score_comparison_" + branch
+	}
+
+	call CompareScores as CompareScoresMainVsBranch {
+		input:
+			x_axis_scores = select_all(ScoreImputed.adjusted_array_scores),
+			y_axis_scores = select_all(ScoreImputedMain.adjusted_array_scores),
+			conditions = conditions,
+			x_axis_label = "Array Score " + branch,
+			y_axis_label = "Array Score Main",
+			output_filename = "score_comparison_main_vs_" + branch
+	}
+
+		call CompareScores as CompareScoresPreTraining {
+			input:
+				x_axis_scores = select_all(ScoreImputed.adjusted_array_scores),
+				y_axis_scores = select_all(ScoreWithTrainingResults.adjusted_array_scores),
+				conditions = conditions,
+				x_axis_label = "Array Score " + branch,
+				y_axis_label = "Array Score Pre-train model " + branch,
+				output_filename = "score_comparison_pre_train_model_" + branch
+		}
+
+		if (CompareScoresPreTraining.max_score_diff > max_diff_pretrain_threshold) {
+			call Scoring.ErrorWithMessage {
+					input:
+						message = "pre-trained score difference too large (" + CompareScoresPreTraining.max_score_diff + ")"
+			}
+		}
 
 	output {
-		File? score_comparison_branch = CompareScores.score_comparison_branch
-		File? score_comparison_main_vs_branch = CompareScores.score_comparison_main_vs_branch
+		File score_comparison_branch = CompareScoresImputedWGS.score_comparison
+		File score_comparison_main_vs_branch = CompareScoresMainVsBranch.score_comparison
+		File score_comparison_pretrian = CompareScoresPreTraining.score_comparison
+		Float pretrain_max_diff = CompareScoresPreTraining.max_score_diff
+		Float branch_main_max_diff = CompareScoresMainVsBranch.max_score_diff
 
-		File? pc_plot = ScoreImputed.pc_plot
-		File? raw_score_comparison_branch = CompareRawScores.raw_score_comparison_branch
-		Int n_original_sites = SubsetWeights.n_original_sites
-		Int n_subset_sites = SubsetWeights.n_subset_sites
-		Int n_subset_sites_wgs = SubsetWeightsWGS.n_subset_sites
+		File pc_plot = select_first(ScoreImputed.pc_plot)
+		Array[Int] n_original_weights = SubsetWeightSet.n_original_weights
+		Array[Int] n_subset_weights = SubsetWeightSet.n_subset_weights
+		Array[Int] n_subset_weights_wgs = SubsetWeightSetWGS.n_subset_weights
 	}
 }
 
 
-task SubsetWeights {
-	input {
-		File sites
-		File weights
-	}
-
-	command <<<
-
-	Rscript -<< "EOF"
-	library(readr)
-	library(dplyr)
-
-	weights <- read_tsv("~{weights}")
-	sites <- read_tsv("~{sites}", col_names = "variant")
-
-	weights_subset <- inner_join(weights, sites)
-	write_tsv(weights_subset, "weights_subset.txt")
-	write_tsv(weights %>% count(), "n_original_weights.txt", col_names = FALSE)
-	write_tsv(weights_subset %>% count(), "n_subset_weights.txt", col_names = FALSE)
-
-	EOF
-
-	>>>
-
-	runtime {
-		docker: "rocker/tidyverse"
-		disks: "local-disk 100 HDD"
-		memory: "16 GB"
-	}
-
-	output {
-		File subset_weights = "weights_subset.txt"
-		Int n_original_sites = read_int("n_original_weights.txt")
-		Int n_subset_sites = read_int("n_subset_weights.txt")
-	}
-}
 
 task ExtractIDs {
 	 input {
@@ -204,11 +243,13 @@ task ExtractIDs {
 
 task CompareScores {
 	input {
-		File arrayScores
-		File arrayScoresMain
-		File wgsScores
-		File sample_name_map
-		String branch
+		Array[File] x_axis_scores
+		Array[File] y_axis_scores
+		Array[String] conditions
+		File? sample_name_map
+		String x_axis_label
+		String y_axis_label
+		String output_filename
 	}
 
 	command <<<
@@ -218,93 +259,40 @@ task CompareScores {
 		library(ggplot2)
 		library(purrr)
 
-		array_scores <- read_tsv("~{arrayScores}") %>% transmute(IID, adjusted_score_array=adjusted_score)
-		wgs_score <- read_tsv("~{wgsScores}") %>% transmute(IID, adjusted_score_wgs=adjusted_score)
+		conditions <- c("~{sep = '", "' conditions}")
+		x_scores <- list("~{sep = '", "' x_axis_scores}") %>% map(read_tsv) %>% map2(conditions, ~ .x %>% mutate(condition = .y)) %>% reduce(bind_rows) %>% transmute(IID, condition, adjusted_score_x=adjusted_score)
+		y_scores <- list("~{sep = '", "' y_axis_scores}") %>% map(read_tsv) %>% map2(conditions, ~ .x %>% mutate(condition = .y)) %>% reduce(bind_rows) %>% transmute(IID, condition, adjusted_score_y=adjusted_score)
 
-		array_scores_main <- read_tsv("~{arrayScoresMain}") %>% transmute(IID, adjusted_score_array=adjusted_score)
+		sample_names_map <- if(~{true="TRUE" false="FALSE" defined(sample_name_map)}) read_delim("~{sample_name_map}", delim=":", col_names=FALSE) else x_scores %>% transmute(X1=IID, X2=IID)
 
-		sample_names <- read_delim("~{sample_name_map}", delim=":", col_names=FALSE)
+		combined_scores <- inner_join(inner_join(x_scores, sample_names_map, by=c("IID"="X1")), y_scores, by=c("X2"="IID", "condition"))
 
-
-
-		combined_scores <- inner_join(inner_join(array_scores, sample_names, by=c("IID"="X1")), wgs_score, by=c("X2"="IID"))
-
-		score_main_branch <- inner_join(array_scores %>% transmute(IID, adjusted_score_branch=adjusted_score_array), array_scores_main %>% transmute(IID, adjusted_score_main=adjusted_score_array))
-
-		ggplot(combined_scores, aes(x=adjusted_score_array, y=adjusted_score_wgs)) +
+		ggplot(combined_scores, aes(x=adjusted_score_x, y=adjusted_score_y)) +
 		geom_point() +
 		geom_abline(intercept=0, slope=1) +
-		xlab("Array Score ~{branch}") +
-		ylab("WGS Score ~{branch}")
+		facet_wrap(~condition) +
+		xlab("~{x_axis_label}") +
+		ylab("~{y_axis_label}")
 
-		ggsave(filename="score_comparison_~{branch}.png")
+		ggsave(filename="~{output_filename}.png")
 
-		ggplot(score_main_branch, aes(x=adjusted_score_branch, y=adjusted_score_main)) +
-		geom_point() +
-		geom_abline(intercept=0, slope=1) +
-		xlab("Array Score ~{branch}") +
-		ylab("Array Score Main")
-
-		ggsave(filename="score_comparison_main_vs_branch.png")
-
+		max_diff_conditions <- combined_scores %>% group_by(condition) %>% summarise(max_diff = max(abs(adjusted_score_x - adjusted_score_y)))
+		write_tsv(max_diff_conditions, "max_diff_conditions.txt")
+		max_diff <- max_diff_conditions %>% summarise(max_diff = max(max_diff))
+		write_tsv(max_diff, "max_diff.txt", col_names = FALSE)
 		EOF
 	>>>
 
 	runtime {
 		docker: "rocker/tidyverse"
 		disks: "local-disk 100 HDD"
-		memory: "16 GB"
+		memory: "4 GB"
 	}
 
 	output {
-		File score_comparison_branch = "score_comparison_~{branch}.png"
-		File score_comparison_main_vs_branch = "score_comparison_main_vs_branch.png"
-	}
-}
-
-task CompareRawScores {
-	input {
-		File arrayScores
-		File wgsScores
-		File sample_name_map
-		String branch
-	}
-
-	command <<<
-		Rscript -<< "EOF"
-		library(dplyr)
-		library(readr)
-		library(ggplot2)
-		library(purrr)
-
-		array_scores <- read_tsv("~{arrayScores}") %>% transmute(`#IID`, raw_score_array=SCORE1_SUM)
-		wgs_score <- read_tsv("~{wgsScores}") %>% transmute(`#IID`, raw_score_wgs=SCORE1_SUM)
-
-		sample_names <- read_delim("~{sample_name_map}", delim=":", col_names=FALSE)
-
-
-
-		combined_scores <- inner_join(inner_join(array_scores, sample_names, by=c("#IID"="X1")), wgs_score, by=c("X2"="#IID"))
-
-		ggplot(combined_scores, aes(x=raw_score_array, y=raw_score_wgs)) +
-		geom_point() +
-		geom_abline(intercept=0, slope=1) +
-		xlab("Raw Array Score ~{branch}") +
-		ylab("Raw WGS Score ~{branch}")
-
-		ggsave(filename="raw_score_comparison_~{branch}.png")
-
-		EOF
-	>>>
-
-	runtime {
-		docker: "rocker/tidyverse"
-		disks: "local-disk 100 HDD"
-		memory: "16 GB"
-	}
-
-	output {
-		File raw_score_comparison_branch = "raw_score_comparison_~{branch}.png"
+		File score_comparison = "~{output_filename}.png"
+		Float max_score_diff = read_float("max_diff.txt")
+		File max_diff_conditions = "max_diff_conditions.txt"
 	}
 }
 

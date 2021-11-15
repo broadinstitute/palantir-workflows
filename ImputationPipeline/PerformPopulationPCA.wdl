@@ -1,5 +1,6 @@
 version 1.0
 
+import "PCATasks.wdl" as PCATasks
 # When you use a new population dataset 
 
 workflow PerformPopulationPCA {
@@ -87,7 +88,7 @@ workflow PerformPopulationPCA {
   }
   
   # perform PCA using flashPCA
-  call PerformPCA {
+  call PCATasks.PerformPCA {
     input:
       bim = LDPruning.bim,
       bed = LDPruning.bed,
@@ -228,43 +229,7 @@ task LDPruning {
     disks: "local-disk 400 HDD"
     memory: mem + " GB"
   }
-} 
-
-task PerformPCA {
-  input {
-    File bim
-    File bed
-    File fam
-    String basename
-    Int mem = 8
-  }
-
-  # again, based on Wallace commands
-  command {
-    cp ~{bim} ~{basename}.bim
-    cp ~{bed} ~{basename}.bed
-    cp ~{fam} ~{basename}.fam
-  
-    ~/flashpca/flashpca --bfile ~{basename} -n 16 -d 20 --outpc ${basename}.pc \
-    --outpve ${basename}.pc.variance --outload ${basename}.pc.loadings \
-    --outmeansd ${basename}.pc.meansd
-  }
-
-  output {
-    File pcs = "${basename}.pc"
-    File pc_variance = "${basename}.pc.variance"
-    File pc_loadings = "${basename}.pc.loadings"
-    File mean_sd = "${basename}.pc.meansd"
-    File eigenvectors = "eigenvectors.txt"
-    File eigenvalues = "eigenvalues.txt"
-  }
-
-  runtime {
-    docker: "skwalker/flashpca:v1"
-    disks: "local-disk 400 HDD"
-    memory: mem + " GB"
-  }
-} 
+}
 
 task SeparateMultiallelics {
   input {

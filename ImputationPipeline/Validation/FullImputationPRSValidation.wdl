@@ -2,6 +2,7 @@ version 1.0
 
 import "ValidateImputation.wdl" as ValidateImputation
 import "ValidateScoring.wdl" as ValidateScoring
+import "../Structs.wdl"
 
 workflow FullImputationPRSValidation {
 	input {
@@ -31,7 +32,7 @@ workflow FullImputationPRSValidation {
 		File pruning_sites_for_pca # and the sites used for PCA
 		File population_vcf
 
-		File weights
+		Array[NamedWeightSet] named_weight_sets
 		File sample_name_map
 
 		String branch
@@ -70,7 +71,7 @@ workflow FullImputationPRSValidation {
 			population_pcs = population_pcs,
 			pruning_sites_for_pca = pruning_sites_for_pca,
 			population_vcf = population_vcf,
-			weights = weights,
+			named_weight_sets = named_weight_sets,
 			sample_name_map = sample_name_map,
 			wgs_vcf_to_plink_mem = wgs_vcf_to_plink_mem,
 			branch = branch
@@ -82,13 +83,12 @@ workflow FullImputationPRSValidation {
 		File correlations_plot = validateImputation.correlations_plot
 		File aggregated_imputation_metrics = validateImputation.aggregated_imputation_metrics
 
-		File? score_comparison_branch = ValidateScoring.score_comparison_branch
-		File? score_comparison_main_vs_branch = ValidateScoring.score_comparison_main_vs_branch
-		File? pc_plot = ValidateScoring.pc_plot
-		File? raw_score_comparison_branch = ValidateScoring.raw_score_comparison_branch
-		Int n_original_sites = ValidateScoring.n_original_sites
-		Int n_subset_sites = ValidateScoring.n_subset_sites
-		Int? n_subset_sites_wgs = ValidateScoring.n_subset_sites_wgs
+		File score_comparison_branch = ValidateScoring.score_comparison_branch
+		File score_comparison_main_vs_branch = ValidateScoring.score_comparison_main_vs_branch
+		File pc_plot = ValidateScoring.pc_plot
+		Array[Int] n_original_weights = ValidateScoring.n_original_weights
+		Array[Int] n_subset_weights = ValidateScoring.n_subset_weights
+		Array[Int] n_subset_weights_wgs = ValidateScoring.n_subset_weights_wgs
 	}
 }
 
