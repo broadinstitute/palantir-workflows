@@ -135,7 +135,7 @@ task CreateUnscoredResult {
 
   command <<<
     echo "sample_id, ~{condition_name}_raw, ~{condition_name}_adjusted, ~{condition_name}_high, ~{condition_name}_percentile" > results.csv
-    echo "~{sample_id}, NA, NA, NA" >> results.csv
+    echo "~{sample_id}, NA, NA, NA, NA" >> results.csv
   >>>
 
   runtime {
