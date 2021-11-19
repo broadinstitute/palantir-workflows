@@ -25,12 +25,6 @@ workflow RNAWithUMIsPipeline {
 			read2Structure = read2Structure
 	}
 
-	call FastQC {
-		input:
-			unmapped_bam = bam,
-			sample_id = output_basename
-	}
-
 	call STAR {
 		input:
 			bam = ExtractUMIs.bam_umis_extracted,
@@ -55,17 +49,7 @@ workflow RNAWithUMIsPipeline {
 			output_basename = output_basename + ".transcriptome"
 	}
 
-	# call CrossCheckFingerprints {
-	# 	input:
-	# 		input_bams = [UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam],
-	# 		input_bam_indexes = [UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam_index],
-	# 		haplotype_database_file = ,
-	# 		metrics_filename = 
-	# 		total_input_size = 
-	# 		preemptible_tries = 0,
-	# 		lod_threshold = 0,
-	# 		cross_check_by = 
-	# }
+	### PLACEHOLDER for CROSSCHECK ###
 
 	call GetSampleName {
 		input:
@@ -103,14 +87,6 @@ workflow RNAWithUMIsPipeline {
 			preemptible_tries=0
 	}
 
-	call CollectInsertSizeMetrics as InsertSizeTranscriptome {
-		input:
-			input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam,
-			input_bam_index = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam_index,
-			output_bam_prefix = GetSampleName.sample_name + "_transcriptome",
-			preemptible_tries = 0
-	}
-
 
   output {
 	File transcriptome_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam
@@ -137,7 +113,7 @@ task STAR {
 	command <<<
 		echo $(date +"[%b %d %H:%M:%S] Extracting STAR index")
 		mkdir star_index
-		tar -xvvf ~{starIndex} -C star_index --strip-components=1
+		tar -xvf ~{starIndex} -C star_index --strip-components=1
 
 		STAR --readFilesIn ~{bam} --readFilesType SAM PE --readFilesCommand samtools view -h \
 			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
@@ -197,9 +173,10 @@ task rnaseqc2 {
 		File bam_file
 		File genes_gtf
 		String sample_id
+		File exon_bed = "gs://gtex-resources/GENCODE/gencode.v26.GRCh38.insert_size_intervals_geq1000bp.bed"
 	}
+	
 	Int disk_space = ceil(size(bam_file, 'GB') + size(genes_gtf, 'GB')) + 100
-	File exon_bed = "gs://gtex-resources/GENCODE/gencode.v26.GRCh38.insert_size_intervals_geq1000bp.bed"
 
 	command {
 		set -euo pipefail
@@ -315,80 +292,6 @@ task CollectRNASeqMetrics {
 	}
 }
 
-#### Copied from warp/tasks/broad/Qc.wdl ####
-#### Should be imported instead ####
-
-task CrossCheckFingerprints {
-	input {
-		Array[File] input_bams
-		Array[File] input_bam_indexes
-		File haplotype_database_file
-		String metrics_filename
-		Float total_input_size
-		Int preemptible_tries
-		Float lod_threshold
-		String cross_check_by
-	}
-
-	Int disk_size = ceil(total_input_size) + 20
-
-	command {
-		java -Dsamjdk.buffer_size=131072 \
-		-XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Xms3000m \
-		-jar /usr/picard/picard.jar \
-		CrosscheckFingerprints \
-		OUTPUT=~{metrics_filename} \
-		HAPLOTYPE_MAP=~{haplotype_database_file} \
-		EXPECT_ALL_GROUPS_TO_MATCH=true \
-		INPUT=~{sep=' INPUT=' input_bams} \
-		LOD_THRESHOLD=~{lod_threshold} \
-		CROSSCHECK_BY=~{cross_check_by}
-	}
-
-	runtime {
-		docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
-		preemptible: preemptible_tries
-		memory: "3.5 GiB"
-		disks: "local-disk " + disk_size + " HDD"
-	}
-
-	output {
-		File cross_check_fingerprints_metrics = "~{metrics_filename}"
-	}
-}
-
-
-task FastQC {
-	input {
-		File unmapped_bam
-		String sample_id
-		Float? mem = 4
-	}
-
-	Int disk_size = ceil(size(unmapped_bam, "GiB") * 3)  + 100
-	String bam_basename = basename(unmapped_bam, ".bam")
-
-	command {
-		perl /usr/tag/scripts/FastQC/fastqc ~{unmapped_bam} --extract -o ./
-		mv ~{bam_basename}_fastqc/fastqc_data.txt ~{bam_basename}_fastqc_data.txt
-		ls > ls.txt
-	}
-	
-	runtime {
-		docker: "us.gcr.io/tag-public/tag-tools:1.0.0"
-		disks: "local-disk " + disk_size + " HDD"
-		memory: mem + "GB"
-		cpu: "1"
-	}
-
-	output {
-		File ls = "ls.txt"
-		File fastqc_data = "~{bam_basename}_fastqc_data.txt"
-		File fastqc_html = "~{bam_basename}_fastqc.html"
-	}
-}
-
-
 task CollectMultipleMetrics {
 	input {
 		File input_bam
@@ -403,8 +306,6 @@ task CollectMultipleMetrics {
 	Float ref_size = size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(ref_dict, "GiB")
 	Int disk_size = ceil(size(input_bam, "GiB") + ref_size) + 20
 
-	File ref_flat = "gs://gcp-public-data--broad-references/hg38/v0/GRCh38_gencode.v27.refFlat.txt"
-
 	command {
 		java -Xms5000m -jar /usr/gitc/picard.jar CollectMultipleMetrics \
 		INPUT=~{input_bam} \
@@ -412,8 +313,6 @@ task CollectMultipleMetrics {
 		PROGRAM=CollectInsertSizeMetrics \
 		PROGRAM=CollectAlignmentSummaryMetrics \
 		REFERENCE_SEQUENCE=~{ref_fasta}
-
-		ls > ls.txt
 	}
 
 	runtime {
@@ -424,38 +323,7 @@ task CollectMultipleMetrics {
 	}
 
 	output {
-		File ls = "ls.txt"
 		File alignment_summary_metrics = output_bam_prefix + ".alignment_summary_metrics"
 		File insert_size_metrics = output_bam_prefix + ".insert_size_metrics"
-	}
-}
-
-task CollectInsertSizeMetrics {
-	input {
-		File input_bam
-		File input_bam_index
-		String output_bam_prefix
-		Int preemptible_tries
-	}
-
-	Int disk_size = ceil(size(input_bam, "GiB")) + 256
-
-	command {
-		java -Xms5000m -jar /usr/gitc/picard.jar CollectInsertSizeMetrics \
-		I=~{input_bam} \
-		O=~{output_bam_prefix}_insert_size_metrics.txt \
-		H=~{output_bam_prefix}_insert_size_histogram.pdf \
-		M=0.0
-	}
-
-	runtime {
-		docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.4.3-1564508330"
-		memory: "8 GiB"
-		disks: "local-disk " + disk_size + " HDD"
-		preemptible: preemptible_tries
-	}
-	output {
-		File insert_size_metrics = output_bam_prefix + "_insert_size_metrics.txt"
-		File insert_size_histogram = output_bam_prefix + "_insert_size_histogram.pdf"
 	}
 }
