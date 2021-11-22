@@ -110,7 +110,7 @@ task SelectValuesOfInterest {
     adjusted_score <- (score %>% pull(adjusted_score))[[1]]
     percentile <- (score %>% pull(percentile))[[1]]
 
-    result <- tibble(sample_id = "~{sample_id}", ~{condition_name}_raw = raw_score, ~{condition_name}_adjusted = adjusted_score, ~{condition_name}_high = (percentile > ~{threshold}), ~{condition_name}_percentile = percentile)
+    result <- tibble(sample_id = "~{sample_id}", ~{condition_name}_raw = raw_score, ~{condition_name}_adjusted = adjusted_score, ~~{condition_name}_percentile = percentile, ~{condition_name}_risk = ifelse(percentile > ~{threshold}, "HIGH", "NOT_HIGH"))
     write_csv(result, "results.csv")
 
     EOF
@@ -134,7 +134,7 @@ task CreateUnscoredResult {
   }
 
   command <<<
-    echo "sample_id, ~{condition_name}_raw, ~{condition_name}_adjusted, ~{condition_name}_high, ~{condition_name}_percentile" > results.csv
+    echo "sample_id, ~{condition_name}_raw, ~{condition_name}_adjusted, ~{condition_name}_percentile", ~{condition_name}_risk > results.csv
     echo "~{sample_id}, NA, NA, NA, NA" >> results.csv
   >>>
 
