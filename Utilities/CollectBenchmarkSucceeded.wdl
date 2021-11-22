@@ -32,7 +32,7 @@ task CombineSucceededVCFs {
         do
             for SHARD in $(gsutil ls "${WORKFLOW}call-BenchmarkVCF")
             do
-               benchmark_url=$(gsutil ls "${shard}Benchmark")
+               benchmark_url=$(gsutil ls "${SHARD}Benchmark")
                summary_url=$(gsutil ls "${benchmark_url}call-CombineSummaries/summary.csv")
 
                 # Check if summary exists, i.e. shard was successful
