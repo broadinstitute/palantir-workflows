@@ -9,7 +9,6 @@ workflow FindSamplesAndBenchmark {
         Array[File] ground_truth_indexes
         Array[File] ground_truth_intervals
         Array[String] truth_labels
-        Array[File] annotation_intervals
 
         File? gatkJarForAnnotation
         String? annotationName

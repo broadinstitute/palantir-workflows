@@ -11,7 +11,6 @@ workflow CompareSamplesWithoutTruth {
     Array[File] NYGenomes_vcf
     Array[File] NYGenomes_vcf_idx
     Array[String] truth_labels
-    Array[File] annotation_intervals
     Array[File] ground_truth_files
     Array[File] ground_truth_indexes
     Array [File] ground_truth_intervals
@@ -51,7 +50,6 @@ workflow CompareSamplesWithoutTruth {
       ground_truth_indexes = ground_truth_indexes,
       ground_truth_intervals = ground_truth_intervals,
       truth_labels = truth_labels,
-      annotation_intervals = annotation_intervals,
       gatkJarForAnnotation = gatkJarForAnnotation,
       annotationName = annotationName,
       ref_fasta = ref_fasta,
@@ -78,6 +76,12 @@ workflow CompareSamplesWithoutTruth {
     }
   }
 
+  call SplitMultiSampleVcf as ExtractFromInput {
+    input:
+      multiSampleVcf = input_callset,
+      samples = sample_names_to_compare
+  }
+
   Array[Array[File]] transposed_vcfs = transpose(ExtractFromTruth.single_sample_vcfs)
   Array[Array[File]] transposed_indcies = transpose(ExtractFromTruth.single_sample_vcf_indices)
 
@@ -91,15 +95,9 @@ workflow CompareSamplesWithoutTruth {
         output_vcf_name = "NYGC_1000G_extracted." + sample_name + ".vcf.gz"
     }
 
-    call FindSamplesAndBenchmark.ExtractSampleFromCallset as ExtractFromInput {
-      input:
-        callset = input_callset,
-        sample = sample_name,
-        basename = basename(input_callset, ".vcf.gz") + "_extracted_" + sample_name
-    }
     call FindSamplesAndBenchmark.CrosscheckFingerprints as CheckFingerprintOfExtractedSample {
       input:
-        input_data = [ExtractFromInput.output_vcf],
+        input_data = [ExtractFromInput.output_vcf[i]],
         metrics_basename = "crosscheck",
         ground_truth_files = [MergeVCFs.output_vcf],
         haplotype_database = haplotype_database,
@@ -112,12 +110,11 @@ workflow CompareSamplesWithoutTruth {
 
     call FindSamplesAndBenchmark.FindSamplesAndBenchmark as BenchmarkNonTruthVcfs {
       input:
-        input_callset = [ExtractFromInput.output_vcf],
+        input_callset = [ExtractFromInput.output_vcf[i]],
         ground_truth_files = [MergeVCFs.output_vcf],
         ground_truth_indexes = [MergeVCFs.output_vcf_index],
         ground_truth_intervals = [intersected_hiconf_intervals],
         truth_labels = [sample_name],
-        annotation_intervals = annotation_intervals,
         gatkJarForAnnotation = gatkJarForAnnotation,
         annotationName = annotationName,
         ref_fasta = ref_fasta,
