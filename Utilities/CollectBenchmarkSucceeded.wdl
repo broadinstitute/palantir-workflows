@@ -54,7 +54,7 @@ task CombineSucceededVCFs {
 
         # Combine all summaries into one and clean
         awk FNR-1 shard-*.csv >> CombinedBenchmarkSummaries.csv
-        rm shard-*.csv number.txt
+        rm shard-*.csv
     >>>
 
     runtime {
