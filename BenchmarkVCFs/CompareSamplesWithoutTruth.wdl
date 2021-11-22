@@ -13,7 +13,7 @@ workflow CompareSamplesWithoutTruth {
     Array[String] truth_labels
     Array[File] ground_truth_files
     Array[File] ground_truth_indexes
-    Array [File] ground_truth_intervals
+    Array[File] ground_truth_intervals
     File wgs_evaluation_regions = "gs://gcp-public-data--broad-references/hg38/v0/wgs_evaluation_regions.hg38.interval_list"
 
     File gatkJarForAnnotation
