@@ -97,7 +97,7 @@ workflow CompareSamplesWithoutTruth {
 
     call FindSamplesAndBenchmark.CrosscheckFingerprints as CheckFingerprintOfExtractedSample {
       input:
-        input_data = [ExtractFromInput.output_vcf[i]],
+        input_data = [ExtractFromInput.single_sample_vcfs[i]],
         metrics_basename = "crosscheck",
         ground_truth_files = [MergeVCFs.output_vcf],
         haplotype_database = haplotype_database,
@@ -110,7 +110,7 @@ workflow CompareSamplesWithoutTruth {
 
     call FindSamplesAndBenchmark.FindSamplesAndBenchmark as BenchmarkNonTruthVcfs {
       input:
-        input_callset = [ExtractFromInput.output_vcf[i]],
+        input_callset = [ExtractFromInput.single_sample_vcfs[i]],
         ground_truth_files = [MergeVCFs.output_vcf],
         ground_truth_indexes = [MergeVCFs.output_vcf_index],
         ground_truth_intervals = [intersected_hiconf_intervals],
