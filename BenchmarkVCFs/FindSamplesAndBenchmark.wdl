@@ -34,7 +34,6 @@ workflow FindSamplesAndBenchmark {
         Boolean doIndelLengthStratification=false
         Boolean requireMatchingGenotypes=true
 
-        String vcfScoreField="INFO.TREE_SCORE"
         String referenceVersion = "1"
         String gatkTag = "4.0.11.0"
 
