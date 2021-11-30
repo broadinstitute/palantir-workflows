@@ -45,3 +45,6 @@ workflows:
   - name: CKDRiskAdjustment
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/CKDRiskAdjustment.wdl
+  - name: CollectBenchmarkSucceeded
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/CollectBenchmarkSucceeded.wdl
