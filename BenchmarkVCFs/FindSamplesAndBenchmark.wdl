@@ -25,12 +25,18 @@ workflow FindSamplesAndBenchmark {
 
         String vcf_score_field
 
-        String gatkTag
         String docker
+        String bcftoolsDocker
 
         String? analysis_region
 
         Boolean remove_symbolic_alleles = false
+        Boolean passingOnly = true
+        Boolean doIndelLengthStratification = false
+        Boolean requireMatchingGenotypes = true
+
+        String referenceVersion = "1"
+        String gatkTag = "4.2.3.0"
 
         Array[File] stratIntervals = []
         Array[String] stratLabels = []
@@ -84,7 +90,8 @@ workflow FindSamplesAndBenchmark {
             input:
                 inputIntervals = interval_and_label.left,
                 refDict = ref_fasta_dict,
-                gatkTag = gatkTag
+                gatkTag = gatkTag,
+                dummyInputForTerraCallCaching = dummyInputForTerraCallCaching
         }
 
         call InvertIntervalList {
@@ -112,7 +119,7 @@ workflow FindSamplesAndBenchmark {
                     callset = match.leftFile,
                     sample = match.leftSample,
                     basename = match.leftSample + ".extracted",
-                    gatkTag = gatkTag
+                    bcftoolsDocker = bcftoolsDocker
             }
 
             call Benchmark.Benchmark as BenchmarkVCF{
@@ -133,11 +140,11 @@ workflow FindSamplesAndBenchmark {
                      stratLabels = allStratLabels, 
                      jexlVariantSelectors = jexlVariantSelectors,
                      variantSelectorLabels = variantSelectorLabels,
-                     referenceVersion = "1",
-                     doIndelLengthStratification = false,
+                     referenceVersion = referenceVersion,
+                     doIndelLengthStratification = doIndelLengthStratification,
                      gatkTag = gatkTag,
-                     requireMatchingGenotypes = true,
-                     passingOnly = true,
+                     requireMatchingGenotypes = requireMatchingGenotypes,
+                     passingOnly = passingOnly,
                      vcfScoreField = vcf_score_field,
                      gatkJarForAnnotation = gatkJarForAnnotation,
                      annotationNames = annotationNames
@@ -296,38 +303,32 @@ task PickMatches {
     }
 }
 
-task ExtractSampleFromCallset { 
+task ExtractSampleFromCallset {
     input {
         File callset
         String sample
         String basename
-        String gatkTag
+        String bcftoolsDocker = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0"
     }
+    Int disk_size = ceil(size(callset, "GB") + 30)
+    File sampleNamesToExtract = write_lines([sample])
     command <<<
-
         set -xe
-
-        # Silly GATK needs an indexed file....
-        gatk --java-options "-Xmx4g"  \
-            IndexFeatureFile \
-            -I ~{callset} 
-
-        gatk --java-options "-Xmx4g"  \
-            SelectVariants \
-            -V ~{callset} \
-            -sn ~{sample} \
-            -O ~{basename}.vcf.gz
+        mkdir out_dir
+        bcftools +split ~{callset} -Oz -o out_dir -S ~{sampleNamesToExtract} -i'GT="alt"'
+        mv out_dir/~{sample}.vcf.gz ~{basename}.vcf.gz
+        bcftools index -t ~{basename}.vcf.gz
     >>>
     output {
         File output_vcf = "~{basename}.vcf.gz"
         File output_vcf_index = "~{basename}.vcf.gz.tbi"
-    } 
+    }
     runtime{
-        disks: "local-disk " + 40 + " LOCAL"
+        disks: "local-disk " + disk_size + " LOCAL"
         cpu: 1
         memory: 5 + " GB"
-        docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
-    }   
+        docker: bcftoolsDocker
+    }
 }
 
 # only works with simple maps (two columns)
