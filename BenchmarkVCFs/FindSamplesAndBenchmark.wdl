@@ -60,7 +60,7 @@ workflow FindSamplesAndBenchmark {
     call MakeStringMap as lablesMap    {input: keys=ground_truth_files, values=truth_labels}
     call MakeStringMap as indexesMap   {input: keys=ground_truth_files, values=ground_truth_indexes}
     call MakeStringMap as evalLabelsMap {input: keys=input_callset,     values=input_callset_labels}
- 
+
     Map[File, File]   truthIntervals = intervalsMap.map
     Map[File, String] truthLabels    = lablesMap.map
     Map[File, File]   truthIndex     = indexesMap.map
@@ -98,7 +98,8 @@ workflow FindSamplesAndBenchmark {
             input:
                 interval_list = ConvertIntervals.intervalList,
                 docker = docker,
-                picard_jar = picard_cloud_jar
+                picard_jar = picard_cloud_jar,
+                dummyInputForTerraCallCaching = dummyInputForTerraCallCaching
         }
         String notLabel="NOT_" + interval_and_label.right
     }
@@ -412,6 +413,7 @@ task InvertIntervalList{
         File interval_list
         String docker
         File picard_jar
+        String? dummyInputForTerraCallCaching
     }
 
     command <<<
