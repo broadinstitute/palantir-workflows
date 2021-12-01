@@ -13,7 +13,7 @@ workflow FindSamplesAndBenchmark {
         Array[File] annotation_intervals
 
         File? gatkJarForAnnotation
-        Array[String]? annotationNames=[]
+        Array[String]? annotationNames = []
   
         File ref_fasta
         File ref_fasta_index
@@ -25,14 +25,15 @@ workflow FindSamplesAndBenchmark {
 
         String vcf_score_field
 
+        String gatkTag
         String docker
 
         String? analysis_region
 
-        Boolean remove_symbolic_alleles=false
+        Boolean remove_symbolic_alleles = false
 
-        Array[File] stratIntervals=[]
-        Array[String] stratLabels=[]
+        Array[File] stratIntervals = []
+        Array[String] stratLabels = []
 
         Array[String] jexlVariantSelectors = ["vc.isSimpleIndel()  && vc.getIndelLengths().0<0", "vc.isSimpleIndel() && vc.getIndelLengths().0>0"]
         Array[String] variantSelectorLabels = ["deletion","insertion"]
@@ -83,7 +84,7 @@ workflow FindSamplesAndBenchmark {
             input:
                 inputIntervals = interval_and_label.left,
                 refDict = ref_fasta_dict,
-                gatkTag = "4.0.11.0"
+                gatkTag = gatkTag
         }
 
         call InvertIntervalList {
@@ -108,9 +109,10 @@ workflow FindSamplesAndBenchmark {
 
             call ExtractSampleFromCallset {
                 input:
-                    callset=match.leftFile,
-                    sample=match.leftSample,
-                    basename=match.leftSample + ".extracted"
+                    callset = match.leftFile,
+                    sample = match.leftSample,
+                    basename = match.leftSample + ".extracted",
+                    gatkTag = gatkTag
             }
 
             call Benchmark.Benchmark as BenchmarkVCF{
@@ -132,10 +134,10 @@ workflow FindSamplesAndBenchmark {
                      jexlVariantSelectors = jexlVariantSelectors,
                      variantSelectorLabels = variantSelectorLabels,
                      referenceVersion = "1",
-                     doIndelLengthStratification=false,
-                     gatkTag="4.0.11.0",
-                     requireMatchingGenotypes=true,
-                     passingOnly=true,
+                     doIndelLengthStratification = false,
+                     gatkTag = gatkTag,
+                     requireMatchingGenotypes = true,
+                     passingOnly = true,
                      vcfScoreField = vcf_score_field,
                      gatkJarForAnnotation = gatkJarForAnnotation,
                      annotationNames = annotationNames
@@ -148,16 +150,17 @@ workflow FindSamplesAndBenchmark {
             if (remove_symbolic_alleles){
                 call FilterSymbolicAlleles{
                     input:
-                        monitoring_script=monitoring_script,
-                        input_vcf=ExtractSampleFromCallset.output_vcf,
-                        input_vcf_index=ExtractSampleFromCallset.output_vcf_index,
-                        output_basename=match.leftSample + ".noSymbolicAlleles",
+                        monitoring_script = monitoring_script,
+                        input_vcf = ExtractSampleFromCallset.output_vcf,
+                        input_vcf_index = ExtractSampleFromCallset.output_vcf_index,
+                        output_basename = match.leftSample + ".noSymbolicAlleles",
                         ref_fasta = ref_fasta,
                         ref_fasta_index = ref_fasta_index,
                         ref_fasta_dict = ref_fasta_dict,
                         disk_size = round(compareSize),
                         preemptible_tries = 3,
                         no_address = true,
+                        gatkTag = gatkTag
                 }
 
                 Pair[File,File] vcf_and_index_symbolic_removed = zip([FilterSymbolicAlleles.output_vcf],[FilterSymbolicAlleles.output_vcf_index])[0]
@@ -298,6 +301,7 @@ task ExtractSampleFromCallset {
         File callset
         String sample
         String basename
+        String gatkTag
     }
     command <<<
 
@@ -322,7 +326,7 @@ task ExtractSampleFromCallset {
         disks: "local-disk " + 40 + " LOCAL"
         cpu: 1
         memory: 5 + " GB"
-        docker: "broadinstitute/gatk:4.1.4.1"
+        docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
     }   
 }
 
@@ -358,6 +362,7 @@ task FilterSymbolicAlleles {
     File ref_fasta_dict
     Int preemptible_tries
     Boolean no_address
+    String gatkTag
   }
   command <<<
     bash ~{monitoring_script} > monitoring.log &
@@ -390,7 +395,7 @@ task FilterSymbolicAlleles {
     memory: "12 GB"
     cpu: "1"
     disks: "local-disk " + ceil(disk_size) + " HDD"
-    docker: "broadinstitute/gatk:4.1.4.1" 
+    docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
     noAddress: no_address
     maxRetries: 1
   }
