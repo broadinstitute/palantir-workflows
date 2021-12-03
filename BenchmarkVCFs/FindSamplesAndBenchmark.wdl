@@ -1,5 +1,5 @@
 version 1.0
-import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/BenchmarkVCFs/BenchmarkVCFs.wdl" as Benchmark
+import "BenchmarkVCFs.wdl" as Benchmark
 
 workflow FindSamplesAndBenchmark {
 
