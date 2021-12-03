@@ -1,8 +1,8 @@
 version 1.0
-import "BenchmarkVCFs.wdl" as Benchmark
+import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/BenchmarkVCFs/BenchmarkVCFs.wdl" as Benchmark
 
 workflow FindSamplesAndBenchmark {
-    
+
     input {
         Array[File] input_callset
         Array[String] input_callset_labels
@@ -10,23 +10,21 @@ workflow FindSamplesAndBenchmark {
         Array[File] ground_truth_indexes
         Array[File] ground_truth_intervals
         Array[String] truth_labels
-        Array[File] annotation_intervals
 
         File? gatkJarForAnnotation
         Array[String]? annotationNames = []
-  
+
         File ref_fasta
         File ref_fasta_index
         File ref_fasta_dict
-        File ref_fasta_sdf
 
-        File haplotype_database 
-        File picard_cloud_jar
+        File haplotype_database = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.haplotype_database.txt"
+        File picard_cloud_jar = "gs://broad-dsde-methods/picard/picardcloud-2.26.6.jar"
 
-        String vcf_score_field
+        String vcf_score_field = "INFO.TREE_SCORE"
 
-        String docker
-        String bcftoolsDocker
+        String picardDocker = "us.gcr.io/broad-gatk/gatk:4.2.3.0"
+        String bcftoolsDocker = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0"
 
         String? analysis_region
 
@@ -45,43 +43,45 @@ workflow FindSamplesAndBenchmark {
         Array[String] variantSelectorLabels = ["deletion","insertion"]
         # Input for monitoring_script can be found here: https://github.com/broadinstitute/palantir-workflows/blob/main/Scripts/monitoring/cromwell_monitoring_script.sh.
         # It must be copied to a google bucket and then the google bucket path can be used as the input for monitoring_script.
-        File monitoring_script
+        File monitoring_script = "gs://broad-dsde-methods-hydro-gen-truth-data-public/scripts/cromwell_monitoring_script.sh"
 
         String? dummyInputForTerraCallCaching
     }
 
     parameter_meta {
-      input_callset_labels: {description:"Labels for each input callset that is being evaluated. This will include this label in the output summary table under the 'Name' column."}
+        input_callset_labels: {description:"Labels for each input callset that is being evaluated. This will include this label in the output summary table under the 'Name' column."}
     }
 
     Int VCF_disk_size = ceil(size(input_callset, "GiB")) + 10
 
     call MakeStringMap as intervalsMap {input: keys=ground_truth_files, values=ground_truth_intervals}
-    call MakeStringMap as lablesMap    {input: keys=ground_truth_files, values=truth_labels}
+    call MakeStringMap as labelsMap    {input: keys=ground_truth_files, values=truth_labels}
     call MakeStringMap as indexesMap   {input: keys=ground_truth_files, values=ground_truth_indexes}
     call MakeStringMap as evalLabelsMap {input: keys=input_callset,     values=input_callset_labels}
 
     Map[File, File]   truthIntervals = intervalsMap.map
-    Map[File, String] truthLabels    = lablesMap.map
+    Map[File, String] truthLabels    = labelsMap.map
     Map[File, File]   truthIndex     = indexesMap.map
     Map[File, String] evalLabels     = evalLabelsMap.map
 
     call CrosscheckFingerprints {
-         input:
-           input_data = input_callset,
-           metrics_basename = "crosscheck",
-           ground_truth_files = ground_truth_files,
-           haplotype_database = haplotype_database,
-           disk_size = VCF_disk_size,
-           preemptible_tries = 3,
-           docker = docker,
-           monitoring_script = monitoring_script,
-           picard_jar = picard_cloud_jar,
-        }
+        input:
+            input_data = input_callset,
+            metrics_basename = "crosscheck",
+            ground_truth_files = ground_truth_files,
+            haplotype_database = haplotype_database,
+            disk_size = VCF_disk_size,
+            preemptible_tries = 3,
+            docker = picardDocker,
+            monitoring_script = monitoring_script,
+            picard_jar = picard_cloud_jar,
+    }
 
     call PickMatches {
         input:
-            crosscheck_results = CrosscheckFingerprints.crosscheck
+            crosscheck_results = CrosscheckFingerprints.crosscheck,
+            ground_truth_global = CrosscheckFingerprints.ground_truth_global,
+            ground_truth_local = CrosscheckFingerprints.ground_truth_local
     }
 
 
@@ -97,7 +97,7 @@ workflow FindSamplesAndBenchmark {
         call InvertIntervalList {
             input:
                 interval_list = ConvertIntervals.intervalList,
-                docker = docker,
+                docker = picardDocker,
                 picard_jar = picard_cloud_jar,
                 dummyInputForTerraCallCaching = dummyInputForTerraCallCaching
         }
@@ -108,74 +108,73 @@ workflow FindSamplesAndBenchmark {
     Array[File] allStratLabels=flatten([stratLabels,notLabel])
 
     scatter(matchArray in PickMatches.matches) {
-            Match match = object{
-                leftFile: matchArray[0],
-                leftSample: matchArray[1],
-                rightFile: matchArray[2],
-                rightSample: matchArray[3]
-            }
+        Match match = object{
+                          leftFile: matchArray[0],
+                          leftSample: matchArray[1],
+                          rightFile: matchArray[2],
+                          rightSample: matchArray[3]
+                      }
 
-            call ExtractSampleFromCallset {
+        call ExtractSampleFromCallset {
+            input:
+                callset = match.leftFile,
+                sample = match.leftSample,
+                basename = match.leftSample + ".extracted"
+        }
+
+        call Benchmark.Benchmark as BenchmarkVCF{
+            input:
+                analysisRegion = analysis_region,
+                evalVcf = ExtractSampleFromCallset.output_vcf,
+                evalLabel = evalLabels[match.leftFile],
+                evalVcfIndex = ExtractSampleFromCallset.output_vcf_index,
+                truthVcf = match.rightFile,
+                confidenceInterval = truthIntervals[match.rightFile],
+                truthLabel = match.rightSample,
+                truthVcfIndex = truthIndex[match.rightFile],
+                reference = ref_fasta,
+                refIndex = ref_fasta_index,
+                refDict = ref_fasta_dict,
+                hapMap = haplotype_database,
+                stratIntervals = allStratIntervals,
+                stratLabels = allStratLabels,
+                jexlVariantSelectors = jexlVariantSelectors,
+                variantSelectorLabels = variantSelectorLabels,
+                referenceVersion = referenceVersion,
+                doIndelLengthStratification = doIndelLengthStratification,
+                gatkTag = gatkTag,
+                requireMatchingGenotypes = requireMatchingGenotypes,
+                passingOnly = passingOnly,
+                vcfScoreField = vcf_score_field,
+                gatkJarForAnnotation = gatkJarForAnnotation,
+                annotationNames = annotationNames
+        }
+
+        Pair[File,File] vcf_and_index_original = zip([ExtractSampleFromCallset.output_vcf],[ExtractSampleFromCallset.output_vcf_index])[0]
+
+        Float compareSize = 3*size([ExtractSampleFromCallset.output_vcf,match.rightFile,ref_fasta], "GiB")
+
+        if (remove_symbolic_alleles){
+            call FilterSymbolicAlleles{
                 input:
-                    callset = match.leftFile,
-                    sample = match.leftSample,
-                    basename = match.leftSample + ".extracted",
-                    bcftoolsDocker = bcftoolsDocker
+                    monitoring_script = monitoring_script,
+                    input_vcf = ExtractSampleFromCallset.output_vcf,
+                    input_vcf_index = ExtractSampleFromCallset.output_vcf_index,
+                    output_basename = match.leftSample + ".noSymbolicAlleles",
+                    ref_fasta = ref_fasta,
+                    ref_fasta_index = ref_fasta_index,
+                    ref_fasta_dict = ref_fasta_dict,
+                    disk_size = round(compareSize),
+                    preemptible_tries = 3,
+                    no_address = true,
+                    gatkTag = gatkTag
             }
 
-            call Benchmark.Benchmark as BenchmarkVCF{
-                input:
-                     analysisRegion = analysis_region,
-                     evalVcf = ExtractSampleFromCallset.output_vcf,
-                     evalLabel = evalLabels[match.leftFile],
-                     evalVcfIndex = ExtractSampleFromCallset.output_vcf_index,
-                     truthVcf = match.rightFile,
-                     confidenceInterval = truthIntervals[match.rightFile],
-                     truthLabel = match.rightSample,
-                     truthVcfIndex = truthIndex[match.rightFile],
-                     reference = ref_fasta,
-                     refIndex = ref_fasta_index,
-                     refDict = ref_fasta_dict,
-                     hapMap = haplotype_database,
-                     stratIntervals = allStratIntervals,
-                     stratLabels = allStratLabels, 
-                     jexlVariantSelectors = jexlVariantSelectors,
-                     variantSelectorLabels = variantSelectorLabels,
-                     referenceVersion = referenceVersion,
-                     doIndelLengthStratification = doIndelLengthStratification,
-                     gatkTag = gatkTag,
-                     requireMatchingGenotypes = requireMatchingGenotypes,
-                     passingOnly = passingOnly,
-                     vcfScoreField = vcf_score_field,
-                     gatkJarForAnnotation = gatkJarForAnnotation,
-                     annotationNames = annotationNames
-                 }
-
-            Pair[File,File] vcf_and_index_original = zip([ExtractSampleFromCallset.output_vcf],[ExtractSampleFromCallset.output_vcf_index])[0]
-            
-            Float compareSize = 3*size([ExtractSampleFromCallset.output_vcf,match.rightFile,ref_fasta,ref_fasta_sdf], "GiB")
-
-            if (remove_symbolic_alleles){
-                call FilterSymbolicAlleles{
-                    input:
-                        monitoring_script = monitoring_script,
-                        input_vcf = ExtractSampleFromCallset.output_vcf,
-                        input_vcf_index = ExtractSampleFromCallset.output_vcf_index,
-                        output_basename = match.leftSample + ".noSymbolicAlleles",
-                        ref_fasta = ref_fasta,
-                        ref_fasta_index = ref_fasta_index,
-                        ref_fasta_dict = ref_fasta_dict,
-                        disk_size = round(compareSize),
-                        preemptible_tries = 3,
-                        no_address = true,
-                        gatkTag = gatkTag
-                }
-
-                Pair[File,File] vcf_and_index_symbolic_removed = zip([FilterSymbolicAlleles.output_vcf],[FilterSymbolicAlleles.output_vcf_index])[0]
-            }
+            Pair[File,File] vcf_and_index_symbolic_removed = zip([FilterSymbolicAlleles.output_vcf],[FilterSymbolicAlleles.output_vcf_index])[0]
+        }
 
 
-            Pair[File,File] vcf_and_index_to_compare = select_first([vcf_and_index_symbolic_removed,vcf_and_index_original])
+        Pair[File,File] vcf_and_index_to_compare = select_first([vcf_and_index_symbolic_removed,vcf_and_index_original])
 
     }
     call Benchmark.CombineSummaries as CombineSummaries{
@@ -184,12 +183,11 @@ workflow FindSamplesAndBenchmark {
             preemptible = 1
     }
 
-   output {
-    File benchmark_vcf_summary = CombineSummaries.summaryOut
-    File crosscheck = CrosscheckFingerprints.crosscheck
-    Array[Array[String]] matches = PickMatches.matches
-
-   }
+    output {
+        File benchmark_vcf_summary = CombineSummaries.summaryOut
+        File crosscheck = CrosscheckFingerprints.crosscheck
+        Array[Array[String]] matches = PickMatches.matches
+    }
 }
 
 struct Truth {
@@ -213,96 +211,108 @@ struct Match{
 }
 
 task CrosscheckFingerprints {
-  input {
-    File monitoring_script
-    Array[File] input_data
-    String metrics_basename
-    Array[File] ground_truth_files
-    File haplotype_database
-    Int disk_size
-    Int preemptible_tries
-    String docker
-    File picard_jar
-  }
-  parameter_meta {
-    input_data: {
-      localization_optional: true
+    input {
+        File monitoring_script
+        Array[File] input_data
+        String metrics_basename
+        Array[File] ground_truth_files
+        File haplotype_database
+        Int disk_size
+        Int preemptible_tries
+        String docker
+        File picard_jar
     }
-   
-    ground_truth_files: {
-      localization_optional: true
+    parameter_meta {
+        input_data: {
+                        localization_optional: true
+                    }
+
+        ground_truth_files: {
+                                localization_optional: false
+                            }
     }
-  }  
-  
-  String tsv_out="~{metrics_basename}.fingerprints_metrics"
 
-  command <<<
-    bash ~{monitoring_script} > /cromwell_root/monitoring.log &
+    String tsv_out="~{metrics_basename}.fingerprints_metrics"
+    Array[String] ground_truth_strings = ground_truth_files
 
-    
-    java -Xmx7g -jar ~{picard_jar} CrosscheckFingerprints \
-      INPUT=~{sep=" INPUT=" input_data} \
-      SECOND_INPUT=~{sep=" SECOND_INPUT=" ground_truth_files} \
-      HAPLOTYPE_MAP=~{haplotype_database} \
-      LOD_THRESHOLD=-5 \
-      OUTPUT=~{tsv_out} \
-      CROSSCHECK_BY=FILE \
-      CROSSCHECK_MODE=CHECK_ALL_OTHERS \
-      TEST_INPUT_READABILITY=false \
-      EXIT_CODE_WHEN_MISMATCH=5
-      
-   >>>
-   output {
-    File crosscheck = tsv_out
-   }
+    command <<<
+        bash ~{monitoring_script} > /cromwell_root/monitoring.log &
 
-   runtime {
-    preemptible: preemptible_tries
-    memory: "8 GB"
-    disks: "local-disk " + disk_size + " HDD"
-    docker: docker
-    noAddress: false
-    maxRetries: 1
-    continueOnReturnCode: [0,5]
-  }
+
+        java -Xmx7g -jar ~{picard_jar} CrosscheckFingerprints \
+        INPUT=~{sep=" INPUT=" input_data} \
+        SECOND_INPUT=~{sep=" SECOND_INPUT=" ground_truth_files} \
+        HAPLOTYPE_MAP=~{haplotype_database} \
+        LOD_THRESHOLD=-5 \
+        OUTPUT=~{tsv_out} \
+        CROSSCHECK_BY=FILE \
+        CROSSCHECK_MODE=CHECK_ALL_OTHERS \
+        TEST_INPUT_READABILITY=false \
+        EXIT_CODE_WHEN_MISMATCH=5
+
+        # Put local Cromwell paths into one file, and global bucket paths into another
+        echo "LOCAL" > ground_truth_files.csv
+        echo "~{sep="\n" ground_truth_files}" >> ground_truth_files.csv
+        echo "GLOBAL" > ground_truth_strings.csv
+        echo "~{sep="\n" ground_truth_strings}" >> ground_truth_strings.csv
+    >>>
+    output {
+        File crosscheck = tsv_out
+        File ground_truth_local = "ground_truth_files.csv"
+        File ground_truth_global = "ground_truth_strings.csv"
+    }
+
+    runtime {
+        preemptible: preemptible_tries
+        memory: "8 GB"
+        disks: "local-disk " + disk_size + " HDD"
+        docker: docker
+        noAddress: false
+        maxRetries: 1
+        continueOnReturnCode: [0,5]
+    }
 }
 
 task PickMatches {
     input {
         File crosscheck_results
+        File ground_truth_local
+        File ground_truth_global
     }
 
     command <<<
+        python <<CODE
+        import pandas as pd
 
-        cat <<- 'AWK' > prog.awk
-        BEGIN{
-            OFS="	";
-            parsedhead=0;
-        }
-        /^#/{next} 
-        /^$/{next} 
-        parsedhead==0 {
-            parsedhead=1;
-            for (i=1; i<=NF; i++) {
-                f[$i] = i
-            };
-            next;
-            } 
-        $(f["RESULT"])!~/MISMATCH/ && $(f["RESULT"])~/MATCH/ {
-            print $(f["LEFT_FILE"]), $(f["LEFT_SAMPLE"]), $(f["RIGHT_FILE"]), $(f["RIGHT_SAMPLE"])
-            } 
-        AWK
+        # Import crosscheck results into DataFrame
+        crosscheck = pd.read_csv("~{crosscheck_results}", sep='\t', skiprows=6)
 
+        # Find the pairs which were (expected/unexpected) matches
+        match_list = crosscheck[-crosscheck['RESULT'].str.contains('MISMATCH')]
 
-        awk -F'\t' -f prog.awk ~{crosscheck_results} > matches.tsv
+        # Fix file path back to cloud rather than localized version
+        truth_files_local = pd.read_csv("~{ground_truth_local}")
+        truth_files = pd.read_csv("~{ground_truth_global}")
+        truth_files['LOCAL'] = "file://" + truth_files_local   # Fixes some formatting issue from the crosscheck output
+        local_to_global = dict(zip(truth_files.LOCAL, truth_files.GLOBAL))
+        match_list['RIGHT_FILE'] = match_list['RIGHT_FILE'].map(local_to_global)
+
+        # Write out the left/right files/samples from the list of matches
+        match_list[['LEFT_FILE', 'LEFT_SAMPLE', 'RIGHT_FILE', 'RIGHT_SAMPLE']].to_csv("matches.tsv", sep='\t', index=False, header=False)
+
+        CODE
     >>>
+
     output {
         Array[Array[String]] matches = read_tsv("matches.tsv")
     }
+
     runtime {
-        docker: "ubuntu"
+        docker: "us.gcr.io/broad-dsde-methods/rm-python-data-slim"
     }
 }
+
+
 
 task ExtractSampleFromCallset {
     input {
@@ -332,6 +342,7 @@ task ExtractSampleFromCallset {
     }
 }
 
+
 # only works with simple maps (two columns)
 task MakeStringMap {
     input {
@@ -341,7 +352,7 @@ task MakeStringMap {
 
     String results_path = "results.tsv"
     command <<<
-       cat ~{write_tsv(transpose([keys,values]))} > ~{results_path} 
+        cat ~{write_tsv(transpose([keys,values]))} > ~{results_path}
     >>>
     runtime {
         docker: "python:3"
@@ -352,60 +363,60 @@ task MakeStringMap {
 }
 
 
-task FilterSymbolicAlleles { 
-  input {
-    File monitoring_script
-    File input_vcf
-    File input_vcf_index
-    String output_basename
-    Int disk_size
-    File ref_fasta
-    File ref_fasta_index
-    File ref_fasta_dict
-    Int preemptible_tries
-    Boolean no_address
-    String gatkTag
-  }
-  command <<<
-    bash ~{monitoring_script} > monitoring.log &
-   
-    set -e
+task FilterSymbolicAlleles {
+    input {
+        File monitoring_script
+        File input_vcf
+        File input_vcf_index
+        String output_basename
+        Int disk_size
+        File ref_fasta
+        File ref_fasta_index
+        File ref_fasta_dict
+        Int preemptible_tries
+        Boolean no_address
+        String gatkTag
+    }
+    command <<<
+        bash ~{monitoring_script} > monitoring.log &
 
-    gatk --java-options "-Xmx10g" LeftAlignAndTrimVariants \
+        set -e
+
+        gatk --java-options "-Xmx10g" LeftAlignAndTrimVariants \
         -V  ~{input_vcf} \
         -O ~{output_basename}.tmp1.vcf.gz \
         --reference ~{ref_fasta} \
-        --split-multi-allelics  
+        --split-multi-allelics
 
-    rm ~{input_vcf}
+        rm ~{input_vcf}
 
-    gatk --java-options "-Xmx10g"  SelectVariants \
-          -V ~{output_basename}.tmp1.vcf.gz \
-          -O ~{output_basename}.tmp2.vcf.gz \
-          --remove-unused-alternates
+        gatk --java-options "-Xmx10g"  SelectVariants \
+        -V ~{output_basename}.tmp1.vcf.gz \
+        -O ~{output_basename}.tmp2.vcf.gz \
+        --remove-unused-alternates
 
-    rm ~{output_basename}.tmp1.vcf.gz
+        rm ~{output_basename}.tmp1.vcf.gz
 
-    gatk --java-options "-Xmx10g" SelectVariants \
-          -V ~{output_basename}.tmp2.vcf.gz \
-          -O ~{output_basename}.vcf.gz \
-          --exclude-non-variants \
-          --select-type-to-exclude SYMBOLIC
-  >>>
-  runtime {
-    preemptible: preemptible_tries
-    memory: "12 GB"
-    cpu: "1"
-    disks: "local-disk " + ceil(disk_size) + " HDD"
-    docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
-    noAddress: no_address
-    maxRetries: 1
-  }
-  output {
-    File output_vcf = "~{output_basename}.vcf.gz"
-    File output_vcf_index = "~{output_basename}.vcf.gz.tbi"
-    File monitoring_log = "monitoring.log"
-  }
+        gatk --java-options "-Xmx10g" SelectVariants \
+        -V ~{output_basename}.tmp2.vcf.gz \
+        -O ~{output_basename}.vcf.gz \
+        --exclude-non-variants \
+        --select-type-to-exclude SYMBOLIC
+    >>>
+    runtime {
+        preemptible: preemptible_tries
+        memory: "12 GB"
+        cpu: "1"
+        disks: "local-disk " + ceil(disk_size) + " HDD"
+        docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
+        noAddress: no_address
+        maxRetries: 1
+    }
+    output {
+        File output_vcf = "~{output_basename}.vcf.gz"
+        File output_vcf_index = "~{output_basename}.vcf.gz.tbi"
+        File monitoring_log = "monitoring.log"
+    }
 }
 
 task InvertIntervalList{
@@ -418,9 +429,9 @@ task InvertIntervalList{
 
     command <<<
         java -Xmx5g -jar ~{picard_jar} IntervalListTools \
-            I=~{interval_list} \
-            O=~{"NOT" + basename(interval_list)} \
-            INVERT=true
+        I=~{interval_list} \
+        O=~{"NOT" + basename(interval_list)} \
+        INVERT=true
     >>>
     output {
         File output_interval = "NOT" + basename(interval_list)
