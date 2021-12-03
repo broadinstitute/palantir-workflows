@@ -15,8 +15,8 @@ workflow Benchmark {
         File refIndex
         File refDict
         File hapMap
-        Array[File]? stratIntervals
-        Array[String]? stratLabels
+        Array[File] stratIntervals = []
+        Array[String] stratLabels = []
         Array[String]? jexlVariantSelectors
         Array[String]? variantSelectorLabels
         String referenceVersion
@@ -77,8 +77,8 @@ workflow Benchmark {
         }
     }
 
-    Array[File] actualStratIntervals=flatten(select_all([[""],stratIntervals]))
-    Array[String] actualStratLabels=flatten(select_all([[""],stratLabels]))
+    Array[File] actualStratIntervals=flatten([[""], stratIntervals])
+    Array[String] actualStratLabels=flatten([[""], stratLabels])
     Array[String] actualSelectorLabels=select_first([variantSelectorLabels,[""]])
     Array[String] actualSelectorJEXL=select_first([jexlVariantSelectors,[""]])
 

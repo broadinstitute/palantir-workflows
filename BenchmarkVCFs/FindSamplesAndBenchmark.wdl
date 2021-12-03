@@ -104,8 +104,8 @@ workflow FindSamplesAndBenchmark {
         String notLabel="NOT_" + interval_and_label.right
     }
 
-    Array[File] allStratIntervals=flatten([stratIntervals,InvertIntervalList.output_interval])
-    Array[File] allStratLabels=flatten([stratLabels,notLabel])
+    Array[File] allStratIntervals = flatten([stratIntervals,InvertIntervalList.output_interval])
+    Array[String] allStratLabels = flatten([stratLabels,notLabel])
 
     scatter(matchArray in PickMatches.matches) {
         Match match = object{
