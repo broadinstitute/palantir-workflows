@@ -10,7 +10,6 @@ workflow FindSamplesAndBenchmark {
         Array[File] ground_truth_indexes
         Array[File] ground_truth_intervals
         Array[String] truth_labels
-        Array[File] annotation_intervals
 
         File? gatkJarForAnnotation
         Array[String]? annotationNames=[]
@@ -18,14 +17,13 @@ workflow FindSamplesAndBenchmark {
         File ref_fasta
         File ref_fasta_index
         File ref_fasta_dict
-        File ref_fasta_sdf
 
         File haplotype_database 
         File picard_cloud_jar
 
         String vcf_score_field
 
-        String docker
+        String docker = "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.4.6-1599252698"
 
         String? analysis_region
 
@@ -104,8 +102,8 @@ workflow FindSamplesAndBenchmark {
         String notLabel="NOT_" + interval_and_label.right
     }
 
-    Array[File] allStratIntervals=flatten([stratIntervals,InvertIntervalList.output_interval])
-    Array[File] allStratLabels=flatten([stratLabels,notLabel])
+    Array[File] allStratIntervals = flatten([stratIntervals,InvertIntervalList.output_interval])
+    Array[String] allStratLabels = flatten([stratLabels,notLabel])
 
     scatter(matchArray in PickMatches.matches) {
             Match match = object{
@@ -121,38 +119,37 @@ workflow FindSamplesAndBenchmark {
                     sample=match.leftSample,
                     basename=match.leftSample + ".extracted"
             }
-
             call Benchmark.Benchmark as BenchmarkVCF{
                 input:
-                     analysisRegion = analysis_region,
-                     evalVcf = ExtractSampleFromCallset.output_vcf,
-                     evalLabel = evalLabels[match.leftFile],
-                     evalVcfIndex = ExtractSampleFromCallset.output_vcf_index,
-                     truthVcf = match.rightFile,
-                     confidenceInterval = truthIntervals[match.rightFile],
-                     truthLabel = match.rightSample,
-                     truthVcfIndex = truthIndex[match.rightFile],
-                     reference = ref_fasta,
-                     refIndex = ref_fasta_index,
-                     refDict = ref_fasta_dict,
-                     hapMap = haplotype_database,
-                     stratIntervals = allStratIntervals,
-                     stratLabels = allStratLabels, 
-                     jexlVariantSelectors = jexlVariantSelectors,
-                     variantSelectorLabels = variantSelectorLabels,
-                     referenceVersion = referenceVersion,
-                     doIndelLengthStratification=doIndelLengthStratification,
-                     gatkTag = gatkTag,
-                     requireMatchingGenotypes=requireMatchingGenotypes,
-                     passingOnly=passingOnly,
-                     vcfScoreField = vcf_score_field,
-                     gatkJarForAnnotation = gatkJarForAnnotation,
-                     annotationNames = annotationNames
-                 }
+                    analysisRegion = analysis_region,
+                    evalVcf = ExtractSampleFromCallset.output_vcf,
+                    evalLabel = evalLabels[match.leftFile],
+                    evalVcfIndex = ExtractSampleFromCallset.output_vcf_index,
+                    truthVcf = match.rightFile,
+                    confidenceInterval = truthIntervals[match.rightFile],
+                    truthLabel = match.rightSample,
+                    truthVcfIndex = truthIndex[match.rightFile],
+                    reference = ref_fasta,
+                    refIndex = ref_fasta_index,
+                    refDict = ref_fasta_dict,
+                    hapMap = haplotype_database,
+                    stratIntervals = allStratIntervals,
+                    stratLabels = allStratLabels, 
+                    jexlVariantSelectors = jexlVariantSelectors,
+                    variantSelectorLabels = variantSelectorLabels,
+                    referenceVersion = referenceVersion,
+                    doIndelLengthStratification=doIndelLengthStratification,
+                    gatkTag = gatkTag,
+                    requireMatchingGenotypes=requireMatchingGenotypes,
+                    passingOnly=passingOnly,
+                    vcfScoreField = vcf_score_field,
+                    gatkJarForAnnotation = gatkJarForAnnotation,
+                    annotationNames = annotationNames
+                }
 
             Pair[File,File] vcf_and_index_original = zip([ExtractSampleFromCallset.output_vcf],[ExtractSampleFromCallset.output_vcf_index])[0]
             
-            Float compareSize = 3*size([ExtractSampleFromCallset.output_vcf,match.rightFile,ref_fasta,ref_fasta_sdf], "GiB")
+            Float compareSize = 3*size([ExtractSampleFromCallset.output_vcf,match.rightFile,ref_fasta], "GiB")
 
             if (remove_symbolic_alleles){
                 call FilterSymbolicAlleles{
