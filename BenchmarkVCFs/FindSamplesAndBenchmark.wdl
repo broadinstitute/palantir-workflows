@@ -130,7 +130,7 @@ workflow FindSamplesAndBenchmark {
                 evalVcfIndex = ExtractSampleFromCallset.output_vcf_index,
                 truthVcf = match.rightFile,
                 confidenceInterval = truthIntervals[match.rightFile],
-                truthLabel = match.rightSample,
+                truthLabel = truthLabels[match.rightFile],
                 truthVcfIndex = truthIndex[match.rightFile],
                 reference = ref_fasta,
                 refIndex = ref_fasta_index,
