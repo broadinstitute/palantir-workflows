@@ -212,7 +212,7 @@ workflow ImputationPipeline {
   Array[File] phased_vcfs = flatten(chromosome_vcfs)
   Array[File] phased_vcf_indices = flatten(chromosome_vcf_indices)
 
-  call GatherVcfs { 
+  call GatherVcfsCloud { 
     input: 
       input_vcfs = phased_vcfs,
       input_vcf_indices = phased_vcf_indices,
@@ -222,7 +222,7 @@ workflow ImputationPipeline {
 
   call ExtractIDs {
     input:
-        vcf = GatherVcfs.output_vcf,
+        vcf = GatherVcfsCloud.output_vcf,
         output_basename = "imputed_sites",
         bcftools_docker = bcftools_docker_tag
   }
@@ -251,7 +251,7 @@ workflow ImputationPipeline {
 
   call InterleaveVariants {
     input:
-        vcfs = [RemoveAnnotations.output_vcf, GatherVcfs.output_vcf],
+        vcfs = [RemoveAnnotations.output_vcf, GatherVcfsCloud.output_vcf],
         basename = output_callset_name,
         gatk_docker = gatk_docker_tag
   }
@@ -545,7 +545,7 @@ task MergeVCFs {
   }
 }
 
-task GatherVcfs {
+task GatherVcfsCloud {
   input {
     Array[File] input_vcfs # these are all valid
     Array[File] input_vcf_indices # these are all valid    
@@ -556,11 +556,9 @@ task GatherVcfs {
   Int disk_size = ceil(3*size(input_vcfs, "GB"))
   
   command <<<
-    gatk GatherVcfs -I ~{sep=' -I ' input_vcfs} -O ~{output_vcf_basename}.vcf.gz # I don't think this creates an output index file
-    if [ ! -f ~{output_vcf_basename}.vcf.gz.tbi ]
-    then
-      gatk IndexFeatureFile -I ~{output_vcf_basename}.vcf.gz
-    fi
+    gatk GatherVcfsCloud -I ~{sep=' -I ' input_vcfs} -O ~{output_vcf_basename}.vcf.gz
+    # GatherVcfsCloud doesn't create index when inputs are block compressed
+    gatk IndexFeatureFile -I ~{output_vcf_basename}.vcf.gz
   >>>
    runtime {
     docker: gatk_docker
