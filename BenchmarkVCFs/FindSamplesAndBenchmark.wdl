@@ -14,15 +14,16 @@ workflow FindSamplesAndBenchmark {
         File? gatkJarForAnnotation
         Array[String]? annotationNames = []
 
-        File ref_fasta
-        File ref_fasta_index
-        File ref_fasta_dict
-
+        File ref_fasta = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta"
+        File ref_fasta_index = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.fai"
+        File ref_fasta_dict = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dict"
         File haplotype_database = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.haplotype_database.txt"
-        File picard_cloud_jar = "gs://broad-dsde-methods/picard/picardcloud-2.26.6.jar"
+        String referenceVersion = "1"
 
         String vcf_score_field = "INFO.TREE_SCORE"
 
+        String gatkTag = "4.2.3.0"
+        File picard_cloud_jar = "gs://broad-dsde-methods/picard/picardcloud-2.26.6.jar"
         String picardDocker = "us.gcr.io/broad-gatk/gatk:4.2.3.0"
         String bcftoolsDocker = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0"
 
@@ -33,14 +34,12 @@ workflow FindSamplesAndBenchmark {
         Boolean doIndelLengthStratification = false
         Boolean requireMatchingGenotypes = true
 
-        String referenceVersion = "1"
-        String gatkTag = "4.2.3.0"
-
         Array[File] stratIntervals = []
         Array[String] stratLabels = []
 
         Array[String] jexlVariantSelectors = ["vc.isSimpleIndel()  && vc.getIndelLengths().0<0", "vc.isSimpleIndel() && vc.getIndelLengths().0>0"]
         Array[String] variantSelectorLabels = ["deletion","insertion"]
+
         # Input for monitoring_script can be found here: https://github.com/broadinstitute/palantir-workflows/blob/main/Scripts/monitoring/cromwell_monitoring_script.sh.
         # It must be copied to a google bucket and then the google bucket path can be used as the input for monitoring_script.
         File monitoring_script = "gs://broad-dsde-methods-hydro-gen-truth-data-public/scripts/cromwell_monitoring_script.sh"
