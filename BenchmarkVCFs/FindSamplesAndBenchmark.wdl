@@ -18,7 +18,7 @@ workflow FindSamplesAndBenchmark {
         File ref_fasta_index = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.fai"
         File ref_fasta_dict = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dict"
         File haplotype_database = "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.haplotype_database.txt"
-        String referenceVersion = "1"
+        String referenceVersion = "hg38"
 
         String vcf_score_field = "INFO.TREE_SCORE"
 
