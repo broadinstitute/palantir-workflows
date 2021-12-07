@@ -307,7 +307,7 @@ task PickMatches {
     }
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/rm-python-data-slim"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim"
     }
 }
 
