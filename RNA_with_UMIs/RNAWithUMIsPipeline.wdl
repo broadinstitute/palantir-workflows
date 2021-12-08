@@ -573,7 +573,7 @@ task SamToFastq {
 	command {
 		java -jar /usr/picard/picard.jar SamToFastq \
 		I=~{bam} \
-		FASTQ=~{output_prefix}_1.fastq
+		FASTQ=~{output_prefix}_1.fastq \
 		SECOND_END_FASTQ=~{output_prefix}_2.fastq
 
 	}
