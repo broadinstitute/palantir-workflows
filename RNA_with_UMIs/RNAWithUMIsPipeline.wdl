@@ -27,6 +27,20 @@ workflow RNAWithUMIsPipeline {
 			read2Structure = read2Structure
 	}
 
+	call SamToFastq {
+		input:
+			bam = ExtractUMIs.bam_umis_extracted,
+			output_prefix = output_basename
+	}
+
+	# Adapter clipping
+	call Fastp {
+		input: 
+			fastq1 = SamToFastq.fastq1,
+			fastq2 = SamToFastq.fastq2,
+			output_prefix = output_basename
+	}
+
 	call FastQC {
 		input:
 			unmapped_bam = bam,
@@ -37,7 +51,16 @@ workflow RNAWithUMIsPipeline {
 		input:
 			bam = ExtractUMIs.bam_umis_extracted,
 			starIndex = starIndex,
-			read_files_type = read_files_type
+			read_files_type = "SAM PE",
+			read_files_command = "samtools view -h"
+	}
+
+	call STAR as STAR_with_clipping {
+		input:
+			fastq1 = Fastp.fastq1_clipped,
+			fastq2 = Fastp.fastq2_clipped,
+			starIndex = starIndex,
+			read_files_type = "Fastx"
 	}
 
 	call CopyReadGroupsToHeader {
@@ -55,9 +78,17 @@ workflow RNAWithUMIsPipeline {
 	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingTranscriptome {
 		input:
 			aligned_bam = CopyReadGroupsToHeader.output_bam,
-			output_basename = output_basename + ".transcriptome"
+			output_basename = output_basename + "_transcriptome"
 	}
 
+	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingClipped {
+		input:
+			aligned_bam = STAR_with_clipping.aligned_bam,
+			output_basename = output_basename + "_clipped"
+	}
+
+	# Extract the unaligned (i.e. unmapped) reads from the genome-aligned, duplicated marked bam,
+	# which we will run FastQC on.
 	call CreateUnalignedBam {
 		input:
 			input_bam = UMIAwareDuplicateMarking.duplicate_marked_bam,
@@ -99,11 +130,35 @@ workflow RNAWithUMIsPipeline {
 			preemptible_tries=0
 	}
 
+	call CollectRNASeqMetrics as CollectRNASeqMetricsClipped {
+		input:
+			input_bam=UMIAwareDuplicateMarkingClipped.duplicate_marked_bam,
+			input_bam_index=UMIAwareDuplicateMarkingClipped.duplicate_marked_bam_index,
+			output_bam_prefix=GetSampleName.sample_name + "_clipped",
+			ref_dict=refDict,
+			ref_fasta=ref,
+			ref_fasta_index=refIndex,
+			ref_flat=refFlat,
+			ribosomal_intervals=ribosomalIntervals,
+			preemptible_tries=0
+	}
+
 	call CollectMultipleMetrics {
 		input:
 			input_bam=UMIAwareDuplicateMarking.duplicate_marked_bam,
 			input_bam_index=UMIAwareDuplicateMarking.duplicate_marked_bam_index,
 			output_bam_prefix=GetSampleName.sample_name,
+			ref_dict=refDict,
+			ref_fasta=ref,
+			ref_fasta_index=refIndex,
+			preemptible_tries=0
+	}
+
+	call CollectMultipleMetrics as CollectMultipleMetricsClipped {
+		input:
+			input_bam=UMIAwareDuplicateMarkingClipped.duplicate_marked_bam,
+			input_bam_index=UMIAwareDuplicateMarkingClipped.duplicate_marked_bam_index,
+			output_bam_prefix=GetSampleName.sample_name + "_clipped",
 			ref_dict=refDict,
 			ref_fasta=ref,
 			ref_fasta_index=refIndex,
@@ -136,10 +191,17 @@ workflow RNAWithUMIsPipeline {
 
 task STAR {
 	input {
-		File bam
+		File? bam
+		File? fastq1
+		File? fastq2
 		File starIndex
-		String read_files_type = "SAM PE"
+		String read_files_type
+		String? read_files_command
 	}
+
+	String input_files = if defined(bam) then select_first([bam, ""]) else select_first([fastq1, ""]) + " " + select_first([fastq2, ""])
+	String read_files_arg = if defined(read_files_command) then "--readFilesCommand " + select_first([read_files_command, ""]) else "" 
+
 	Int disk_space = ceil(2.2 * size(bam, "GB") + size(starIndex, "GB")) + 250
 
 	command <<<
@@ -147,7 +209,7 @@ task STAR {
 		mkdir star_index
 		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
-		STAR --readFilesIn ~{bam} --readFilesType ~{read_files_type} --readFilesCommand samtools view -h \
+		STAR --readFilesIn ~{input_files} --readFilesType ~{read_files_type} ~{read_files_arg} \
 			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
 			--limitSjdbInsertNsj 1200000 --outSAMstrandField intronMotif --outSAMunmapped Within \
 			--outFilterType BySJout --outFilterMultimapNmax 20 --outFilterScoreMinOverLread 0.33 \
@@ -261,6 +323,8 @@ task GetSampleName {
 	}
 }
 
+# STAR's transcriptome output does not include readgroups,
+# so we simply append the read group lines from the header of the genome-aligned bam.
 task CopyReadGroupsToHeader {
 	input {
 		File bam_with_readgroups
@@ -496,4 +560,63 @@ task CollectInsertSizeMetrics {
 		File insert_size_metrics = output_bam_prefix + "_insert_size_metrics.txt"
 		File insert_size_histogram = output_bam_prefix + "_insert_size_histogram.pdf"
 	}
+}
+
+task SamToFastq {
+	input {
+		File bam
+		String output_prefix
+	}
+
+	Int disk_size = 2*ceil(size(bam, "GiB")) + 128
+
+	command {
+		java -jar /usr/picard/picard.jar SamToFastq \
+		I=~{bam} \
+		FASTQ=~{output_prefix}_1.fastq
+		SECOND_END_FASTQ=~{output_prefix}_2.fastq
+
+	}
+
+	runtime {
+		docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
+		preemptible: 0
+		memory: "3.5 GiB"
+		disks: "local-disk " + disk_size + " HDD"
+	}
+
+	output {
+		File fastq1 = output_prefix + "_1.fastq"
+		File fastq2 = output_prefix + "_2.fastq"
+	}
+}
+
+# for adapter clipping
+task Fastp {
+	input {
+		File fastq1
+		File fastq2
+		File output_prefix
+	}
+
+	Int disk_size = 5*ceil(size(fastq1, "GiB")) + 128
+
+	command {
+		fastp --in1 ~{fastq1} --in2 ~{fastq2} --out1 ~{output_prefix}_read1_trimmed.fastq --out2 ~{output_prefix}_read2_trimmed.fastq
+		ls > "ls.txt"
+	}
+	
+
+	runtime {
+		docker: "biocontainers/fastp:v0.20.1_cv1"
+		memory: "8 GiB"
+		disks: "local-disk " + disk_size + " HDD"
+		preemptible: 0
+	}
+
+	output {
+		File fastq1_clipped = output_prefix + "_read1_trimmed.fastq"
+		File fastq2_clipped = output_prefix + "_read1_trimmed.fastq"
+	}
+
 }
