@@ -596,7 +596,7 @@ task Fastp {
 	input {
 		File fastq1
 		File fastq2
-		File output_prefix
+		String output_prefix
 	}
 
 	Int disk_size = 5*ceil(size(fastq1, "GiB")) + 128
