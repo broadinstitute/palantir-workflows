@@ -209,7 +209,17 @@ task STAR {
 		mkdir star_index
 		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
-		STAR --readFilesIn ~{input_files} --readFilesType ~{read_files_type} ~{read_files_arg} \
+		if [ -n ~{fastq1} ]; then
+			input_arg=~{fastq1}" "~{fastq2}
+		fi
+
+		if [ -n ~{bam} ]; then
+			input_arg=~{bam}
+		fi
+
+		echo $input_arg
+
+		STAR --readFilesIn $input_arg --readFilesType ~{read_files_type} ~{read_files_arg} \
 			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
 			--limitSjdbInsertNsj 1200000 --outSAMstrandField intronMotif --outSAMunmapped Within \
 			--outFilterType BySJout --outFilterMultimapNmax 20 --outFilterScoreMinOverLread 0.33 \
