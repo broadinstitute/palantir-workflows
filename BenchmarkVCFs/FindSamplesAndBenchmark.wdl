@@ -11,6 +11,10 @@ workflow FindSamplesAndBenchmark {
         Array[File] ground_truth_intervals
         Array[String] truth_labels
 
+
+        #####################
+        ## Optional Inputs ##
+        #####################
         File? gatkJarForAnnotation
         Array[String]? annotationNames = []
 
@@ -26,6 +30,7 @@ workflow FindSamplesAndBenchmark {
         File picard_cloud_jar = "gs://broad-dsde-methods/picard/picardcloud-2.26.6.jar"
         String picardDocker = "us.gcr.io/broad-gatk/gatk:4.2.3.0"
         String bcftoolsDocker = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0"
+        String pythonDocker = "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
 
         String? analysis_region
 
@@ -53,6 +58,8 @@ workflow FindSamplesAndBenchmark {
 
     Int VCF_disk_size = ceil(size(input_callset, "GiB")) + 10
 
+    String gatkDocker = "us.gcr.io/broad-gatk/gatk:" + gatkTag
+
     call MakeStringMap as intervalsMap {input: keys=ground_truth_files, values=ground_truth_intervals}
     call MakeStringMap as labelsMap    {input: keys=ground_truth_files, values=truth_labels}
     call MakeStringMap as indexesMap   {input: keys=ground_truth_files, values=ground_truth_indexes}
@@ -71,7 +78,7 @@ workflow FindSamplesAndBenchmark {
             haplotype_database = haplotype_database,
             disk_size = VCF_disk_size,
             preemptible_tries = 3,
-            docker = picardDocker,
+            picardDocker = picardDocker,
             monitoring_script = monitoring_script,
             picard_jar = picard_cloud_jar,
     }
@@ -80,7 +87,8 @@ workflow FindSamplesAndBenchmark {
         input:
             crosscheck_results = CrosscheckFingerprints.crosscheck,
             ground_truth_global = CrosscheckFingerprints.ground_truth_global,
-            ground_truth_local = CrosscheckFingerprints.ground_truth_local
+            ground_truth_local = CrosscheckFingerprints.ground_truth_local,
+            pythonDocker = pythonDocker
     }
 
 
@@ -96,8 +104,9 @@ workflow FindSamplesAndBenchmark {
         call InvertIntervalList {
             input:
                 interval_list = ConvertIntervals.intervalList,
-                docker = picardDocker,
+                picardDocker = picardDocker,
                 picard_jar = picard_cloud_jar,
+                disk_size = VCF_disk_size,
                 dummyInputForTerraCallCaching = dummyInputForTerraCallCaching
         }
         String notLabel="NOT_" + interval_and_label.right
@@ -118,7 +127,8 @@ workflow FindSamplesAndBenchmark {
             input:
                 callset = match.leftFile,
                 sample = match.leftSample,
-                basename = match.leftSample + ".extracted"
+                basename = match.leftSample + ".extracted",
+                bcftoolsDocker = bcftoolsDocker
         }
 
         call Benchmark.Benchmark as BenchmarkVCF{
@@ -166,7 +176,7 @@ workflow FindSamplesAndBenchmark {
                     disk_size = round(compareSize),
                     preemptible_tries = 3,
                     no_address = true,
-                    gatkTag = gatkTag
+                    gatkDocker = gatkDocker
             }
 
             Pair[File,File] vcf_and_index_symbolic_removed = zip([FilterSymbolicAlleles.output_vcf],[FilterSymbolicAlleles.output_vcf_index])[0]
@@ -218,7 +228,7 @@ task CrosscheckFingerprints {
         File haplotype_database
         Int disk_size
         Int preemptible_tries
-        String docker
+        String picardDocker
         File picard_jar
     }
     parameter_meta {
@@ -265,7 +275,7 @@ task CrosscheckFingerprints {
         preemptible: preemptible_tries
         memory: "8 GB"
         disks: "local-disk " + disk_size + " HDD"
-        docker: docker
+        docker: picardDocker
         noAddress: false
         maxRetries: 1
         continueOnReturnCode: [0,5]
@@ -277,6 +287,7 @@ task PickMatches {
         File crosscheck_results
         File ground_truth_local
         File ground_truth_global
+        String pythonDocker
     }
 
     command <<<
@@ -284,7 +295,7 @@ task PickMatches {
         import pandas as pd
 
         # Import crosscheck results into DataFrame
-        crosscheck = pd.read_csv("~{crosscheck_results}", sep='\t', skiprows=6)
+        crosscheck = pd.read_csv("~{crosscheck_results}", sep='\t', comment='#', skip_blank_lines=True)
 
         # Find the pairs which were (expected/unexpected) matches
         match_list = crosscheck[-crosscheck['RESULT'].str.contains('MISMATCH')]
@@ -307,7 +318,7 @@ task PickMatches {
     }
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/python-data-slim"
+        docker: pythonDocker
     }
 }
 
@@ -318,7 +329,7 @@ task ExtractSampleFromCallset {
         File callset
         String sample
         String basename
-        String bcftoolsDocker = "us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0"
+        String bcftoolsDocker
     }
     Int disk_size = ceil(size(callset, "GB") + 30)
     File sampleNamesToExtract = write_lines([sample])
@@ -374,7 +385,7 @@ task FilterSymbolicAlleles {
         File ref_fasta_dict
         Int preemptible_tries
         Boolean no_address
-        String gatkTag
+        String gatkDocker
     }
     command <<<
         bash ~{monitoring_script} > monitoring.log &
@@ -407,7 +418,7 @@ task FilterSymbolicAlleles {
         memory: "12 GB"
         cpu: "1"
         disks: "local-disk " + ceil(disk_size) + " HDD"
-        docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
+        docker: gatkDocker
         noAddress: no_address
         maxRetries: 1
     }
@@ -421,8 +432,9 @@ task FilterSymbolicAlleles {
 task InvertIntervalList{
     input {
         File interval_list
-        String docker
+        String picardDocker
         File picard_jar
+        Int disk_size
         String? dummyInputForTerraCallCaching
     }
 
@@ -437,7 +449,7 @@ task InvertIntervalList{
     }
     runtime {
         memory: "6GB"
-        disks: "local-disk 20 SSD"
-        docker: docker
+        disks: "local-disk " + disk_size + " HDD"
+        docker: picardDocker
     }
 }
