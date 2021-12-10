@@ -50,17 +50,14 @@ workflow RNAWithUMIsPipeline {
 	call STAR {
 		input:
 			bam = ExtractUMIs.bam_umis_extracted,
-			starIndex = starIndex,
-			read_files_type = "SAM PE",
-			read_files_command = "samtools view -h"
+			starIndex = starIndex
 	}
 
-	call STAR as STAR_with_clipping {
+	call STARFastq {
 		input:
 			fastq1 = Fastp.fastq1_clipped,
 			fastq2 = Fastp.fastq2_clipped,
-			starIndex = starIndex,
-			read_files_type = "Fastx"
+			starIndex = starIndex
 	}
 
 	call CopyReadGroupsToHeader {
@@ -83,7 +80,7 @@ workflow RNAWithUMIsPipeline {
 
 	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingClipped {
 		input:
-			aligned_bam = STAR_with_clipping.aligned_bam,
+			aligned_bam = STARFastq.aligned_bam,
 			output_basename = output_basename + "_clipped"
 	}
 
@@ -191,16 +188,9 @@ workflow RNAWithUMIsPipeline {
 
 task STAR {
 	input {
-		File? bam
-		File? fastq1
-		File? fastq2
+		File bam
 		File starIndex
-		String read_files_type
-		String? read_files_command
 	}
-
-	String input_files = if defined(bam) then select_first([bam, ""]) else select_first([fastq1, ""]) + " " + select_first([fastq2, ""])
-	String read_files_arg = if defined(read_files_command) then "--readFilesCommand " + select_first([read_files_command, ""]) else "" 
 
 	Int disk_space = ceil(2.2 * size(bam, "GB") + size(starIndex, "GB")) + 250
 
@@ -209,18 +199,48 @@ task STAR {
 		mkdir star_index
 		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
-		echo "Was this worth it?"
-		if [ -n ~{fastq1} ]; then
-			input_arg=~{fastq1}" "~{fastq2}
-		fi
+		STAR --readFilesIn ~{bam} --readFilesType SAM PE --readFilesCommand samtools view -h \
+			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
+			--limitSjdbInsertNsj 1200000 --outSAMstrandField intronMotif --outSAMunmapped Within \
+			--outFilterType BySJout --outFilterMultimapNmax 20 --outFilterScoreMinOverLread 0.33 \
+			--outFilterMatchNminOverLread 0.33 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.1 \
+			--alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --alignSJoverhangMin 8 \
+			--alignSJDBoverhangMin 1 --alignSoftClipAtReferenceEnds Yes --chimSegmentMin 15 --chimMainSegmentMultNmax 1 \
+			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM --quantTranscriptomeBan Singleend
 
-		if [ -n ~{bam} ]; then
-			input_arg=~{bam}
-		fi
+		ls > "ls.txt"
+	>>>
 
-		echo $input_arg
+	runtime {
+		docker : "us.gcr.io/tag-team-160914/neovax-tag-rnaseq:v1"
+		disks : "local-disk " + disk_space + " HDD"
+		memory : "64GB"
+		cpu : "8"
+		preemptible: 0
+	}
 
-		STAR --readFilesIn $input_arg --readFilesType ~{read_files_type} ~{read_files_arg} \
+	output {
+		File ls = "ls.txt"
+		File aligned_bam = "Aligned.out.bam"
+		File transcriptome_bam = "Aligned.toTranscriptome.out.bam"
+	}
+}
+
+task STARFastq {
+	input {
+		File fastq1
+		File fastq2
+		File starIndex
+	}
+
+	Int disk_space = 2*ceil(size(fastq1, "GB") + size(fastq2, "GB") + size(starIndex, "GB")) + 256
+
+	command <<<
+		echo $(date +"[%b %d %H:%M:%S] Extracting STAR index")
+		mkdir star_index
+		tar -xvvf ~{starIndex} -C star_index --strip-components=1
+
+		STAR --readFilesIn ~{fastq1} ~{fastq2} --readFilesType Fastx \
 			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
 			--limitSjdbInsertNsj 1200000 --outSAMstrandField intronMotif --outSAMunmapped Within \
 			--outFilterType BySJout --outFilterMultimapNmax 20 --outFilterScoreMinOverLread 0.33 \
