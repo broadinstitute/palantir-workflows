@@ -209,6 +209,7 @@ task STAR {
 		mkdir star_index
 		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
+		echo "Was this worth it?"
 		if [ -n ~{fastq1} ]; then
 			input_arg=~{fastq1}" "~{fastq2}
 		fi
