@@ -305,7 +305,7 @@ task AddInteractionTermsToScore {
 		samples = vcf.samples
 		for variant in vcf:
 			if count % 100_000 == 0:
-				print(variant.CHROM + ":" + variant.POS)
+				print(variant.CHROM + ":" + str(variant.POS))
 			count += 1
 
 			alleles = [a for a_l in [[variant.REF], variant.ALT] for a in a_l]
