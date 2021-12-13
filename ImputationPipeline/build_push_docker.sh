@@ -75,7 +75,11 @@ while true; do
   if [[ "${DRY}" == "true" ]]; then
     break;
   fi
-  echo "This script will build and push ${image_name}. Do you want to proceed? (y/[n])"
+  if [[ ${PUSH} == "true" ]]; then
+    echo "This script will build and push ${image_name}. Do you want to proceed? (y/[n])"
+  else
+    echo "This script will build but not push ${image_name}. Do you want to proceed? (y/[n])"
+  fi
   read yn
   [[ -z ${yn} ]] && yn=n
   case $yn in
@@ -116,4 +120,6 @@ echo "Image version tag: ${IMG_TAG}"
 
 build_opts="-t ${image_name} --build-arg UBUNTU_VERSION=${UBUNTU} ${NOCACHE}"
 execute "docker build ${docker_path} ${build_opts}"
-execute "docker push ${image_name}"
+if [[ ${PUSH} == "true" ]]; then
+  execute "docker push ${image_name}"
+fi
