@@ -301,7 +301,7 @@ task AddInteractionTermsToScore {
 
 		#count interaction alleles for each sample
 		count = 0
-		vcf = VCF("~{vcf}", lazy=True):
+		vcf = VCF("~{vcf}", lazy=True)
 		samples = vcf.samples
 		for variant in vcf:
 			if count % 100_000 == 0:
