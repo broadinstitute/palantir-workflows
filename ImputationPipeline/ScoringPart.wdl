@@ -268,77 +268,77 @@ task AddInteractionTermsToScore {
 
 	command <<<
 		python3 << "EOF"
-			from cyvcf2 import VCF
-			import pandas as pd
+		from cyvcf2 import VCF
+		import pandas as pd
 
-			def read_as_float(s):
-				try:
-					return float(s)
-				except ValueError:
-					pass
+		def read_as_float(s):
+			try:
+				return float(s)
+			except ValueError:
+				pass
 
-			def add_allele_to_count(site, allele, dictionary):
-				if site in dictionary:
-					dictionary[site][allele]=[0]*len(samples)
-				else:
-					dictionary[site]={allele:[0]*len(samples)}
+		def add_allele_to_count(site, allele, dictionary):
+			if site in dictionary:
+				dictionary[site][allele]=[0]*len(samples)
+			else:
+				dictionary[site]={allele:[0]*len(samples)}
 
-			interactions_allele_counts = dict()
-			interactions_dict = dict()
-			positions = set()
-			if ~{if defined(sites) then "True" else "False"}:
-				with open("~{sites}") as f_sites:
-					sites = {s for s in f_sites}
-			else
-				sites = {}
-			with open("~{interaction_weights}") as f:
-				for line in f:
-					line_split = line.split()
-				if weight := read_as_float(line_split[8]):
-					if len(sites) == 0 or line_split[0] in sites and line_split[4] in sites:
-						add_allele_to_count(line_split[0], line_split[3], interactions_allele_counts)
-						add_allele_to_count(line_split[4], line_split[7], interactions_allele_counts)
-						interactions_dict[(line_split[0], line_split[3], line_split[4], line_split[7])]=weight
+		interactions_allele_counts = dict()
+		interactions_dict = dict()
+		positions = set()
+		if ~{if defined(sites) then "True" else "False"}:
+			with open("~{sites}") as f_sites:
+				sites = {s for s in f_sites}
+		else
+			sites = {}
+		with open("~{interaction_weights}") as f:
+			for line in f:
+				line_split = line.split()
+			if weight := read_as_float(line_split[8]):
+				if len(sites) == 0 or line_split[0] in sites and line_split[4] in sites:
+					add_allele_to_count(line_split[0], line_split[3], interactions_allele_counts)
+					add_allele_to_count(line_split[4], line_split[7], interactions_allele_counts)
+					interactions_dict[(line_split[0], line_split[3], line_split[4], line_split[7])]=weight
 
-			#count interaction alleles for each sample
-			count = 0
-			with vcf = VCF("~{vcf}", lazy=True):
-				samples = vcf.samples
-				for variant in vcf:
-					if count % 100_000 == 0:
-						print(variant.CHROM + ":" + variant.POS)
-					count += 1
+		#count interaction alleles for each sample
+		count = 0
+		with vcf = VCF("~{vcf}", lazy=True):
+			samples = vcf.samples
+			for variant in vcf:
+				if count % 100_000 == 0:
+					print(variant.CHROM + ":" + variant.POS)
+				count += 1
 
-					alleles = [a for a_l in [[variant.REF], variant.ALT] for a in a_l]
-					vid=":".join(s for s_l in [[variant.CHROM], [str(variant.POS)], sorted(alleles)] for s in s_l)
-				if vid in interactions_allele_counts:
-					for sample_i,gt in enumerate(variant.genotypes):
-						for gt_allele in gt[:-1]:
-							allele = alleles[gt_allele]
-						if allele in interactions_allele_counts[vid]:
-							interactions_allele_counts[vid][allele][sample_i] += 1
+				alleles = [a for a_l in [[variant.REF], variant.ALT] for a in a_l]
+				vid=":".join(s for s_l in [[variant.CHROM], [str(variant.POS)], sorted(alleles)] for s in s_l)
+			if vid in interactions_allele_counts:
+				for sample_i,gt in enumerate(variant.genotypes):
+					for gt_allele in gt[:-1]:
+						allele = alleles[gt_allele]
+					if allele in interactions_allele_counts[vid]:
+						interactions_allele_counts[vid][allele][sample_i] += 1
 
-			#calculate interaction scores for each sample
-			interaction_scores = [0] * len(samples)
+		#calculate interaction scores for each sample
+		interaction_scores = [0] * len(samples)
 
-			def get_interaction_count(site_and_allele_1, site_and_allele_2, sample_i):
-				if site_and_allele_1 == site_and_allele_2:
-					return interactions_allele_counts[site_and_allele_1[0]][site_and_allele_1[1]][sample_i]//2
-				else:
-					return min(interactions_allele_counts[site_and_allele_1[0]][site_and_allele_1[1]][sample_i], interactions_allele_counts[site_and_allele_2[0]][site_and_allele_2[1]][sample_i])
+		def get_interaction_count(site_and_allele_1, site_and_allele_2, sample_i):
+			if site_and_allele_1 == site_and_allele_2:
+				return interactions_allele_counts[site_and_allele_1[0]][site_and_allele_1[1]][sample_i]//2
+			else:
+				return min(interactions_allele_counts[site_and_allele_1[0]][site_and_allele_1[1]][sample_i], interactions_allele_counts[site_and_allele_2[0]][site_and_allele_2[1]][sample_i])
 
-			for interaction in interactions_dict:
-				for sample_i in range(len(samples)):
-					site_and_allele_1 = (interaction[0], interaction[1])
-					site_and_allele_2 = (interaction[2], interaction[3])
-					interaction_scores[sample_i]+=get_interaction_count(site_and_allele_1, site_and_allele_2, sample_i) * interactions_dict[interaction]
+		for interaction in interactions_dict:
+			for sample_i in range(len(samples)):
+				site_and_allele_1 = (interaction[0], interaction[1])
+				site_and_allele_2 = (interaction[2], interaction[3])
+				interaction_scores[sample_i]+=get_interaction_count(site_and_allele_1, site_and_allele_2, sample_i) * interactions_dict[interaction]
 
-			#add interaction scores to linear scores
-			df_interaction_score = pd.DataFrame({"sample_id":samples, "interaction_score":interaction_scores}).set_index("sample_id")
-			df_scores=pd.read_csv("~{scores}", sep="\t").set_index("#IID")
-			df_scores = df_scores.join(df_interaction_score)
-			df_scores['SCORE1_SUM'] = df_scores['SCORE1_SUM'] + df_scores['interaction_score']
-			df_scores.to_csv("~{basename}_scores_with_interactions.tsv", sep="\t")
+		#add interaction scores to linear scores
+		df_interaction_score = pd.DataFrame({"sample_id":samples, "interaction_score":interaction_scores}).set_index("sample_id")
+		df_scores=pd.read_csv("~{scores}", sep="\t").set_index("#IID")
+		df_scores = df_scores.join(df_interaction_score)
+		df_scores['SCORE1_SUM'] = df_scores['SCORE1_SUM'] + df_scores['interaction_score']
+		df_scores.to_csv("~{basename}_scores_with_interactions.tsv", sep="\t")
 		EOF
 	>>>
 
