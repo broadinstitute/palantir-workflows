@@ -85,9 +85,22 @@ workflow ScoringImputedDataset {
 	}
 
 	if (defined(interaction_weights)) {
-		call AddInteractionTermsToScore {
+		call ExtractInteractionSites {
+			input:
+				interactions = select_first([interaction_weights])
+		}
+
+		call ArrayVcfToPlinkDataset as ArrayVcfToPlinkDatasetInteractions {
 			input:
 				vcf = imputed_array_vcf,
+				subset_to_sites = select_all([ExtractInteractionSites.interaction_sites, ExtractIDsPopulation.ids]),
+				basename = basename + "_interactions"
+		}
+		call AddInteractionTermsToScore {
+			input:
+				plink_bed = ArrayVcfToPlinkDatasetInteractions.bed,
+				plink_bim = ArrayVcfToPlinkDatasetInteractions.bim,
+				plink_fam = ArrayVcfToPlinkDatasetInteractions.fam,
 				interaction_weights = select_first([interaction_weights]),
 				scores = ScoreImputedArray.score,
 				sites = ExtractIDsPopulation.ids,
@@ -105,8 +118,7 @@ workflow ScoringImputedDataset {
 			call ArrayVcfToPlinkDataset as PopulationArrayVcfToPlinkDataset {
 				input:
 					vcf = select_first([population_vcf]),
-					pruning_sites = select_first([pruning_sites_for_pca]),
-					subset_to_sites = ExtractIDsPlink.ids,
+					subset_to_sites = select_all([pruning_sites_for_pca, ExtractIDsPlink.ids]),
 					basename = "population"
 			}
 
@@ -130,9 +142,18 @@ workflow ScoringImputedDataset {
 		}
 
 		if (defined(interaction_weights)) {
-			call AddInteractionTermsToScore as AddInteractionTermsToScorePopulation {
+			call ArrayVcfToPlinkDataset as ArrayVcfToPlinkDatasetInteractionsPopulation {
 				input:
 					vcf = select_first([population_vcf]),
+					subset_to_sites = select_all([ExtractInteractionSites.interaction_sites, ExtractIDsPlink.ids]),
+					basename = select_first([population_basename]) + "_interactions"
+			}
+
+			call AddInteractionTermsToScore as AddInteractionTermsToScorePopulation {
+				input:
+					plink_bed = ArrayVcfToPlinkDatasetInteractionsPopulation.bed,
+					plink_bim = ArrayVcfToPlinkDatasetInteractionsPopulation.bim,
+					plink_fam = ArrayVcfToPlinkDatasetInteractionsPopulation.fam,
 					interaction_weights = select_first([interaction_weights]),
 					scores = ScorePopulation.score,
 					sites = ExtractIDsPlink.ids,
@@ -143,7 +164,7 @@ workflow ScoringImputedDataset {
 		call ArrayVcfToPlinkDataset {
 			input:
 			vcf = imputed_array_vcf,
-			pruning_sites = select_first([pruning_sites_for_pca]),
+			subset_to_sites = select_all([pruning_sites_for_pca]),
 			basename = basename,
 			mem = vcf_to_plink_mem
 		}
@@ -254,7 +275,9 @@ task ScoreVcf {
 
 task AddInteractionTermsToScore {
 	input {
-		File vcf
+		File plink_bed
+		File plink_bim
+		File plink_fam
 		File interaction_weights
 		File scores
 		File? sites
@@ -263,15 +286,15 @@ task AddInteractionTermsToScore {
 		Float mem = 8
 	}
 
-	Int disk_space =  3*ceil(size(vcf, "GB")) + 20
+	Int disk_space =  1.5*ceil(size(plink_bed, "GB") + size(plink_bim, "GB") + size(plink_fam, "GB")) + 20
 
 	command <<<
 		python3 << "EOF"
-		from cyvcf2 import VCF
+		from pandas_plink import read_plink1_bin
 		import pandas as pd
 
-		vcf = VCF("~{vcf}", lazy=True)
-		samples = vcf.samples
+		G=read_plink1_bin("~{plink_bed}", verbose=False)
+		samples = G.sample.values
 
 		def read_as_float(s):
 			try:
@@ -279,15 +302,7 @@ task AddInteractionTermsToScore {
 			except ValueError:
 				pass
 
-		def add_allele_to_count(site, allele, dictionary):
-			if site in dictionary:
-				dictionary[site][allele]=[0]*len(samples)
-			else:
-				dictionary[site]={allele:[0]*len(samples)}
-
-		interactions_allele_counts = dict()
 		interactions_dict = dict()
-		positions = set()
 		if ~{if defined(sites) then "True" else "False"}:
 			with open("~{sites}") as f_sites:
 				sites = {s.strip() for s in f_sites}
@@ -298,40 +313,31 @@ task AddInteractionTermsToScore {
 				line_split = line.split()
 			if weight := read_as_float(line_split[8]):
 				if len(sites) == 0 or line_split[0] in sites and line_split[4] in sites:
-					add_allele_to_count(line_split[0], line_split[3], interactions_allele_counts)
-					add_allele_to_count(line_split[4], line_split[7], interactions_allele_counts)
 					interactions_dict[(line_split[0], line_split[3], line_split[4], line_split[7])]=weight
 
-		#count interaction alleles for each sample
-		count = 0
-		for variant in vcf:
-			if count % 100_000 == 0:
-				print(variant.CHROM + ":" + str(variant.POS))
-			count += 1
-
-			alleles = [a for a_l in [[variant.REF], variant.ALT] for a in a_l]
-			vid=":".join(s for s_l in [[variant.CHROM], [str(variant.POS)], sorted(alleles)] for s in s_l)
-			if vid in interactions_allele_counts:
-				for sample_i,gt in enumerate(variant.genotypes):
-					for gt_allele in gt[:-1]:
-						allele = alleles[gt_allele]
-					if allele in interactions_allele_counts[vid]:
-						interactions_allele_counts[vid][allele][sample_i] += 1
-
-		#calculate interaction scores for each sample
-		interaction_scores = [0] * len(samples)
-
-		def get_interaction_count(site_and_allele_1, site_and_allele_2, sample_i):
+		#count interaction alleles and calulate interaction scores for each sample
+		def get_interaction_count(site_and_allele_1, site_and_allele_2, dict):
 			if site_and_allele_1 == site_and_allele_2:
-				return interactions_allele_counts[site_and_allele_1[0]][site_and_allele_1[1]][sample_i]//2
+				return dict[site_and_allele_1[0]][site_and_allele_1[1]]//2
 			else:
-				return min(interactions_allele_counts[site_and_allele_1[0]][site_and_allele_1[1]][sample_i], interactions_allele_counts[site_and_allele_2[0]][site_and_allele_2[1]][sample_i])
+				return min(dict[site_and_allele_1[0]][site_and_allele_1[1]], dict[site_and_allele_2[0]][site_and_allele_2[1]])
 
-		for interaction in interactions_dict:
-			for sample_i in range(len(samples)):
+		interaction_scores = []
+		for sample in G:
+			interaction_allele_counts = {}
+			interaction_score = 0
+			for variant in sample:
+				interaction_allele_counts[variant.snp.values]={}
+				interaction_allele_counts[variant.snp.values][variant.a0.values]=int(2-variant.values)
+				interaction_allele_counts[variant.snp.values][variant.a0.values]=int(variant.values)
+
+			#calculate interaction score for this sample
+			for interaction in interactions_dict:
 				site_and_allele_1 = (interaction[0], interaction[1])
 				site_and_allele_2 = (interaction[2], interaction[3])
-				interaction_scores[sample_i]+=get_interaction_count(site_and_allele_1, site_and_allele_2, sample_i) * interactions_dict[interaction]
+				interaction_score+=get_interaction_count(site_and_allele_1, site_and_allele_2, interaction_allele_counts) * interactions_dict[interaction]
+
+			interaction_scores.append(interaction_score)
 
 		#add interaction scores to linear scores
 		df_interaction_score = pd.DataFrame({"sample_id":samples, "interaction_score":interaction_scores}).set_index("sample_id")
@@ -358,8 +364,7 @@ task AddInteractionTermsToScore {
 task ArrayVcfToPlinkDataset {
 	input {
 		File vcf
-		File pruning_sites
-		File? subset_to_sites
+		Array[File]+ subset_to_sites
 		String basename
 		Int mem = 8
 	}
@@ -368,7 +373,7 @@ task ArrayVcfToPlinkDataset {
 
 	command {
 
-		/plink2 --vcf ~{vcf} --extract-intersect ~{pruning_sites} ~{subset_to_sites} --allow-extra-chr --set-all-var-ids @:#:\$1:\$2 \
+		/plink2 --vcf ~{vcf} --extract-intersect ~{sep=" " subset_to_sites} --allow-extra-chr --set-all-var-ids @:#:\$1:\$2 \
 		--new-id-max-allele-len 1000 missing --out ~{basename} --make-bed --rm-dup force-first
 	}
 
@@ -742,6 +747,24 @@ task CheckPopulationIdsValid{
 	}
 	runtime {
 		docker: "ubuntu:21.10"
+	}
+}
+
+task ExtractInteractionSites {
+	input {
+		File interactions
+	}
+
+	command <<<
+		awk -v 'OFS=\n' '{print $1,$5}' ~{interactions} > interactions.sites
+	>>>
+
+	runtime {
+		docker: "ubuntu:21.10"
+	}
+
+	output {
+		File interaction_sites = "interactions.sites"
 	}
 }
 
