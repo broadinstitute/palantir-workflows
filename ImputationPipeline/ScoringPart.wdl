@@ -286,7 +286,7 @@ task AddInteractionTermsToScore {
 		Float mem = 8
 	}
 
-	Int disk_space =  1.5*ceil(size(plink_bed, "GB") + size(plink_bim, "GB") + size(plink_fam, "GB")) + 20
+	Int disk_space =  ceil(1.5*(size(plink_bed, "GB") + size(plink_bim, "GB") + size(plink_fam, "GB"))) + 20
 
 	command <<<
 		python3 << "EOF"
@@ -756,7 +756,7 @@ task ExtractInteractionSites {
 	}
 
 	command <<<
-		awk -v 'OFS=\n' '{print $1,$5}' ~{interactions} > interactions.sites
+		awk -v 'OFS=\n' 'NR>1 {print $1,$5}' ~{interactions} > interactions.sites
 	>>>
 
 	runtime {
