@@ -271,6 +271,9 @@ task AddInteractionTermsToScore {
 		from cyvcf2 import VCF
 		import pandas as pd
 
+		vcf = VCF("~{vcf}", lazy=True)
+		samples = vcf.samples
+
 		def read_as_float(s):
 			try:
 				return float(s)
@@ -302,8 +305,6 @@ task AddInteractionTermsToScore {
 
 		#count interaction alleles for each sample
 		count = 0
-		vcf = VCF("~{vcf}", lazy=True)
-		samples = vcf.samples
 		for variant in vcf:
 			if count % 100_000 == 0:
 				print(variant.CHROM + ":" + str(variant.POS))
