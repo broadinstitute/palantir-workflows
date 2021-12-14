@@ -77,7 +77,7 @@ task MarkDuplicates {
   runtime {
     docker: "us.gcr.io/broad-gatk/gatk:4.1.9.0"
     disks: "local-disk " + disk_size + " HDD"
-    memory: "16 GB"
+    memory: "32 GB"
   }
 }
 
