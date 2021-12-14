@@ -288,7 +288,7 @@ task AddInteractionTermsToScore {
 		positions = set()
 		if ~{if defined(sites) then "True" else "False"}:
 			with open("~{sites}") as f_sites:
-				sites = {s for s in f_sites}
+				sites = {s.strip() for s in f_sites}
 		else:
 			sites = {}
 		with open("~{interaction_weights}") as f:
