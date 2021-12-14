@@ -327,9 +327,9 @@ task AddInteractionTermsToScore {
 			interaction_allele_counts = {}
 			interaction_score = 0
 			for variant in sample:
-				interaction_allele_counts[variant.snp.values]={}
-				interaction_allele_counts[variant.snp.values][variant.a0.values]=int(2-variant.values)
-				interaction_allele_counts[variant.snp.values][variant.a0.values]=int(variant.values)
+				interaction_allele_counts[str(variant.snp.values)]={}
+				interaction_allele_counts[str(variant.snp.values)][str(variant.a0.values)]=int(2-variant.values)
+				interaction_allele_counts[str(variant.snp.values)][str(variant.a0.values)]=int(variant.values)
 
 			#calculate interaction score for this sample
 			for interaction in interactions_dict:
