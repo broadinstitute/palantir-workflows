@@ -262,6 +262,7 @@ task AddInteractionTermsToScore {
 		String basename
 
 		Float mem = 8
+		Int threads = 4
 	}
 
 	Int disk_space =  3*ceil(size(vcf, "GB")) + 20
@@ -271,7 +272,7 @@ task AddInteractionTermsToScore {
 		from cyvcf2 import VCF
 		import pandas as pd
 
-		vcf = VCF("~{vcf}", lazy=True)
+		vcf = VCF("~{vcf}", lazy=True, threads=~{threads})
 		samples = vcf.samples
 
 		def read_as_float(s):
@@ -347,6 +348,7 @@ task AddInteractionTermsToScore {
 		docker: "us.gcr.io/broad-dsde-methods/imputation_interaction_python:v1.0.0"
 		disks: "local-disk " + disk_space + " HDD"
 		memory: mem + " GB"
+		cpu: threads
 	}
 
 	output {
