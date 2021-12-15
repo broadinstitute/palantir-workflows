@@ -303,13 +303,11 @@ task AddInteractionTermsToScore {
 					add_allele_to_count(line_split[4], line_split[7], interactions_allele_counts)
 					interactions_dict[(line_split[0], line_split[3], line_split[4], line_split[7])]=weight
 
-		#count interaction alleles for each sample
-		count = 0
-		for variant in vcf:
-			if count % 100_000 == 0:
-				print(variant.CHROM + ":" + str(variant.POS))
-			count += 1
+		print("len(sites) = " + str(len(sites)))
+		print(interactions_dict)
 
+		#count interaction alleles for each sample
+		for variant in vcf:
 			alleles = [a for a_l in [[variant.REF], variant.ALT] for a in a_l]
 			vid=":".join(s for s_l in [[variant.CHROM], [str(variant.POS)], sorted(alleles)] for s in s_l)
 			if vid in interactions_allele_counts:
@@ -318,6 +316,8 @@ task AddInteractionTermsToScore {
 						allele = alleles[gt_allele]
 					if allele in interactions_allele_counts[vid]:
 						interactions_allele_counts[vid][allele][sample_i] += 1
+
+		print(interactions_allele_counts)
 
 		#calculate interaction scores for each sample
 		interaction_scores = [0] * len(samples)
