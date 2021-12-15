@@ -297,11 +297,11 @@ task AddInteractionTermsToScore {
 		with open("~{interaction_weights}") as f:
 			for line in f:
 				line_split = line.split()
-			if weight := read_as_float(line_split[8]):
-				if len(sites) == 0 or line_split[0] in sites and line_split[4] in sites:
-					add_allele_to_count(line_split[0], line_split[3], interactions_allele_counts)
-					add_allele_to_count(line_split[4], line_split[7], interactions_allele_counts)
-					interactions_dict[(line_split[0], line_split[3], line_split[4], line_split[7])]=weight
+				if weight := read_as_float(line_split[8]):
+					if len(sites) == 0 or line_split[0] in sites and line_split[4] in sites:
+						add_allele_to_count(line_split[0], line_split[3], interactions_allele_counts)
+						add_allele_to_count(line_split[4], line_split[7], interactions_allele_counts)
+						interactions_dict[(line_split[0], line_split[3], line_split[4], line_split[7])]=weight
 
 		print("len(sites) = " + str(len(sites)))
 		print(interactions_dict)
