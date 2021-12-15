@@ -262,17 +262,20 @@ task AddInteractionTermsToScore {
 		String basename
 
 		Float mem = 8
-		Int threads = 4
+		Int block_buffer=10000000
 	}
 
 	Int disk_space =  3*ceil(size(vcf, "GB")) + 20
 
 	command <<<
+
+		tabix ~{vcf}
+
 		python3 << "EOF"
 		from cyvcf2 import VCF
 		import pandas as pd
 
-		vcf = VCF("~{vcf}", lazy=True, threads=~{threads})
+		vcf = VCF("~{vcf}", lazy=True)
 		samples = vcf.samples
 
 		def read_as_float(s):
@@ -303,20 +306,43 @@ task AddInteractionTermsToScore {
 						add_allele_to_count(line_split[0], line_split[3], interactions_allele_counts)
 						add_allele_to_count(line_split[4], line_split[7], interactions_allele_counts)
 						interactions_dict[(line_split[0], line_split[3], line_split[4], line_split[7])]=weight
+						positions.add((line_split[1], int(line_split[2])))
+						positions.add((line_split[5], int(line_split[6])))
+
+		#select blocks to read
+		positions = sorted(positions)
+		current_chrom=positions[0][0]
+		current_start=positions[0][1]
+		current_end = current_start+1
+		buffer=~{block_buffer}
+
+		blocks_to_read=[]
+		for site in positions:
+			if site[0] != current_chrom or site[1] - current_end > buffer:
+				blocks_to_read.append(current_chrom + ":" + str(current_start) + "-" + str(current_end))
+				current_chrom=site[0]
+				current_start=site[1]
+				current_end = current_start+1
+			else:
+				current_end = site[1] + 1
+
+		#last block
+		blocks_to_read.append(current_chrom + ":" + str(current_start) + "-" + str(current_end))
 
 		print("len(sites) = " + str(len(sites)))
 		print(interactions_dict)
 
 		#count interaction alleles for each sample
-		for variant in vcf:
-			alleles = [a for a_l in [[variant.REF], variant.ALT] for a in a_l]
-			vid=":".join(s for s_l in [[variant.CHROM], [str(variant.POS)], sorted(alleles)] for s in s_l)
-			if vid in interactions_allele_counts:
-				for sample_i,gt in enumerate(variant.genotypes):
-					for gt_allele in gt[:-1]:
-						allele = alleles[gt_allele]
-					if allele in interactions_allele_counts[vid]:
-						interactions_allele_counts[vid][allele][sample_i] += 1
+		for block in blocks_to_read:
+			for variant in vcf(block):
+				alleles = [a for a_l in [[variant.REF], variant.ALT] for a in a_l]
+				vid=":".join(s for s_l in [[variant.CHROM], [str(variant.POS)], sorted(alleles)] for s in s_l)
+				if vid in interactions_allele_counts:
+					for sample_i,gt in enumerate(variant.genotypes):
+						for gt_allele in gt[:-1]:
+							allele = alleles[gt_allele]
+							if allele in interactions_allele_counts[vid]:
+								interactions_allele_counts[vid][allele][sample_i] += 1
 
 		print(interactions_allele_counts)
 
@@ -348,7 +374,6 @@ task AddInteractionTermsToScore {
 		docker: "us.gcr.io/broad-dsde-methods/imputation_interaction_python:v1.0.0"
 		disks: "local-disk " + disk_space + " HDD"
 		memory: mem + " GB"
-		cpu: threads
 	}
 
 	output {
