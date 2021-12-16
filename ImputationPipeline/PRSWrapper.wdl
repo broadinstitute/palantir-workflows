@@ -121,7 +121,7 @@ task SelectValuesOfInterest {
     reason_not_resulted <- ifelse(abs(adjusted_score) > ~{z_score_reportable_range},
                                 ifelse(adjusted_score > 0, paste("Z-SCORE ABOVE + ", z_score_reportable_range),
                                                            paste("Z-SCORE BELOW - ", z_score_reportable_range)
-                                      )
+                                      ),
                                 "NA"
                                 )
 
