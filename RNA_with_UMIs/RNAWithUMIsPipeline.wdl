@@ -670,8 +670,8 @@ task AddNsToClippedReads {
 	File script = "gs://broad-dsde-methods-takuto/RNA/fix_read_length.py"
 
 	command {
-		python ~{script} ~{fastq1} ~{output_prefix}_read1_padded.fastq
-		python ~{script} ~{fastq2} ~{output_prefix}_read2_padded.fastq
+		python3 ~{script} ~{fastq1} ~{output_prefix}_read1_padded.fastq
+		python3 ~{script} ~{fastq2} ~{output_prefix}_read2_padded.fastq
 		ls > "ls.txt"
 	}
 	
