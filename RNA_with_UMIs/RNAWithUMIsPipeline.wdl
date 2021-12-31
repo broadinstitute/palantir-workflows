@@ -677,7 +677,7 @@ task AddNsToClippedReads {
 	
 
 	runtime {
-		docker: "biopython/biopython"
+		docker: "pegi3s/biopython"
 		memory: "8 GiB"
 		disks: "local-disk " + disk_size + " HDD"
 		preemptible: 0
