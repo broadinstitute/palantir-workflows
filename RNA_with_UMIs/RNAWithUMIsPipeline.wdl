@@ -27,9 +27,10 @@ workflow RNAWithUMIsPipeline {
 			read2Structure = read2Structure
 	}
 
+	# Peprocessing for clipping by fastp
 	call SamToFastq {
 		input:
-			bam = ExtractUMIs.bam_umis_extracted,
+			bam = bam,
 			output_prefix = output_basename
 	}
 
@@ -48,6 +49,20 @@ workflow RNAWithUMIsPipeline {
 			output_prefix = output_basename
 	}
 
+	call FastqToSam {
+		input:
+			fastq1=AddNsToClippedReads.fastq1_padded,
+			fastq2=AddNsToClippedReads.fastq2_padded,
+			sample_name=output_basename + "_clipped_padded"
+	}
+
+	call ExtractUMIs as ExtractUMIsClipped {
+		input:
+			bam = FastqToSam.unmapped_bam,
+			read1Structure = read1Structure,
+			read2Structure = read2Structure
+	}
+
 	call FastQC {
 		input:
 			unmapped_bam = bam,
@@ -60,12 +75,20 @@ workflow RNAWithUMIsPipeline {
 			starIndex = starIndex
 	}
 
-	call STARFastq {
+	call STAR as STARClipped {
 		input:
-			fastq1 = AddNsToClippedReads.fastq1_padded,
-			fastq2 = AddNsToClippedReads.fastq2_padded,
+			bam = ExtractUMIsClipped.bam_umis_extracted,
 			starIndex = starIndex
 	}
+
+
+
+#	call STARFastq {
+#		input:
+#			fastq1 = AddNsToClippedReads.fastq1_padded,
+#			fastq2 = AddNsToClippedReads.fastq2_padded,
+#			starIndex = starIndex
+#	}
 
 	call CopyReadGroupsToHeader {
 		input:
@@ -87,7 +110,7 @@ workflow RNAWithUMIsPipeline {
 
 	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingClipped {
 		input:
-			aligned_bam = STARFastq.aligned_bam,
+			aligned_bam = STARClipped.aligned_bam,
 			output_basename = output_basename + "_clipped"
 	}
 
@@ -664,14 +687,15 @@ task AddNsToClippedReads {
 		File fastq1
 		File fastq2
 		String output_prefix
+		Int read_length = 151
 	}
 
 	Int disk_size = 5*ceil(size(fastq1, "GiB")) + 128
 	File script = "gs://broad-dsde-methods-takuto/RNA/fix_read_length.py"
 
 	command {
-		python3 ~{script} ~{fastq1} ~{output_prefix}_read1_padded.fastq
-		python3 ~{script} ~{fastq2} ~{output_prefix}_read2_padded.fastq
+		python3 ~{script} --read_length ~{read_length} ~{fastq1} ~{output_prefix}_read1_padded.fastq
+		python3 ~{script} --read_length ~{read_length} ~{fastq2} ~{output_prefix}_read2_padded.fastq
 		ls > "ls.txt"
 	}
 	
@@ -689,4 +713,40 @@ task AddNsToClippedReads {
 		File fastq2_padded = output_prefix + "_read2_padded.fastq"
 	}
 
+}
+
+
+task FastqToSam {
+	input {
+		File fastq1
+		File fastq2
+		String sample_name
+	}
+
+	Int disk_size = 3*ceil(size(fastq1, "GiB") + size(fastq2, "GiB")) + 256
+
+
+	command {
+		java -Xms8192m -jar /usr/picard/picard.jar FastqToSam \
+		F1=~{fastq1} \
+		F2=~{fastq2} \
+		O=~{sample_name}.u.bam \
+		SM=~{sample_name} \
+		RG="RG1" \
+		LB=~{sample_name} \
+		PU="barcode1" \
+		PL="ILLUMINA"
+	}
+
+	runtime {
+		docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
+		disks: "local-disk " + disk_size + " HDD"
+		cpu: "1"
+		memory: "16 GB"
+		preemptible: 0
+	}
+
+	output {
+		File unmapped_bam = "~{sample_name}.u.bam"
+	}
 }
