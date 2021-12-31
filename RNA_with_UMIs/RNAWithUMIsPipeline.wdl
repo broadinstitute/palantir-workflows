@@ -41,6 +41,13 @@ workflow RNAWithUMIsPipeline {
 			output_prefix = output_basename
 	}
 
+	call AddNsToClippedReads {
+		input:
+			fastq1 = Fastp.fastq1_clipped,
+			fastq2 = Fastp.fastq2_clipped,
+			output_prefix = output_basename
+	}
+
 	call FastQC {
 		input:
 			unmapped_bam = bam,
@@ -55,8 +62,8 @@ workflow RNAWithUMIsPipeline {
 
 	call STARFastq {
 		input:
-			fastq1 = Fastp.fastq1_clipped,
-			fastq2 = Fastp.fastq2_clipped,
+			fastq1 = AddNsToClippedReads.fastq1_padded,
+			fastq2 = AddNsToClippedReads.fastq2_padded,
 			starIndex = starIndex
 	}
 
@@ -648,6 +655,38 @@ task Fastp {
 	output {
 		File fastq1_clipped = output_prefix + "_read1_trimmed.fastq"
 		File fastq2_clipped = output_prefix + "_read2_trimmed.fastq"
+	}
+
+}
+
+task AddNsToClippedReads {
+	input {
+		File fastq1
+		File fastq2
+		String output_prefix
+	}
+
+	Int disk_size = 5*ceil(size(fastq1, "GiB")) + 128
+	File script = "gs://broad-dsde-methods-takuto/RNA/fix_read_length.py"
+
+	command {
+		python ~{script} ~{fastq1} ~{output_prefix}_read1_padded.fastq
+		python ~{script} ~{fastq2} ~{output_prefix}_read2_padded.fastq
+		ls > "ls.txt"
+	}
+	
+
+	runtime {
+		docker: "biopython/biopython"
+		memory: "8 GiB"
+		disks: "local-disk " + disk_size + " HDD"
+		preemptible: 0
+	}
+
+	output {
+		File ls = "ls.txt"
+		File fastq1_padded = output_prefix + "_read1_padded.fastq"
+		File fastq2_padded = output_prefix + "_read2_padded.fastq"
 	}
 
 }
