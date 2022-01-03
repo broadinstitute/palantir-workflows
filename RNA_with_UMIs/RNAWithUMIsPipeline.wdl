@@ -436,7 +436,7 @@ task CollectRNASeqMetrics {
 		RIBOSOMAL_INTERVALS= ~{ribosomal_intervals} \
 		STRAND_SPECIFICITY=SECOND_READ_TRANSCRIPTION_STRAND \
 		INPUT=~{input_bam} \
-		OUTPUT=~{output_bam_prefix}.rna_metrics
+		OUTPUT=~{output_bam_prefix}_rna_metrics.txt
 	}
 
 	runtime {
@@ -446,7 +446,7 @@ task CollectRNASeqMetrics {
 		preemptible: preemptible_tries
 	}
 	output {
-		File rna_metrics = output_bam_prefix + ".rna_metrics"
+		File rna_metrics = output_bam_prefix + "_rna_metrics.txt"
 	}
 }
 
@@ -577,7 +577,9 @@ task CollectMultipleMetrics {
 		REFERENCE_SEQUENCE=~{ref_fasta}
 
 		ls > ls.txt
-	}
+		cp ~{output_bam_prefix}".alignment_summary_metrics" ~{output_bam_prefix}_alignment_summary_metrics.txt
+		cp ~{output_bam_prefix}".insert_size_metrics" ~{output_bam_prefix}_insert_size_metrics.txt
+	}	
 
 	runtime {
 		docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.4.3-1564508330"
@@ -588,8 +590,8 @@ task CollectMultipleMetrics {
 
 	output {
 		File ls = "ls.txt"
-		File alignment_summary_metrics = output_bam_prefix + ".alignment_summary_metrics"
-		File insert_size_metrics = output_bam_prefix + ".insert_size_metrics"
+		File alignment_summary_metrics = output_bam_prefix + "_alignment_summary_metrics.txt"
+		File insert_size_metrics = output_bam_prefix + "_insert_size_metrics.txt"
 	}
 }
 
