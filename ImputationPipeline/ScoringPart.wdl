@@ -382,7 +382,7 @@ task AddInteractionTermsToScore {
 
 		for interaction in interactions_dict:
 			for sample_i in range(len(samples)):
-				if self_exclusive_sites_counts[sample_i] <= max_self_exclusive_sites
+				if self_exclusive_sites_counts[sample_i] <= max_self_exclusive_sites:
 					site_and_allele_1 = (interaction[0], interaction[1])
 					site_and_allele_2 = (interaction[2], interaction[3])
 					interaction_scores[sample_i]+=get_interaction_count(site_and_allele_1, site_and_allele_2, sample_i) * interactions_dict[interaction]
