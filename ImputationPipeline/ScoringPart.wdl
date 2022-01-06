@@ -308,14 +308,15 @@ task AddInteractionTermsToScore {
 			sites = {}
 		with open("~{interaction_weights}") as f:
 			for line in f:
-				line_split = line.split()
-				if weight := read_as_float(line_split[8]):
-					if len(sites) == 0 or line_split[0] in sites and line_split[4] in sites:
-						add_allele_to_count(line_split[0], line_split[3], interactions_allele_counts)
-						add_allele_to_count(line_split[4], line_split[7], interactions_allele_counts)
-						interactions_dict[(line_split[0], line_split[3], line_split[4], line_split[7])]=weight
-						positions.add((line_split[1], int(line_split[2])))
-						positions.add((line_split[5], int(line_split[6])))
+				if line.strip():
+					line_split = line.split()
+					if weight := read_as_float(line_split[8]):
+						if len(sites) == 0 or line_split[0] in sites and line_split[4] in sites:
+							add_allele_to_count(line_split[0], line_split[3], interactions_allele_counts)
+							add_allele_to_count(line_split[4], line_split[7], interactions_allele_counts)
+							interactions_dict[(line_split[0], line_split[3], line_split[4], line_split[7])]=weight
+							positions.add((line_split[1], int(line_split[2])))
+							positions.add((line_split[5], int(line_split[6])))
 
 		def add_self_exclusive_site(site, allele, dictionary):
 			if site in dictionary:
@@ -329,9 +330,10 @@ task AddInteractionTermsToScore {
 		if ~{if (defined(self_exclusive_sites)) then "True" else "False"}:
 			with open("~{select_first([self_exclusive_sites]).sites}") as f_self_exclusive_sites:
 				for line in f_self_exclusive_sites:
-					line_split = line.split()
-					self_exclusive_sites[line_split[0]] = line_split[3]
-					positions.add((line_split[1], int(line_split[2])))
+					if line.strip():
+						line_split = line.split()
+						add_self_exclusive_site(line_split[0], line_split[3], self_exclusive_sites)
+						positions.add((line_split[1], int(line_split[2])))
 
 		#select blocks to read
 		positions = sorted(positions)
