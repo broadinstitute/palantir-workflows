@@ -1,6 +1,7 @@
 version 1.0
 import "ScoringPart.wdl" as Score
 import "CKDRiskAdjustment.wdl" as CKDRiskAdjustment
+import "Structs.wdl"
 
 workflow PRSWrapper {
   input {
@@ -10,6 +11,8 @@ workflow PRSWrapper {
     Array[File] weights_files
     File ckd_risk_alleles
     Float z_score_reportable_range
+    File t1d_interaction_weights
+    SelfExclusiveSites t1d_interaction_self_exclusive_sites
 
     File vcf
     String sample_id
@@ -34,6 +37,10 @@ workflow PRSWrapper {
 
   scatter(i in range(length(condition_names))) {
     if (score_condition[i]) {
+      if (condition_names[i] == "t1d") {
+        File interaction_weights = t1d_interaction_weights
+        SelfExclusiveSites interaction_self_exclusive_sites = t1d_interaction_self_exclusive_sites
+      }
       call Score.ScoringImputedDataset {
         input:
           weights = weights_files[i],
@@ -45,7 +52,9 @@ workflow PRSWrapper {
           population_vcf = population_vcf,
           basename = sample_id,
           population_basename = population_basename,
-          redoPCA = redoPCA
+          redoPCA = redoPCA,
+          interaction_weights = interaction_weights,
+          interaction_self_exclusive_sites = interaction_self_exclusive_sites
       }
 
       if (condition_names[i] == "ckd") {
