@@ -8,3 +8,9 @@ struct ReferencePanelContig {
 	File m3vcf
 	String contig
 }
+
+
+struct SelfExclusiveSites {
+	File sites
+	Int maxAllowed
+}

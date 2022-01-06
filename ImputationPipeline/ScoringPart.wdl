@@ -1,10 +1,14 @@
 version 1.0
 
+import "Structs.wdl"
+
 workflow ScoringImputedDataset {
 	input { 
 	File weights # disease weights file. Becauase we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
 	#  that will allow you to sort the variants in this weights file (`SortWeights`)
 	File? interaction_weights # wieghts for snp interactions
+	SelfExclusiveSites? interaction_self_exclusive_sites # The interaction term will only be added in no more than selfExclusiveSites.maxAllowed of the
+																											 # effect alleles listed in SelfExclusizeSites.sites is observed
 
 	File imputed_array_vcf  # imputed VCF for scoring (and optionally PCA projection): make sure the variant IDs exactly match those in the weights file
 	Int scoring_mem = 16
@@ -91,7 +95,8 @@ workflow ScoringImputedDataset {
 				interaction_weights = select_first([interaction_weights]),
 				scores = ScoreImputedArray.score,
 				sites = ExtractIDsPopulation.ids,
-				basename = basename
+				basename = basename,
+				self_exclusive_sites = interaction_self_exclusive_sites
 		}
 	}
 
@@ -136,7 +141,8 @@ workflow ScoringImputedDataset {
 					interaction_weights = select_first([interaction_weights]),
 					scores = ScorePopulation.score,
 					sites = ExtractIDsPlink.ids,
-					basename = select_first([population_basename])
+					basename = select_first([population_basename]),
+					self_exclusive_sites = interaction_self_exclusive_sites
 			}
 		}
 
@@ -260,6 +266,8 @@ task AddInteractionTermsToScore {
 		File scores
 		File? sites
 		String basename
+		SelfExclusiveSites? self_exclusive_sites # The interaction term will only be added in no more than selfExclusiveSites.maxAllowed of the
+																					 # effect alleles listed in SelfExclusizeSites.sites is observed
 
 		Float mem = 8
 		Int block_buffer=10000000
@@ -309,6 +317,22 @@ task AddInteractionTermsToScore {
 						positions.add((line_split[1], int(line_split[2])))
 						positions.add((line_split[5], int(line_split[6])))
 
+		def add_self_exclusive_site(site, allele, dictionary):
+			if site in dictionary:
+				dictionary[site].add(allele)
+			else:
+				dictionary[site]={allele}
+
+		self_exclusive_sites = dict()
+		max_self_exclusive_sites = ~{if (defined(self_exclusive_sites)) then select_first([self_exclusive_sites]).maxAllowed else 0}
+		self_exclusive_sites_counts = [0]*len(samples)
+		if ~{if (defined(self_exclusive_sites)) then "True" else "False"}:
+			with open("~{select_first([self_exclusive_sites]).sites}") as f_self_exclusive_sites:
+				for line in f_self_exclusive_sites:
+					line_split = line.split()
+					self_exclusive_sites[line_split[0]] = line_split[3]
+					positions.add((line_split[1], int(line_split[2])))
+
 		#select blocks to read
 		positions = sorted(positions)
 		current_chrom=positions[0][0]
@@ -329,9 +353,6 @@ task AddInteractionTermsToScore {
 		#last block
 		blocks_to_read.append(current_chrom + ":" + str(current_start) + "-" + str(current_end))
 
-		print("len(sites) = " + str(len(sites)))
-		print(interactions_dict)
-
 		#count interaction alleles for each sample
 		for block in blocks_to_read:
 			for variant in vcf(block):
@@ -343,8 +364,12 @@ task AddInteractionTermsToScore {
 							allele = alleles[gt_allele]
 							if allele in interactions_allele_counts[vid]:
 								interactions_allele_counts[vid][allele][sample_i] += 1
-
-		print(interactions_allele_counts)
+				if vid in self_exclusive_sites
+					for sample_i,gt in enumerate(variant.genotypes):
+						for gt_allele in gt[:-1]:
+							allele = alleles[gt_allele]
+							if allele in self_exclusive_sites[vid]:
+								self_exclusive_sites_counts[sample_i] += 1
 
 		#calculate interaction scores for each sample
 		interaction_scores = [0] * len(samples)
@@ -357,9 +382,10 @@ task AddInteractionTermsToScore {
 
 		for interaction in interactions_dict:
 			for sample_i in range(len(samples)):
-				site_and_allele_1 = (interaction[0], interaction[1])
-				site_and_allele_2 = (interaction[2], interaction[3])
-				interaction_scores[sample_i]+=get_interaction_count(site_and_allele_1, site_and_allele_2, sample_i) * interactions_dict[interaction]
+				if self_exclusive_sites_counts[sample_i] <= max_self_exclusive_sites
+					site_and_allele_1 = (interaction[0], interaction[1])
+					site_and_allele_2 = (interaction[2], interaction[3])
+					interaction_scores[sample_i]+=get_interaction_count(site_and_allele_1, site_and_allele_2, sample_i) * interactions_dict[interaction]
 
 		#add interaction scores to linear scores
 		df_interaction_score = pd.DataFrame({"sample_id":samples, "interaction_score":interaction_scores}).set_index("sample_id")
