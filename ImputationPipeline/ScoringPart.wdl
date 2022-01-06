@@ -364,7 +364,7 @@ task AddInteractionTermsToScore {
 							allele = alleles[gt_allele]
 							if allele in interactions_allele_counts[vid]:
 								interactions_allele_counts[vid][allele][sample_i] += 1
-				if vid in self_exclusive_sites
+				if vid in self_exclusive_sites:
 					for sample_i,gt in enumerate(variant.genotypes):
 						for gt_allele in gt[:-1]:
 							allele = alleles[gt_allele]
