@@ -48,6 +48,3 @@ workflows:
   - name: CollectBenchmarkSucceeded
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/CollectBenchmarkSucceeded.wdl
-  - name: AggregatePRSResults
-    subclass: WDL
-    primaryDescriptor: /ImputationPipeline/AggregatePRSResults.wdl
