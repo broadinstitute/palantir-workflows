@@ -1,14 +1,12 @@
 version 1.0
 
-import "UMIAwareDuplicateMarking.wdl" as UmiMD
+import "SimpleDuplicateMarking.wdl" as SimpleMD
 
 ### The UMI-*Un*aware version of the new RNA pipeline
 ### Developed to run on ICE data for protocol evaluation. 
 workflow RNAWithUMIsPipeline {
 	input {
 		File bam
-#		String read1Structure
-#		String read2Structure
 		File starIndex
 		String output_basename
 		File gtf
@@ -18,15 +16,16 @@ workflow RNAWithUMIsPipeline {
 		File refDict
 		File refFlat
 		File ribosomalIntervals
+
+
 	}
 
+	call FastQC {
+		input:
+			unmapped_bam = bam,
+			sample_id = output_basename
+	}
 
-#	call ExtractUMIs {
-#		input:
-#			bam = bam,
-#			read1Structure = read1Structure,
-#			read2Structure = read2Structure
-#	}
 
 	call STAR {
 		input:
@@ -40,13 +39,13 @@ workflow RNAWithUMIsPipeline {
 			bam_without_readgroups = STAR.transcriptome_bam
 	}
 
-	call UmiMD.UMIAwareDuplicateMarking {
+	call SimpleMD.SimpleDuplicateMarking {
 		input:
 			aligned_bam = STAR.aligned_bam,
 			output_basename = output_basename
 	}
 
-	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingTranscriptome {
+	call SimpleMD.SimpleDuplicateMarking as SimpleDuplicateMarkingTranscriptome {
 		input:
 			aligned_bam = CopyReadGroupsToHeader.output_bam,
 			output_basename = output_basename + ".transcriptome"
@@ -59,7 +58,7 @@ workflow RNAWithUMIsPipeline {
 
 	call rnaseqc2 {
 		input:
-			bam_file = UMIAwareDuplicateMarking.duplicate_marked_bam,
+			bam_file = SimpleDuplicateMarking.duplicate_marked_bam,
 			genes_gtf = gtf,
 			sample_id = GetSampleName.sample_name
 	}
@@ -67,15 +66,15 @@ workflow RNAWithUMIsPipeline {
 	# This should be removed before turning this into production
 	call rnaseqc2 as RNASeQC2Transcriptome {
 		input:
-			bam_file = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam,
+			bam_file = SimpleDuplicateMarkingTranscriptome.duplicate_marked_bam,
 			genes_gtf = gtf,
 			sample_id = GetSampleName.sample_name
 	}
 
 	call CollectRNASeqMetrics {
 		input:
-			input_bam=UMIAwareDuplicateMarking.duplicate_marked_bam,
-			input_bam_index=UMIAwareDuplicateMarking.duplicate_marked_bam_index,
+			input_bam=SimpleDuplicateMarking.duplicate_marked_bam,
+			input_bam_index=SimpleDuplicateMarking.duplicate_marked_bam_index,
 			output_bam_prefix=GetSampleName.sample_name,
 			ref_dict=refDict,
 			ref_fasta=ref,
@@ -87,8 +86,8 @@ workflow RNAWithUMIsPipeline {
 
 	call CollectMultipleMetrics {
 		input:
-			input_bam=UMIAwareDuplicateMarking.duplicate_marked_bam,
-			input_bam_index=UMIAwareDuplicateMarking.duplicate_marked_bam_index,
+			input_bam=SimpleDuplicateMarking.duplicate_marked_bam,
+			input_bam_index=SimpleDuplicateMarking.duplicate_marked_bam_index,
 			output_bam_prefix=GetSampleName.sample_name,
 			ref_dict=refDict,
 			ref_fasta=ref,
@@ -96,18 +95,34 @@ workflow RNAWithUMIsPipeline {
 			preemptible_tries=0
 	}
 
+	call CollectInsertSizeMetrics as InsertSizeTranscriptome {
+		input:
+			input_bam = SimpleDuplicateMarkingTranscriptome.duplicate_marked_bam,
+			input_bam_index = SimpleDuplicateMarkingTranscriptome.duplicate_marked_bam_index,
+			output_bam_prefix = GetSampleName.sample_name + "_transcriptome",
+			preemptible_tries = 0
+	}
+
+
 
   output {
-	File transcriptome_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam
-	File transcriptome_bam_index = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam_index
-	File transcriptome_duplicate_metrics = UMIAwareDuplicateMarkingTranscriptome.duplicate_metrics
-	File output_bam = UMIAwareDuplicateMarking.duplicate_marked_bam
-	File output_bam_index = UMIAwareDuplicateMarking.duplicate_marked_bam_index
-	File duplicate_metrics = UMIAwareDuplicateMarking.duplicate_metrics
+	File transcriptome_bam = SimpleDuplicateMarkingTranscriptome.duplicate_marked_bam
+	File transcriptome_bam_index = SimpleDuplicateMarkingTranscriptome.duplicate_marked_bam_index
+	File transcriptome_duplicate_metrics = SimpleDuplicateMarkingTranscriptome.duplicate_metrics
+	File output_bam = SimpleDuplicateMarking.duplicate_marked_bam
+	File output_bam_index = SimpleDuplicateMarking.duplicate_marked_bam_index
+	File duplicate_metrics = SimpleDuplicateMarking.duplicate_metrics
 	File gene_tpm = rnaseqc2.gene_tpm
 	File gene_counts = rnaseqc2.gene_counts
 	File exon_counts = rnaseqc2.exon_counts
 	File metrics = rnaseqc2.metrics
+	File fastq_report = FastQC.fastqc_html
+	File fastqc_table = FastQC.fastqc_data
+	File genome_insert_size_metrics = CollectMultipleMetrics.insert_size_metrics
+	File transcriptome_insert_size_metrics = InsertSizeTranscriptome.insert_size_metrics
+	File alignment_metrics = CollectMultipleMetrics.alignment_summary_metrics
+	File rna_metrics = CollectRNASeqMetrics.rna_metrics
+
 		
   }
 }
@@ -336,5 +351,66 @@ task CollectMultipleMetrics {
 		File ls = "ls.txt"
 		File alignment_summary_metrics = output_bam_prefix + ".alignment_summary_metrics"
 		File insert_size_metrics = output_bam_prefix + ".insert_size_metrics"
+	}
+}
+
+# Copying and pasting not ideal!
+task FastQC {
+	input {
+		File unmapped_bam
+		String sample_id
+		Float? mem = 4
+	}
+
+	Int disk_size = ceil(size(unmapped_bam, "GiB") * 3)  + 100
+	String bam_basename = basename(unmapped_bam, ".bam")
+
+	command {
+		perl /usr/tag/scripts/FastQC/fastqc ~{unmapped_bam} --extract -o ./
+		mv ~{bam_basename}_fastqc/fastqc_data.txt ~{bam_basename}_fastqc_data.txt
+		ls > ls.txt
+	}
+	
+	runtime {
+		docker: "us.gcr.io/tag-public/tag-tools:1.0.0"
+		disks: "local-disk " + disk_size + " HDD"
+		memory: mem + "GB"
+		cpu: "1"
+	}
+
+	output {
+		File ls = "ls.txt"
+		File fastqc_data = "~{bam_basename}_fastqc_data.txt"
+		File fastqc_html = "~{bam_basename}_fastqc.html"
+	}
+}
+
+task CollectInsertSizeMetrics {
+	input {
+		File input_bam
+		File input_bam_index
+		String output_bam_prefix
+		Int preemptible_tries
+	}
+
+	Int disk_size = ceil(size(input_bam, "GiB")) + 256
+
+	command {
+		java -Xms5000m -jar /usr/gitc/picard.jar CollectInsertSizeMetrics \
+		I=~{input_bam} \
+		O=~{output_bam_prefix}_insert_size_metrics.txt \
+		H=~{output_bam_prefix}_insert_size_histogram.pdf \
+		M=0.0
+	}
+
+	runtime {
+		docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.4.3-1564508330"
+		memory: "8 GiB"
+		disks: "local-disk " + disk_size + " HDD"
+		preemptible: preemptible_tries
+	}
+	output {
+		File insert_size_metrics = output_bam_prefix + "_insert_size_metrics.txt"
+		File insert_size_histogram = output_bam_prefix + "_insert_size_histogram.pdf"
 	}
 }
