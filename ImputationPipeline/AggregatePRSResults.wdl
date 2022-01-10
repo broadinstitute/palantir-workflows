@@ -66,6 +66,8 @@ task AggregateResults {
       xlim(-10,10) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
       ylab("density")
     ggsave(filename = "~{batch_id}_score_distribution.png", dpi=300, width = 6, height = 6)
+
+    EOF
   >>>
 
   runtime {
@@ -104,6 +106,8 @@ task PlotPCA {
       theme_bw()
 
     ggsave(filename = "~{batch_id}_PCA_plot.png", dpi=300, width = 6, height = 6)
+
+    EOF
 
   >>>
 
