@@ -181,6 +181,17 @@ workflow RNAWithUMIsPipeline {
 			preemptible_tries=0
 	}
 
+	call CollectMultipleMetrics as CollectMultipleMetricsWithoutDuplicateMarking {
+		input:
+			input_bam=UMIAwareDuplicateMarking.duplicate_marked_bam,
+			input_bam_index=UMIAwareDuplicateMarking.duplicate_marked_bam_index,
+			output_bam_prefix=GetSampleName.sample_name,
+			ref_dict=refDict,
+			ref_fasta=ref,
+			ref_fasta_index=refIndex,
+			preemptible_tries=0
+	}
+
 	call CollectMultipleMetrics as CollectMultipleMetricsClipped {
 		input:
 			input_bam=UMIAwareDuplicateMarkingClipped.duplicate_marked_bam,
@@ -212,7 +223,12 @@ workflow RNAWithUMIsPipeline {
 	File gene_counts = rnaseqc2.gene_counts
 	File exon_counts = rnaseqc2.exon_counts
 	File metrics = rnaseqc2.metrics
-		
+	File fastq_report = FastQC.fastqc_html
+	File fastqc_table = FastQC.fastqc_data
+	File genome_insert_size_metrics = CollectMultipleMetrics.insert_size_metrics
+	File transcriptome_insert_size_metrics = InsertSizeTranscriptome.insert_size_metrics
+	File alignment_metrics = CollectMultipleMetrics.alignment_summary_metrics
+	File rna_metrics = CollectRNASeqMetrics.rna_metrics
   }
 }
 
