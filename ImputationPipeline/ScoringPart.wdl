@@ -161,6 +161,7 @@ workflow ScoringImputedDataset {
 	File? adjusted_population_scores = AdjustScores.adjusted_population_scores
 	File? adjusted_array_scores = AdjustScores.adjusted_array_scores
 	Boolean? fit_converged = AdjustScores.fit_converged
+	File? pc_projection = ProjectArray.projections
 	File raw_scores = ScoreImputedArray.score
   }
 }

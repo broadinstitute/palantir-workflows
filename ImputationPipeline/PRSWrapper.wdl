@@ -83,6 +83,7 @@ workflow PRSWrapper {
 
   output {
     File results = JoinResults.results
+    File pcs = select_first(ScoringImputedDataset.pc_projection)
   }
 }
 
