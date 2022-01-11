@@ -47,6 +47,8 @@ task AggregateResults {
 
     results <- c("~{sep='","' results}") %>% map(read_csv, col_types=cols(.default = 'c')) %>% reduce(bind_rows)
     write_tsv(results, "~{batch_id}_results.tsv")
+
+    results_pivoted <- results %>% pivot_longer(!sample_id, names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
     results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
                                                                           raw = as.numeric(raw),
                                                                           percentile = as.numeric(percentile))
