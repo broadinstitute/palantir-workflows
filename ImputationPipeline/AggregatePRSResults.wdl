@@ -52,8 +52,7 @@ task AggregateResults {
     results_pivoted <- results %>% pivot_longer(!sample_id, names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
     results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
                                                                           raw = as.numeric(raw),
-                                                                          percentile = as.numeric(percentile))
-                                        %T>% {options(warn=0)}
+                                                                          percentile = as.numeric(percentile)) %T>% {options(warn=0)}
 
     results_summarised <- results_pivoted %>% group_by(condition) %>%
                                               summarise(across(c(adjusted,percentile), ~mean(.x, na.rm=TRUE), .names = "mean_{.col}"),
@@ -102,7 +101,7 @@ task PlotPCA {
     library(purrr)
     library(ggplot2)
 
-    target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows))
+    target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows)
     population_pcs <- read_tsv("~{population_pc_projections}")
 
     ggplot(population_pcs, aes(x=PC1, y=PC2), size=0.1, alpha=0.1, , color="~{population_name}") +
