@@ -43,6 +43,7 @@ task AggregateResults {
     library(readr)
     library(purrr)
     library(magrittr)
+    library(ggplot2)
 
     results <- c("~{sep='","' results}") %>% map(read_csv, col_types=cols(.default = 'c')) %>% reduce(bind_rows)
     write_tsv(results, "~{batch_id}_results.tsv")
@@ -96,6 +97,7 @@ task PlotPCA {
     library(dplyr)
     library(readr)
     library(purrr)
+    library(ggplot2)
 
     target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows) %>% mutate(cohort="~{batch_id}", size=0.5, alpha=1)
     population_pcs <- read_tsv("~{population_pc_projections}") %>% mutate(cohort="~{population_name}", size=0.1, alpha=0.1)
