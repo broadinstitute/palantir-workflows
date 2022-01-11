@@ -102,7 +102,7 @@ task PlotPCA {
     library(ggplot2)
 
     target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows))
-    population_pcs <- read_tsv("~{population_pc_projections}"))
+    population_pcs <- read_tsv("~{population_pc_projections}")
 
     ggplot(population_pcs, aes(x=PC1, y=PC2), size=0.1, alpha=0.1, , color="~{population_name}") +
       geom_point(data=target_pcs, color="~{batch_id}") +
