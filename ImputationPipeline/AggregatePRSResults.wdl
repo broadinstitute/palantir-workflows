@@ -42,6 +42,7 @@ task AggregateResults {
     library(dplyr)
     library(readr)
     library(purrr)
+    library(tidyr)
     library(magrittr)
     library(ggplot2)
 
