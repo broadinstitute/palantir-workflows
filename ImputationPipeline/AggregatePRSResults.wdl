@@ -105,6 +105,7 @@ task PlotPCA {
     population_pcs <- read_tsv("~{population_pc_projections}")
 
     ggplot(population_pcs, aes(x=PC1, y=PC2, color="~{population_name}"), size=0.1, alpha=0.1) +
+      geom_point() +
       geom_point(data=target_pcs, aes(color="~{batch_id}")) +
       theme_bw()
 
