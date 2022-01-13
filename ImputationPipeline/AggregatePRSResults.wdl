@@ -146,7 +146,7 @@ task BuildHTMLReport {
   }
 
   command <<<
-    set -xeuo pipefail
+    set -xeo pipefail
 
     cat << EOF > ~{batch_id}_report.Rmd
     ---
