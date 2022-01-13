@@ -147,7 +147,7 @@ task BuildHTMLReport {
 
   command <<<
     set -xeuo pipefail
-    
+
     cat << EOF > ~{batch_id}_report.Rmd
     ---
     title: "Batch ~{batch_id} PRS Summary"
@@ -193,7 +193,7 @@ task BuildHTMLReport {
   >>>
 
   runtime {
-    docker: "rocker/tidyverse@sha256:aaace6c41a258e13da76881f0b282932377680618fcd5d121583f9455305e727"
+    docker: "us.gcr.io/broad-dsde-methods/tidyverse_kableextra_docker@sha256:e00dd57a1c446e9c07429929893a8399c4a299f0b4fd182245bf45e77c6ab8bd"
     disks: "local-disk 100 HDD"
     memory: "4 GB"
   }
