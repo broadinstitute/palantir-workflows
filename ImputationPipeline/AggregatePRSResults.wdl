@@ -163,7 +163,6 @@ task BuildHTMLReport {
     library(knitr)
     library(dplyr)
     library(stringr)
-    library(kableExtra)
     batch_results <- read_tsv("~{batch_results}")
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
