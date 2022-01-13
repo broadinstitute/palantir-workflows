@@ -146,7 +146,8 @@ task BuildHTMLReport {
   }
 
   command <<<
-
+    set -xeuo pipefail
+    
     cat << EOF > ~{batch_id}_report.Rmd
     ---
     title: "Batch ~{batch_id} PRS Summary"
