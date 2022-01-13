@@ -183,7 +183,7 @@ task BuildHTMLReport {
 
     ## Individual Sample Results
     \`\`\`{r sample results , echo = FALSE, results = "asis"}
-    kable(batch_results %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "orange", ifelse(.x == "HIGH", "red", "green"))))), digits = 2)
+    kable(batch_results %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green")))))), digits = 2)
     \`\`\`
     EOF
 
