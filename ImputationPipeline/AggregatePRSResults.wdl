@@ -156,7 +156,7 @@ task BuildHTMLReport {
     date: "$(date)"
     ---
 
-    ```{r setup, include=FALSE}
+    \`\`\`{r setup, include=FALSE}
     library(readr)
     library(ggplot2)
     library(knitr)
@@ -167,12 +167,12 @@ task BuildHTMLReport {
     batch_results <- read_tsv("~{batch_results}")
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
-    ```
+    \`\`\`
 
     ## Batch Summary
-    ```{r summary table, echo = FALSE, results = "asis" }
+    \`\`\`{r summary table, echo = FALSE, results = "asis" }
     kable(batch_summary, digits = 2)
-    ```
+    \`\`\`
 
 
 
@@ -183,9 +183,9 @@ task BuildHTMLReport {
     ![](~{pc_plot})
 
     ## Individual Sample Results
-    ```{r sample results , echo = FALSE, results = "asis"}
+    \`\`\`{r sample results , echo = FALSE, results = "asis"}
     kable(batch_results %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "orange", ifelse(.x == "HIGH", "red", "green"))))), digits = 2)
-    ```
+    \`\`\`
     EOF
 
     Rscript -e "library(rmarkdown); rmarkdown::render('~{batch_id}_report.Rmd', 'html_document')"
