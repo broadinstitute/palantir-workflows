@@ -188,7 +188,7 @@ task BuildHTMLReport {
     ```
     EOF
 
-    Rscript -e "library(rmarkdown); rmarkdown::render("~{batch_id}_report.Rmd", "html_document")
+    Rscript -e "library(rmarkdown); rmarkdown::render('~{batch_id}_report.Rmd', 'html_document')"
   >>>
 
   runtime {
