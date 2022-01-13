@@ -23,11 +23,21 @@ workflow AggregatePRSResults {
       population_pc_projections = population_pc_projections
   }
 
+  call BuildHTMLReport {
+    input:
+      batch_results = AggregateResults.batch_results,
+      batch_summarised_results = AggregateResults.batch_summarised_results,
+      score_distribution = AggregateResults.score_distribution,
+      pc_plot = PlotPCA.pc_plot,
+      batch_id = batch_id
+  }
+
   output {
     File batch_results = AggregateResults.batch_results
     File batch_summarised_results = AggregateResults.batch_summarised_results
     File score_distribution = AggregateResults.score_distribution
     File pc_polot = PlotPCA.pc_plot
+    File report = BuildHTMLReport.report
   }
 }
 
@@ -123,5 +133,71 @@ task PlotPCA {
 
   output {
     File pc_plot = "~{batch_id}_PCA_plot.png"
+  }
+}
+
+task BuildHTMLReport {
+  input {
+    File batch_results
+    File batch_summarised_results
+    File score_distribution
+    File pc_plot
+    String batch_id
+  }
+
+  command <<<
+
+    cat << EOF > ~{batch_id}_report.Rmd
+    ---
+    title: "Batch ~{batch_id} PRS Summary"
+    output:
+    html_document:
+      df_print: paged
+    date: "$(date)"
+    ---
+
+    ```{r setup, include=FALSE}
+    library(readr)
+    library(ggplot2)
+    library(knitr)
+    library(dplyr)
+    library(stringr)
+    library(kableExtra)
+    knitr::opts_chunk$set(echo = TRUE)
+    batch_results <- read_tsv("~{batch_results}")
+    batch_summary <- read_tsv("~{batch_summarised_results}")
+    batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
+    ```
+
+    ## Batch Summary
+    ```{r summary table, echo = FALSE, results = "asis" }
+    kable(batch_summary, digits = 2)
+    ```
+
+
+
+    ## Batch Score distribution
+    ![](~{score_distribution})
+
+    ## PCA
+    ![](~{pc_plot})
+
+    ## Individual Sample Results
+    ```{r sample results , echo = FALSE, results = "asis"}
+    kable(batch_results %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "orange", ifelse(.x == "HIGH", "red", "green"))))), digits = 2)
+    ```
+    EOF
+
+    Rscript -e "library(rmarkdown); rmarkdown::render("~{batch_id}_report.Rmd", "html_document")
+  >>>
+
+  runtime {
+    docker: "rocker/tidyverse@sha256:aaace6c41a258e13da76881f0b282932377680618fcd5d121583f9455305e727"
+    disks: "local-disk 100 HDD"
+    memory: "4 GB"
+  }
+
+  output {
+    File report = "~{batch_id}_report.html"
   }
 }
