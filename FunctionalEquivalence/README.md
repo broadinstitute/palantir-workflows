@@ -52,6 +52,7 @@ Optional arguments:
 - `File merged_roc_plots`: All ROC plots concatenated into one PNG.
 - `File fe_summary`: TSV file containing all the data visualized in the FE plots.
 - `File f1_summary`: TSV file containing all the data visualized in the F1 plots.
+- `File html_report`: A HTML file with the FE and F1 scores embedded, as well as a brief automatic interpretation of the results. This can easily be converted into a PDF file if necessary.
 
 ## Background
 This workflow is used to evaluate functional equivalence between two callsets. It has been developed for evaluating the concordance between DRAGEN and DRAGEN-GATK but has since been generalized to be applicable for comparisons between two arbitrary sets of VCF files.

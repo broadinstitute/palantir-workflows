@@ -25,6 +25,7 @@ workflow FEEvaluation {
     output {
         Array[File] fe_plots = FEEvaluationTask.fe_plots
         File fe_summary = FEEvaluationTask.fe_summary
+        Int fe_status = FEEvaluationTask.fe_status
     }
 }
 
@@ -153,6 +154,7 @@ class FEEvaluation:
         return tool1_mean, tool1_sd, tool2_mean, tool2_sd, inter_mean, inter_sd
 
     def plot_data(self, ax, summary_file, dataset, var_type, region, tool1_label, tool2_label):
+        fe_status = 0
         tool1_mean, tool1_sd, tool2_mean, tool2_sd, inter_mean, inter_sd = self.calculate_data(summary_file, dataset, var_type, region)
 
         x = np.array([0, 1, 2])
@@ -170,14 +172,18 @@ class FEEvaluation:
 
         if inter_mean <= max(tool1_mean, tool2_mean):
             titlecolor = 'orange'
+            fe_status = 2
         elif inter_mean - np.nan_to_num(inter_sd) < max(tool1_mean + np.nan_to_num(tool1_sd), tool2_mean + np.nan_to_num(tool2_sd)):
             titlecolor = 'yellow'
+            fe_status = 1
         else:
             titlecolor = 'white'
         ax.set_title('{} {}'.format(var_type, region), backgroundcolor=titlecolor, zorder=0)
+        return fe_status
 
     
     def plot(self, tool1_label, tool2_label, additional_label):
+        fe_status = 0
         with open('fe_summary.tsv', 'w') as summary_file:
             summary_file.write('Dataset\tVar_Type\tRegion\tJ_tool1_mean\tJ_tool1_sd\tJ_tool2_mean\tJ_tool2_sd\tJ_inter_mean\tJ_inter_sd\n')
             for dataset in sorted(self.datasets, reverse=True):
@@ -199,7 +205,7 @@ class FEEvaluation:
                             continue
 
                         column_to_plot = col if len(self.stratifiers) > 1 else 1
-                        self.plot_data(axes[row, column_to_plot], summary_file, dataset, var_type, region, tool1_label, tool2_label)
+                        fe_status = max(fe_status, self.plot_data(axes[row, column_to_plot], summary_file, dataset, var_type, region, tool1_label, tool2_label))
     
                 # Clear non-used axes if plotting less than 3 columns
                 if len(self.stratifiers) == 1:
@@ -220,6 +226,7 @@ class FEEvaluation:
                     len(self.data[dataset, 'snp', 'all', 'inter']) if (dataset, 'snp', 'all', 'inter') in self.data else 0))
                 plt.tight_layout()
                 fig.savefig('fe_plot_{}.png'.format(dataset), dpi=100)
+        return fe_status
 
 def main(tool1_label, tool2_label, stratifiers, additional_label, summaries):
     if stratifiers is None:
@@ -229,7 +236,9 @@ def main(tool1_label, tool2_label, stratifiers, additional_label, summaries):
 
     fe = FEEvaluation(stratifiers)
     fe.read_data(summaries)
-    fe.plot(tool1_label, tool2_label, additional_label)
+    fe_status = fe.plot(tool1_label, tool2_label, additional_label)
+    with open('fe_status.txt', 'w') as fe_status_file:
+        fe_status_file.write(str(fe_status))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create functional equivalence plots.')
@@ -254,6 +263,7 @@ EOF
     output {
         Array[File] fe_plots = glob("*.png")
         File fe_summary = "fe_summary.tsv"
+        Int fe_status = read_int("fe_status.txt")
     }
 
     runtime {
