@@ -82,14 +82,6 @@ workflow RNAWithUMIsPipeline {
 	}
 
 
-
-#	call STARFastq {
-#		input:
-#			fastq1 = AddNsToClippedReads.fastq1_padded,
-#			fastq2 = AddNsToClippedReads.fastq2_padded,
-#			starIndex = starIndex
-#	}
-
 	call CopyReadGroupsToHeader {
 		input:
 			bam_with_readgroups = STAR.aligned_bam,
@@ -259,48 +251,7 @@ task STAR {
 	>>>
 
 	runtime {
-		docker : "us.gcr.io/tag-team-160914/neovax-tag-rnaseq:v1"
-		disks : "local-disk " + disk_space + " HDD"
-		memory : "64GB"
-		cpu : "8"
-		preemptible: 0
-	}
-
-	output {
-		File ls = "ls.txt"
-		File aligned_bam = "Aligned.out.bam"
-		File transcriptome_bam = "Aligned.toTranscriptome.out.bam"
-	}
-}
-
-task STARFastq {
-	input {
-		File fastq1
-		File fastq2
-		File starIndex
-	}
-
-	Int disk_space = 2*ceil(size(fastq1, "GB") + size(fastq2, "GB") + size(starIndex, "GB")) + 256
-
-	command <<<
-		echo $(date +"[%b %d %H:%M:%S] Extracting STAR index")
-		mkdir star_index
-		tar -xvvf ~{starIndex} -C star_index --strip-components=1
-
-		STAR --readFilesIn ~{fastq1} ~{fastq2} --readFilesType Fastx \
-			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
-			--limitSjdbInsertNsj 1200000 --outSAMstrandField intronMotif --outSAMunmapped Within \
-			--outFilterType BySJout --outFilterMultimapNmax 20 --outFilterScoreMinOverLread 0.33 \
-			--outFilterMatchNminOverLread 0.33 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.1 \
-			--alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --alignSJoverhangMin 8 \
-			--alignSJDBoverhangMin 1 --alignSoftClipAtReferenceEnds Yes --chimSegmentMin 15 --chimMainSegmentMultNmax 1 \
-			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM --quantTranscriptomeBan Singleend
-
-		ls > "ls.txt"
-	>>>
-
-	runtime {
-		docker : "us.gcr.io/tag-team-160914/neovax-tag-rnaseq:v1"
+		docker : "us.gcr.io/broad-gotc-prod/samtools-star:1.0.0-1.11-2.7.10a-1642556627"
 		disks : "local-disk " + disk_space + " HDD"
 		memory : "64GB"
 		cpu : "8"
