@@ -132,6 +132,7 @@ task STAR {
 		File bam
 		File starIndex
 	}
+
 	Int disk_space = ceil(2.2 * size(bam, "GB") + size(starIndex, "GB")) + 250
 
 	command <<<
@@ -146,12 +147,14 @@ task STAR {
 			--outFilterMatchNminOverLread 0.33 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.1 \
 			--alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --alignSJoverhangMin 8 \
 			--alignSJDBoverhangMin 1 --alignSoftClipAtReferenceEnds Yes --chimSegmentMin 15 --chimMainSegmentMultNmax 1 \
-			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM --quantTranscriptomeBan Singleend
+			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM --quantTranscriptomeBan Singleend \
+			--alignEndsProtrude 20 ConcordantPair
 
+		ls > "ls.txt"
 	>>>
 
 	runtime {
-		docker : "us.gcr.io/tag-team-160914/neovax-tag-rnaseq:v1"
+		docker : "us.gcr.io/broad-gotc-prod/samtools-star:1.0.0-1.11-2.7.10a-1642556627"
 		disks : "local-disk " + disk_space + " HDD"
 		memory : "64GB"
 		cpu : "8"
@@ -159,6 +162,7 @@ task STAR {
 	}
 
 	output {
+		File ls = "ls.txt"
 		File aligned_bam = "Aligned.out.bam"
 		File transcriptome_bam = "Aligned.toTranscriptome.out.bam"
 	}
