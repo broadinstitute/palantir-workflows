@@ -271,7 +271,6 @@ workflow FunctionalEquivalence {
         input:
             tool1_label = tool1_label,
             tool2_label = tool2_label,
-            stratifiers = select_first([stratLabels, []]),
             additional_label = additional_label,
             signed_difference = signed_difference,
             roc_tables = roc_tables_3,
