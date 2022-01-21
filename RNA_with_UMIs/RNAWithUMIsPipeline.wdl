@@ -215,7 +215,8 @@ workflow RNAWithUMIsPipeline {
 	File gene_tpm = rnaseqc2.gene_tpm
 	File gene_counts = rnaseqc2.gene_counts
 	File exon_counts = rnaseqc2.exon_counts
-	File metrics = rnaseqc2.metrics
+	File rnaseqc2_metrics = rnaseqc2.metrics
+	File rnaseqc2_insert_size_histogram = rnaseqc2.insert_size_histogram
 	File fastqc_report = FastQC.fastqc_html
 	File fastqc_table = FastQC.fastqc_data
 	Float fastqc_adapter_content = FastQC.adapter_content
