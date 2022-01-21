@@ -9,6 +9,7 @@ workflow PRSWrapper {
     Array[Float] percentile_thresholds
     Array[File] weights_files
     File ckd_risk_alleles
+    Float z_score_reportable_range
 
     File vcf
     String sample_id
@@ -60,7 +61,8 @@ workflow PRSWrapper {
           score_result = select_first([CKDRiskAdjustment.adjusted_scores_with_apol1, ScoringImputedDataset.adjusted_array_scores]),
           sample_id = sample_id,
           condition_name = condition_names[i],
-          threshold = percentile_thresholds[i]
+          threshold = percentile_thresholds[i],
+          z_score_reportable_range = z_score_reportable_range
       }
     }
 
@@ -92,6 +94,7 @@ task SelectValuesOfInterest {
     String sample_id
     String condition_name
     Float threshold
+    Float z_score_reportable_range
   }
 
   command <<<
@@ -109,8 +112,24 @@ task SelectValuesOfInterest {
     raw_score <- (score %>% pull(SCORE1_SUM))[[1]]
     adjusted_score <- (score %>% pull(adjusted_score))[[1]]
     percentile <- (score %>% pull(percentile))[[1]]
+    risk <- ifelse(percentile > ~{threshold}, "HIGH", "NOT_HIGH")
 
-    result <- tibble(sample_id = "~{sample_id}", ~{condition_name}_raw = raw_score, ~{condition_name}_adjusted = adjusted_score, ~{condition_name}_percentile = percentile, ~{condition_name}_risk = ifelse(percentile > ~{threshold}, "HIGH", "NOT_HIGH"))
+    raw_score_output <- ifelse(abs(adjusted_score) > ~{z_score_reportable_range}, "NOT_RESULTED", raw_score)
+    adjusted_score_output <- ifelse(abs(adjusted_score) > ~{z_score_reportable_range}, "NOT_RESULTED", adjusted_score)
+    percentile_output <- ifelse(abs(adjusted_score) > ~{z_score_reportable_range}, "NOT_RESULTED", percentile)
+    risk_output <- ifelse(abs(adjusted_score) > ~{z_score_reportable_range}, "NOT_RESULTED", risk)
+    reason_not_resulted <- ifelse(abs(adjusted_score) > ~{z_score_reportable_range},
+                                ifelse(adjusted_score > 0, paste("Z-SCORE ABOVE + ", ~{z_score_reportable_range}),
+                                                           paste("Z-SCORE BELOW - ", ~{z_score_reportable_range})
+                                      ),
+                                "NA"
+                                )
+
+    result <- tibble(sample_id = "~{sample_id}", ~{condition_name}_raw = raw_score_output,
+                                                 ~{condition_name}_adjusted = adjusted_score_output,
+                                                 ~{condition_name}_percentile = percentile_output,
+                                                 ~{condition_name}_risk = risk_output,
+                                                 ~{condition_name}_reason_not_resulted = reason_not_resulted)
     write_csv(result, "results.csv")
 
     EOF
@@ -134,8 +153,8 @@ task CreateUnscoredResult {
   }
 
   command <<<
-    echo "sample_id, ~{condition_name}_raw, ~{condition_name}_adjusted, ~{condition_name}_percentile", ~{condition_name}_risk > results.csv
-    echo "~{sample_id}, NA, NA, NA, NA" >> results.csv
+    echo "sample_id, ~{condition_name}_raw, ~{condition_name}_adjusted, ~{condition_name}_percentile, ~{condition_name}_risk, ~{condition_name}_reason_not_resulted" > results.csv
+    echo "~{sample_id}, NA, NA, NA, NA, NA" >> results.csv
   >>>
 
   runtime {
