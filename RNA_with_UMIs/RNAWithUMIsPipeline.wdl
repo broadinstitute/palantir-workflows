@@ -17,7 +17,7 @@ workflow RNAWithUMIsPipeline {
 		File refFlat
 		File ribosomalIntervals
 
-		String read_files_type = "SAM PE"
+		File rnaseqc2_exon_bed
 	}
 
 	call ExtractUMIs {
@@ -133,7 +133,8 @@ workflow RNAWithUMIsPipeline {
 		input:
 			bam_file = UMIAwareDuplicateMarking.duplicate_marked_bam,
 			genes_gtf = gtf,
-			sample_id = GetSampleName.sample_name
+			sample_id = GetSampleName.sample_name,
+			exon_bed = rnaseqc2_exon_bed
 	}
 
 	call CollectRNASeqMetrics {
@@ -299,9 +300,10 @@ task rnaseqc2 {
 		File bam_file
 		File genes_gtf
 		String sample_id
+		File exon_bed
 	}
+	
 	Int disk_space = ceil(size(bam_file, 'GB') + size(genes_gtf, 'GB')) + 100
-	File exon_bed = "gs://gtex-resources/GENCODE/gencode.v26.GRCh38.insert_size_intervals_geq1000bp.bed"
 
 	command {
 		set -euo pipefail
