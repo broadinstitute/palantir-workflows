@@ -391,7 +391,7 @@ task AddInteractionTermsToScore {
 
 		#add interaction scores to linear scores
 		df_interaction_score = pd.DataFrame({"sample_id":samples, "interaction_score":interaction_scores}).set_index("sample_id")
-		df_scores=pd.read_csv("~{scores}", sep="\t").astype({'#IID#':'string'}).set_index("#IID")
+		df_scores=pd.read_csv("~{scores}", sep="\t").astype({'#IID':'string'}).set_index("#IID")
 		df_scores = df_scores.join(df_interaction_score)
 		df_scores['SCORE1_SUM'] = df_scores['SCORE1_SUM'] + df_scores['interaction_score']
 		df_scores.to_csv("~{basename}_scores_with_interactions.tsv", sep="\t")
