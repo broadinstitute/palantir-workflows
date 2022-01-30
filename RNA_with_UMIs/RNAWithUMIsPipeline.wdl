@@ -400,7 +400,7 @@ task CollectRNASeqMetrics {
 	Int disk_size = ceil(size(input_bam, "GiB") + ref_size) + 20
 
 	# This jar skips the header check of the ribosomal interval
-	File picard_jar = "gs://broad-dsde-methods-takuto/hydro.gen/picard_ignore_ribosomal_header.jar"
+	File picard_jar = "gs://broad-dsde-methods-takuto/RNA/picard_ribosomal_inserts.jar"
 
 	command {
 		java -Xms5000m -jar ~{picard_jar} CollectRnaSeqMetrics \
@@ -408,7 +408,10 @@ task CollectRNASeqMetrics {
 		RIBOSOMAL_INTERVALS= ~{ribosomal_intervals} \
 		STRAND_SPECIFICITY=SECOND_READ_TRANSCRIPTION_STRAND \
 		INPUT=~{input_bam} \
-		OUTPUT=~{output_bam_prefix}_rna_metrics.txt
+		OUTPUT=~{output_bam_prefix}_rna_metrics.txt \
+		RRNA_INS=~{output_bam_prefix}_rRNA_inserts.txt
+
+		ls > ls.txt
 	}
 
 	runtime {
@@ -419,6 +422,8 @@ task CollectRNASeqMetrics {
 	}
 	output {
 		File rna_metrics = output_bam_prefix + "_rna_metrics.txt"
+		File rRNA_insert_size_histogram = output_bam_prefix + "_rRNA_inserts.txt"
+		File ls = "ls.txt"
 	}
 }
 
@@ -576,6 +581,7 @@ task CollectInsertSizeMetrics {
 		File input_bam_index
 		String output_bam_prefix
 		Int preemptible_tries
+		File? interval_list
 	}
 
 	Int disk_size = ceil(size(input_bam, "GiB")) + 256
