@@ -187,6 +187,7 @@ task BuildHTMLReport {
     library(knitr)
     library(dplyr)
     library(stringr)
+    library(purrr)
     batch_all_results <- read_tsv("~{batch_all_results}")
     batch_control_results <- read_tsv("~{batch_control_results}")
     expected_control_results <- read_tsv("~{expected_control_results}")
