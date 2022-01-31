@@ -168,7 +168,7 @@ task JoinResults {
     library(purrr)
     library(tibble)
 
-    results <- c("~{sep = '","' results_in}") %>% map(read_csv) %>% reduce(inner_join) %>% add_column(batch_id=~{batch_id}, .after="sample_id") %>% add_column(batch_id=~{is_control}, .after="batch_id")
+    results <- c("~{sep = '","' results_in}") %>% map(read_csv) %>% reduce(inner_join) %>% add_column(batch_id="~{batch_id}", .after="sample_id") %>% add_column(is_control="~{is_control}", .after="batch_id")
     write_csv(results, "results.csv")
     EOF
   >>>
