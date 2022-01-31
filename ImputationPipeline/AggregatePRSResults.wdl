@@ -197,9 +197,9 @@ task BuildHTMLReport {
 
 
     ## Control Sample
-    ```{r control, echo = FALSE, results = "asis"}
+    \`\`\`{r control, echo = FALSE, results = "asis"}
     kable(list(batch_control_results, expected_control_results) %>% reduce(bind_rows) %>% select(-batch_id) %>% select(-is_control) , digits = 2)
-    ```
+    \`\`\`
 
     ## Batch Summary
     \`\`\`{r summary table, echo = FALSE, results = "asis" }
