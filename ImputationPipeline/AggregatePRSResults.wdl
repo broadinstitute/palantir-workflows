@@ -98,7 +98,7 @@ task AggregateResults {
       ylab("density")
     ggsave(filename = paste0(batch_id, "_score_distribution.png"), dpi=300, width = 6, height = 6)
 
-    writelines(batch_id, "batch_id.txt")
+    writeLines(batch_id, "batch_id.txt")
 
     EOF
   >>>
