@@ -77,7 +77,7 @@ task AggregateResults {
 
     write_tsv(results %>% filter(is_control == "true"), paste0(batch_id, "_control_results.tsv"))
 
-    results_pivoted <- results %>% pivot_longer(!sample_id, names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
+    results_pivoted <- results %>% select(-batch_id) %>% select(-is_control) %>% pivot_longer(!sample_id, names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
     results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
                                                                           raw = as.numeric(raw),
                                                                           percentile = as.numeric(percentile)) %T>% {options(warn=0)}
