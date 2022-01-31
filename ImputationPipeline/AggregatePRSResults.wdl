@@ -190,7 +190,7 @@ task BuildHTMLReport {
     library(purrr)
     batch_all_results <- read_tsv("~{batch_all_results}")
     batch_control_results <- read_tsv("~{batch_control_results}")
-    expected_control_results <- read_tsv("~{expected_control_results}")
+    expected_control_results <- read_csv("~{expected_control_results}")
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
     \`\`\`
