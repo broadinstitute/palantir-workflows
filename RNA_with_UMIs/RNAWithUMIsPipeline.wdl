@@ -231,6 +231,7 @@ task STAR {
 	input {
 		File bam
 		File starIndex
+		Int num_protrude_bases = 40
 	}
 
 	Int disk_space = ceil(2.2 * size(bam, "GB") + size(starIndex, "GB")) + 250
@@ -248,7 +249,7 @@ task STAR {
 			--alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --alignSJoverhangMin 8 \
 			--alignSJDBoverhangMin 1 --alignSoftClipAtReferenceEnds Yes --chimSegmentMin 15 --chimMainSegmentMultNmax 1 \
 			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM --quantTranscriptomeBan Singleend \
-			--alignEndsProtrude 20 ConcordantPair
+			--alignEndsProtrude ~{num_protrude_bases} ConcordantPair
 
 		ls > "ls.txt"
 	>>>
