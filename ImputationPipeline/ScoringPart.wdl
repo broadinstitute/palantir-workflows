@@ -4,11 +4,7 @@ import "Structs.wdl"
 
 workflow ScoringImputedDataset {
 	input { 
-	File weights # disease weights file. Becauase we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
-	#  that will allow you to sort the variants in this weights file (`SortWeights`)
-	File? interaction_weights # wieghts for snp interactions
-	SelfExclusiveSites? interaction_self_exclusive_sites # The interaction term will only be added in no more than selfExclusiveSites.maxAllowed of the
-																											 # effect alleles listed in SelfExclusizeSites.sites is observed
+	WeightSet weight_set
 
 	File imputed_array_vcf  # imputed VCF for scoring (and optionally PCA projection): make sure the variant IDs exactly match those in the weights file
 	Int scoring_mem = 16
@@ -82,21 +78,21 @@ workflow ScoringImputedDataset {
 		input:
 		vcf = imputed_array_vcf,
 		basename = basename,
-		weights = weights,
+		weights = weight_set.linear_weights,
 		base_mem = scoring_mem,
 		extra_args = columns_for_scoring,
 		sites = ExtractIDsPopulation.ids
 	}
 
-	if (defined(interaction_weights)) {
+	if (defined(weight_set.interaction_weights)) {
 		call AddInteractionTermsToScore {
 			input:
 				vcf = imputed_array_vcf,
-				interaction_weights = select_first([interaction_weights]),
+				interaction_weights = select_first([weight_set.interaction_weights]),
 				scores = ScoreImputedArray.score,
 				sites = ExtractIDsPopulation.ids,
 				basename = basename,
-				self_exclusive_sites = interaction_self_exclusive_sites
+				self_exclusive_sites = weight_set.interaction_self_exclusive_sites
 		}
 	}
 
@@ -128,21 +124,21 @@ workflow ScoringImputedDataset {
 			input:
 			vcf = select_first([population_vcf]),
 			basename = select_first([population_basename]),
-			weights = weights,
+			weights = weight_set.linear_weights,
 			base_mem = population_scoring_mem,
 			extra_args = columns_for_scoring,
 			sites = ExtractIDsPlink.ids
 		}
 
-		if (defined(interaction_weights)) {
+		if (defined(weight_set.interaction_weights)) {
 			call AddInteractionTermsToScore as AddInteractionTermsToScorePopulation {
 				input:
 					vcf = select_first([population_vcf]),
-					interaction_weights = select_first([interaction_weights]),
+					interaction_weights = select_first([weight_set.interaction_weights]),
 					scores = ScorePopulation.score,
 					sites = ExtractIDsPlink.ids,
 					basename = select_first([population_basename]),
-					self_exclusive_sites = interaction_self_exclusive_sites
+					self_exclusive_sites = weight_set.interaction_self_exclusive_sites
 			}
 		}
 
