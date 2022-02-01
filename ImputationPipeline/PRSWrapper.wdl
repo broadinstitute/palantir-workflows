@@ -28,7 +28,7 @@ workflow PRSWrapper {
   if (length(named_weight_sets) != length(score_condition) || length(named_weight_sets) != length(percentile_thresholds)) {
     call ErrorWithMessage {
       input:
-        message = "named_weight_sets, score_condition, and percentile_thresholds"
+        message = "named_weight_sets, score_condition, and percentile_thresholds must all be same length"
     }
   }
 
