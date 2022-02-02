@@ -266,6 +266,7 @@ task STAR {
 		File ls = "ls.txt"
 		File aligned_bam = "Aligned.out.bam"
 		File transcriptome_bam = "Aligned.toTranscriptome.out.bam"
+		File splice_junction_table = "SJ.out.tab"
 	}
 }
 
