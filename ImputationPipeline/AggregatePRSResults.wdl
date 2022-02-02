@@ -59,25 +59,25 @@ task AggregateResults {
 
     results <- c("~{sep='","' results}") %>% map(read_csv, col_types=cols(.default = 'c')) %>% reduce(bind_rows)
     
-    num_batches <- lapply(results, function(row) {length(unique(row))})$batch_id
+    batch_ids <- results %>% pull(batch_id) %>% unique()
 
-    if (num_batches != 1) {
-      stop(paste0("There are ", num_batches, " batch IDs in the input tables, however, only 1 is expected."))
+    if (length(batch_ids) != 1) {
+      stop(paste0("There are ", length(batch_ids), " batch IDs in the input tables, however, only 1 is expected."))
     }
 
-    batch_id <- results$batch_id[1]
+    batch_id <- batch_ids[1]
 
-    num_control_samples <- sum(results$is_control=="true")
+    num_control_samples <- results %>% filter(is_control) %>% count()
 
-    if (num_batches != 1) {
-      stop(paste("There are ", num_control_samples, " control samples in the input tables, however, only 1 is expected."))
+    if (num_control_samples != 1) {
+      stop(paste0("There are ", num_control_samples, " control samples in the input tables, however, only 1 is expected."))
     }
 
     write_tsv(results, paste0(batch_id, "_all_results.tsv"))
 
-    write_tsv(results %>% filter(is_control == "true"), paste0(batch_id, "_control_results.tsv"))
+    write_tsv(results %>% filter(is_control), paste0(batch_id, "_control_results.tsv"))
 
-    results_pivoted <- results %>% select(-batch_id) %>% select(-is_control) %>% pivot_longer(!sample_id, names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
+    results_pivoted <- results %>% select(-batch_id, -is_control) %>% pivot_longer(!sample_id, names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
     results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
                                                                           raw = as.numeric(raw),
                                                                           percentile = as.numeric(percentile)) %T>% {options(warn=0)}
@@ -198,7 +198,7 @@ task BuildHTMLReport {
 
     ## Control Sample
     \`\`\`{r control, echo = FALSE, results = "asis"}
-    kable(list(batch_control_results, expected_control_results) %>% reduce(bind_rows) %>% select(-batch_id) %>% select(-is_control) , digits = 2)
+    kable(list(batch_control_results, expected_control_results) %>% reduce(bind_rows) %>% select(-batch_id, -is_control) , digits = 2)
     \`\`\`
 
     ## Batch Summary
@@ -214,9 +214,9 @@ task BuildHTMLReport {
     ## PCA
     ![](~{pc_plot})
 
-    ## Individual Sample Results
+    ## Individual Sample Results (without control sample)
     \`\`\`{r sample results , echo = FALSE, results = "asis"}
-    kable(batch_all_results %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green")))))), digits = 2)
+    kable(batch_all_results %>% filter(!is_control) %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green")))))), digits = 2)
     \`\`\`
     EOF
 
