@@ -65,19 +65,17 @@ task AggregateResults {
       stop(paste0("There are ", length(batch_ids), " batch IDs in the input tables, however, only 1 is expected."))
     }
 
-    batch_id <- batch_ids[1]
-
     num_control_samples <- results %>% filter(is_control) %>% count()
 
     if (num_control_samples != 1) {
       stop(paste0("There are ", num_control_samples, " control samples in the input tables, however, only 1 is expected."))
     }
 
-    write_tsv(results, paste0(batch_id, "_all_results.tsv"))
+    write_tsv(results, paste0(batch_ids, "_all_results.tsv"))
 
-    write_tsv(results %>% filter(is_control), paste0(batch_id, "_control_results.tsv"))
+    write_tsv(results %>% filter(is_control), paste0(batch_ids, "_control_results.tsv"))
 
-    results_pivoted <- results %>% select(-batch_id, -is_control) %>% pivot_longer(!sample_id, names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
+    results_pivoted <- results %>% select(-batch_ids, -is_control) %>% pivot_longer(!sample_id, names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
     results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
                                                                           raw = as.numeric(raw),
                                                                           percentile = as.numeric(percentile)) %T>% {options(warn=0)}
@@ -90,15 +88,15 @@ task AggregateResults {
                                                         num_not_high = sum(risk=="NOT_HIGH", na.rm=TRUE),
                                                         num_not_resulted = sum(risk=="NOT_RESULTED", na.rm = TRUE))
 
-    write_tsv(results_summarised, paste0(batch_id, "_summarised_results.tsv"))
+    write_tsv(results_summarised, paste0(batch_ids, "_summarised_results.tsv"))
 
     ggplot(results_pivoted, aes(x=adjusted)) +
       geom_density(aes(color=condition), fill=NA, position = "identity") +
       xlim(-10,10) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
       ylab("density")
-    ggsave(filename = paste0(batch_id, "_score_distribution.png"), dpi=300, width = 6, height = 6)
+    ggsave(filename = paste0(batch_ids, "_score_distribution.png"), dpi=300, width = 6, height = 6)
 
-    writeLines(batch_id, "batch_id.txt")
+    writeLines(batch_ids, "batch_id.txt")
 
     EOF
   >>>
@@ -200,7 +198,7 @@ task BuildHTMLReport {
 
     ## Control Sample
     \`\`\`{r control, echo = FALSE, results = "asis"}
-    kable(list(batch_control_results, expected_control_results) %>% reduce(bind_rows) %>% select(-batch_id, -is_control) %>% add_column(Sample=c('Batch control', 'Expected control'), .before='sample_id'), digits = 2)
+    kable(list(batch_control_results, expected_control_results) %>% reduce(bind_rows) %>% select(-batch_id, -is_control, -sample_id) %>% add_column(sample=c('batch_control', 'expected_control'), .before=1), digits = 2)
     \`\`\`
 
     ## Batch Summary
