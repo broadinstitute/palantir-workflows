@@ -188,6 +188,8 @@ task BuildHTMLReport {
     library(dplyr)
     library(stringr)
     library(purrr)
+    library(tibble)
+    
     batch_all_results <- read_tsv("~{batch_all_results}")
     batch_control_results <- read_tsv("~{batch_control_results}")
     expected_control_results <- read_csv("~{expected_control_results}")
