@@ -64,6 +64,7 @@ task AggregateResults {
     if (length(batch_ids) != 1) {
       stop(paste0("There are ", length(batch_ids), " batch IDs in the input tables, however, only 1 is expected."))
     }
+    # If there is only one batch_id, then batch_ids will have length 1 and can be treated as a single value from here on
 
     num_control_samples <- results %>% filter(is_control) %>% count()
 
@@ -75,7 +76,7 @@ task AggregateResults {
 
     write_tsv(results %>% filter(is_control), paste0(batch_ids, "_control_results.tsv"))
 
-    results_pivoted <- results %>% select(-batch_ids, -is_control) %>% pivot_longer(!sample_id, names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
+    results_pivoted <- results %>% select(-batch_id, -is_control) %>% pivot_longer(!sample_id, names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
     results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
                                                                           raw = as.numeric(raw),
                                                                           percentile = as.numeric(percentile)) %T>% {options(warn=0)}
