@@ -13,6 +13,8 @@ workflow PRSWrapper {
 
     File vcf
     String sample_id
+    String batch_id
+    Boolean is_control
     Boolean redoPCA = false
 
     File population_loadings
@@ -80,11 +82,14 @@ workflow PRSWrapper {
 
   call JoinResults{
     input:
-      results_in = result_for_condition
+      results_in = result_for_condition,
+      batch_id = batch_id,
+      is_control = is_control
   }
 
   output {
     File results = JoinResults.results
+    File pcs = select_first(ScoringImputedDataset.pc_projection)
   }
 }
 
@@ -171,6 +176,8 @@ task CreateUnscoredResult {
 task JoinResults {
   input {
     Array[File] results_in
+    String batch_id
+    Boolean is_control
   }
 
   command <<<
@@ -178,7 +185,9 @@ task JoinResults {
     library(dplyr)
     library(readr)
     library(purrr)
-    results <- c("~{sep = '","' results_in}") %>% map(read_csv) %>% reduce(inner_join)
+    library(tibble)
+
+    results <- c("~{sep = '","' results_in}") %>% map(read_csv) %>% reduce(inner_join) %>% add_column(batch_id="~{batch_id}", .after="sample_id") %>% add_column(is_control="~{is_control}", .after="batch_id")
     write_csv(results, "results.csv")
     EOF
   >>>

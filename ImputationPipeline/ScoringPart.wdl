@@ -145,7 +145,7 @@ workflow ScoringImputedDataset {
 			input:
 			population_pcs = select_first([PerformPCA.pcs, population_pcs]),
 			population_scores = ScorePopulation.score,
-			array_pcs = select_first([ProjectArray.projections]),
+			array_pcs = ProjectArray.projections,
 			array_scores = ScoreImputedArray.score
 		  }
 		if (!CheckPopulationIdsValid.files_are_valid) {
@@ -161,6 +161,7 @@ workflow ScoringImputedDataset {
 	File? adjusted_population_scores = AdjustScores.adjusted_population_scores
 	File? adjusted_array_scores = AdjustScores.adjusted_array_scores
 	Boolean? fit_converged = AdjustScores.fit_converged
+	File? pc_projection = ProjectArray.projections
 	File raw_scores = ScoreImputedArray.score
   }
 }
