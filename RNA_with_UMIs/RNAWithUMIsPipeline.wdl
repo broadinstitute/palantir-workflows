@@ -661,6 +661,7 @@ task Fastp {
 	}
 
 	output {
+		File ls = "ls.txt"
 		File fastq1_clipped = output_prefix + "_read1_trimmed.fastq"
 		File fastq2_clipped = output_prefix + "_read2_trimmed.fastq"
 	}
