@@ -57,7 +57,7 @@ task AggregateResults {
     library(magrittr)
     library(ggplot2)
 
-    results <- c("~{sep='","' results}") %>% map(read_csv, col_types=cols(.default = 'c')) %>% reduce(bind_rows)
+    results <- c("~{sep='","' results}") %>% map(read_csv, col_types=cols(is_control='l', .default='c')) %>% reduce(bind_rows)
     
     batch_ids <- results %>% pull(batch_id) %>% unique()
 
