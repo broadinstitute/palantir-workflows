@@ -189,7 +189,7 @@ task BuildHTMLReport {
     library(stringr)
     library(purrr)
     library(tibble)
-    
+
     batch_all_results <- read_tsv("~{batch_all_results}")
     batch_control_results <- read_tsv("~{batch_control_results}")
     expected_control_results <- read_csv("~{expected_control_results}")
@@ -218,7 +218,7 @@ task BuildHTMLReport {
 
     ## Individual Sample Results (without control sample)
     \`\`\`{r sample results , echo = FALSE, results = "asis"}
-    kable(batch_all_results %>% filter(!is_control) %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green")))))), digits = 2)
+    kable(batch_all_results %>% filter(!is_control) %>% select(-is_control) %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green")))))), digits = 2)
     \`\`\`
     EOF
 
