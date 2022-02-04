@@ -282,12 +282,6 @@ task AddInteractionTermsToScore {
 		vcf = VCF("~{vcf}", lazy=True)
 		samples = vcf.samples
 
-		def read_as_float(s):
-			try:
-				return float(s)
-			except ValueError:
-				pass
-
 		def add_allele_to_count(site, allele, dictionary):
 			if site in dictionary:
 				dictionary[site][allele]=[0]*len(samples)
@@ -303,16 +297,23 @@ task AddInteractionTermsToScore {
 		else:
 			sites = {}
 		with open("~{interaction_weights}") as f:
-			for line in f:
-				if line.strip():
-					line_split = line.split()
-					if weight := read_as_float(line_split[8]):
-						if len(sites) == 0 or line_split[0] in sites and line_split[4] in sites:
-							add_allele_to_count(line_split[0], line_split[3], interactions_allele_counts)
-							add_allele_to_count(line_split[4], line_split[7], interactions_allele_counts)
-							interactions_dict[(line_split[0], line_split[3], line_split[4], line_split[7])]=weight
-							positions.add((line_split[1], int(line_split[2])))
-							positions.add((line_split[5], int(line_split[6])))
+			for line in csv.DictReader(f, delimiter='\t'):
+				site_1 = line['id_1']
+				site_2 = line['id_2']
+				if len(sites) == 0 or site_1 in sites and site_2 in sites:
+					allele_1 = line['allele_1']
+					allele_2 = line['allele_2']
+					chrom_1 = line['chrom_1']
+					chrom_2 = line['chrom_2']
+					pos_1 = int(line['pos_1'])
+					pos_2 = int(line['pos_2'])
+					weight = float(line['weight'])
+
+					add_allele_to_count(site_1, allele_1, interactions_allele_counts)
+					add_allele_to_count(site_2, allele_2, interactions_allele_counts)
+					interaction_idct[(site_1, allele_1, site_2, allele_2)] = weight
+					positions.add((chrom_1, pos_1))
+					positions.add(chrom_2, pos_2))
 
 		def add_self_exclusive_site(site, allele, dictionary):
 			if site in dictionary:
@@ -325,11 +326,13 @@ task AddInteractionTermsToScore {
 		self_exclusive_sites_counts = [0]*len(samples)
 		if ~{if (defined(self_exclusive_sites)) then "True" else "False"}:
 			with open("~{select_first([self_exclusive_sites]).sites}") as f_self_exclusive_sites:
-				for line in f_self_exclusive_sites:
-					if line.strip():
-						line_split = line.split()
-						add_self_exclusive_site(line_split[0], line_split[3], self_exclusive_sites)
-						positions.add((line_split[1], int(line_split[2])))
+				for line in csv.DictReader(f_self_exclusive_sites, delimiter='\t'):
+					id = line['id']
+					chrom = line['chrom']
+					pos = line['pos']
+					allele = line['allele']
+					add_self_exclusive_sites(id, allele, self_exclusive_sites)
+					positions.add((chrom, pos))
 
 		#select blocks to read
 		positions = sorted(positions)
