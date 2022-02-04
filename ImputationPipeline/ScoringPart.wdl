@@ -278,6 +278,7 @@ task AddInteractionTermsToScore {
 		python3 << "EOF"
 		from cyvcf2 import VCF
 		import pandas as pd
+		import csv
 
 		vcf = VCF("~{vcf}", lazy=True)
 		samples = vcf.samples
