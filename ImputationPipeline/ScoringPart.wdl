@@ -313,7 +313,7 @@ task AddInteractionTermsToScore {
 					add_allele_to_count(site_2, allele_2, interactions_allele_counts)
 					interaction_idct[(site_1, allele_1, site_2, allele_2)] = weight
 					positions.add((chrom_1, pos_1))
-					positions.add(chrom_2, pos_2))
+					positions.add((chrom_2, pos_2))
 
 		def add_self_exclusive_site(site, allele, dictionary):
 			if site in dictionary:
