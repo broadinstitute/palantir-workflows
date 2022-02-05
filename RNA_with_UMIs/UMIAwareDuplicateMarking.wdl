@@ -63,15 +63,23 @@ task MarkDuplicates {
   }
 
   String output_bam_basename = output_basename + ".duplicate_marked"
-
   Int disk_size = ceil(3 * size(bam, "GB")) + 128
+
+  # We add the TAG_DUPLICATE_SET_MEMBERS flag for debugging/analysis purposes.
+  # The flag should be removed in production to save storage cost.
   command <<<
-    gatk MarkDuplicates -I ~{bam} --READ_ONE_BARCODE_TAG BX -O ~{output_bam_basename}.bam --METRICS_FILE ~{output_basename}.duplicate.metrics --ASSUME_SORT_ORDER queryname
+    gatk MarkDuplicates \
+    -I ~{bam} \
+    --READ_ONE_BARCODE_TAG BX \
+    -O ~{output_bam_basename}.bam \
+    --METRICS_FILE ~{output_basename}_duplicate_metrics.txt \
+    --ASSUME_SORT_ORDER queryname \
+    --TAG_DUPLICATE_SET_MEMBERS
   >>>
 
   output {
     File duplicate_marked_bam = "~{output_bam_basename}.bam"
-    File duplicate_metrics = "~{output_basename}.duplicate.metrics"
+    File duplicate_metrics = "~{output_basename}_duplicate_metrics.txt"
   }
 
   runtime {
