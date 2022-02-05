@@ -332,7 +332,7 @@ task AddInteractionTermsToScore {
 					chrom = line['chrom']
 					pos = line['pos']
 					allele = line['allele']
-					add_self_exclusive_sites(id, allele, self_exclusive_sites)
+					add_self_exclusive_site(id, allele, self_exclusive_sites)
 					positions.add((chrom, pos))
 
 		#select blocks to read
