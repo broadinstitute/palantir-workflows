@@ -330,7 +330,7 @@ task AddInteractionTermsToScore {
 				for line in csv.DictReader(f_self_exclusive_sites, delimiter='\t'):
 					id = line['id']
 					chrom = line['chrom']
-					pos = line['pos']
+					pos = int(line['pos'])
 					allele = line['allele']
 					add_self_exclusive_site(id, allele, self_exclusive_sites)
 					positions.add((chrom, pos))
