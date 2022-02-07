@@ -1,9 +1,10 @@
 version 1.0
 
+import "Structs.wdl"
+
 workflow ScoringImputedDataset {
 	input { 
-	File weights # disease weights file. Becauase we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
-	#  that will allow you to sort the variants in this weights file (`SortWeights`)
+	WeightSet weight_set
 
 	File imputed_array_vcf  # imputed VCF for scoring (and optionally PCA projection): make sure the variant IDs exactly match those in the weights file
 	Int scoring_mem = 16
@@ -77,10 +78,22 @@ workflow ScoringImputedDataset {
 		input:
 		vcf = imputed_array_vcf,
 		basename = basename,
-		weights = weights,
+		weights = weight_set.linear_weights,
 		base_mem = scoring_mem,
 		extra_args = columns_for_scoring,
 		sites = ExtractIDsPopulation.ids
+	}
+
+	if (defined(weight_set.interaction_weights)) {
+		call AddInteractionTermsToScore {
+			input:
+				vcf = imputed_array_vcf,
+				interaction_weights = select_first([weight_set.interaction_weights]),
+				scores = ScoreImputedArray.score,
+				sites = ExtractIDsPopulation.ids,
+				basename = basename,
+				self_exclusive_sites = weight_set.interaction_self_exclusive_sites
+		}
 	}
 
 	if (adjustScores) {
@@ -111,10 +124,22 @@ workflow ScoringImputedDataset {
 			input:
 			vcf = select_first([population_vcf]),
 			basename = select_first([population_basename]),
-			weights = weights,
+			weights = weight_set.linear_weights,
 			base_mem = population_scoring_mem,
 			extra_args = columns_for_scoring,
 			sites = ExtractIDsPlink.ids
+		}
+
+		if (defined(weight_set.interaction_weights)) {
+			call AddInteractionTermsToScore as AddInteractionTermsToScorePopulation {
+				input:
+					vcf = select_first([population_vcf]),
+					interaction_weights = select_first([weight_set.interaction_weights]),
+					scores = ScorePopulation.score,
+					sites = ExtractIDsPlink.ids,
+					basename = select_first([population_basename]),
+					self_exclusive_sites = weight_set.interaction_self_exclusive_sites
+			}
 		}
 
 		call ArrayVcfToPlinkDataset {
@@ -144,9 +169,9 @@ workflow ScoringImputedDataset {
 		call AdjustScores {
 			input:
 			population_pcs = select_first([PerformPCA.pcs, population_pcs]),
-			population_scores = ScorePopulation.score,
+			population_scores = select_first([AddInteractionTermsToScorePopulation.scores_with_interactions, ScorePopulation.score]),
 			array_pcs = ProjectArray.projections,
-			array_scores = ScoreImputedArray.score
+			array_scores = select_first([AddInteractionTermsToScore.scores_with_interactions, ScoreImputedArray.score])
 		  }
 		if (!CheckPopulationIdsValid.files_are_valid) {
 			call ErrorWithMessage {
@@ -162,7 +187,7 @@ workflow ScoringImputedDataset {
 	File? adjusted_array_scores = AdjustScores.adjusted_array_scores
 	Boolean? fit_converged = AdjustScores.fit_converged
 	File? pc_projection = ProjectArray.projections
-	File raw_scores = ScoreImputedArray.score
+	File raw_scores = select_first([AddInteractionTermsToScore.scores_with_interactions, ScoreImputedArray.score])
   }
 }
 
@@ -227,6 +252,160 @@ task ScoreVcf {
 		docker: "skwalker/plink2:first"
 		disks: "local-disk " + disk_space + " HDD"
 		memory: runtime_mem + " GB"
+	}
+}
+
+task AddInteractionTermsToScore {
+	input {
+		File vcf
+		File interaction_weights
+		File scores
+		File? sites
+		String basename
+		SelfExclusiveSites? self_exclusive_sites # The interaction term will only be added in no more than selfExclusiveSites.maxAllowed of the
+																					 # effect alleles listed in SelfExclusizeSites.sites is observed
+
+		Float mem = 8
+		Int block_buffer=10000000
+	}
+
+	Int disk_space =  3*ceil(size(vcf, "GB")) + 20
+
+	command <<<
+
+		tabix ~{vcf}
+
+		python3 << "EOF"
+		from cyvcf2 import VCF
+		import pandas as pd
+		import csv
+
+		vcf = VCF("~{vcf}", lazy=True)
+		samples = vcf.samples
+
+		def add_allele_to_count(site, allele, dictionary):
+			if site in dictionary:
+				dictionary[site][allele]=[0]*len(samples)
+			else:
+				dictionary[site]={allele:[0]*len(samples)}
+
+		interactions_allele_counts = dict()
+		interactions_dict = dict()
+		positions = set()
+		if ~{if defined(sites) then "True" else "False"}:
+			with open("~{sites}") as f_sites:
+				sites = {s.strip() for s in f_sites}
+		else:
+			sites = {}
+		with open("~{interaction_weights}") as f:
+			for line in csv.DictReader(f, delimiter='\t'):
+				site_1 = line['id_1']
+				site_2 = line['id_2']
+				if len(sites) == 0 or site_1 in sites and site_2 in sites:
+					allele_1 = line['allele_1']
+					allele_2 = line['allele_2']
+					chrom_1 = line['chrom_1']
+					chrom_2 = line['chrom_2']
+					pos_1 = int(line['pos_1'])
+					pos_2 = int(line['pos_2'])
+					weight = float(line['weight'])
+
+					add_allele_to_count(site_1, allele_1, interactions_allele_counts)
+					add_allele_to_count(site_2, allele_2, interactions_allele_counts)
+					interactions_dict[(site_1, allele_1, site_2, allele_2)] = weight
+					positions.add((chrom_1, pos_1))
+					positions.add((chrom_2, pos_2))
+
+		def add_self_exclusive_site(site, allele, dictionary):
+			if site in dictionary:
+				dictionary[site].add(allele)
+			else:
+				dictionary[site]={allele}
+
+		self_exclusive_sites = dict()
+		max_self_exclusive_sites = ~{if (defined(self_exclusive_sites)) then select_first([self_exclusive_sites]).maxAllowed else 0}
+		self_exclusive_sites_counts = [0]*len(samples)
+		if ~{if (defined(self_exclusive_sites)) then "True" else "False"}:
+			with open("~{select_first([self_exclusive_sites]).sites}") as f_self_exclusive_sites:
+				for line in csv.DictReader(f_self_exclusive_sites, delimiter='\t'):
+					id = line['id']
+					chrom = line['chrom']
+					pos = int(line['pos'])
+					allele = line['allele']
+					add_self_exclusive_site(id, allele, self_exclusive_sites)
+					positions.add((chrom, pos))
+
+		#select blocks to read
+		positions = sorted(positions)
+		current_chrom=positions[0][0]
+		current_start=positions[0][1]
+		current_end = current_start+1
+		buffer=~{block_buffer}
+
+		blocks_to_read=[]
+		for site in positions:
+			if site[0] != current_chrom or site[1] - current_end > buffer:
+				blocks_to_read.append(current_chrom + ":" + str(current_start) + "-" + str(current_end))
+				current_chrom=site[0]
+				current_start=site[1]
+				current_end = current_start+1
+			else:
+				current_end = site[1] + 1
+
+		#last block
+		blocks_to_read.append(current_chrom + ":" + str(current_start) + "-" + str(current_end))
+
+		#count interaction alleles for each sample
+		for block in blocks_to_read:
+			for variant in vcf(block):
+				alleles = [a for a_l in [[variant.REF], variant.ALT] for a in a_l]
+				vid=":".join(s for s_l in [[variant.CHROM], [str(variant.POS)], sorted(alleles)] for s in s_l)
+				if vid in interactions_allele_counts:
+					for sample_i,gt in enumerate(variant.genotypes):
+						for gt_allele in gt[:-1]:
+							allele = alleles[gt_allele]
+							if allele in interactions_allele_counts[vid]:
+								interactions_allele_counts[vid][allele][sample_i] += 1
+				if vid in self_exclusive_sites:
+					for sample_i,gt in enumerate(variant.genotypes):
+						for gt_allele in gt[:-1]:
+							allele = alleles[gt_allele]
+							if allele in self_exclusive_sites[vid]:
+								self_exclusive_sites_counts[sample_i] += 1
+
+		#calculate interaction scores for each sample
+		interaction_scores = [0] * len(samples)
+
+		def get_interaction_count(site_and_allele_1, site_and_allele_2, sample_i):
+			if site_and_allele_1 == site_and_allele_2:
+				return interactions_allele_counts[site_and_allele_1[0]][site_and_allele_1[1]][sample_i]//2
+			else:
+				return min(interactions_allele_counts[site_and_allele_1[0]][site_and_allele_1[1]][sample_i], interactions_allele_counts[site_and_allele_2[0]][site_and_allele_2[1]][sample_i])
+
+		for interaction in interactions_dict:
+			for sample_i in range(len(samples)):
+				if self_exclusive_sites_counts[sample_i] <= max_self_exclusive_sites:
+					site_and_allele_1 = (interaction[0], interaction[1])
+					site_and_allele_2 = (interaction[2], interaction[3])
+					interaction_scores[sample_i]+=get_interaction_count(site_and_allele_1, site_and_allele_2, sample_i) * interactions_dict[interaction]
+
+		#add interaction scores to linear scores
+		df_interaction_score = pd.DataFrame({"sample_id":samples, "interaction_score":interaction_scores}).set_index("sample_id")
+		df_scores=pd.read_csv("~{scores}", sep="\t").astype({'#IID':'string'}).set_index("#IID")
+		df_scores = df_scores.join(df_interaction_score)
+		df_scores['SCORE1_SUM'] = df_scores['SCORE1_SUM'] + df_scores['interaction_score']
+		df_scores.to_csv("~{basename}_scores_with_interactions.tsv", sep="\t")
+		EOF
+	>>>
+
+	runtime {
+		docker: "us.gcr.io/broad-dsde-methods/imputation_interaction_python:v1.0.0"
+		disks: "local-disk " + disk_space + " HDD"
+		memory: mem + " GB"
+	}
+
+	output {
+		File scores_with_interactions = basename + "_scores_with_interactions.tsv"
 	}
 }
 
@@ -545,7 +724,7 @@ task ExtractIDsPlink {
 	Int plink_mem = ceil(mem * 0.75 * 1000)
 
 	command <<<
-		/plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --write-snplist allow-dups --memory ~{plink_mem}
+		/plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --allow-extra-chr --write-snplist allow-dups --memory ~{plink_mem}
 	>>>
 	output {
 		File ids = "plink2.snplist"

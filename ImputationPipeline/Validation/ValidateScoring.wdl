@@ -63,7 +63,7 @@ workflow ValidateScoring {
 	#run scoring on this branch, using imputed data from this branch, or shared imputed data is we are studying only changes in scoring
 	call Scoring.ScoringImputedDataset as ScoreImputed {
 		input:
-			weights = SubsetWeightsWGS.subset_weights,
+			weight_set = object{linear_weights : SubsetWeightsWGS.subset_weights},
 			imputed_array_vcf = select_first([validationArrays, validationArraysMain]),
 			population_basename = population_basename,
 			basename = "imputed",
@@ -94,7 +94,7 @@ workflow ValidateScoring {
 	#score wgs over only sites in the imputed array which are called in every wgs sample
 	call Scoring.ScoringImputedDataset as ScoreWGS {
 		input:
-			weights = SubsetWeightsWGS.subset_weights,
+			weight_set = object{linear_weights : SubsetWeightsWGS.subset_weights},
 			imputed_array_vcf = QCSites.output_vcf,
 			population_basename = population_basename,
 			basename = "imputed",

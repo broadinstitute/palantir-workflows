@@ -1,13 +1,13 @@
 version 1.0
 import "ScoringPart.wdl" as Score
 import "CKDRiskAdjustment.wdl" as CKDRiskAdjustment
+import "Structs.wdl"
 
 workflow PRSWrapper {
   input {
-    Array[String] condition_names
+    Array[NamedWeightSet] named_weight_sets
     Array[Boolean] score_condition
     Array[Float] percentile_thresholds
-    Array[File] weights_files
     File ckd_risk_alleles
     Float z_score_reportable_range
 
@@ -25,18 +25,18 @@ workflow PRSWrapper {
     String population_basename
   }
 
-  if (length(condition_names) != length(score_condition) || length(condition_names) != length(weights_files) || length(condition_names) != length(percentile_thresholds)) {
+  if (length(named_weight_sets) != length(score_condition) || length(named_weight_sets) != length(percentile_thresholds)) {
     call ErrorWithMessage {
       input:
-        message = "conditions_names, use_condition, use_ancestry_correction, and weights_files must all be arrays of the same length"
+        message = "named_weight_sets, score_condition, and percentile_thresholds must all be same length"
     }
   }
 
-  scatter(i in range(length(condition_names))) {
+  scatter(i in range(length(named_weight_sets))) {
     if (score_condition[i]) {
       call Score.ScoringImputedDataset {
         input:
-          weights = weights_files[i],
+          weight_set = named_weight_sets[i].weight_set,
           imputed_array_vcf = vcf,
           population_loadings = population_loadings,
           population_meansd = population_meansd,
@@ -48,7 +48,7 @@ workflow PRSWrapper {
           redoPCA = redoPCA
       }
 
-      if (condition_names[i] == "ckd") {
+      if (named_weight_sets[i].condition_name == "ckd") {
         call CKDRiskAdjustment.CKDRiskAdjustment {
           input:
             adjustedScores = select_first([ScoringImputedDataset.adjusted_array_scores]),
@@ -62,7 +62,7 @@ workflow PRSWrapper {
         input:
           score_result = select_first([CKDRiskAdjustment.adjusted_scores_with_apol1, ScoringImputedDataset.adjusted_array_scores]),
           sample_id = sample_id,
-          condition_name = condition_names[i],
+          condition_name = named_weight_sets[i].condition_name,
           threshold = percentile_thresholds[i],
           z_score_reportable_range = z_score_reportable_range
       }
@@ -73,7 +73,7 @@ workflow PRSWrapper {
       call CreateUnscoredResult {
         input:
           sample_id = sample_id,
-          condition_name = condition_names[i]
+          condition_name = named_weight_sets[i].condition_name
       }
     }
 
@@ -92,6 +92,7 @@ workflow PRSWrapper {
     File pcs = select_first(ScoringImputedDataset.pc_projection)
   }
 }
+
 
 task SelectValuesOfInterest {
   input {

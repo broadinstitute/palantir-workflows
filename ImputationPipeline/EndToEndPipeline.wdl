@@ -3,6 +3,7 @@ version 1.0
 import "Imputation.wdl" as imputation_pipeline
 import "ScoringPart.wdl" as scoring_pipeline
 import "PerformPopulationPCA.wdl" as population_pipeline # Like Thousand Genomes
+import "Structs.wdl" as Structs
 
 workflow EndToEndPipeline {
 	input {
@@ -39,7 +40,7 @@ workflow EndToEndPipeline {
 
 	  ## The following are inputs for scoring and performing the adjustment
 
-	  File disease_weights  # disease weights file. Because we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
+	  WeightSet disease_weights  # disease weights file. Because we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
 	  String? columns_for_scoring # Plink expects the first 3 columns in your weights file to be variant ID, effect allele, effect weight
 	  
 	  Int scoring_mem = 16 # update memory for scoring imputed array
@@ -73,7 +74,7 @@ workflow EndToEndPipeline {
 
   call scoring_pipeline.ScoringImputedDataset as ScoringSteps {
 	  input :
-		weights  = disease_weights,
+		weight_set  = disease_weights,
 		columns_for_scoring = columns_for_scoring,
 		imputed_array_vcf = ImputationSteps.imputed_multisample_vcf,
 	    scoring_mem = scoring_mem,
