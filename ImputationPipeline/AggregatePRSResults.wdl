@@ -218,7 +218,7 @@ task BuildHTMLReport {
     ![](~{score_distribution})
 
     ## PCA
-    ```{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
+    \`\`\`{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
     target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows)
     population_pcs <- read_tsv("~{population_pc_projections}")
 
@@ -227,7 +227,7 @@ task BuildHTMLReport {
       geom_point(data=target_pcs, aes(color="~{batch_id}", sample=IID)) +
       theme_bw()
     ggplotly(p)
-    ```
+    \`\`\`
 
     ## Individual Sample Results (without control sample)
     \`\`\`{r sample results , echo = FALSE, results = "asis"}
