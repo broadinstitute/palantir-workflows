@@ -218,15 +218,16 @@ task BuildHTMLReport {
     ![](~{score_distribution})
 
     ## PCA
+    #### Hover for sample ID
     \`\`\`{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
     target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows)
     population_pcs <- read_tsv("~{population_pc_projections}")
 
     p <- ggplot(population_pcs, aes(x=PC1, y=PC2, color="~{population_name}")) +
       geom_point(size=0.1, alpha=0.1) +
-      geom_point(data=target_pcs, aes(color="~{batch_id}", sample=IID)) +
+      geom_point(data=target_pcs, aes(color="~{batch_id}", text=paste0("Sample ID: ", IID))) +
       theme_bw()
-    ggplotly(p)
+    ggplotly(p, tooltip="text")
     \`\`\`
 
     ## Individual Sample Results (without control sample)
