@@ -30,7 +30,9 @@ workflow AggregatePRSResults {
       expected_control_results = expected_control_results,
       batch_summarised_results = AggregateResults.batch_summarised_results,
       score_distribution = AggregateResults.batch_score_distribution,
-      pc_plot = PlotPCA.pc_plot
+      target_pc_projections = target_pc_projections,
+      population_pc_projections = population_pc_projections,
+      population_name = population_name
   }
 
   output {
@@ -93,7 +95,7 @@ task AggregateResults {
 
     ggplot(results_pivoted, aes(x=adjusted)) +
       geom_density(aes(color=condition), fill=NA, position = "identity") +
-      xlim(-10,10) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
+      xlim(-5,5) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
       ylab("density")
     ggsave(filename = paste0(batch_ids, "_score_distribution.png"), dpi=300, width = 6, height = 6)
 
@@ -164,7 +166,9 @@ task BuildHTMLReport {
     File expected_control_results
     File batch_summarised_results
     File score_distribution
-    File pc_plot
+    Array[File] target_pc_projections
+    File population_pc_projections
+    String population_name
     String batch_id
   }
 
@@ -188,6 +192,7 @@ task BuildHTMLReport {
     library(stringr)
     library(purrr)
     library(tibble)
+    library(plotly)
 
     batch_all_results <- read_tsv("~{batch_all_results}")
     batch_control_results <- read_tsv("~{batch_control_results}")
@@ -213,7 +218,16 @@ task BuildHTMLReport {
     ![](~{score_distribution})
 
     ## PCA
-    ![](~{pc_plot})
+    ```{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
+    target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows)
+    population_pcs <- read_tsv("~{population_pc_projections}")
+
+    p <- ggplot(population_pcs, aes(x=PC1, y=PC2, color="~{population_name}")) +
+      geom_point(size=0.1, alpha=0.1) +
+      geom_point(data=target_pcs, aes(color="~{batch_id}", sample=IID)) +
+      theme_bw()
+    ggplotly(p)
+    ```
 
     ## Individual Sample Results (without control sample)
     \`\`\`{r sample results , echo = FALSE, results = "asis"}
@@ -225,7 +239,7 @@ task BuildHTMLReport {
   >>>
 
   runtime {
-    docker: "us.gcr.io/broad-dsde-methods/tidyverse_kableextra_docker@sha256:e00dd57a1c446e9c07429929893a8399c4a299f0b4fd182245bf45e77c6ab8bd"
+    docker: "us.gcr.io/broad-dsde-methods/mgatzen/tidyverse_kableextra_docker@sha256:fd21f5608a3d43add02f8a8490e49db67f078cb2b906f8cd959a9767350b8c24"
     disks: "local-disk 100 HDD"
     memory: "4 GB"
   }
