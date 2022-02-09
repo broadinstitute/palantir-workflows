@@ -423,7 +423,7 @@ workflow Benchmark {
 
 
     output {
-        File? summary=CombineSummaries.summaryOut
+        File summary=CombineSummaries.summaryOut
         Float snpPrecision=SummariseVcfEval.snpPrecision[0]
         Float indelPrecision=SummariseVcfEval.indelPrecision[0]
         Float snpRecall=SummariseVcfEval.snpRecall[0]

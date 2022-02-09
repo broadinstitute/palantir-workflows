@@ -15,7 +15,7 @@ commands:
   get-cromwell-jar:
     description: "Download cromwell jar"
     steps:
-      - run: wget https://github.com/broadinstitute/cromwell/releases/download/71/cromwell-71.jar
+      - run: wget https://github.com/broadinstitute/cromwell/releases/download/78/cromwell-78.jar
 
   install-make:
     description: "Install make"
@@ -23,6 +23,12 @@ commands:
       - run: |
             apt-get update
             apt-get install -y make
+  
+  install-java:
+    description: "Install recent OpenJDK version"
+    steps:
+      - run: |
+            apt install -y openjdk-8-jre-headless
 jobs:
   validate:
     executor: womtool-executor
@@ -39,9 +45,10 @@ jobs:
       - run: make validate-with-json
 
   test:
-    machine: true
+    machine:
+      image: ubuntu-2004:current
     environment:
-      CROMWELL_JAR=/home/circleci/project/cromwell-71.jar
+      CROMWELL_JAR=/home/circleci/project/cromwell-78.jar
     steps:
       - checkout
       - get-cromwell-jar
