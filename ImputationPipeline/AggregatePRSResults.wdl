@@ -204,7 +204,7 @@ task BuildHTMLReport {
 
     ## Control Sample
     \`\`\`{r control, echo = FALSE, results = "asis"}
-    kable(list(batch_control_results, expected_control_results) %>% reduce(bind_rows) %>% select(-batch_id, -is_control, -sample_id) %>% add_column(sample=c('batch_control', 'expected_control'), .before=1), digits = 2)
+    kable(list(batch_control_results, expected_control_results) %>% reduce(bind_rows) %>% select(ends_with('_adjusted')) %>% add_column(sample=c('batch_control', 'expected_control'), .before=1), digits = 2)
     \`\`\`
 
     ## Batch Summary
@@ -240,7 +240,7 @@ task BuildHTMLReport {
   >>>
 
   runtime {
-    docker: "us.gcr.io/broad-dsde-methods/mgatzen/tidyverse_kableextra_docker@sha256:fd21f5608a3d43add02f8a8490e49db67f078cb2b906f8cd959a9767350b8c24"
+    docker: "us.gcr.io/broad-dsde-methods/tidyverse_kableextra_docker@sha256:fd21f5608a3d43add02f8a8490e49db67f078cb2b906f8cd959a9767350b8c24"
     disks: "local-disk 100 HDD"
     memory: "4 GB"
   }
