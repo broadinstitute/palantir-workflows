@@ -3,7 +3,7 @@
 # Wraps around ImputationPipeline/build_push_docker.sh.
 
 dockerfile_directory=tidyverse_kableextra_docker
-image_version=v1.0.0 # as of Jan 13 2022
+image_version=v1.1.0 # as of Feb 8 2022
 
 wd=$(pwd)
 cd "$(dirname $0)" || exit
