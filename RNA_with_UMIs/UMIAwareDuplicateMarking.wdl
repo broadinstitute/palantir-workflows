@@ -39,7 +39,15 @@ workflow UMIAwareDuplicateMarking {
   call MarkDuplicates {
     input:
       bam = SortSamQueryName.output_bam,
-      output_basename = output_basename
+      output_basename = output_basename,
+      use_UMI = true
+  }
+
+  call MarkDuplicates as MarkDuplicateSkipUMI {
+    input:
+      bam = SortSamQueryName.output_bam,
+      output_basename = output_basename + "_skip_UMI",
+      use_UMI = false
   }
 
   call SortSam as SortSamSecond {
@@ -49,10 +57,20 @@ workflow UMIAwareDuplicateMarking {
       sort_order = "coordinate"
   }
 
+  call SortSam as SortSamSecondSkipUMI {
+    input:
+      input_bam = MarkDuplicateSkipUMI.duplicate_marked_bam,
+      output_bam_basename = output_basename + ".duplicate_marked.coordinate_sorted.UMI_skipped",
+      sort_order = "coordinate"
+  }
+
   output {
     File duplicate_marked_bam = SortSamSecond.output_bam
     File duplicate_marked_bam_index = select_first([SortSamSecond.output_bam_index, "bam_index_not_found"])
     File duplicate_metrics = MarkDuplicates.duplicate_metrics
+    File duplicate_marked_skip_umi_bam = SortSamSecond.output_bam
+    File duplicate_marked_skip_umi_bam_index = select_first([SortSamSecond.output_bam_index, "bam_index_not_found"])
+    File duplicate_metrics_skip_umi = MarkDuplicates.duplicate_metrics
   }
 }
 
@@ -60,6 +78,7 @@ task MarkDuplicates {
   input {
     File bam
     String output_basename
+    Boolean use_UMI
   }
 
   String output_bam_basename = output_basename + ".duplicate_marked"
@@ -70,11 +89,11 @@ task MarkDuplicates {
   command <<<
     gatk MarkDuplicates \
     -I ~{bam} \
-    --READ_ONE_BARCODE_TAG BX \
     -O ~{output_bam_basename}.bam \
     --METRICS_FILE ~{output_basename}_duplicate_metrics.txt \
     --ASSUME_SORT_ORDER queryname \
-    --TAG_DUPLICATE_SET_MEMBERS
+    --TAG_DUPLICATE_SET_MEMBERS \
+    ~{true='--READ_ONE_BARCODE_TAG BX' false='' use_UMI} \
   >>>
 
   output {

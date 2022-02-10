@@ -137,6 +137,14 @@ workflow RNAWithUMIsPipeline {
 			exon_bed = rnaseqc2_exon_bed
 	}
 
+	call rnaseqc2 as RNASeQCSkipUMI {
+		input:
+			bam_file = UMIAwareDuplicateMarking.duplicate_marked_skip_umi_bam,
+			genes_gtf = gtf,
+			sample_id = GetSampleName.sample_name,
+			exon_bed = rnaseqc2_exon_bed
+	}
+
 	call CollectRNASeqMetrics {
 		input:
 			input_bam=UMIAwareDuplicateMarking.duplicate_marked_bam,
@@ -244,12 +252,13 @@ task STAR {
 		STAR --readFilesIn ~{bam} --readFilesType SAM PE --readFilesCommand samtools view -h \
 			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
 			--limitSjdbInsertNsj 1200000 --outSAMstrandField intronMotif --outSAMunmapped Within \
-			--outFilterType BySJout --outFilterMultimapNmax 20 --outFilterScoreMinOverLread 0.33 \
-			--outFilterMatchNminOverLread 0.33 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.1 \
+			--outFilterType BySJout --outFilterMultimapNmax 20 --outFilterScoreMinOverLread 0.2 \
+			--outFilterMatchNminOverLread 0.2 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.1 \
 			--alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --alignSJoverhangMin 8 \
 			--alignSJDBoverhangMin 1 --alignSoftClipAtReferenceEnds Yes --chimSegmentMin 15 --chimMainSegmentMultNmax 1 \
 			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM --quantTranscriptomeBan Singleend \
-			--alignEndsProtrude ~{num_protrude_bases} ConcordantPair
+			--alignEndsProtrude ~{num_protrude_bases} ConcordantPair \
+
 
 		ls > "ls.txt"
 	>>>
@@ -403,6 +412,7 @@ task CollectRNASeqMetrics {
 
 	# This jar skips the header check of the ribosomal interval
 	File picard_jar = "gs://broad-dsde-methods-takuto/RNA/picard_ribosomal_inserts.jar"
+	File collapsed_ref_flat = ""
 
 	command {
 		java -Xms5000m -jar ~{picard_jar} CollectRnaSeqMetrics \
@@ -412,6 +422,15 @@ task CollectRNASeqMetrics {
 		INPUT=~{input_bam} \
 		OUTPUT=~{output_bam_prefix}_rna_metrics.txt \
 		RRNA_INS=~{output_bam_prefix}_rRNA_inserts.txt
+
+
+		java -Xms5000m -jar ~{picard_jar} CollectRnaSeqMetrics \
+		REF_FLAT=~{collapsed_ref_flat} \
+		RIBOSOMAL_INTERVALS= ~{ribosomal_intervals} \
+		STRAND_SPECIFICITY=SECOND_READ_TRANSCRIPTION_STRAND \
+		INPUT=~{input_bam} \
+		OUTPUT=~{output_bam_prefix}_rna_metrics_collapsed.txt \
+		RRNA_INS=~{output_bam_prefix}_rRNA_inserts_collapsed.txt
 
 		ls > ls.txt
 	}
@@ -424,6 +443,7 @@ task CollectRNASeqMetrics {
 	}
 	output {
 		File rna_metrics = output_bam_prefix + "_rna_metrics.txt"
+		File rna_metrics_collapsed = output_bam_prefix + "_rna_metrics_collapsed.txt"
 		File rRNA_insert_size_histogram = output_bam_prefix + "_rRNA_inserts.txt"
 		File ls = "ls.txt"
 	}
