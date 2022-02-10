@@ -412,7 +412,7 @@ task CollectRNASeqMetrics {
 
 	# This jar skips the header check of the ribosomal interval
 	File picard_jar = "gs://broad-dsde-methods-takuto/RNA/picard_ribosomal_inserts.jar"
-	File collapsed_ref_flat = ""
+	File collapsed_ref_flat = "gs://broad-dsde-methods-takuto/RNA/resources/gencode_v34_UCSC_2_collapsed_refFlat.txt"
 
 	command {
 		java -Xms5000m -jar ~{picard_jar} CollectRnaSeqMetrics \
@@ -567,8 +567,6 @@ task CollectMultipleMetrics {
 
 	Float ref_size = size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB") + size(ref_dict, "GiB")
 	Int disk_size = ceil(size(input_bam, "GiB") + ref_size) + 20
-
-	File ref_flat = "gs://gcp-public-data--broad-references/hg38/v0/GRCh38_gencode.v27.refFlat.txt"
 
 	command {
 		java -Xms5000m -jar /usr/gitc/picard.jar CollectMultipleMetrics \
