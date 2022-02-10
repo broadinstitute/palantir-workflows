@@ -16,7 +16,7 @@ workflow AggregatePRSResults {
 
   call PlotPCA {
     input:
-      batch_id = AggregateResults.batch_id,
+      lab_batch = AggregateResults.lab_batch,
       population_name = population_name,
       target_pc_projections = target_pc_projections,
       population_pc_projections = population_pc_projections
@@ -24,7 +24,7 @@ workflow AggregatePRSResults {
 
   call BuildHTMLReport {
     input:
-      batch_id = AggregateResults.batch_id,
+      lab_batch = AggregateResults.lab_batch,
       batch_all_results = AggregateResults.batch_all_results,
       batch_control_results = AggregateResults.batch_control_results,
       expected_control_results = expected_control_results,
@@ -59,26 +59,26 @@ task AggregateResults {
     library(magrittr)
     library(ggplot2)
 
-    results <- c("~{sep='","' results}") %>% map(read_csv, col_types=cols(is_control='l', .default='c')) %>% reduce(bind_rows)
+    results <- c("~{sep='","' results}") %>% map(read_csv, col_types=cols(is_control_sample='l', .default='c')) %>% reduce(bind_rows)
     
-    batch_ids <- results %>% pull(batch_id) %>% unique()
+    lab_batch <- results %>% pull(lab_batch) %>% unique()
 
-    if (length(batch_ids) != 1) {
-      stop(paste0("There are ", length(batch_ids), " batch IDs in the input tables, however, only 1 is expected."))
+    if (length(lab_batch) != 1) {
+      stop(paste0("There are ", length(lab_batch), " lab batch IDs in the input tables, however, only 1 is expected."))
     }
-    # If there is only one batch_id, then batch_ids will have length 1 and can be treated as a single value from here on
+    # If there is only one lab_batch, then lab_batch will have length 1 and can be treated as a single value from here on
 
-    num_control_samples <- results %>% filter(is_control) %>% count()
+    num_control_samples <- results %>% filter(is_control_sample) %>% count()
 
     if (num_control_samples != 1) {
       stop(paste0("There are ", num_control_samples, " control samples in the input tables, however, only 1 is expected."))
     }
 
-    write_tsv(results, paste0(batch_ids, "_all_results.tsv"))
+    write_tsv(results, paste0(lab_batch, "_all_results.tsv"))
 
-    write_tsv(results %>% filter(is_control), paste0(batch_ids, "_control_results.tsv"))
+    write_tsv(results %>% filter(is_control_sample), paste0(lab_batch, "_control_results.tsv"))
 
-    results_pivoted <- results %>% select(-batch_id, -is_control) %>% pivot_longer(!sample_id, names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
+    results_pivoted <- results %>% select(-lab_batch, -is_control_sample) %>% pivot_longer(!sample_id, names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
     results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
                                                                           raw = as.numeric(raw),
                                                                           percentile = as.numeric(percentile)) %T>% {options(warn=0)}
@@ -91,15 +91,15 @@ task AggregateResults {
                                                         num_not_high = sum(risk=="NOT_HIGH", na.rm=TRUE),
                                                         num_not_resulted = sum(risk=="NOT_RESULTED", na.rm = TRUE))
 
-    write_tsv(results_summarised, paste0(batch_ids, "_summarised_results.tsv"))
+    write_tsv(results_summarised, paste0(lab_batch, "_summarised_results.tsv"))
 
     ggplot(results_pivoted, aes(x=adjusted)) +
       geom_density(aes(color=condition), fill=NA, position = "identity") +
       xlim(-5,5) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
       ylab("density")
-    ggsave(filename = paste0(batch_ids, "_score_distribution.png"), dpi=300, width = 6, height = 6)
+    ggsave(filename = paste0(lab_batch, "_score_distribution.png"), dpi=300, width = 6, height = 6)
 
-    writeLines(batch_ids, "batch_id.txt")
+    writeLines(lab_batch, "lab_batch.txt")
 
     EOF
   >>>
@@ -111,7 +111,7 @@ task AggregateResults {
   }
 
   output {
-    String batch_id = read_string("batch_id.txt")
+    String lab_batch = read_string("lab_batch.txt")
     File batch_all_results = glob("*_all_results.tsv")[0]
     File batch_control_results = glob("*_control_results.tsv")[0]
     File batch_summarised_results = glob("*_summarised_results.tsv")[0]
@@ -123,7 +123,7 @@ task PlotPCA {
   input {
     Array[File] target_pc_projections
     File population_pc_projections
-    String batch_id
+    String lab_batch
     String population_name
   }
 
@@ -139,10 +139,10 @@ task PlotPCA {
 
     ggplot(population_pcs, aes(x=PC1, y=PC2, color="~{population_name}")) +
       geom_point(size=0.1, alpha=0.1) +
-      geom_point(data=target_pcs, aes(color="~{batch_id}")) +
+      geom_point(data=target_pcs, aes(color="~{lab_batch}")) +
       theme_bw()
 
-    ggsave(filename = "~{batch_id}_PCA_plot.png", dpi=300, width = 6, height = 6)
+    ggsave(filename = "~{lab_batch}_PCA_plot.png", dpi=300, width = 6, height = 6)
 
     EOF
 
@@ -155,7 +155,7 @@ task PlotPCA {
   }
 
   output {
-    File pc_plot = "~{batch_id}_PCA_plot.png"
+    File pc_plot = "~{lab_batch}_PCA_plot.png"
   }
 }
 
@@ -169,15 +169,15 @@ task BuildHTMLReport {
     Array[File] target_pc_projections
     File population_pc_projections
     String population_name
-    String batch_id
+    String lab_batch
   }
 
   command <<<
     set -xeo pipefail
 
-    cat << EOF > ~{batch_id}_report.Rmd
+    cat << EOF > ~{lab_batch}_report.Rmd
     ---
-    title: "Batch ~{batch_id} PRS Summary"
+    title: "Batch ~{lab_batch} PRS Summary"
     output:
     html_document:
       df_print: paged
@@ -225,18 +225,18 @@ task BuildHTMLReport {
 
     p <- ggplot(population_pcs, aes(x=PC1, y=PC2, color="~{population_name}")) +
       geom_point(size=0.1, alpha=0.1) +
-      geom_point(data=target_pcs, aes(color="~{batch_id}", text=paste0("Sample ID: ", IID))) +
+      geom_point(data=target_pcs, aes(color="~{lab_batch}", text=paste0("Sample ID: ", IID))) +
       theme_bw()
     ggplotly(p, tooltip="text")
     \`\`\`
 
     ## Individual Sample Results (without control sample)
     \`\`\`{r sample results , echo = FALSE, results = "asis"}
-    kable(batch_all_results %>% filter(!is_control) %>% select(-is_control) %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green")))))), digits = 2)
+    kable(batch_all_results %>% filter(!is_control_sample) %>% select(-is_control_sample) %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green")))))), digits = 2)
     \`\`\`
     EOF
 
-    Rscript -e "library(rmarkdown); rmarkdown::render('~{batch_id}_report.Rmd', 'html_document')"
+    Rscript -e "library(rmarkdown); rmarkdown::render('~{lab_batch}_report.Rmd', 'html_document')"
   >>>
 
   runtime {
@@ -246,6 +246,6 @@ task BuildHTMLReport {
   }
 
   output {
-    File report = "~{batch_id}_report.html"
+    File report = "~{lab_batch}_report.html"
   }
 }
