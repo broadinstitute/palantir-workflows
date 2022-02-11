@@ -13,8 +13,8 @@ workflow PRSWrapper {
 
     File vcf
     String sample_id
-    String batch_id
-    Boolean is_control
+    String lab_batch
+    Boolean is_control_sample
     Boolean redoPCA = false
 
     File population_loadings
@@ -83,8 +83,8 @@ workflow PRSWrapper {
   call JoinResults{
     input:
       results_in = result_for_condition,
-      batch_id = batch_id,
-      is_control = is_control
+      lab_batch = lab_batch,
+      is_control_sample = is_control_sample
   }
 
   output {
@@ -177,8 +177,8 @@ task CreateUnscoredResult {
 task JoinResults {
   input {
     Array[File] results_in
-    String batch_id
-    Boolean is_control
+    String lab_batch
+    Boolean is_control_sample
   }
 
   command <<<
@@ -188,7 +188,7 @@ task JoinResults {
     library(purrr)
     library(tibble)
 
-    results <- c("~{sep = '","' results_in}") %>% map(read_csv) %>% reduce(inner_join) %>% add_column(batch_id="~{batch_id}", .after="sample_id") %>% add_column(is_control="~{is_control}", .after="batch_id")
+    results <- c("~{sep = '","' results_in}") %>% map(read_csv) %>% reduce(inner_join) %>% add_column(lab_batch="~{lab_batch}", .after="sample_id") %>% add_column(is_control_sample="~{is_control_sample}", .after="lab_batch")
     write_csv(results, "results.csv")
     EOF
   >>>
