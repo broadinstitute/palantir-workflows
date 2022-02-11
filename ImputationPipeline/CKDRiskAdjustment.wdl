@@ -36,7 +36,7 @@ task GenotypeG1G2RiskAlleles {
 
   command <<<
     /plink2 --vcf ~{vcf} --extract ~{risk_alleles} --export A --export-allele ~{risk_alleles} \
-    --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing \
+    --allow-extra-chr --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing \
     --memory ~{plink_mem} --out apol1_g1_g2_counts
   >>>
 
