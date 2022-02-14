@@ -40,7 +40,7 @@ workflow EndToEndPipeline {
 
 	  ## The following are inputs for scoring and performing the adjustment
 
-	  WeightSet disease_weights  # disease weights file. Because we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
+	  NamedWeightSet named_weight_set  # disease weights file. Because we use variant IDs with sorted alleles, there is a task at the bottom of this workflow
 	  String? columns_for_scoring # Plink expects the first 3 columns in your weights file to be variant ID, effect allele, effect weight
 	  
 	  Int scoring_mem = 16 # update memory for scoring imputed array
@@ -74,9 +74,9 @@ workflow EndToEndPipeline {
 
   call scoring_pipeline.ScoringImputedDataset as ScoringSteps {
 	  input :
-		weight_set  = disease_weights,
-		columns_for_scoring = columns_for_scoring,
-		imputed_array_vcf = ImputationSteps.imputed_multisample_vcf,
+			named_weight_set  = named_weight_set,
+			columns_for_scoring = columns_for_scoring,
+			imputed_array_vcf = ImputationSteps.imputed_multisample_vcf,
 	    scoring_mem = scoring_mem,
 	    population_scoring_mem = population_scoring_mem,
 	    population_vcf = select_first([PopulationPCASteps.sorted_variant_id_dataset, population_vcf]),
