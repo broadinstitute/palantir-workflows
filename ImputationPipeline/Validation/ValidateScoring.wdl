@@ -31,7 +31,7 @@ workflow ValidateScoring {
 	}
 
 	#Extract the sites which are in the imputed vcf.  We will score the wgs over only the sites included in the imputed vcf
-	call ExtractIDs as extractImputedIDs {
+	call ScoringTasks.ExtractIDs as extractImputedIDs {
 		input:
 			vcf = select_first([validationArrays, validationArraysMain]),
 			output_basename = "imputed"
@@ -71,7 +71,7 @@ workflow ValidateScoring {
 		}
 
 		#subset weights also to only sites without no-calls in wgs
-		call ExtractIDs as extractWGSIDs {
+		call ScoringTasks.ExtractIDs as extractWGSIDs {
 			input:
 				vcf = QCSites.output_vcf,
 				output_basename = "wgs"
@@ -218,28 +218,6 @@ workflow ValidateScoring {
 		Array[Int] n_subset_weights = SubsetWeightSet.n_subset_weights
 		Array[Int] n_subset_weights_wgs = SubsetWeightSetWGS.n_subset_weights
 	}
-}
-
-
-
-task ExtractIDs {
-	 input {
-		 File vcf
-		 String output_basename
-		 Int disk_size = 2*ceil(size(vcf, "GB")) + 100
-	 }
-
-	 command <<<
-		bcftools query -f "%ID\n" ~{vcf} -o ~{output_basename}.original_array.ids
-	 >>>
-	 output {
-		 File ids = "~{output_basename}.original_array.ids"
-	 }
-	 runtime {
-		 docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
-		 disks: "local-disk " + disk_size + " HDD"
-		 memory: "4 GB"
-	 }
 }
 
 task CompareScores {

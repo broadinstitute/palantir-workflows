@@ -443,3 +443,26 @@ task MakePCAPlot {
     disks: "local-disk 100 HDD"
   }
 }
+
+
+task ExtractIDsPlink {
+  input {
+    File vcf
+    Int disk_size = 2*ceil(size(vcf, "GB")) + 100
+    Int mem = 8
+  }
+
+  Int plink_mem = ceil(mem * 0.75 * 1000)
+
+  command <<<
+    /plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --rm-dup exclude-all --allow-extra-chr --write-snplist --memory ~{plink_mem}
+  >>>
+  output {
+    File ids = "plink2.snplist"
+  }
+  runtime {
+    docker: "skwalker/plink2:first"
+    disks: "local-disk " + disk_size + " HDD"
+    memory: mem + " GB"
+  }
+}
