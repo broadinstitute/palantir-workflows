@@ -150,7 +150,8 @@ workflow ValidateScoring {
 				named_weight_set = named_weight_set,
 				population_pcs = PerformPCA.pcs,
 				population_vcf = population_vcf,
-				population_basename = population_basename
+				population_basename = population_basename,
+				sites = extractImputedIDs.ids
 		}
 
 		call Scoring.ScoringImputedDataset as ScoreWithTrainingResults {
