@@ -6,6 +6,7 @@ import "../TrainAncestryAdjustmentModel.wdl" as TrainModel
 import "../PCATasks.wdl" as PCATasks
 import "../Structs.wdl" as Structs
 import "SubsetWeightSet.wdl" as SubsetWeightSet
+import "../ScoringTasks.wdl" as ScoringTasks
 
 workflow ValidateScoring {
 	input {
@@ -31,10 +32,9 @@ workflow ValidateScoring {
 	}
 
 	#Extract the sites which are in the imputed vcf.  We will score the wgs over only the sites included in the imputed vcf
-	call ScoringTasks.ExtractIDs as extractImputedIDs {
+	call ScoringTasks.ExtractIDsPlink as extractImputedIDs {
 		input:
-			vcf = select_first([validationArrays, validationArraysMain]),
-			output_basename = "imputed"
+			vcf = select_first([validationArrays, validationArraysMain])
 	}
 
 	#need to redo PCA in case input PCA not appropriate for this set of sites
@@ -71,10 +71,9 @@ workflow ValidateScoring {
 		}
 
 		#subset weights also to only sites without no-calls in wgs
-		call ScoringTasks.ExtractIDs as extractWGSIDs {
+		call ScoringTasks.ExtractIDsPlink as extractWGSIDs {
 			input:
-				vcf = QCSites.output_vcf,
-				output_basename = "wgs"
+				vcf = QCSites.output_vcf
 		}
 
 		call SubsetWeightSet.SubsetWeightSet as SubsetWeightSetWGS {
