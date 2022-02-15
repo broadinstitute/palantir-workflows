@@ -455,7 +455,7 @@ task ExtractIDsPlink {
   Int plink_mem = ceil(mem * 0.75 * 1000)
 
   command <<<
-    /plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --rm-dup exclude-all --allow-extra-chr --write-snplist --memory ~{plink_mem}
+    /plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --rm-dup exclude-all --allow-extra-chr --write-snplist allow-dups --memory ~{plink_mem}
   >>>
   output {
     File ids = "plink2.snplist"
