@@ -155,14 +155,16 @@ task GroupByUMIs {
     String output_bam_basename
   }
 
-  Int disk_space = ceil(2.2 * size(bam, "GB")) + 300
+  Int disk_space = ceil(4 * size(bam, "GB")) + 300
   command <<<
-    umi_tools group -I ~{bam} --paired --no-sort-output --output-bam --stdout ~{output_bam_basename}.bam --umi-tag-delimiter "-" \
-    --extract-umi-method tag --umi-tag RX --unmapped-reads use
+    umi_tools group -I ~{bam} --paired --no-sort-output --output-bam -S ~{output_bam_basename}.bam --umi-tag-delimiter "-" \
+    --extract-umi-method tag --umi-tag RX --unmapped-reads use \
+    --group-out ~{output_bam_basename}_umi_groups.txt
   >>>
 
   output {
     File grouped_bam = "~{output_bam_basename}.bam"
+    File groups_file = "~{output_bam_basename}_umi_groups.txt"
   }
 
   runtime {
