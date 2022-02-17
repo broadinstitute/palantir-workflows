@@ -116,7 +116,8 @@ workflow RNAWithUMIsPipeline {
 	File gene_counts = rnaseqc2.gene_counts
 	File exon_counts = rnaseqc2.exon_counts
 	File metrics = rnaseqc2.metrics
-	File fastq_report = FastQC.fastqc_html
+	Float fastqc_adapter_content = FastQC.adapter_content
+	File fastqc_report = FastQC.fastqc_html
 	File fastqc_table = FastQC.fastqc_data
 	File genome_insert_size_metrics = CollectMultipleMetrics.insert_size_metrics
 	File transcriptome_insert_size_metrics = InsertSizeTranscriptome.insert_size_metrics
@@ -373,6 +374,8 @@ task FastQC {
 		perl /usr/tag/scripts/FastQC/fastqc ~{unmapped_bam} --extract -o ./
 		mv ~{bam_basename}_fastqc/fastqc_data.txt ~{bam_basename}_fastqc_data.txt
 		ls > ls.txt
+
+		tail -n 2 ~{bam_basename}_fastqc_data.txt | head -n 1 | cut -f 2 > ~{bam_basename}_adapter_content.txt
 	}
 	
 	runtime {
@@ -386,6 +389,7 @@ task FastQC {
 		File ls = "ls.txt"
 		File fastqc_data = "~{bam_basename}_fastqc_data.txt"
 		File fastqc_html = "~{bam_basename}_fastqc.html"
+		Float adapter_content = read_float("~{bam_basename}_adapter_content.txt")
 	}
 }
 
