@@ -18,6 +18,7 @@ workflow RNAWithUMIsPipeline {
 		File ribosomalIntervals
 
 		File rnaseqc2_exon_bed
+		String transcriptome_ban = "Singleend"
 	}
 
 	call ExtractUMIs {
@@ -36,7 +37,8 @@ workflow RNAWithUMIsPipeline {
 	call STAR {
 		input:
 			bam = ExtractUMIs.bam_umis_extracted,
-			starIndex = starIndex
+			starIndex = starIndex,
+			transcriptome_ban = transcriptome_ban
 	}
 
 
@@ -181,7 +183,8 @@ task STAR {
 	input {
 		File bam
 		File starIndex
-		Int num_protrude_bases = 40
+		Int num_protrude_bases = 20
+		String transcriptome_ban
 	}
 
 	Int disk_space = ceil(2.2 * size(bam, "GB") + size(starIndex, "GB")) + 250
@@ -201,7 +204,7 @@ task STAR {
 			--alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --alignSJoverhangMin 8 \
 			--alignSJDBoverhangMin 1 --chimSegmentMin 15 --chimMainSegmentMultNmax 1 \
 			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM \
-			--quantTranscriptomeBan IndelSoftclipSingleend \
+			--quantTranscriptomeBan ~{transcriptome_ban} \
 			--alignEndsProtrude ~{num_protrude_bases} ConcordantPair \
 
 		samtools view -c --exclude-flags 0x100 Aligned.out.bam > aligned_read_count.txt
