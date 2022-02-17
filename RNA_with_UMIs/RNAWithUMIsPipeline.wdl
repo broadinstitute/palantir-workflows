@@ -170,6 +170,10 @@ workflow RNAWithUMIsPipeline {
 	File transcriptome_insert_size_metrics = InsertSizeTranscriptome.insert_size_metrics
 	File alignment_metrics = CollectMultipleMetrics.alignment_summary_metrics
 	File rna_metrics = CollectRNASeqMetrics.rna_metrics
+	Int unaligned_read_count = STAR.unaligned_read_count
+	Int aligned_read_count = STAR.aligned_read_count
+	Int transcriptome_read_count = STAR.transcriptome_read_count
+
   }
 }
 
