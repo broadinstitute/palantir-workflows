@@ -199,6 +199,123 @@ task AddInteractionTermsToScore {
   }
 }
 
+task CheckWeightsCoverSitesUsedInTraining {
+  input {
+    File sites_used_in_training
+    WeightSet weight_set
+  }
+
+  command <<<
+    python3 << "EOF"
+    import csv
+    import sys
+
+    with open("~{sites_used_in_training}") as f_sites_used_in_training:
+      sites_used_in_training = {s.strip() for s in f_sites_used_in_training}
+
+    sites_in_weight_set = set()
+    with open("~{weight_set.linear_weights}") as f_linear_weights:
+      linear_weights_reader = csv.reader(f_linear_weights, delimiter='\t')
+      next(linear_weights_reader)
+      for line in linear_weights_reader:
+        sites_in_weight_set.add(line[0])
+
+    if ~{if (defined(weight_set.interaction_weights)) then "True" else "False"}:
+      with open("~{if (defined(weight_set.interaction_weights)) then select_first([weight_set.interaction_weights]) else ''}") as f_interaction_weights:
+        for line in csv.DictReader(f_interaction_weights, delimiter='\t'):
+          sites_in_weight_set.add(line['id_1'])
+          sites_in_weight_set.add(line['id_2'])
+
+    sites_missing_from_weight_set = sites_used_in_training - sites_in_weight_set
+
+    if len(sites_missing_from_weight_set) > 0:
+      sys.exit(f"Error: {len(sites_missing_from_weight_set)} sites used in model training are missing from weights files.")
+    EOF
+
+
+  >>>
+
+  runtime {
+    docker : "python:3.9.10"
+  }
+}
+
+task CompareScoredSitesToSitesUsedInTraining {
+  input {
+    File sites_used_in_training
+    File sites_used_in_scoring
+    WeightSet weight_set
+  }
+
+  command <<<
+    python3 << "EOF"
+    import csv
+
+    with open("~{sites_used_in_training}") as f_sites_used_in_training:
+      sites_used_in_training = {s.strip() for s in f_sites_used_in_training}
+
+    with open("~{sites_used_in_scoring}") as f_sites_used_in_scoring:
+      sites_used_in_scoring = {s.strip() for s in f_sites_used_in_scoring}
+
+    missing_sites = sites_used_in_training - sites_used_in_scoring
+
+    with open("missing_sites.txt", "w") as f_missing_sites:
+      for site in missing_sites:
+        f_missing_sites.write(site)
+
+    with open("n_missing_sites.txt", "w") as f_n_missing_sites:
+      f_n_missing_sites.write(f"{len(missing_sites)}")
+
+    max_error_up = 0
+    max_error_down = 0
+
+    with open("~{weight_set.linear_weights}") as f_weights:
+      weights_reader = csv.reader(f_weights, delimiter = "\t")
+      next(weights_reader)
+      for line in weights_reader:
+        id = line[0]
+        if id in missing_sites:
+          missing_site_weight = float(line[2])
+          if missing_site_weight > 0:
+            max_error_up += 2 * missing_site_weight
+          else:
+            max_error_down += 2 * missing_site_weight
+
+
+    if ~{if defined(weight_set.interaction_weights) then "True" else "False"}:
+      with open("~{if (defined(weight_set.interaction_weights)) then select_first([weight_set.interaction_weights]) else ''}") as f_interaction_weights:
+        for line in csv.DictReader(f_interaction_weights, delimiter='\t'):
+          id_1 = line['id_1']
+          id_2 = line['id_2']
+          if id_1 in missing_sites or id_2 in missing_sites:
+            weight_multiplier = 2 if id_1 != id_2 else 1
+            missing_site_weight = float(line['weight'])
+            if missing_site_weight > 0:
+              max_error_up += weight_multiplier * missing_site_weight
+            else:
+              max_error_down += weight_multiplier * missing_site_weight
+
+    with open("max_error_up.txt", "w") as f_max_error_up:
+      f_max_error_up.write(f"{max_error_up}")
+
+    with open("max_error_down.txt", "w") as f_max_error_down:
+      f_max_error_down.write(f"{max_error_down}")
+
+    EOF
+  >>>
+
+  runtime {
+    docker : "python:3.9.10"
+  }
+
+  output {
+    File missing_sites = "missing_sites.txt"
+    Int n_missing_sites = read_int("n_missing_sites.txt")
+    Float max_error_up = read_float("max_error_up.txt")
+    Float max_error_down = read_float("max_error_down.txt")
+  }
+}
+
 task CombineScoringSites {
   input {
     File sites_used_linear_score
@@ -218,6 +335,68 @@ task CombineScoringSites {
 
   output {
     File combined_scoring_sites = "~{basename}_sites_used_in_score.ids"
+  }
+}
+
+task AddShiftToRawScores {
+  input {
+    File raw_scores
+    Float shift
+    String basename
+  }
+
+  command <<<
+    Rscript -<< "EOF"
+      library(dplyr)
+      library(readr)
+
+      scores <- read_tsv("~{raw_scores}")
+      shifted_scores <- scores %>% mutate(SCORE1_SUM = SCORE1_SUM + ~{shift})
+
+      write_tsv(shifted_scores, "~{basename}.tsv")
+    EOF
+  >>>
+
+  runtime {
+    docker: "rocker/tidyverse:4.1.0"
+    disks: "local-disk 100 HDD"
+  }
+
+  output {
+    File shifted_scores = "~{basename}.tsv"
+  }
+}
+
+task CombineMissingSitesAdjustedScores {
+  input {
+    File adjusted_scores_shifted_up
+    File adjusted_scores_shifted_down
+    File adjusted_scores
+    Int n_missing_sites
+    String condition_name
+  }
+
+  command <<<
+    Rscript -<< "EOF"
+    library(dplyr)
+    library(readr)
+
+    adjusted_scores <- read_tsv("~{adjusted_scores}") %>% transmute(IID, condition = "~{condition_name}", n_missing_sites = ~{n_missing_sites}, adjusted_score, percentile)
+    adjusted_scores_shifted_up <- read_tsv("~{adjusted_scores_shifted_up}") %>% transmute(IID, potential_high_adjusted_score = adjusted_score, potential_high_percentile = percentile)
+    adjusted_scores_shifted_down <- read_tsv("~{adjusted_scores_shifted_down}") %>% transmute(IID, potential_low_adjusted_score = adjusted_score, potential_low_percentile = percentile)
+
+    adjusted_scores_shifts <- inner_join(inner_join(adjusted_scores, adjusted_scores_shifted_up), adjusted_scores_shifted_down)
+    write_tsv(adjusted_scores_shifts, "missing_sites_shifted_scores.tsv")
+    EOF
+  >>>
+
+  runtime {
+    docker: "rocker/tidyverse:4.1.0"
+    disks: "local-disk 100 HDD"
+  }
+
+  output {
+    File missing_sites_shifted_scores = "missing_sites_shifted_scores.tsv"
   }
 }
 

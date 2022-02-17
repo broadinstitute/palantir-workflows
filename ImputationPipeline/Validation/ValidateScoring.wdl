@@ -114,7 +114,7 @@ workflow ValidateScoring {
 		#run scoring on main branch
 		call ScoringMain.ScoringImputedDataset as ScoreImputedMain {
 			input:
-				weight_set = named_weight_set.weight_set,
+				named_weight_set = named_weight_set,
 				imputed_array_vcf = validationArraysMain,
 				population_basename = population_basename,
 				basename = "imputed",
