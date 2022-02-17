@@ -97,7 +97,8 @@ workflow RNAWithUMIsPipeline {
 	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingTranscriptome {
 		input:
 			aligned_bam = CopyReadGroupsToHeader.output_bam,
-			output_basename = output_basename + "_transcriptome"
+			output_basename = output_basename + "_transcriptome",
+			remove_duplicates = true
 	}
 
 	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingClipped {
@@ -105,6 +106,12 @@ workflow RNAWithUMIsPipeline {
 			aligned_bam = STARClipped.aligned_bam,
 			output_basename = output_basename + "_clipped"
 	}
+
+	call FormatTranscriptomeUMI {
+      input:
+        prefix = output_basename + "_transcriptome_RSEM_formatted",
+        input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam
+    }
 
 	# Extract the unaligned (i.e. unmapped) reads from the genome-aligned, duplicated marked bam,
 	# which we will run FastQC on.
@@ -211,6 +218,8 @@ workflow RNAWithUMIsPipeline {
 			output_bam_prefix = GetSampleName.sample_name + "_transcriptome",
 			preemptible_tries = 0
 	}
+
+
 
 
   output {
@@ -755,4 +764,30 @@ task FastqToSam {
 	output {
 		File unmapped_bam = "~{sample_name}.u.bam"
 	}
+}
+
+task FormatTranscriptomeUMI {
+  input {
+    String prefix
+    File input_bam
+  }
+
+  Int disk_gb = ceil(3*size(input_bam,"GB"))
+
+  command {
+    umi_tools prepare-for-rsem --tags UG,BX,RX \
+      -I ~{input_bam} --stdout ~{prefix}.bam
+  }
+  
+  output {
+    File output_bam = "~{prefix}.bam"
+  }
+  
+  runtime {
+    docker        : "us.gcr.io/tag-public/neovax-tag-rnaseq:v1"
+    preemptible   : 0
+    cpu           : "8"
+    disks         : "local-disk " + disk_gb + " HDD"
+    memory        : "16GB"
+  }
 }

@@ -4,6 +4,7 @@ workflow UMIAwareDuplicateMarking {
   input {
     File aligned_bam # aligned bam sorted by the query (read) name. 
     String output_basename
+    Boolean remove_duplicates = false
   }
 
   # First sort the aligned bam by coordinate, so we can group duplicate sets using UMIs in the next step.
@@ -40,14 +41,16 @@ workflow UMIAwareDuplicateMarking {
     input:
       bam = SortSamQueryName.output_bam,
       output_basename = output_basename,
-      use_UMI = true
+      use_UMI = true,
+      remove_duplicates = remove_duplicates
   }
 
   call MarkDuplicates as MarkDuplicateSkipUMI {
     input:
       bam = SortSamQueryName.output_bam,
       output_basename = output_basename + "_skip_UMI",
-      use_UMI = false
+      use_UMI = false,
+      remove_duplicates = remove_duplicates
   }
 
   call SortSam as SortSamSecond {
@@ -65,6 +68,7 @@ workflow UMIAwareDuplicateMarking {
   }
 
   output {
+    File duplicate_marked_query_sorted_bam = MarkDuplicates.duplicate_marked_bam
     File duplicate_marked_bam = SortSamSecond.output_bam
     File duplicate_marked_bam_index = select_first([SortSamSecond.output_bam_index, "bam_index_not_found"])
     File duplicate_metrics = MarkDuplicates.duplicate_metrics
@@ -79,6 +83,7 @@ task MarkDuplicates {
     File bam
     String output_basename
     Boolean use_UMI
+    Boolean remove_duplicates
   }
 
   String output_bam_basename = output_basename + ".duplicate_marked"
@@ -94,6 +99,7 @@ task MarkDuplicates {
     --ASSUME_SORT_ORDER queryname \
     --TAG_DUPLICATE_SET_MEMBERS \
     ~{true='--READ_ONE_BARCODE_TAG BX' false='' use_UMI} \
+    ~{true="--REMOVE_DUPLICATES" false="" remove_duplicates}
   >>>
 
   output {
