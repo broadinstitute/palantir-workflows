@@ -187,6 +187,8 @@ task STAR {
 		mkdir star_index
 		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
+		samtools view -c ~{bam} > unaligned_read_count.txt
+
 		STAR --readFilesIn ~{bam} --readFilesType SAM PE --readFilesCommand samtools view -h \
 			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
 			--outSAMunmapped Within \
@@ -198,6 +200,8 @@ task STAR {
 			--quantTranscriptomeBan IndelSoftclipSingleend \
 			--alignEndsProtrude ~{num_protrude_bases} ConcordantPair \
 
+		samtools view -c --exclude-flags 0x100 Aligned.out.bam > aligned_read_count.txt
+		samtools view -c --exclude-flags 0x100 Aligned.toTranscriptome.out.bam > transcriptome_read_count.txt
 		ls > "ls.txt"
 	>>>
 
@@ -216,6 +220,9 @@ task STAR {
 		File splice_junction_table = "SJ.out.tab"
 		File log_out = "Log.out"
 		File star_metrics_log = "Log.final.out"
+		Int unaligned_read_count = read_int("unaligned_read_count.txt")
+		Int aligned_read_count = read_int("aligned_read_count.txt")
+		Int transcriptome_read_count = read_int("transcriptome_read_count.txt")
 	}
 }
 
