@@ -207,8 +207,8 @@ task STAR {
 			--quantTranscriptomeBan ~{transcriptome_ban} \
 			--alignEndsProtrude ~{num_protrude_bases} ConcordantPair \
 
-		samtools view -c --exclude-flags 0x100 Aligned.out.bam > aligned_read_count.txt
-		samtools view -c --exclude-flags 0x100 Aligned.toTranscriptome.out.bam > transcriptome_read_count.txt
+		samtools view -c -F 0x100 Aligned.out.bam > aligned_read_count.txt
+		samtools view -c -F 0x100 Aligned.toTranscriptome.out.bam > transcriptome_read_count.txt
 		ls > "ls.txt"
 	>>>
 
