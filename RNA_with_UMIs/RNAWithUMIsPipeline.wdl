@@ -62,8 +62,7 @@ workflow RNAWithUMIsPipeline {
 			output_basename = output_basename + "_transcriptome",
 			remove_duplicates = true
 	}
-
-
+	
 
 	call FormatTranscriptomeUMI {
       input:

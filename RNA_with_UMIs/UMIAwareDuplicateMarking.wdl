@@ -72,9 +72,8 @@ workflow UMIAwareDuplicateMarking {
     File duplicate_marked_bam = SortSamSecond.output_bam
     File duplicate_marked_bam_index = select_first([SortSamSecond.output_bam_index, "bam_index_not_found"])
     File duplicate_metrics = MarkDuplicates.duplicate_metrics
-    File duplicate_marked_skip_umi_bam = SortSamSecond.output_bam
-    File duplicate_marked_skip_umi_bam_index = select_first([SortSamSecond.output_bam_index, "bam_index_not_found"])
-    File duplicate_metrics_skip_umi = MarkDuplicates.duplicate_metrics
+    File duplicate_metrics_skip_umi = MarkDuplicateSkipUMI.duplicate_metrics
+    Int duplciate_marked_read_count = MarkDuplicates.duplciate_marked_read_count
   }
 }
 
@@ -100,11 +99,15 @@ task MarkDuplicates {
     --TAG_DUPLICATE_SET_MEMBERS \
     ~{true='--READ_ONE_BARCODE_TAG BX' false='' use_UMI} \
     ~{true="--REMOVE_DUPLICATES" false="" remove_duplicates}
+
+    samtools view -c -F 0x100 ~{output_bam_basename}.bam > duplicate_marked_read_count.txt
+
   >>>
 
   output {
     File duplicate_marked_bam = "~{output_bam_basename}.bam"
     File duplicate_metrics = "~{output_basename}_duplicate_metrics.txt"
+    Int duplciate_marked_read_count = read_int("duplicate_marked_read_count.txt")
   }
 
   runtime {
