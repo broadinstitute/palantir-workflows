@@ -72,6 +72,8 @@ workflow UMIAwareDuplicateMarking {
     File duplicate_marked_bam = SortSamSecond.output_bam
     File duplicate_marked_bam_index = select_first([SortSamSecond.output_bam_index, "bam_index_not_found"])
     File duplicate_metrics = MarkDuplicates.duplicate_metrics
+    File duplicate_marked_skip_umi_bam = SortSamSecondSkipUMI.output_bam
+    File duplicate_marked_skip_umi_bam_index = select_first([SortSamSecondSkipUMI.output_bam_index, "bam_index_not_found"])
     File duplicate_metrics_skip_umi = MarkDuplicateSkipUMI.duplicate_metrics
     Int duplciate_marked_read_count = MarkDuplicates.duplciate_marked_read_count
   }
