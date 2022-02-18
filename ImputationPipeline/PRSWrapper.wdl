@@ -5,9 +5,7 @@ import "Structs.wdl"
 
 workflow PRSWrapper {
   input {
-    Array[NamedWeightSet] named_weight_sets
-    Array[Boolean] score_condition
-    Array[Float] percentile_thresholds
+    Array[PRSWrapperConditionResource] condition_resources
     File ckd_risk_alleles
     Float z_score_reportable_range
 
@@ -21,34 +19,24 @@ workflow PRSWrapper {
     File population_meansd
     File population_pcs
     File pruning_sites_for_pca # and the sites used for PCA
-    File population_vcf
-    String population_basename
   }
 
-  if (length(named_weight_sets) != length(score_condition) || length(named_weight_sets) != length(percentile_thresholds)) {
-    call ErrorWithMessage {
-      input:
-        message = "named_weight_sets, score_condition, and percentile_thresholds must all be same length"
-    }
-  }
-
-  scatter(i in range(length(named_weight_sets))) {
-    if (score_condition[i]) {
+  scatter(condition_resource in condition_resources) {
+    if (condition_resource.score_condition) {
       call Score.ScoringImputedDataset {
         input:
-          weight_set = named_weight_sets[i].weight_set,
+          named_weight_set = condition_resource.named_weight_set,
           imputed_array_vcf = vcf,
           population_loadings = population_loadings,
           population_meansd = population_meansd,
-          population_pcs = population_pcs,
           pruning_sites_for_pca = pruning_sites_for_pca,
-          population_vcf = population_vcf,
+          population_pcs = population_pcs,
           basename = sample_id,
-          population_basename = population_basename,
+          fitted_model_params_and_sites = condition_resource.ancestry_model_params_and_sites,
           redoPCA = redoPCA
       }
 
-      if (named_weight_sets[i].condition_name == "ckd") {
+      if (condition_resource.named_weight_set.condition_name == "ckd") {
         call CKDRiskAdjustment.CKDRiskAdjustment {
           input:
             adjustedScores = select_first([ScoringImputedDataset.adjusted_array_scores]),
@@ -62,18 +50,18 @@ workflow PRSWrapper {
         input:
           score_result = select_first([CKDRiskAdjustment.adjusted_scores_with_apol1, ScoringImputedDataset.adjusted_array_scores]),
           sample_id = sample_id,
-          condition_name = named_weight_sets[i].condition_name,
-          threshold = percentile_thresholds[i],
+          condition_name = condition_resource.named_weight_set.condition_name,
+          threshold = condition_resource.percentile_threshold,
           z_score_reportable_range = z_score_reportable_range
       }
     }
 
-    if (!score_condition[i])
+    if (!condition_resource.score_condition)
     {
       call CreateUnscoredResult {
         input:
           sample_id = sample_id,
-          condition_name = named_weight_sets[i].condition_name
+          condition_name = condition_resource.named_weight_set.condition_name
       }
     }
 
@@ -201,20 +189,5 @@ task JoinResults {
 
   output {
     File results = "results.csv"
-  }
-}
-
-#Print given message to stderr and return an error
-task ErrorWithMessage{
-  input {
-    String message
-  }
-  command <<<
-    >&2 echo "Error: ~{message}"
-    exit 1
-  >>>
-
-  runtime {
-    docker: "ubuntu"
   }
 }

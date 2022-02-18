@@ -6,7 +6,7 @@ executors:
   womtool-executor:
     docker:
       # specify the version you desire here
-      - image: broadinstitute/womtool:66
+      - image: broadinstitute/womtool:71
         entrypoint: /bin/bash
     working_directory: ~/palantir-workflows
     environment: WOMTOOL_JAR=/app/womtool.jar
@@ -15,7 +15,7 @@ commands:
   get-cromwell-jar:
     description: "Download cromwell jar"
     steps:
-      - run: wget https://github.com/broadinstitute/cromwell/releases/download/66/cromwell-66.jar
+      - run: wget https://github.com/broadinstitute/cromwell/releases/download/71/cromwell-71.jar
 
   install-make:
     description: "Install make"
@@ -41,7 +41,7 @@ jobs:
   test:
     machine: true
     environment:
-      CROMWELL_JAR=/home/circleci/project/cromwell-66.jar
+      CROMWELL_JAR=/home/circleci/project/cromwell-71.jar
     steps:
       - checkout
       - get-cromwell-jar

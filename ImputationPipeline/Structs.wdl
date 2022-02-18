@@ -9,6 +9,10 @@ struct ReferencePanelContig {
 	String contig
 }
 
+struct AncestryAdjustmentModelParams {
+	File fitted_model_params
+	File sites_used_in_scoring
+}
 
 struct SelfExclusiveSites {
 	File sites # must have columns id, chrom, pos
@@ -25,4 +29,11 @@ struct WeightSet {
 struct NamedWeightSet {
 	String condition_name
 	WeightSet weight_set
+}
+
+struct PRSWrapperConditionResource {
+	Boolean score_condition
+	Float percentile_threshold
+	NamedWeightSet named_weight_set
+	AncestryAdjustmentModelParams ancestry_model_params_and_sites
 }
