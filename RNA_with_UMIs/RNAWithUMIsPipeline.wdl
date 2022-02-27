@@ -41,9 +41,6 @@ workflow RNAWithUMIsPipeline {
 			transcriptome_ban = transcriptome_ban
 	}
 
-
-
-
 	call CopyReadGroupsToHeader {
 		input:
 			bam_with_readgroups = STAR.aligned_bam,
@@ -63,12 +60,12 @@ workflow RNAWithUMIsPipeline {
 			remove_duplicates = true
 	}
 	
-
 	call FormatTranscriptomeUMI {
-      input:
-        prefix = output_basename + "_transcriptome_RSEM_formatted",
-        input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam
-    }
+		input:
+			prefix = output_basename + "_transcriptome_RSEM_formatted",
+			input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam
+	}
+
 
 	# Extract the unaligned (i.e. unmapped) reads from the genome-aligned, duplicated marked bam,
 	# which we will run FastQC on.
@@ -152,6 +149,64 @@ workflow RNAWithUMIsPipeline {
 			preemptible_tries = 0
 	}
 
+	### Clip adapter route ####
+	### Disabled and moved here since it didn't improve the performance much ####
+	# Peprocessing for clipping by fastp
+	call SamToFastq {
+		input:
+			bam = bam,
+			output_prefix = output_basename
+	}
+
+	# Adapter clipping
+	call Fastp {
+		input: 
+			fastq1 = SamToFastq.fastq1,
+			fastq2 = SamToFastq.fastq2,
+			output_prefix = output_basename
+	}
+
+	call AddNsToClippedReads {
+		input:
+			fastq1 = Fastp.fastq1_clipped,
+			fastq2 = Fastp.fastq2_clipped,
+			output_prefix = output_basename
+	}
+
+	call FastqToSam {
+		input:
+			fastq1=AddNsToClippedReads.fastq1_padded,
+			fastq2=AddNsToClippedReads.fastq2_padded,
+			sample_name=output_basename + "_clipped_padded"
+	}
+
+	call ExtractUMIs as ExtractUMIsClipped {
+		input:
+			bam = FastqToSam.unmapped_bam,
+			read1Structure = read1Structure,
+			read2Structure = read2Structure
+	}
+
+	call STAR as STARClipped {
+		input:
+			bam = ExtractUMIsClipped.bam_umis_extracted,
+			starIndex = starIndex
+	}
+
+	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingClipped {
+		input:
+			aligned_bam = STARClipped.aligned_bam,
+			output_basename = output_basename + "_clipped"
+	}
+
+	call FormatTranscriptomeUMI as FormatTranscriptomeUMIClipped {
+		input:
+			prefix = output_basename + "_transcriptome_RSEM_formatted",
+			input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam
+	}
+
+	
+
   output {
 	File transcriptome_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam
 	File transcriptome_bam_index = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam_index
@@ -171,10 +226,17 @@ workflow RNAWithUMIsPipeline {
 	File transcriptome_insert_size_metrics = InsertSizeTranscriptome.insert_size_metrics
 	File alignment_metrics = CollectMultipleMetrics.alignment_summary_metrics
 	File rna_metrics = CollectRNASeqMetrics.rna_metrics
-	Int unaligned_read_count = STAR.unaligned_read_count
+	Int pre_alignment_read_count = STAR.pre_alignment_read_count
 	Int aligned_read_count = STAR.aligned_read_count
 	Int transcriptome_read_count = STAR.transcriptome_read_count
 	File formatted_transcriptome_bam = FormatTranscriptomeUMI.output_bam
+	
+	# Clipped code path
+	Int pre_alignment_read_count_clipped = STARClipped.pre_alignment_read_count
+	Int aligned_read_count_clipped  = STARClipped.aligned_read_count
+	Int transcriptome_read_count_clipped  = STARClipped.transcriptome_read_count
+	File formatted_transcriptome_bam_clipped  = FormatTranscriptomeUMIClipped.output_bam
+	
   }
 }
 
@@ -193,7 +255,7 @@ task STAR {
 		mkdir star_index
 		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
-		samtools view -c ~{bam} > unaligned_read_count.txt
+		samtools view -c ~{bam} > pre_alignment_read_count.txt
 
 		STAR --readFilesIn ~{bam} --readFilesType SAM PE --readFilesCommand samtools view -h \
 			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
@@ -226,7 +288,7 @@ task STAR {
 		File splice_junction_table = "SJ.out.tab"
 		File log_out = "Log.out"
 		File star_metrics_log = "Log.final.out"
-		Int unaligned_read_count = read_int("unaligned_read_count.txt")
+		Int pre_alignment_read_count = read_int("pre_alignment_read_count.txt")
 		Int aligned_read_count = read_int("aligned_read_count.txt")
 		Int transcriptome_read_count = read_int("transcriptome_read_count.txt")
 	}
@@ -669,4 +731,68 @@ task FormatTranscriptomeUMI {
     disks         : "local-disk " + disk_gb + " HDD"
     memory        : "16GB"
   }
+}
+
+# for adapter clipping
+task Fastp {
+	input {
+		File fastq1
+		File fastq2
+		String output_prefix
+	}
+
+	Int disk_size = 5*ceil(size(fastq1, "GiB")) + 128
+
+	command {
+		fastp --in1 ~{fastq1} --in2 ~{fastq2} --out1 ~{output_prefix}_read1_trimmed.fastq --out2 ~{output_prefix}_read2_trimmed.fastq
+		ls > "ls.txt"
+	}
+	
+
+	runtime {
+		docker: "biocontainers/fastp:v0.20.1_cv1"
+		memory: "8 GiB"
+		disks: "local-disk " + disk_size + " HDD"
+		preemptible: 0
+	}
+
+	output {
+		File ls = "ls.txt"
+		File fastq1_clipped = output_prefix + "_read1_trimmed.fastq"
+		File fastq2_clipped = output_prefix + "_read2_trimmed.fastq"
+	}
+
+}
+
+task AddNsToClippedReads {
+	input {
+		File fastq1
+		File fastq2
+		String output_prefix
+		Int read_length = 151
+	}
+
+	Int disk_size = 5*ceil(size(fastq1, "GiB")) + 128
+	File script = "gs://broad-dsde-methods-takuto/RNA/fix_read_length.py"
+
+	command {
+		python3 ~{script} --read_length ~{read_length} ~{fastq1} ~{output_prefix}_read1_padded.fastq
+		python3 ~{script} --read_length ~{read_length} ~{fastq2} ~{output_prefix}_read2_padded.fastq
+		ls > "ls.txt"
+	}
+	
+
+	runtime {
+		docker: "pegi3s/biopython"
+		memory: "8 GiB"
+		disks: "local-disk " + disk_size + " HDD"
+		preemptible: 0
+	}
+
+	output {
+		File ls = "ls.txt"
+		File fastq1_padded = output_prefix + "_read1_padded.fastq"
+		File fastq2_padded = output_prefix + "_read2_padded.fastq"
+	}
+
 }
