@@ -174,7 +174,7 @@ workflow RNAWithUMIsPipeline {
 	Int unaligned_read_count = STAR.unaligned_read_count
 	Int aligned_read_count = STAR.aligned_read_count
 	Int transcriptome_read_count = STAR.transcriptome_read_count
-
+	File formatted_transcriptome_bam = FormatTranscriptomeUMI.output_bam
   }
 }
 
@@ -608,6 +608,7 @@ task SamToFastq {
 	}
 }
 
+
 task FastqToSam {
 	input {
 		File fastq1
@@ -643,6 +644,7 @@ task FastqToSam {
 	}
 }
 
+# Query sorts and...does other things.
 task FormatTranscriptomeUMI {
   input {
     String prefix
