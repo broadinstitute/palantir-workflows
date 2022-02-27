@@ -18,7 +18,6 @@ workflow RNAWithUMIsPipeline {
 		File ribosomalIntervals
 
 		File rnaseqc2_exon_bed
-		String transcriptome_ban = "Singleend"
 	}
 
 	call ExtractUMIs {
@@ -38,7 +37,7 @@ workflow RNAWithUMIsPipeline {
 		input:
 			bam = ExtractUMIs.bam_umis_extracted,
 			starIndex = starIndex,
-			transcriptome_ban = transcriptome_ban
+			transcriptome_ban = "Singleend"
 	}
 
 	call CopyReadGroupsToHeader {
@@ -190,7 +189,8 @@ workflow RNAWithUMIsPipeline {
 	call STAR as STARClipped {
 		input:
 			bam = ExtractUMIsClipped.bam_umis_extracted,
-			starIndex = starIndex
+			starIndex = starIndex,
+			transcriptome_ban = "IndelSoftclipSingleend"
 	}
 
 	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingClipped {
