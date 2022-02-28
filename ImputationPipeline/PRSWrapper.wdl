@@ -11,7 +11,7 @@ workflow PRSWrapper {
 
     File vcf
     String sample_id
-    String lab_batch
+    String lab_batch_id
     Boolean is_control_sample
     Boolean redoPCA = false
 
@@ -71,13 +71,14 @@ workflow PRSWrapper {
   call JoinResults{
     input:
       results_in = result_for_condition,
-      lab_batch = lab_batch,
+      lab_batch = lab_batch_id,
       is_control_sample = is_control_sample
   }
 
   output {
     File results = JoinResults.results
     File pcs = select_first(ScoringImputedDataset.pc_projection)
+    String lab_batch = lab_batch_id
   }
 }
 
