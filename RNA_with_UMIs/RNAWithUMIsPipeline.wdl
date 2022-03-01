@@ -229,6 +229,8 @@ workflow RNAWithUMIsPipeline {
 	Int pre_alignment_read_count = STAR.pre_alignment_read_count
 	Int aligned_read_count = STAR.aligned_read_count
 	Int transcriptome_read_count = STAR.transcriptome_read_count
+	Float pct_reads_unmapped_mismatches = STAR.pct_reads_unmapped_mismatches
+	Float pct_uniquely_mapped = STAR.pct_uniquely_mapped
 	File formatted_transcriptome_bam = FormatTranscriptomeUMI.output_bam
 	
 	# Clipped code path
@@ -236,7 +238,8 @@ workflow RNAWithUMIsPipeline {
 	Int aligned_read_count_clipped  = STARClipped.aligned_read_count
 	Int transcriptome_read_count_clipped  = STARClipped.transcriptome_read_count
 	File formatted_transcriptome_bam_clipped  = FormatTranscriptomeUMIClipped.output_bam
-	
+	Float pct_reads_unmapped_mismatches_clipped = STARClipped.pct_reads_unmapped_mismatches
+	Float pct_uniquely_mapped_clipped = STARClipped.pct_uniquely_mapped
   }
 }
 
@@ -272,8 +275,8 @@ task STAR {
 		samtools view -c -F 0x100 Aligned.toTranscriptome.out.bam > transcriptome_read_count.txt
 		ls > "ls.txt"
 
-		grep "% of reads unmapped: too many mismatches" Log.final.out | cut -d "|" -f 2 | tr -d "[:space:]" > pct_reads_unmapped_mismatches.txt
-		grep "Uniquely mapped reads %" Log.final.out | cut -d "|" -f 2 | tr -d "[:space:]" > pct_uniquely_mapped.txt
+		grep "% of reads unmapped: too many mismatches" Log.final.out | cut -d "|" -f 2 | tr -d "[:space:]%" > pct_reads_unmapped_mismatches.txt
+		grep "Uniquely mapped reads %" Log.final.out | cut -d "|" -f 2 | tr -d "[:space:]%" > pct_uniquely_mapped.txt
 	>>>
 
 	runtime {
