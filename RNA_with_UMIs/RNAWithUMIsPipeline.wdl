@@ -271,6 +271,9 @@ task STAR {
 		samtools view -c -F 0x100 Aligned.out.bam > aligned_read_count.txt
 		samtools view -c -F 0x100 Aligned.toTranscriptome.out.bam > transcriptome_read_count.txt
 		ls > "ls.txt"
+
+		grep "% of reads unmapped: too many mismatches" Log.final.out | cut -d "|" -f 2 | tr -d "[:space:]" > pct_reads_unmapped_mismatches.txt
+		grep "Uniquely mapped reads %" Log.final.out | cut -d "|" -f 2 | tr -d "[:space:]" > pct_uniquely_mapped.txt
 	>>>
 
 	runtime {
@@ -291,6 +294,10 @@ task STAR {
 		Int pre_alignment_read_count = read_int("pre_alignment_read_count.txt")
 		Int aligned_read_count = read_int("aligned_read_count.txt")
 		Int transcriptome_read_count = read_int("transcriptome_read_count.txt")
+
+		# STAR metrics
+		Float pct_reads_unmapped_mismatches = "pct_reads_unmapped_mismatches.txt"
+		Float pct_uniquely_mapped = "pct_uniquely_mapped.txt"
 	}
 }
 
