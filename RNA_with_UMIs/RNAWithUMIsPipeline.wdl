@@ -296,8 +296,8 @@ task STAR {
 		Int transcriptome_read_count = read_int("transcriptome_read_count.txt")
 
 		# STAR metrics
-		Float pct_reads_unmapped_mismatches = "pct_reads_unmapped_mismatches.txt"
-		Float pct_uniquely_mapped = "pct_uniquely_mapped.txt"
+		Float pct_reads_unmapped_mismatches = read_float("pct_reads_unmapped_mismatches.txt")
+		Float pct_uniquely_mapped = read_float("pct_uniquely_mapped.txt")
 	}
 }
 
