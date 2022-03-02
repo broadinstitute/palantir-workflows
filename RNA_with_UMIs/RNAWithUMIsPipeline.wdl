@@ -18,13 +18,17 @@ workflow RNAWithUMIsPipeline {
 		File ribosomalIntervals
 
 		File rnaseqc2_exon_bed
+		Boolean use_umi
+		Int read_length
 	}
 
-	call ExtractUMIs {
-		input:
-			bam = bam,
-			read1Structure = read1Structure,
-			read2Structure = read2Structure
+	if (use_umi){
+		call ExtractUMIs {
+			input:
+				bam = bam,
+				read1Structure = read1Structure,
+				read2Structure = read2Structure
+		}
 	}
 
 	call FastQC {
@@ -33,9 +37,11 @@ workflow RNAWithUMIsPipeline {
 			sample_id = output_basename
 	}
 
+	File star_input_bam = if use_umi then select_first([ExtractUMIs.bam_umis_extracted]) else bam
+
 	call STAR {
 		input:
-			bam = ExtractUMIs.bam_umis_extracted,
+			bam = star_input_bam,
 			starIndex = starIndex,
 			transcriptome_ban = "Singleend"
 	}
@@ -46,27 +52,20 @@ workflow RNAWithUMIsPipeline {
 			bam_without_readgroups = STAR.transcriptome_bam
 	}
 
-	if (use_umi){
-		call UmiMD.UMIAwareDuplicateMarking {
+	call UmiMD.UMIAwareDuplicateMarking {
 		input:
 			aligned_bam = STAR.aligned_bam,
-			output_basename = output_basename
+			output_basename = output_basename,
+			use_umi = use_umi
 	}
 
-		call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingTranscriptome {
-			input:
-				aligned_bam = CopyReadGroupsToHeader.output_bam,
-				output_basename = output_basename + "_transcriptome",
-				remove_duplicates = true
-		}
+	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingTranscriptome {
+		input:
+			aligned_bam = CopyReadGroupsToHeader.output_bam,
+			output_basename = output_basename + "_transcriptome",
+			use_umi = use_umi,
+			remove_duplicates = true
 	}
-
-	if (!use_umi){
-		
-	}
-
-
-
 	
 	call FormatTranscriptomeUMI {
 		input:
@@ -101,14 +100,6 @@ workflow RNAWithUMIsPipeline {
 	call rnaseqc2 {
 		input:
 			bam_file = UMIAwareDuplicateMarking.duplicate_marked_bam,
-			genes_gtf = gtf,
-			sample_id = GetSampleName.sample_name,
-			exon_bed = rnaseqc2_exon_bed
-	}
-
-	call rnaseqc2 as RNASeQCSkipUMI {
-		input:
-			bam_file = UMIAwareDuplicateMarking.duplicate_marked_skip_umi_bam,
 			genes_gtf = gtf,
 			sample_id = GetSampleName.sample_name,
 			exon_bed = rnaseqc2_exon_bed
@@ -178,7 +169,8 @@ workflow RNAWithUMIsPipeline {
 		input:
 			fastq1 = Fastp.fastq1_clipped,
 			fastq2 = Fastp.fastq2_clipped,
-			output_prefix = output_basename
+			output_prefix = output_basename,
+			read_length = read_length
 	}
 
 	call FastqToSam {
@@ -188,30 +180,50 @@ workflow RNAWithUMIsPipeline {
 			sample_name=output_basename + "_clipped_padded"
 	}
 
-	call ExtractUMIs as ExtractUMIsClipped {
-		input:
-			bam = FastqToSam.unmapped_bam,
-			read1Structure = read1Structure,
-			read2Structure = read2Structure
+	if (use_umi){
+		call ExtractUMIs as ExtractUMIsClipped {
+			input:
+				bam = FastqToSam.unmapped_bam,
+				read1Structure = read1Structure,
+				read2Structure = read2Structure
+		}
 	}
+
+	File star_clipped_input_bam = if use_umi then select_first([ExtractUMIsClipped.bam_umis_extracted]) else FastqToSam.unmapped_bam
 
 	call STAR as STARClipped {
 		input:
-			bam = ExtractUMIsClipped.bam_umis_extracted,
+			bam = star_clipped_input_bam,
 			starIndex = starIndex,
 			transcriptome_ban = "IndelSoftclipSingleend"
 	}
 
-	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingClipped {
+	call CopyReadGroupsToHeader as CopyReadGroupsToHeaderClipped {
 		input:
-			aligned_bam = STARClipped.aligned_bam,
-			output_basename = output_basename + "_clipped"
+			bam_with_readgroups = STARClipped.aligned_bam,
+			bam_without_readgroups = STARClipped.transcriptome_bam
+	}
+
+	# We are not interested in the genome aligned bam generated from clipped SAM
+  # call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingClipped {
+  #   input:
+  #     aligned_bam = STARClipped.aligned_bam,
+  #     output_basename = output_basename + "_clipped",
+  #     use_umi = use_umi
+  # }
+
+	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingTranscriptomeClipped {
+		input:
+			aligned_bam = CopyReadGroupsToHeaderClipped.output_bam,
+			output_basename = output_basename + "_transcriptome_clipped",
+			use_umi = use_umi,
+			remove_duplicates = true
 	}
 
 	call FormatTranscriptomeUMI as FormatTranscriptomeUMIClipped {
 		input:
-			prefix = output_basename + "_transcriptome_RSEM_formatted",
-			input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam
+			prefix = output_basename + "_transcriptome_RSEM_formatted_clipped",
+			input_bam = UMIAwareDuplicateMarkingTranscriptomeClipped.duplicate_marked_query_sorted_bam
 	}
 
 	

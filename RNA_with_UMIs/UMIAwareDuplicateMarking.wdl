@@ -5,51 +5,46 @@ workflow UMIAwareDuplicateMarking {
     File aligned_bam # aligned bam sorted by the query (read) name. 
     String output_basename
     Boolean remove_duplicates = false
+    Boolean use_umi = true
   }
 
-  # First sort the aligned bam by coordinate, so we can group duplicate sets using UMIs in the next step.
-  call SortSam as SortSamFirst {
-    input:
-      input_bam = aligned_bam,
-      output_bam_basename = output_basename + ".STAR_aligned.coorinate_sorted",
-      sort_order = "coordinate"
+  if (use_umi){
+    # First sort the aligned bam by coordinate, so we can group duplicate sets using UMIs in the next step.
+    call SortSam as SortSamFirst {
+      input:
+        input_bam = aligned_bam,
+        output_bam_basename = output_basename + ".STAR_aligned.coorinate_sorted",
+        sort_order = "coordinate"
+    }
+
+    # Further divide each duplicate set (a set of reads with the same insert start and end coordinates)
+    # into subsets that share the same UMIs i.e. differenciate PCR duplicates from biological duplicates.
+    # (biological duplicates are independent DNA molecules that are sheared such that the inserts are indistinguishable.)
+    # input: a coordinate sorted bam
+    # output: a coordinate sorted bam with UMIs (what are the generated tags?) .
+    
+    call GroupByUMIs {
+      input:
+        bam = SortSamFirst.output_bam,
+        bam_index = select_first([SortSamFirst.output_bam_index, "bam_index_not_found"]),
+        output_bam_basename = output_basename + ".grouped_by_UMI"
+    }
+
+    call SortSam as SortSamQueryName {
+      input:
+        input_bam = GroupByUMIs.grouped_bam,
+        output_bam_basename = output_basename + ".grouped.queryname_sorted",
+        sort_order = "queryname"
+    }
   }
 
-  # Further divide each duplicate set (a set of reads with the same insert start and end coordinates)
-  # into subsets that share the same UMIs i.e. differenciate PCR duplicates from biological duplicates.
-  # (biological duplicates are independent DNA molecules that are sheared such that the inserts are indistinguishable.)
-  # input: a coordinate sorted bam
-  # output: a coordinate sorted bam with UMIs (what are the generated tags?) .
-  
-  call GroupByUMIs {
-    input:
-      bam = SortSamFirst.output_bam,
-      bam_index = select_first([SortSamFirst.output_bam_index, "bam_index_not_found"]),
-      output_bam_basename = output_basename + ".grouped_by_UMI"
-  }
-
-  # input:
-  # output: 
-  call SortSam as SortSamQueryName {
-    input:
-      input_bam = GroupByUMIs.grouped_bam,
-      output_bam_basename = output_basename + ".grouped.queryname_sorted",
-      sort_order = "queryname"
-  }
+  File input_bam = if use_umi then select_first([SortSamQueryName.output_bam]) else aligned_bam
 
   call MarkDuplicates {
     input:
-      bam = SortSamQueryName.output_bam,
+      bam = input_bam,
       output_basename = output_basename,
-      use_UMI = true,
-      remove_duplicates = remove_duplicates
-  }
-
-  call MarkDuplicates as MarkDuplicateSkipUMI {
-    input:
-      bam = SortSamQueryName.output_bam,
-      output_basename = output_basename + "_skip_UMI",
-      use_UMI = false,
+      use_umi = use_umi,
       remove_duplicates = remove_duplicates
   }
 
@@ -60,22 +55,34 @@ workflow UMIAwareDuplicateMarking {
       sort_order = "coordinate"
   }
 
-  call SortSam as SortSamSecondSkipUMI {
-    input:
-      input_bam = MarkDuplicateSkipUMI.duplicate_marked_bam,
-      output_bam_basename = output_basename + ".duplicate_marked.coordinate_sorted.UMI_skipped",
-      sort_order = "coordinate"
-  }
+  # For comparison.
+  if (use_umi){
+    call MarkDuplicates as MarkDuplicateSkipUMI {
+      input:
+        bam = aligned_bam,
+        output_basename = output_basename + "_skip_UMI",
+        use_umi = false,
+        remove_duplicates = remove_duplicates
+    }
 
+    call SortSam as SortSamSecondSkipUMI {
+      input:
+        input_bam = MarkDuplicateSkipUMI.duplicate_marked_bam,
+        output_bam_basename = output_basename + ".duplicate_marked.coordinate_sorted.UMI_skipped",
+        sort_order = "coordinate"
+    }
+  }
+  
   output {
     File duplicate_marked_query_sorted_bam = MarkDuplicates.duplicate_marked_bam
     File duplicate_marked_bam = SortSamSecond.output_bam
     File duplicate_marked_bam_index = select_first([SortSamSecond.output_bam_index, "bam_index_not_found"])
     File duplicate_metrics = MarkDuplicates.duplicate_metrics
-    File duplicate_marked_skip_umi_bam = SortSamSecondSkipUMI.output_bam
-    File duplicate_marked_skip_umi_bam_index = select_first([SortSamSecondSkipUMI.output_bam_index, "bam_index_not_found"])
-    File duplicate_metrics_skip_umi = MarkDuplicateSkipUMI.duplicate_metrics
     Int duplciate_marked_read_count = MarkDuplicates.duplciate_marked_read_count
+
+    File? duplicate_marked_skip_umi_bam = SortSamSecondSkipUMI.output_bam
+    File? duplicate_marked_skip_umi_bam_index = SortSamSecondSkipUMI.output_bam_index
+    File? duplicate_metrics_skip_umi = MarkDuplicateSkipUMI.duplicate_metrics
   }
 }
 
@@ -83,7 +90,7 @@ task MarkDuplicates {
   input {
     File bam
     String output_basename
-    Boolean use_UMI
+    Boolean use_umi
     Boolean remove_duplicates
   }
 
@@ -99,11 +106,10 @@ task MarkDuplicates {
     --METRICS_FILE ~{output_basename}_duplicate_metrics.txt \
     --ASSUME_SORT_ORDER queryname \
     --TAG_DUPLICATE_SET_MEMBERS \
-    ~{true='--READ_ONE_BARCODE_TAG BX' false='' use_UMI} \
+    ~{true='--READ_ONE_BARCODE_TAG BX' false='' use_umi} \
     ~{true="--REMOVE_DUPLICATES" false="" remove_duplicates}
 
     samtools view -c -F 0x100 ~{output_bam_basename}.bam > duplicate_marked_read_count.txt
-
   >>>
 
   output {
