@@ -46,18 +46,27 @@ workflow RNAWithUMIsPipeline {
 			bam_without_readgroups = STAR.transcriptome_bam
 	}
 
-	call UmiMD.UMIAwareDuplicateMarking {
+	if (use_umi){
+		call UmiMD.UMIAwareDuplicateMarking {
 		input:
 			aligned_bam = STAR.aligned_bam,
 			output_basename = output_basename
 	}
 
-	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingTranscriptome {
-		input:
-			aligned_bam = CopyReadGroupsToHeader.output_bam,
-			output_basename = output_basename + "_transcriptome",
-			remove_duplicates = true
+		call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingTranscriptome {
+			input:
+				aligned_bam = CopyReadGroupsToHeader.output_bam,
+				output_basename = output_basename + "_transcriptome",
+				remove_duplicates = true
+		}
 	}
+
+	if (!use_umi){
+		
+	}
+
+
+
 	
 	call FormatTranscriptomeUMI {
 		input:
