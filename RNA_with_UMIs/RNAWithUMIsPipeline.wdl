@@ -43,7 +43,7 @@ workflow RNAWithUMIsPipeline {
 		input:
 			bam = star_input_bam,
 			starIndex = starIndex,
-			transcriptome_ban = "Singleend"
+			transcriptome_ban = "IndelSoftclipSingleend"
 	}
 
 	call CopyReadGroupsToHeader {
@@ -815,7 +815,7 @@ task AddNsToClippedReads {
 
 	runtime {
 		docker: "pegi3s/biopython"
-		memory: "8 GiB"
+		memory: "16 GiB"
 		disks: "local-disk " + disk_size + " HDD"
 		preemptible: 0
 	}
