@@ -30,7 +30,7 @@ task ScoreVcf {
   }
 
   runtime {
-    docker: "skwalker/plink2:first"
+    docker: "us.gcr.io/broad-dsde-methods/plink2_docker:v1.0.0"
     disks: "local-disk " + disk_space + " HDD"
     memory: runtime_mem + " GB"
   }
@@ -461,7 +461,7 @@ task ExtractIDsPlink {
     File ids = "plink2.snplist"
   }
   runtime {
-    docker: "skwalker/plink2:first"
+    docker: "us.gcr.io/broad-dsde-methods/plink2_docker:v1.0.0"
     disks: "local-disk " + disk_size + " HDD"
     memory: mem + " GB"
   }

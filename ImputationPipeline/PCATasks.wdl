@@ -119,7 +119,7 @@ task ArrayVcfToPlinkDataset {
   }
 
   runtime {
-    docker: "skwalker/plink2:first"
+    docker: "us.gcr.io/broad-dsde-methods/plink2_docker:v1.0.0"
     disks: "local-disk " + disk_space + " HDD"
     memory: mem + " GB"
   }
