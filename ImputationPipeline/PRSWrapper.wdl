@@ -80,7 +80,7 @@ workflow PRSWrapper {
   call CombineMissingSitesShiftedScores {
     input:
       missing_sites_shifted = missing_sites_shifted,
-      lab_batch = lab_batch
+      lab_batch = lab_batch_id
   }
 
 

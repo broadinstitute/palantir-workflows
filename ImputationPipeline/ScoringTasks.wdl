@@ -221,7 +221,7 @@ task CheckWeightsCoverSitesUsedInTraining {
         sites_in_weight_set.add(line[0])
 
     if ~{if (defined(weight_set.interaction_weights)) then "True" else "False"}:
-      with open("~{if (defined(weight_set.interaction_weights)) then select_first([weight_set.interaction_weights]) else ''}") as f_interaction_weights:
+      with open("~{weight_set.interaction_weights}") as f_interaction_weights:
         for line in csv.DictReader(f_interaction_weights, delimiter='\t'):
           sites_in_weight_set.add(line['id_1'])
           sites_in_weight_set.add(line['id_2'])
@@ -283,7 +283,7 @@ task CompareScoredSitesToSitesUsedInTraining {
 
 
     if ~{if defined(weight_set.interaction_weights) then "True" else "False"}:
-      with open("~{if (defined(weight_set.interaction_weights)) then select_first([weight_set.interaction_weights]) else ''}") as f_interaction_weights:
+      with open("~{weight_set.interaction_weights}") as f_interaction_weights:
         for line in csv.DictReader(f_interaction_weights, delimiter='\t'):
           id_1 = line['id_1']
           id_2 = line['id_2']
