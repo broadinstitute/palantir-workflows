@@ -752,7 +752,7 @@ task FormatTranscriptomeUMI {
     umi_tools prepare-for-rsem --tags UG,BX,RX \
       -I ~{input_bam} --stdout ~{prefix}.bam
 
-    samtools view -c ~{prefix}.bam> post_formatting_read_count.txt
+    samtools view -c ~{prefix}.bam > post_formatting_read_count.txt
   }
   
   output {
