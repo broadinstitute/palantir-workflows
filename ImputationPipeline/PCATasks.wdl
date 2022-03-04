@@ -30,7 +30,7 @@ task PerformPCA {
   }
 
   runtime {
-    docker: "skwalker/flashpca:v1"
+    docker: "us.gcr.io/broad-dsde-methods/flashpca_docker@sha256:2f3ff1614b00f9c8f271be85fd8875fbddccb7566712b537488d14a2526ccf7f"
     disks: "local-disk 400 HDD"
     memory: mem + " GB"
   }
@@ -89,7 +89,7 @@ task ProjectArray {
   }
 
   runtime {
-    docker: "quay.io/ckachuli/flashpca@sha256:85e9ee91bc552e46a0d69cc851b893419c8de6588c696458fc770eee526e381d" # a special version of flashpca which allows to project a single sample without erroring out at an unnecessary check
+    docker: "us.gcr.io/broad-dsde-methods/flashpca_docker@sha256:2f3ff1614b00f9c8f271be85fd8875fbddccb7566712b537488d14a2526ccf7f"
     disks: "local-disk 400 HDD"
     memory: mem + " GB"
   }
@@ -119,7 +119,7 @@ task ArrayVcfToPlinkDataset {
   }
 
   runtime {
-    docker: "us.gcr.io/broad-dsde-methods/plink2_docker:v1.0.0"
+    docker: "us.gcr.io/broad-dsde-methods/plink2_docker@sha256:4455bf22ada6769ef00ed0509b278130ed98b6172c91de69b5bc2045a60de124"
     disks: "local-disk " + disk_space + " HDD"
     memory: mem + " GB"
   }
