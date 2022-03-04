@@ -253,6 +253,7 @@ workflow RNAWithUMIsPipeline {
 	Float pct_reads_unmapped_mismatches = STAR.pct_reads_unmapped_mismatches
 	Float pct_uniquely_mapped = STAR.pct_uniquely_mapped
 	File formatted_transcriptome_bam = FormatTranscriptomeUMI.output_bam
+	Int post_formatting_read_count = FormatTranscriptomeUMI.post_formatting_read_count
 	
 	# Clipped code path
 	Int pre_alignment_read_count_clipped = STARClipped.pre_alignment_read_count
@@ -261,6 +262,7 @@ workflow RNAWithUMIsPipeline {
 	File formatted_transcriptome_bam_clipped  = FormatTranscriptomeUMIClipped.output_bam
 	Float pct_reads_unmapped_mismatches_clipped = STARClipped.pct_reads_unmapped_mismatches
 	Float pct_uniquely_mapped_clipped = STARClipped.pct_uniquely_mapped
+	Int post_formatting_read_count_clipped = FormatTranscriptomeUMIClipped.post_formatting_read_count
   }
 }
 
@@ -749,10 +751,13 @@ task FormatTranscriptomeUMI {
   command {
     umi_tools prepare-for-rsem --tags UG,BX,RX \
       -I ~{input_bam} --stdout ~{prefix}.bam
+
+    samtools view -c ~{prefix}.bam> post_formatting_read_count.txt
   }
   
   output {
     File output_bam = "~{prefix}.bam"
+    Int post_formatting_read_count = read_int("post_formatting_read_count.txt")
   }
   
   runtime {
