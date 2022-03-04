@@ -4,19 +4,23 @@ workflow AggregatePRSResults {
   input {
     Array[File] results
     Array[File] target_pc_projections
+    Array[File] missing_sites_shifts
     File population_pc_projections
     String population_name = "Reference Population"
     File expected_control_results
+    String lab_batch
   }
 
   call AggregateResults {
     input:
-      results = results
+      results = results,
+      missing_sites_shifts = missing_sites_shifts,
+      lab_batch = lab_batch
   }
 
   call PlotPCA {
     input:
-      lab_batch = AggregateResults.lab_batch,
+      lab_batch = lab_batch,
       population_name = population_name,
       target_pc_projections = target_pc_projections,
       population_pc_projections = population_pc_projections
@@ -24,9 +28,10 @@ workflow AggregatePRSResults {
 
   call BuildHTMLReport {
     input:
-      lab_batch = AggregateResults.lab_batch,
+      lab_batch = lab_batch,
       batch_all_results = AggregateResults.batch_all_results,
       batch_control_results = AggregateResults.batch_control_results,
+      batch_missing_sites_shifts = AggregateResults.batch_missing_sites_shifts,
       expected_control_results = expected_control_results,
       batch_summarised_results = AggregateResults.batch_summarised_results,
       score_distribution = AggregateResults.batch_score_distribution,
@@ -39,6 +44,7 @@ workflow AggregatePRSResults {
     File batch_all_results = AggregateResults.batch_all_results
     File batch_control_results = AggregateResults.batch_control_results
     File batch_summarised_results = AggregateResults.batch_summarised_results
+    File batch_missing_sites_shifts =  AggregateResults.batch_missing_sites_shifts
     File score_distribution = AggregateResults.batch_score_distribution
     File pc_plot = PlotPCA.pc_plot
     File report = BuildHTMLReport.report
@@ -48,6 +54,8 @@ workflow AggregatePRSResults {
 task AggregateResults {
   input {
     Array[File] results
+    Array[File] missing_sites_shifts
+    String lab_batch
   }
 
   command <<<
@@ -67,6 +75,10 @@ task AggregateResults {
       stop(paste0("There are ", length(lab_batch), " lab batch IDs in the input tables, however, only 1 is expected."))
     }
     # If there is only one lab_batch, then lab_batch will have length 1 and can be treated as a single value from here on
+
+    if (lab_batch != "~{lab_batch}") {
+      stop(paste0("Expected lab batch ~{lab_batch} but found lab batch ", lab_batch))
+    }
 
     num_control_samples <- results %>% filter(is_control_sample) %>% count()
 
@@ -101,6 +113,9 @@ task AggregateResults {
 
     writeLines(lab_batch, "lab_batch.txt")
 
+    missing_sites_shifts <-  c("~{sep='","' missing_sites_shifts}") %>% map(read_tsv) %>% reduce(bind_rows)
+    write_tsv(missing_sites_shifts, paste0(lab_batch, "_missing_sites_shifts.tsv"))
+
     EOF
   >>>
 
@@ -111,11 +126,11 @@ task AggregateResults {
   }
 
   output {
-    String lab_batch = read_string("lab_batch.txt")
-    File batch_all_results = glob("*_all_results.tsv")[0]
-    File batch_control_results = glob("*_control_results.tsv")[0]
-    File batch_summarised_results = glob("*_summarised_results.tsv")[0]
-    File batch_score_distribution = glob("*_score_distribution.png")[0]
+    File batch_all_results = "~{lab_batch}_all_results.tsv"
+    File batch_control_results = "~{lab_batch}_control_results.tsv"
+    File batch_summarised_results = "~{lab_batch}_summarised_results.tsv"
+    File batch_score_distribution = "~{lab_batch}_score_distribution.png"
+    File batch_missing_sites_shifts = "~{lab_batch}_missing_sites_shifts.tsv"
   }
 }
 
@@ -163,6 +178,7 @@ task BuildHTMLReport {
   input {
     File batch_all_results
     File batch_control_results
+    File batch_missing_sites_shifts
     File expected_control_results
     File batch_summarised_results
     File score_distribution
@@ -232,7 +248,19 @@ task BuildHTMLReport {
 
     ## Individual Sample Results (without control sample)
     \`\`\`{r sample results , echo = FALSE, results = "asis"}
-    kable(batch_all_results %>% filter(!is_control_sample) %>% select(-is_control_sample) %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green")))))), digits = 2)
+    kable(batch_all_results %>% filter(!is_control_sample) %>% select(-is_control_sample) %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green")))))), escape = FALSE, digits = 2, format = "pandoc")
+    \`\`\`
+
+    ## Missing sites
+    \`\`\`{r missing sites load, include = FALSE}
+    batch_missing_sites <- read_tsv("~{batch_missing_sites_shifts}")
+    batch_missing_sites <- batch_missing_sites %>% filter(n_missing_sites > 0)
+    \`\`\`
+    \`r if (batch_missing_sites %>% count() == 0) {"All expected sites were included in all scores for all samples."} else {"Scores missing expected sites are shown below."}\`
+
+    \`\`\`{r missing sites table, echo = FALSE, results = "asis"}
+    if (batch_missing_sites %>% count() > 0) {
+    kable(batch_missing_sites %>% mutate(across(all_of(c("sample_id", "condition")), ~kableExtra::cell_spec(.x, color = ifelse(pmax(abs(potential_high_percentile - percentile), abs(potential_low_percentile - percentile)) > 0.05, "red", ifelse(pmax(abs(potential_high_percentile - percentile), abs(potential_low_percentile - percentile)) > 0.02, "orange", "black"))))), escape = FALSE, digits = 2, format = "pandoc")    }
     \`\`\`
     EOF
 

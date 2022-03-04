@@ -75,10 +75,20 @@ workflow PRSWrapper {
       is_control_sample = is_control_sample
   }
 
+  Array[File] missing_sites_shifted = select_all(ScoringImputedDataset.missing_sites_shifted_scores)
+
+  call CombineMissingSitesShiftedScores {
+    input:
+      missing_sites_shifted = missing_sites_shifted,
+      lab_batch = lab_batch_id
+  }
+
+
   output {
     File results = JoinResults.results
     File pcs = select_first(ScoringImputedDataset.pc_projection)
     String lab_batch = lab_batch_id
+    File missing_sites_shifts = CombineMissingSitesShiftedScores.missing_sites_shifts
   }
 }
 
@@ -190,5 +200,33 @@ task JoinResults {
 
   output {
     File results = "results.csv"
+  }
+}
+
+task CombineMissingSitesShiftedScores {
+  input {
+    Array[File] missing_sites_shifted
+    String lab_batch
+  }
+
+  command <<<
+    Rscript - <<- "EOF"
+    library(dplyr)
+    library(readr)
+    library(purrr)
+
+    missing_sites_shifted <- c("~{sep = '","' missing_sites_shifted}") %>% map(read_tsv) %>% reduce(bind_rows) %>% rename(sample_id = IID)
+    write_tsv(missing_sites_shifted, "~{lab_batch}.missing_sites_shifts.tsv")
+    EOF
+  >>>
+
+  runtime {
+    docker: "rocker/tidyverse@sha256:aaace6c41a258e13da76881f0b282932377680618fcd5d121583f9455305e727"
+    disks: "local-disk 100 HDD"
+    memory: "4 GB"
+  }
+
+  output {
+    File missing_sites_shifts = "~{lab_batch}.missing_sites_shifts.tsv"
   }
 }

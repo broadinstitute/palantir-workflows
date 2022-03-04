@@ -90,6 +90,12 @@ workflow ScoringImputedDataset {
 		AncestryAdjustmentModelParams local_params = select_first([fitted_model_params_and_sites])
 		File sites_used_in_scoring_for_model = local_params.sites_used_in_scoring
 		File fitted_params_for_model = local_params.fitted_model_params
+
+		call ScoringTasks.CheckWeightsCoverSitesUsedInTraining {
+		input:
+			sites_used_in_training = sites_used_in_scoring_for_model,
+			weight_set = named_weight_set.weight_set
+		}
 	}
 
 	call ScoringTasks.ScoreVcf as ScoreImputedArray {
@@ -195,6 +201,53 @@ workflow ScoringImputedDataset {
 				target_pcs = ProjectArray.projections
 		}
 
+		call ScoringTasks.CompareScoredSitesToSitesUsedInTraining {
+			input:
+				sites_used_in_training = select_first([TrainAncestryAdjustmentModel.sites_used_in_scoring, sites_used_in_scoring_for_model]),
+				sites_used_in_scoring = select_first([CombineScoringSites.combined_scoring_sites, ScoreImputedArray.sites_scored]),
+				weight_set = named_weight_set.weight_set
+		}
+
+		if (CompareScoredSitesToSitesUsedInTraining.n_missing_sites > 0) {
+			#if there expected sites are missing, calculate potential effect on scores
+			call ScoringTasks.AddShiftToRawScores as ShiftScoresUpForMissingSites {
+				input:
+					raw_scores = select_first([AddInteractionTermsToScore.scores_with_interactions, ScoreImputedArray.score]),
+					shift = CompareScoredSitesToSitesUsedInTraining.max_error_up,
+					basename = "shifted_raw_scores_up_for_missing_sites"
+			}
+
+			call ScoringTasks.AddShiftToRawScores as ShiftScoresDownForMissingSites {
+				input:
+					raw_scores = select_first([AddInteractionTermsToScore.scores_with_interactions, ScoreImputedArray.score]),
+					shift = CompareScoredSitesToSitesUsedInTraining.max_error_down,
+					basename = "shifted_raw_scores_down_for_missing_sites"
+			}
+
+			call ScoringTasks.AdjustScores as AdjustScoresShiftedUpForMissingSites {
+				input:
+					fitted_model_params = select_first([TrainAncestryAdjustmentModel.fitted_params, fitted_params_for_model]),
+					pcs = ProjectArray.projections,
+					scores = ShiftScoresUpForMissingSites.shifted_scores
+			}
+
+			call ScoringTasks.AdjustScores as AdjustScoresShiftedDownForMissingSites {
+				input:
+					fitted_model_params = select_first([TrainAncestryAdjustmentModel.fitted_params, fitted_params_for_model]),
+					pcs = ProjectArray.projections,
+					scores = ShiftScoresDownForMissingSites.shifted_scores
+			}
+		}
+
+		call ScoringTasks.CombineMissingSitesAdjustedScores {
+			input:
+				adjusted_scores_shifted_up = select_first([AdjustScoresShiftedUpForMissingSites.adjusted_scores, AdjustScores.adjusted_scores]),
+				adjusted_scores_shifted_down = select_first([AdjustScoresShiftedDownForMissingSites.adjusted_scores, AdjustScores.adjusted_scores]),
+				adjusted_scores = AdjustScores.adjusted_scores,
+				n_missing_sites = CompareScoredSitesToSitesUsedInTraining.n_missing_sites,
+				condition_name = named_weight_set.condition_name
+		}
+
 		if (!select_first([CheckPopulationIdsValid.files_are_valid, true])) {
 			call ErrorWithMessage {
 				input:
@@ -210,6 +263,8 @@ workflow ScoringImputedDataset {
 	File? adjusted_population_scores = TrainAncestryAdjustmentModel.adjusted_population_scores
 	File? adjusted_array_scores = AdjustScores.adjusted_scores
 	Boolean? fit_converged = TrainAncestryAdjustmentModel.fit_converged
+	Int? n_missing_sites_from_training = CompareScoredSitesToSitesUsedInTraining.n_missing_sites
+	File? missing_sites_shifted_scores = CombineMissingSitesAdjustedScores.missing_sites_shifted_scores
   }
 }
 
@@ -223,7 +278,7 @@ task CheckPopulationIdsValid{
 	command <<<
 		# check if population VCF file contains a subset of population PC loading ids
 
-		# 1. extract IDs, removing first column of .bim file and first rows of the pc files
+		# 1. extract IDs, removing first rows of the pc files
 		awk '{print $1}' ~{pop_pc_loadings} | tail -n +2 > pop__pc_ids.txt
 
 		comm -23 <(sort pop_pc_ids.txt | uniq) <(sort ~{pop_vcf_ids} | uniq) > array_specific_ids.txt
