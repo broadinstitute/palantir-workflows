@@ -12,7 +12,7 @@ workflow PRSWrapper {
     File vcf
     String sample_id
     String lab_batch_id
-    Boolean is_control_sample
+    Boolean is_control_sample_in
     Boolean redoPCA = false
 
     File population_loadings
@@ -72,7 +72,7 @@ workflow PRSWrapper {
     input:
       results_in = result_for_condition,
       lab_batch = lab_batch_id,
-      is_control_sample = is_control_sample
+      is_control_sample = is_control_sample_in
   }
 
   Array[File] missing_sites_shifted = select_all(ScoringImputedDataset.missing_sites_shifted_scores)
@@ -88,6 +88,7 @@ workflow PRSWrapper {
     File results = JoinResults.results
     File pcs = select_first(ScoringImputedDataset.pc_projection)
     String lab_batch = lab_batch_id
+    Boolean is_control_sample = is_control_sample_in
     File missing_sites_shifts = CombineMissingSitesShiftedScores.missing_sites_shifts
   }
 }
