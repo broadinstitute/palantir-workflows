@@ -220,11 +220,10 @@ task BuildHTMLReport {
 
     ## Control Sample
     \`\`\`{r control, echo = FALSE, results = "asis"}
-    control_and_expected <- list(batch_control_results, expected_control_results) %>% reduce(bind_rows) %>% select(ends_with('_adjusted'))
-    delta_frame <- control_and_expected[-1,] - control_and_expected[-nrow(control_and_expected),] %>% mutate(across(everything(), ~ round(.x, digits=2)))
-    delta_frame_colored <- delta_frame %>% mutate(across(everything(), ~ round(.x, digits=2))) %>% mutate(across(everything(), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x) || abs(.x) > 0.12, "red", "green"))))
-    control_and_expected_rounded <- control_and_expected %>% mutate(across(everything(), ~ format(round(.x, digits=2), nsmall=2)))
-    control_table <- list(control_and_expected_rounded, delta_frame_colored) %>% reduce(bind_rows) %>% select(ends_with('_adjusted')) %>% select(order(colnames(.)))
+    control_and_expected <- bind_rows(list(batch_control_results, expected_control_results)) %>% select(ends_with('_adjusted'))
+    delta_frame_colored <- (control_and_expected[-1,] - control_and_expected[-nrow(control_and_expected),]) %>% mutate(across(everything(), ~ round(.x, digits=2))) %>% mutate(across(everything(), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x) || abs(.x) > 0.12, "red", "green"))))
+    control_and_expected_char <- control_and_expected %>% mutate(across(everything(), ~ format(round(.x, digits=2), nsmall=2)))
+    control_table <- bind_rows(list(control_and_expected_char, delta_frame_colored)) %>% select(order(colnames(.)))
     kable(control_table %>% add_column(sample=c('batch_control', 'expected_control', 'delta'), .before=1), escape = FALSE, digits = 2, format = "pandoc")
     \`\`\`
 
