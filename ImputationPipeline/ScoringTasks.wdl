@@ -30,7 +30,7 @@ task ScoreVcf {
   }
 
   runtime {
-    docker: "skwalker/plink2:first"
+    docker: "us.gcr.io/broad-dsde-methods/plink2_docker@sha256:4455bf22ada6769ef00ed0509b278130ed98b6172c91de69b5bc2045a60de124"
     disks: "local-disk " + disk_space + " HDD"
     memory: runtime_mem + " GB"
   }
@@ -188,7 +188,7 @@ task AddInteractionTermsToScore {
   >>>
 
   runtime {
-    docker: "us.gcr.io/broad-dsde-methods/imputation_interaction_python:v1.0.0"
+    docker: "us.gcr.io/broad-dsde-methods/imputation_interaction_python@sha256:40a8fb88fe287c3e3a11022ff63dae1ad5375f439066ae23fe089b2b61d3222e"
     disks: "local-disk " + disk_space + " HDD"
     memory: mem + " GB"
   }
@@ -518,7 +518,7 @@ task TrainAncestryModel {
   }
 
   runtime {
-    docker: "skwalker/rscripting:with_rutils"
+    docker: "rocker/tidyverse@sha256:0adaf2b74b0aa79dada2e829481fa63207d15cd73fc1d8afc37e36b03778f7e1"
     disks: "local-disk 100 HDD"
     memory: mem + " GB"
   }
@@ -581,7 +581,7 @@ task AdjustScores {
   }
 
   runtime {
-    docker: "skwalker/rscripting:with_rutils"
+    docker: "rocker/tidyverse@sha256:0adaf2b74b0aa79dada2e829481fa63207d15cd73fc1d8afc37e36b03778f7e1"
     disks: "local-disk 100 HDD"
     memory: mem + " GB"
   }
@@ -618,7 +618,7 @@ task MakePCAPlot {
   }
 
   runtime {
-    docker: "rocker/tidyverse:4.1.0"
+    docker: "rocker/tidyverse@sha256:0adaf2b74b0aa79dada2e829481fa63207d15cd73fc1d8afc37e36b03778f7e1"
     disks: "local-disk 100 HDD"
   }
 }
@@ -640,7 +640,7 @@ task ExtractIDsPlink {
     File ids = "plink2.snplist"
   }
   runtime {
-    docker: "skwalker/plink2:first"
+    docker: "us.gcr.io/broad-dsde-methods/plink2_docker@sha256:4455bf22ada6769ef00ed0509b278130ed98b6172c91de69b5bc2045a60de124"
     disks: "local-disk " + disk_size + " HDD"
     memory: mem + " GB"
   }
