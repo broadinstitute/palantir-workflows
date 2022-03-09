@@ -100,10 +100,10 @@ task MarkDuplicates {
   # We add the TAG_DUPLICATE_SET_MEMBERS flag for debugging/analysis purposes.
   # The flag should be removed in production to save storage cost.
   command <<<
-    gatk MarkDuplicates \
+    java -Xms8192m -jar /usr/picard/picard.jar \
     -I ~{bam} \
     -O ~{output_bam_basename}.bam \
-    --METRICS_FILE ~{output_basename}_duplicate_metrics.txt \
+    --METRICS_FILE ~{output_basename}_duplicate_metrics.txt \ 
     --TAG_DUPLICATE_SET_MEMBERS \
     ~{true='--READ_ONE_BARCODE_TAG BX' false='' use_umi} \
     ~{true="--REMOVE_DUPLICATES" false="" remove_duplicates}
@@ -118,7 +118,7 @@ task MarkDuplicates {
   }
 
   runtime {
-    docker: "us.gcr.io/broad-gatk/gatk:4.1.9.0"
+    docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.26.11"
     disks: "local-disk " + disk_size + " HDD"
     memory: "16 GB"
   }
