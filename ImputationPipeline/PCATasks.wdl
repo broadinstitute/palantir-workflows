@@ -95,10 +95,47 @@ task ProjectArray {
   }
 }
 
+task CheckPCA {
+  input {
+    File bim
+    File bed
+    File fam
+    File eigenvectors
+    File eigenvalues
+    String basename
+    Int mem = 8
+  }
+
+  Int disk_space =  2*ceil(size(bed, "GB") + size(bim, "GB") + size(fam, "GB")) + 20
+
+  command {
+    cp ~{bim} ~{basename}.bim
+    cp ~{bed} ~{basename}.bed
+    cp ~{fam} ~{basename}.fam
+
+    cp ~{eigenvectors} eigenvectors.txt
+    cp ~{eigenvalues} eigenvalues.txt
+
+    ~/flashpca/flashpca --bfile ~{basename} --check --verbose \
+    --outvec eigenvectors.txt --outval eigenvalues.txt
+  }
+
+  output {
+    File output_eigenvectors = "eigenvectors.txt"
+    File output_eigenvalues = "eigenvalues.txt"
+  }
+
+  runtime {
+    docker: "us.gcr.io/broad-dsde-methods/flashpca_docker@sha256:2f3ff1614b00f9c8f271be85fd8875fbddccb7566712b537488d14a2526ccf7f"
+    disks: "local-disk " + disk_space + " HDD"
+    memory: mem + " GB"
+  }
+}
+
 task ArrayVcfToPlinkDataset {
   input {
     File vcf
-    File pruning_sites
+    File? pruning_sites
     File? subset_to_sites
     String basename
     Int mem = 8
@@ -108,7 +145,7 @@ task ArrayVcfToPlinkDataset {
 
   command {
 
-    /plink2 --vcf ~{vcf} --extract-intersect ~{pruning_sites} ~{subset_to_sites} --allow-extra-chr --set-all-var-ids @:#:\$1:\$2 \
+    /plink2 --vcf ~{vcf} ~{"--extract-intersect " + pruning_sites} ~{subset_to_sites} --allow-extra-chr --set-all-var-ids @:#:\$1:\$2 \
     --new-id-max-allele-len 1000 missing --out ~{basename} --make-bed --rm-dup force-first
   }
 
