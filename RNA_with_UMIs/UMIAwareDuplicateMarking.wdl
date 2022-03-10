@@ -101,12 +101,12 @@ task MarkDuplicates {
   # The flag should be removed in production to save storage cost.
   command <<<
     java -Xms8192m -jar /usr/picard/picard.jar \
-    -I ~{bam} \
-    -O ~{output_bam_basename}.bam \
-    --METRICS_FILE ~{output_basename}_duplicate_metrics.txt \ 
-    --TAG_DUPLICATE_SET_MEMBERS \
-    ~{true='--READ_ONE_BARCODE_TAG BX' false='' use_umi} \
-    ~{true="--REMOVE_DUPLICATES" false="" remove_duplicates}
+    INPUT=~{bam} \
+    OUTPUT=~{output_bam_basename}.bam \
+    METRICS_FILE=~{output_basename}_duplicate_metrics.txt \ 
+    TAG_DUPLICATE_SET_MEMBERS \
+    ~{true="READ_ONE_BARCODE_TAG=BX" false="" use_umi} \
+    ~{true="REMOVE_DUPLICATES" false="" remove_duplicates}
 
     samtools view -c -F 0x100 ~{output_bam_basename}.bam > duplicate_marked_read_count.txt
   >>>
