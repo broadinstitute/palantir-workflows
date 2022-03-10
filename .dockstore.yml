@@ -54,3 +54,9 @@ workflows:
   - name: TrainAncestryAdjustmentModel
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/TrainAncestryAdjustmentModel.wdl
+  - name: PopulationPCAFromImputedCohort
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/PopulationPCAFromImputedCohort.wdl
+  - name: ListMaleAndFemaleSamples
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/ListMaleAndFemaleSamples.wdl

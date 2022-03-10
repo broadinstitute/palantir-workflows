@@ -115,7 +115,7 @@ task ConcatenateLists {
     String output_name
   }
 
-  Int disk_size =  2.2*ceil(size(lists, "GB")) + 20
+  Int disk_size =  ceil(2.2*size(lists, "GB")) + 20
 
   command <<<
     cat ~{sep = " " lists} > ~{output_name}
