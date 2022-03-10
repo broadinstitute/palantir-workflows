@@ -104,9 +104,9 @@ task MarkDuplicates {
     INPUT=~{bam} \
     OUTPUT=~{output_bam_basename}.bam \
     METRICS_FILE=~{output_basename}_duplicate_metrics.txt \
-    TAG_DUPLICATE_SET_MEMBERS \
+    TAG_DUPLICATE_SET_MEMBERS=true \
     ~{true="READ_ONE_BARCODE_TAG=BX" false="" use_umi} \
-    ~{true="REMOVE_DUPLICATES" false="" remove_duplicates}
+    ~{true="REMOVE_DUPLICATES=true" false="" remove_duplicates}
 
     samtools view -c -F 0x100 ~{output_bam_basename}.bam > duplicate_marked_read_count.txt
   >>>
