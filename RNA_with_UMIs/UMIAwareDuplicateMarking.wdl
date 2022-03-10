@@ -100,7 +100,7 @@ task MarkDuplicates {
   # We add the TAG_DUPLICATE_SET_MEMBERS flag for debugging/analysis purposes.
   # The flag should be removed in production to save storage cost.
   command <<<
-    java -Xms8192m -jar /usr/picard/picard.jar \
+    java -Xms8192m -jar /usr/picard/picard.jar MarkDuplicates \
     INPUT=~{bam} \
     OUTPUT=~{output_bam_basename}.bam \
     METRICS_FILE=~{output_basename}_duplicate_metrics.txt \ 
