@@ -194,6 +194,7 @@ workflow RNAWithUMIsPipeline {
 	File? fastqc_clipped_report = FastQCWithClipping.fastqc_html
 	File? fastqc_clipped_table = FastQCWithClipping.fastqc_data
 	Float? fastqc_clipped_adapter_content = FastQCWithClipping.adapter_content
+	File? fastp_html = Fastp.html
 
 	File genome_insert_size_metrics = CollectMultipleMetrics.insert_size_metrics
 	File transcriptome_insert_size_metrics = InsertSizeTranscriptome.insert_size_metrics
@@ -740,6 +741,8 @@ task Fastp {
 		File ls = "ls.txt"
 		File fastq1_clipped = output_prefix + "_read1_trimmed.fastq"
 		File fastq2_clipped = output_prefix + "_read2_trimmed.fastq"
+		File html = "fastp.html"
+		File json = "fastp.json"
 	}
 
 }
