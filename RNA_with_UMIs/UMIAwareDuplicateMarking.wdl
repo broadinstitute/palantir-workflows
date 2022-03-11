@@ -2,7 +2,7 @@ version 1.0
 
 workflow UMIAwareDuplicateMarking {
   input {
-    File aligned_bam # aligned bam sorted by the query (read) name. 
+    File aligned_bam # bam from aligner, not sorted.
     String output_basename
     Boolean remove_duplicates = false
     Boolean use_umi = true
@@ -38,7 +38,16 @@ workflow UMIAwareDuplicateMarking {
     }
   }
 
-  File input_bam = if use_umi then select_first([SortSamQueryName.output_bam]) else aligned_bam
+  if (!use_umi) {
+    call SortSam as QueryNameSortAlignedBam {
+      input:
+        input_bam = aligned_bam,
+        output_bam_basename = output_basename + ".grouped.queryname_sorted",
+        sort_order = "queryname"
+    }
+  }
+
+  File input_bam = if use_umi then select_first([SortSamQueryName.output_bam]) else select_first([QueryNameSortAlignedBam.output_bam])
 
   call MarkDuplicates {
     input:
