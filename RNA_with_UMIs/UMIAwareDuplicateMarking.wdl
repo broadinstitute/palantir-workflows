@@ -105,7 +105,7 @@ task MarkDuplicates {
   }
 
   runtime {
-    docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.26.11" # update the other one too at some point
+    docker: "samtools-picard-bwa:1.0.0-0.7.15-2.23.8-1626449438" # update the other one too at some point
     disks: "local-disk " + disk_size + " HDD"
     memory: "16 GB"
   }
