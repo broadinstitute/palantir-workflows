@@ -722,10 +722,12 @@ task Fastp {
 		String output_prefix
 	}
 
+	File adapter_fasta = "gs://broad-dsde-methods-takuto/RNA/resources/Illumina_adapters.fasta"
 	Int disk_size = 5*ceil(size(fastq1, "GiB")) + 128
 
 	command {
-		fastp --in1 ~{fastq1} --in2 ~{fastq2} --out1 ~{output_prefix}_read1_trimmed.fastq --out2 ~{output_prefix}_read2_trimmed.fastq
+		fastp --in1 ~{fastq1} --in2 ~{fastq2} --out1 ~{output_prefix}_read1_trimmed.fastq --out2 ~{output_prefix}_read2_trimmed.fastq \
+		--disable_quality_filtering --adapter_fasta ~{adapter_fasta} 
 		ls > "ls.txt"
 	}
 	
