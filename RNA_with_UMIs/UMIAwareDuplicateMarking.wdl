@@ -6,13 +6,27 @@ workflow UMIAwareDuplicateMarking {
     String output_basename
     Boolean remove_duplicates = false
     Boolean use_umi = true
+    #File ubam # bam with UMIs extracted in RX tag
+    #File ref_fasta
+    #File ref_fasta_index
+    #File ref_dict
+  }
+
+  # Whether we use UMI or not, we need to sort by query name first.
+  call SortSam as QueryNameSortAlignedBam {
+    input:
+      input_bam = aligned_bam,
+      output_bam_basename = output_basename + ".grouped.queryname_sorted",
+      sort_order = "queryname"
   }
 
   if (use_umi){
-    # First sort the aligned bam by coordinate, so we can group duplicate sets using UMIs in the next step.
+    # MERGE bam alignment here...
+
+    # Sort the aligned bam by coordinate, so we can group duplicate sets using UMIs in the next step.
     call SortSam as SortSamFirst {
       input:
-        input_bam = aligned_bam,
+        input_bam = aligned_bam, # TODO: likely will have to change this.
         output_bam_basename = output_basename + ".STAR_aligned.coorinate_sorted",
         sort_order = "coordinate"
     }
@@ -38,16 +52,8 @@ workflow UMIAwareDuplicateMarking {
     }
   }
 
-  if (!use_umi) {
-    call SortSam as QueryNameSortAlignedBam {
-      input:
-        input_bam = aligned_bam,
-        output_bam_basename = output_basename + ".grouped.queryname_sorted",
-        sort_order = "queryname"
-    }
-  }
+  File input_bam = if use_umi then select_first([SortSamQueryName.output_bam]) else QueryNameSortAlignedBam.output_bam
 
-  File input_bam = if use_umi then select_first([SortSamQueryName.output_bam]) else select_first([QueryNameSortAlignedBam.output_bam])
 
   call MarkDuplicates {
     input:
@@ -73,6 +79,38 @@ workflow UMIAwareDuplicateMarking {
   }
 }
 
+task MergeBamAlignment {
+  input {
+    File aligned_bam
+    File ubam
+    String output_basename
+    File ref_fasta
+    File ref_fasta_index
+    File ref_dict
+  }
+
+  Int disk_size = ceil(2 * size(aligned_bam, "GB")) + ceil(2 * size(ubam, "GB")) + 128
+
+  String output_bam_basename = output_basename + "_merged"
+  command <<<
+    java -Xms8192m -jar /usr/picard/picard.jar MergeBamAlignment \
+    UNMAPPED_BAM=~{ubam} \
+    ALIGNED_BAM=~{aligned_bam} \
+    OUTPUT=~{output_bam_basename}.bam \
+    REFERENCE_SEQUENCE=~{ref_fasta}
+  >>>
+
+  output {
+    File merged_bam = "~{output_bam_basename}.bam"
+  }
+
+  runtime {
+    docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.26.11"
+    disks: "local-disk " + disk_size + " HDD"
+    memory: "16 GB"
+  }
+}
+
 task MarkDuplicates {
   input {
     File bam
@@ -81,7 +119,7 @@ task MarkDuplicates {
     Boolean remove_duplicates
   }
 
-  String output_bam_basename = output_basename + ".duplicate_marked"
+  String output_bam_basename = output_basename + "_duplicate_marked"
   Int disk_size = ceil(3 * size(bam, "GB")) + 128
 
   # We add the TAG_DUPLICATE_SET_MEMBERS flag for debugging/analysis purposes.
@@ -138,7 +176,7 @@ task SortSam {
 
   }
   runtime {
-    docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
+    docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.26.11"
     disks: "local-disk " + disk_size + " HDD"
     cpu: "1"
     memory: "16 GB"
