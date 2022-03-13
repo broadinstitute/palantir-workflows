@@ -87,7 +87,7 @@ task LDPrune {
     ln -s ~{fam} input.fam
 
     /plink2 --bfile input \
-    --rm-dup force-first \
+    --rm-dup exclude-all \
     --geno 0.001 \
     --hwe 1e-10 \
     --snps-only \
