@@ -106,6 +106,7 @@ task LDPrune {
     docker: "us.gcr.io/broad-dsde-methods/plink2_docker@sha256:4455bf22ada6769ef00ed0509b278130ed98b6172c91de69b5bc2045a60de124"
     disks: "local-disk " + disk_space + " HDD"
     memory: mem + " GB"
+    maxRetries: 3
   }
 }
 
