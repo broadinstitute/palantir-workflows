@@ -118,7 +118,7 @@ task MarkDuplicates {
   }
 
   runtime {
-    docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.26.11" # update the other one too at some point
+    docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.5.7-2021-06-09_16-47-48Z"
     disks: "local-disk " + disk_size + " HDD"
     memory: "16 GB"
   }
