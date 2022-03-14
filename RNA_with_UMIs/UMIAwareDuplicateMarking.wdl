@@ -137,7 +137,7 @@ task MarkDuplicates {
   # We add the TAG_DUPLICATE_SET_MEMBERS flag for debugging/analysis purposes.
   # The flag should be removed in production to save storage cost.
   command <<<
-    java -Xms8192m -jar /usr/picard/picard.jar MarkDuplicates \
+    java -Xms8192m -jar /usr/gitc/picard.jar MarkDuplicates \
     INPUT=~{bam} \
     OUTPUT=~{output_bam_basename}.bam \
     METRICS_FILE=~{output_basename}_duplicate_metrics.txt \
@@ -146,9 +146,13 @@ task MarkDuplicates {
     ~{true="REMOVE_DUPLICATES=true" false="" remove_duplicates}
 
     samtools view -c -F 0x100 ~{output_bam_basename}.bam > duplicate_marked_read_count.txt
+
+    ls > ls.txt
+    ls /usr >> ls.txt
   >>>
 
   output {
+    File ls = "ls.txt"
     File duplicate_marked_bam = "~{output_bam_basename}.bam"
     File duplicate_metrics = "~{output_basename}_duplicate_metrics.txt"
     Int duplciate_marked_read_count = read_int("duplicate_marked_read_count.txt")
