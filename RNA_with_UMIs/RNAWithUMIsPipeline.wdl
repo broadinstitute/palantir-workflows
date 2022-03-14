@@ -43,7 +43,7 @@ workflow RNAWithUMIsPipeline {
 		input:
 			bam = star_input_bam,
 			starIndex = starIndex,
-			transcriptome_ban = "IndelSoftclipSingleend"
+			transcriptome_ban = "Singleend" # What differentiates the clip later approach and clip first approach
 	}
 
 	call CopyReadGroupsToHeader {
@@ -67,6 +67,7 @@ workflow RNAWithUMIsPipeline {
 			remove_duplicates = true
 	}
 	
+	# Replace with my code
 	call FormatTranscriptomeUMI {
 		input:
 			prefix = output_basename + "_transcriptome_RSEM_formatted",
@@ -147,85 +148,6 @@ workflow RNAWithUMIsPipeline {
 			output_bam_prefix = GetSampleName.sample_name + "_transcriptome",
 			preemptible_tries = 0
 	}
-
-	### Clip adapter route ####
-	### Disabled and moved here since it didn't improve the performance much ####
-	# Peprocessing for clipping by fastp
-	call SamToFastq {
-		input:
-			bam = bam,
-			output_prefix = output_basename
-	}
-
-	# Adapter clipping
-	call Fastp {
-		input: 
-			fastq1 = SamToFastq.fastq1,
-			fastq2 = SamToFastq.fastq2,
-			output_prefix = output_basename
-	}
-
-	call AddNsToClippedReads {
-		input:
-			fastq1 = Fastp.fastq1_clipped,
-			fastq2 = Fastp.fastq2_clipped,
-			output_prefix = output_basename,
-			read_length = read_length
-	}
-
-	call FastqToSam {
-		input:
-			fastq1=AddNsToClippedReads.fastq1_padded,
-			fastq2=AddNsToClippedReads.fastq2_padded,
-			sample_name=output_basename + "_clipped_padded"
-	}
-
-	if (use_umi){
-		call ExtractUMIs as ExtractUMIsClipped {
-			input:
-				bam = FastqToSam.unmapped_bam,
-				read1Structure = read1Structure,
-				read2Structure = read2Structure
-		}
-	}
-
-	File star_clipped_input_bam = if use_umi then select_first([ExtractUMIsClipped.bam_umis_extracted]) else FastqToSam.unmapped_bam
-
-	call STAR as STARClipped {
-		input:
-			bam = star_clipped_input_bam,
-			starIndex = starIndex,
-			transcriptome_ban = "IndelSoftclipSingleend"
-	}
-
-	call CopyReadGroupsToHeader as CopyReadGroupsToHeaderClipped {
-		input:
-			bam_with_readgroups = STARClipped.aligned_bam,
-			bam_without_readgroups = STARClipped.transcriptome_bam
-	}
-
-	# We are not interested in the genome aligned bam generated from clipped SAM
-  # call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingClipped {
-  #   input:
-  #     aligned_bam = STARClipped.aligned_bam,
-  #     output_basename = output_basename + "_clipped",
-  #     use_umi = use_umi
-  # }
-
-	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingTranscriptomeClipped {
-		input:
-			aligned_bam = CopyReadGroupsToHeaderClipped.output_bam,
-			output_basename = output_basename + "_transcriptome_clipped",
-			use_umi = use_umi,
-			remove_duplicates = true
-	}
-
-	call FormatTranscriptomeUMI as FormatTranscriptomeUMIClipped {
-		input:
-			prefix = output_basename + "_transcriptome_RSEM_formatted_clipped",
-			input_bam = UMIAwareDuplicateMarkingTranscriptomeClipped.duplicate_marked_query_sorted_bam
-	}
-
 	
 
   output {
@@ -254,15 +176,6 @@ workflow RNAWithUMIsPipeline {
 	Float pct_uniquely_mapped = STAR.pct_uniquely_mapped
 	File formatted_transcriptome_bam = FormatTranscriptomeUMI.output_bam
 	Int post_formatting_read_count = FormatTranscriptomeUMI.post_formatting_read_count
-	
-	# Clipped code path
-	Int pre_alignment_read_count_clipped = STARClipped.pre_alignment_read_count
-	Int aligned_read_count_clipped  = STARClipped.aligned_read_count
-	Int transcriptome_read_count_clipped  = STARClipped.transcriptome_read_count
-	File formatted_transcriptome_bam_clipped  = FormatTranscriptomeUMIClipped.output_bam
-	Float pct_reads_unmapped_mismatches_clipped = STARClipped.pct_reads_unmapped_mismatches
-	Float pct_uniquely_mapped_clipped = STARClipped.pct_uniquely_mapped
-	Int post_formatting_read_count_clipped = FormatTranscriptomeUMIClipped.post_formatting_read_count
   }
 }
 
