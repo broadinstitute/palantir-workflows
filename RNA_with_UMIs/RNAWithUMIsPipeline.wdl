@@ -27,7 +27,8 @@ workflow RNAWithUMIsPipeline {
 			input:
 				bam = bam,
 				read1Structure = read1Structure,
-				read2Structure = read2Structure
+				read2Structure = read2Structure,
+				output_prefix = output_basename
 		}
 
 		# We will not clip the non_use umi option, because that's really what we are comparing against.
@@ -74,6 +75,7 @@ workflow RNAWithUMIsPipeline {
 			transcriptome_ban = "IndelSoftclipSingleend"
 	}
 
+	# There is a STAR argument to do this, but this also gets the job done.
 	call CopyReadGroupsToHeader {
 		input:
 			bam_with_readgroups = STAR.aligned_bam,
@@ -84,7 +86,11 @@ workflow RNAWithUMIsPipeline {
 		input:
 			aligned_bam = STAR.aligned_bam,
 			output_basename = output_basename,
-			use_umi = use_umi
+			use_umi = use_umi,
+			ubam = ExtractUMIs.bam_umis_extracted,
+			ref_fasta = ref,
+			ref_fasta_index = refIndex,
+			ref_dict = refDict
 	}
 
 	call UmiMD.UMIAwareDuplicateMarking as UMIAwareDuplicateMarkingTranscriptome {
@@ -277,6 +283,7 @@ task ExtractUMIs {
 		File bam
 		String read1Structure
 		String read2Structure
+		String output_prefix
 	}
 
 	Int disk_space = ceil(2.2 * size(bam, "GB")) + 50
@@ -286,7 +293,7 @@ task ExtractUMIs {
 			--read-structure ~{read1Structure} \
 			--read-structure ~{read2Structure} \
 			--molecular-index-tags RX \
-			--output extractUMIs.out.bam
+			--output ~{output_prefix}_UMI_extracted.bam
 	>>>
 
 	runtime {

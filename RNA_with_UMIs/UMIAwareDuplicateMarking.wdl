@@ -6,10 +6,10 @@ workflow UMIAwareDuplicateMarking {
     String output_basename
     Boolean remove_duplicates = false
     Boolean use_umi = true
-    #File ubam # bam with UMIs extracted in RX tag
-    #File ref_fasta
-    #File ref_fasta_index
-    #File ref_dict
+    File? ubam # bam with UMIs extracted in RX tag
+    File ref_fasta
+    File ref_fasta_index
+    File ref_dict
   }
 
   # Whether we use UMI or not, we need to sort by query name first.
@@ -21,7 +21,16 @@ workflow UMIAwareDuplicateMarking {
   }
 
   if (use_umi){
-    # MERGE bam alignment here...
+    # Recover RX tag
+    call MergeBamAlignment {
+      input:
+        aligned_bam = QueryNameSortAlignedBam.output_bam,
+        ubam = select_first([ubam]), # if use_umi = true, then we should get the UMI-extracted ubam
+        output_basename = output_basename,
+        ref_fasta = ref_fasta,
+        ref_fasta_index = ref_fasta_index,
+        ref_dict = ref_dict
+    }
 
     # Sort the aligned bam by coordinate, so we can group duplicate sets using UMIs in the next step.
     call SortSam as SortSamFirst {
@@ -81,6 +90,7 @@ workflow UMIAwareDuplicateMarking {
 
 task MergeBamAlignment {
   input {
+    File picard_jar = "gs://broad-dsde-methods-takuto/RNA/picard_skip_header_check.jar"
     File aligned_bam
     File ubam
     String output_basename
@@ -93,11 +103,13 @@ task MergeBamAlignment {
 
   String output_bam_basename = output_basename + "_merged"
   command <<<
-    java -Xms8192m -jar /usr/picard/picard.jar MergeBamAlignment \
+    java -Xms8192m -jar ~{picard_jar} MergeBamAlignment \
     UNMAPPED_BAM=~{ubam} \
     ALIGNED_BAM=~{aligned_bam} \
     OUTPUT=~{output_bam_basename}.bam \
-    REFERENCE_SEQUENCE=~{ref_fasta}
+    REFERENCE_SEQUENCE=~{ref_fasta} \
+    SORT_ORDER=queryname \
+    MATCHING_DICTIONARY_TAGS=null
   >>>
 
   output {
