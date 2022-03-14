@@ -91,7 +91,7 @@ task LDPrune {
     --geno 0.001 \
     --hwe 1e-10 \
     --snps-only \
-    --require-info TYPED
+    --require-info TYPED \
     --chr ~{contig} \
     --maf 0.01 ~{"--thin-indiv-count " + n_samples_thin} \
     --indep-pairwise 1000 50 0.2 \
