@@ -19,7 +19,6 @@ workflow RNAWithUMIsPipeline {
 
 		File rnaseqc2_exon_bed
 		Boolean use_umi
-		Int read_length
 	}
 
 	if (use_umi){
