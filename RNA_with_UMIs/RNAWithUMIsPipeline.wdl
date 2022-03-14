@@ -98,7 +98,11 @@ workflow RNAWithUMIsPipeline {
 			aligned_bam = CopyReadGroupsToHeader.output_bam,
 			output_basename = output_basename + "_transcriptome",
 			use_umi = use_umi,
-			remove_duplicates = true
+			remove_duplicates = true,
+			ubam = ExtractUMIs.bam_umis_extracted,
+			ref_fasta = ref,
+			ref_fasta_index = refIndex,
+			ref_dict = refDict
 	}
 	
 	call FormatTranscriptomeUMI {
