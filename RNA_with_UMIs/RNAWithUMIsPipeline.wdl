@@ -17,7 +17,6 @@ workflow RNAWithUMIsPipeline {
 		File refFlat
 		File ribosomalIntervals
 
-		File rnaseqc2_exon_bed
 		Boolean use_umi
 	}
 
@@ -101,8 +100,7 @@ workflow RNAWithUMIsPipeline {
 		input:
 			bam_file = UMIAwareDuplicateMarking.duplicate_marked_bam,
 			genes_gtf = gtf,
-			sample_id = GetSampleName.sample_name,
-			exon_bed = rnaseqc2_exon_bed
+			sample_id = GetSampleName.sample_name
 	}
 
 	call CollectRNASeqMetrics {
@@ -272,7 +270,6 @@ task rnaseqc2 {
 		File bam_file
 		File genes_gtf
 		String sample_id
-		File exon_bed
 	}
 	
 	Int disk_space = ceil(size(bam_file, 'GB') + size(genes_gtf, 'GB')) + 100
@@ -280,7 +277,7 @@ task rnaseqc2 {
 	command {
 		set -euo pipefail
 		echo $(date +"[%b %d %H:%M:%S] Running RNA-SeQC 2")
-		rnaseqc ~{genes_gtf} ~{bam_file} . -s ~{sample_id} -v --bed ~{exon_bed}
+		rnaseqc ~{genes_gtf} ~{bam_file} . -s ~{sample_id} -v
 		echo "  * compressing outputs"
 		gzip *.gct
 		echo $(date +"[%b %d %H:%M:%S] done")
@@ -290,7 +287,6 @@ task rnaseqc2 {
 		File gene_tpm = "${sample_id}.gene_tpm.gct.gz"
 		File gene_counts = "${sample_id}.gene_reads.gct.gz"
 		File exon_counts = "${sample_id}.exon_reads.gct.gz"
-		File insert_size_histogram = "${sample_id}.fragmentSizes.txt"
 		File metrics = "${sample_id}.metrics.tsv"
 	}
 
