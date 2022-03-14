@@ -105,6 +105,7 @@ workflow RNAWithUMIsPipeline {
 			ref_dict = refDict
 	}
 	
+	# This step should happen right after MD, before coordinate sorting.
 	call FormatTranscriptomeUMI {
 		input:
 			prefix = output_basename + "_transcriptome_RSEM_formatted",
@@ -307,7 +308,7 @@ task ExtractUMIs {
 	}
 
 	output {
-		File bam_umis_extracted = "extractUMIs.out.bam"
+		File bam_umis_extracted = "~{output_prefix}_UMI_extracted.bam"
 	}
 }
 

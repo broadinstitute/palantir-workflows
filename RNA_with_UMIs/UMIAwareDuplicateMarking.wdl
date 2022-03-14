@@ -155,7 +155,7 @@ task MarkDuplicates {
   }
 
   runtime {
-    docker: "samtools-picard-bwa:1.0.0-0.7.15-2.23.8-1626449438" # update the other one too at some point
+    docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.5.7-2021-06-09_16-47-48Z" # Docker needs to have MarkDuplicates and samtools. "samtools-picard-bwa:1.0.0-0.7.15-2.23.8-1626449438" gives permission denier for docker pull.
     disks: "local-disk " + disk_size + " HDD"
     memory: "16 GB"
   }
