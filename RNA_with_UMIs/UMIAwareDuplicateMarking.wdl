@@ -54,24 +54,6 @@ workflow UMIAwareDuplicateMarking {
       output_bam_basename = output_basename + ".duplicate_marked.coordinate_sorted",
       sort_order = "coordinate"
   }
-
-  # For comparison.
-  if (use_umi){
-    call MarkDuplicates as MarkDuplicateSkipUMI {
-      input:
-        bam = aligned_bam,
-        output_basename = output_basename + "_skip_UMI",
-        use_umi = false,
-        remove_duplicates = remove_duplicates
-    }
-
-    call SortSam as SortSamSecondSkipUMI {
-      input:
-        input_bam = MarkDuplicateSkipUMI.duplicate_marked_bam,
-        output_bam_basename = output_basename + ".duplicate_marked.coordinate_sorted.UMI_skipped",
-        sort_order = "coordinate"
-    }
-  }
   
   output {
     File duplicate_marked_query_sorted_bam = MarkDuplicates.duplicate_marked_bam
@@ -79,10 +61,6 @@ workflow UMIAwareDuplicateMarking {
     File duplicate_marked_bam_index = select_first([SortSamSecond.output_bam_index, "bam_index_not_found"])
     File duplicate_metrics = MarkDuplicates.duplicate_metrics
     Int duplciate_marked_read_count = MarkDuplicates.duplciate_marked_read_count
-
-    File? duplicate_marked_skip_umi_bam = SortSamSecondSkipUMI.output_bam
-    File? duplicate_marked_skip_umi_bam_index = SortSamSecondSkipUMI.output_bam_index
-    File? duplicate_metrics_skip_umi = MarkDuplicateSkipUMI.duplicate_metrics
   }
 }
 
