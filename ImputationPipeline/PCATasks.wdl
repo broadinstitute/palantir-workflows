@@ -189,7 +189,7 @@ task PrunePopulation {
     --new-id-max-allele-len 1000 missing \
     --out ~{output_basename} \
     --make-bed \
-    ~{"--exclude " + excluded_samples} \
+    ~{"--remove " + excluded_samples} \
     --rm-dup force-first
   >>>
 
