@@ -7,6 +7,7 @@ workflow PopulationPCAFromImputedCohort {
     File population_imputed_vcf
     String output_basename
     Int? n_samples_thin
+    File? excluded_samples
     Array[String] contigs
   }
 
@@ -40,6 +41,7 @@ workflow PopulationPCAFromImputedCohort {
       bim = ArrayVcfToPlinkDataset.bim,
       bed = ArrayVcfToPlinkDataset.bed,
       fam = ArrayVcfToPlinkDataset.fam,
+      excluded_samples = excluded_samples,
       output_basename = output_basename + ".pruned",
       pruning_sites = ConcatenateLists.concatenated_lists
   }
