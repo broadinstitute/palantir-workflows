@@ -3,19 +3,14 @@ version 1.0
 
 workflow ListMaleAndFemaleSamples {
   input {
-    File bed
-    File bim
-    File fam
+    File vcf
 
     String output_name
   }
 
   call ImputeSex {
     input:
-      bed = bed,
-      bim = bim,
-      fam = fam,
-
+      vcf = vcf,
       output_name = output_name
   }
 
@@ -43,22 +38,17 @@ workflow ListMaleAndFemaleSamples {
 
 task ImputeSex {
   input {
-    File bed
-    File bim
-    File fam
+    File vcf
 
     String output_name
     Int mem = 16
   }
 
-  Int disk_size = ceil(2.5*(size(bed, "GB") + size(bim, "GB") + size(fam, "GB"))) + 20
+  Int disk_size = ceil(2.5*(size(vcf, "GB"))) + 20
 
   command <<<
-    ln -s ~{bed} input.bed
-    ln -s ~{bim} input.bim
-    ln -s ~{fam} input.fam
 
-    plink --bfile input --chr X --impute-sex --make-bed --out sex_imputed
+    plink --vcf ~{vcf} --chr X --impute-sex --make-bed --out sex_imputed
   >>>
 
   runtime {
