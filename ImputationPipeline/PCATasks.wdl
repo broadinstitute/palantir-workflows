@@ -164,3 +164,42 @@ task ArrayVcfToPlinkDataset {
     maxRetries: 3
   }
 }
+
+task PrunePopulation {
+  input {
+    File bim
+    File bed
+    File fam
+    File pruning_sites
+    String output_basename
+    Int mem = 8
+  }
+
+  Int disk_space =  2*ceil(size(bed, "GB") + size(bim, "GB") + size(fam, "GB")) + 20
+  command <<<
+    ln -s ~{bim} input.bim
+    ln -s ~{bed} input.bed
+    ln -s ~{fam} input.fam
+
+    /plink2 --bfile input \
+    --extract ~{pruning_sites} \
+    --set-all-var-ids @:#:\$1:\$2 \
+    --allow-extra-chr \
+    --new-id-max-allele-len 1000 missing \
+    --out ~{output_basename} \
+    --make-bed \
+    --rm-dup force-first
+  >>>
+
+  output {
+    File out_bed = "~{output_basename}.bed"
+    File out_bim = "~{output_basename}.bim"
+    File out_fam = "~{output_basename}.fam"
+  }
+
+  runtime {
+    docker: "us.gcr.io/broad-dsde-methods/plink2_docker@sha256:4455bf22ada6769ef00ed0509b278130ed98b6172c91de69b5bc2045a60de124"
+    disks: "local-disk " + disk_space + " HDD"
+    memory: mem + " GB"
+  }
+}

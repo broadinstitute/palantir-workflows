@@ -35,26 +35,28 @@ workflow PopulationPCAFromImputedCohort {
       output_name = output_basename + ".prune.in"
   }
 
-  call PCATasks.ArrayVcfToPlinkDataset as PrunePopulation {
+  call PCATasks.PrunePopulation {
     input:
-      vcf = population_imputed_vcf,
-      basename = output_basename + ".pruned",
+      bim = ArrayVcfToPlinkDataset.bim,
+      bed = ArrayVcfToPlinkDataset.bed,
+      fam = ArrayVcfToPlinkDataset.fam,
+      output_basename = output_basename + ".pruned",
       pruning_sites = ConcatenateLists.concatenated_lists
   }
 
   call PCATasks.PerformPCA {
     input:
-      bim = PrunePopulation.bim,
-      bed = PrunePopulation.bed,
-      fam = PrunePopulation.fam,
+      bim = PrunePopulation.out_bim,
+      bed = PrunePopulation.out_bed,
+      fam = PrunePopulation.out_fam,
       basename = output_basename
   }
 
   call PCATasks.CheckPCA {
     input:
-      bim = PrunePopulation.bim,
-      bed = PrunePopulation.bed,
-      fam = PrunePopulation.fam,
+      bim = PrunePopulation.out_bim,
+      bed = PrunePopulation.out_bed,
+      fam = PrunePopulation.out_fam,
       basename = output_basename,
       eigenvectors = PerformPCA.eigenvectors,
       eigenvalues = PerformPCA.eigenvalues,
@@ -131,4 +133,6 @@ task ConcatenateLists {
     File concatenated_lists = "~{output_name}"
   }
 }
+
+
 
