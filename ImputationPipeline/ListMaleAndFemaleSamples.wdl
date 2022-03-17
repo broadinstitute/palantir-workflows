@@ -72,7 +72,7 @@ task ListSamplesBySex {
   Int disk_size =  ceil(2*size(fam, "GB")) + 20
 
   command <<<
-    awk '$5 == ~{sex_code}'{print $2} ~{fam} > ~{output_name}
+    awk '$5==~{sex_code}{print $2}' ~{fam} > ~{output_name}
   >>>
 
   runtime {
