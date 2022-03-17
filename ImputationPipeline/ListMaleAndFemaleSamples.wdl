@@ -48,7 +48,7 @@ task ImputeSex {
 
   command <<<
 
-    plink --vcf ~{vcf} --chr X --impute-sex --make-bed --out sex_imputed
+    plink --vcf ~{vcf} --chr X --const-fid --impute-sex --make-bed --out sex_imputed
   >>>
 
   runtime {
