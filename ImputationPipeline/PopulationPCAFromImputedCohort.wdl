@@ -5,6 +5,7 @@ import "PCATasks.wdl" as PCATasks
 workflow PopulationPCAFromImputedCohort {
   input {
     File population_imputed_vcf
+    String input_basename
     String output_basename
     Int? n_samples_thin
     File? excluded_samples
@@ -16,7 +17,7 @@ workflow PopulationPCAFromImputedCohort {
   call PCATasks.ArrayVcfToPlinkDataset {
     input:
       vcf = population_imputed_vcf,
-      basename = output_basename,
+      basename = input_basename,
       additional_arguments = ["--require-info TYPED"]
   }
 
