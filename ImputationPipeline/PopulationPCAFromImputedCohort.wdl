@@ -8,6 +8,7 @@ workflow PopulationPCAFromImputedCohort {
     String output_basename
     Int? n_samples_thin
     File? excluded_samples
+    File? keep_samples
     File? pruning_sites
     Array[String] contigs
   }
@@ -45,6 +46,7 @@ workflow PopulationPCAFromImputedCohort {
       bed = ArrayVcfToPlinkDataset.bed,
       fam = ArrayVcfToPlinkDataset.fam,
       excluded_samples = excluded_samples,
+      keep_samples = keep_samples,
       output_basename = output_basename + ".pruned",
       pruning_sites = select_first([pruning_sites, ConcatenateLists.concatenated_lists])
   }
@@ -81,6 +83,7 @@ task LDPrune {
     File bim
     File bed
     File fam
+    File? keep_samples
     String contig
     Int? n_samples_thin
     String output_basename
@@ -99,7 +102,7 @@ task LDPrune {
     --geno 0.001 \
     --hwe 1e-10 \
     --snps-only \
-    --chr ~{contig} \
+    --chr ~{contig} ~{"--keep " + keep_samples} \
     --maf 0.01 ~{"--thin-indiv-count " + n_samples_thin} \
     --indep-pairwise 1000 50 0.2 \
     --out ~{output_basename}

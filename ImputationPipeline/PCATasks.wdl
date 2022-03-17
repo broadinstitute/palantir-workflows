@@ -172,6 +172,7 @@ task PrunePopulation {
     File fam
     File pruning_sites
     File? excluded_samples
+    File? keep_samples
     String output_basename
     Int mem = 8
   }
@@ -188,8 +189,7 @@ task PrunePopulation {
     --allow-extra-chr \
     --new-id-max-allele-len 1000 missing \
     --out ~{output_basename} \
-    --make-bed \
-    ~{"--remove " + excluded_samples} \
+    --make-bed ~{"--remove " + excluded_samples} ~{"--keep " + keep_samples} \
     --rm-dup force-first
   >>>
 
