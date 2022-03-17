@@ -25,7 +25,7 @@ workflow ListMaleAndFemaleSamples {
     input:
       fam = ImputeSex.output_fam,
       sex_code = 1,
-      output_name = output_name + ".female.samples"
+      output_name = output_name + ".male.samples"
   }
 
   output {
