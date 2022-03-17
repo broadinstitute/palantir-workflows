@@ -8,6 +8,7 @@ workflow PopulationPCAFromImputedCohort {
     String output_basename
     Int? n_samples_thin
     File? excluded_samples
+    File? pruning_sites
     Array[String] contigs
   }
 
@@ -18,22 +19,24 @@ workflow PopulationPCAFromImputedCohort {
       additional_arguments = ["--require-info TYPED"]
   }
 
-  scatter (contig in contigs) {
-    call LDPrune {
-      input:
-        bim = ArrayVcfToPlinkDataset.bim,
-        bed = ArrayVcfToPlinkDataset.bed,
-        fam = ArrayVcfToPlinkDataset.fam,
-        contig = contig,
-        n_samples_thin = n_samples_thin,
-        output_basename = output_basename + "." + contig
+  if (!defined(pruning_sites)) {
+    scatter (contig in contigs) {
+      call LDPrune {
+        input:
+          bim = ArrayVcfToPlinkDataset.bim,
+          bed = ArrayVcfToPlinkDataset.bed,
+          fam = ArrayVcfToPlinkDataset.fam,
+          contig = contig,
+          n_samples_thin = n_samples_thin,
+          output_basename = output_basename + "." + contig
+      }
     }
-  }
 
-  call ConcatenateLists {
-    input:
-      lists = LDPrune.prune_in,
-      output_name = output_basename + ".prune.in"
+    call ConcatenateLists {
+      input:
+        lists = LDPrune.prune_in,
+        output_name = output_basename + ".prune.in"
+    }
   }
 
   call PCATasks.PrunePopulation {
@@ -43,7 +46,7 @@ workflow PopulationPCAFromImputedCohort {
       fam = ArrayVcfToPlinkDataset.fam,
       excluded_samples = excluded_samples,
       output_basename = output_basename + ".pruned",
-      pruning_sites = ConcatenateLists.concatenated_lists
+      pruning_sites = select_first([pruning_sites, ConcatenateLists.concatenated_lists])
   }
 
   call PCATasks.PerformPCA {
@@ -68,7 +71,7 @@ workflow PopulationPCAFromImputedCohort {
     File population_loadings = PerformPCA.pc_loadings
     File population_meansd = PerformPCA.mean_sd
     File population_pcs = PerformPCA.pcs
-    File pruning_sites_for_pca = ConcatenateLists.concatenated_lists
+    File? pruning_sites_for_pca = ConcatenateLists.concatenated_lists
   }
 }
 
