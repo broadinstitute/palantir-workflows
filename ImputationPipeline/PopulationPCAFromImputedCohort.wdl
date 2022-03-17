@@ -29,6 +29,7 @@ workflow PopulationPCAFromImputedCohort {
           bed = ArrayVcfToPlinkDataset.bed,
           fam = ArrayVcfToPlinkDataset.fam,
           contig = contig,
+          keep_samples = keep_samples,
           n_samples_thin = n_samples_thin,
           output_basename = output_basename + "." + contig
       }
