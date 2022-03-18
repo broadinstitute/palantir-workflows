@@ -33,11 +33,8 @@ task Admixture_t {
   String basename = basename(bed, ".bed")
 
   command <<<
-    ln -s ~{bim} ~{basename}.bim
-    ln -s ~{bed} ~{basename}.bed
-    ln -s ~{fam} ~{basename}.fam
 
-    /admixture_linux-1.3.0/admixture ~{if (cv) then "--cv" else ""} ~{basename}.bed ~{n_ancestral_populations} -j~{n_cpus}
+    /admixture_linux-1.3.0/admixture ~{if (cv) then "--cv" else ""} ~{bed} ~{n_ancestral_populations} -j~{n_cpus}
   >>>
 
   runtime {
