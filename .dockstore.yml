@@ -63,3 +63,6 @@ workflows:
   - name: Admixture
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/Admixture.wdl
+  - name: ProjectOntoPCs
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/ProjectOntoPCs.wdl
