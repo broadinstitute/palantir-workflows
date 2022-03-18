@@ -60,3 +60,6 @@ workflows:
   - name: ListMaleAndFemaleSamples
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/ListMaleAndFemaleSamples.wdl
+  - name: Admixture
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/Admixture.wdl
