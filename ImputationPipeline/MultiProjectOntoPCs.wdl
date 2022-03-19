@@ -43,7 +43,7 @@ task CombineTables {
   command <<<
     Rscript -<< "EOF"
     library(dplyr)
-    libarary(readr)
+    library(readr)
     library(purrr)
 
     table <- list("~{sep='","' tables}") %>% map(read_tsv) %>% reduce(bind_rows)
