@@ -66,3 +66,6 @@ workflows:
   - name: ProjectOntoPCs
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/ProjectOntoPCs.wdl
+  - name: MultiProjectOntoPCs
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/MultiProjectOntoPCs.wdl
