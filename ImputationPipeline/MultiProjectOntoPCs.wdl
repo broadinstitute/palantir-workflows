@@ -22,6 +22,16 @@ workflow MultiProjectOntoPCs {
         basename = basename(vcf, ".vcf.gz")
     }
   }
+
+  call CombineTables {
+    input:
+      tables = ProjectOntoPCs.projections,
+      basename = basename
+  }
+
+  output {
+    File projections = CombineTables.combined_table
+  }
 }
 
 task CombineTables {
