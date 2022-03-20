@@ -3,7 +3,8 @@ version 1.0
 workflow ListMaleAndFemaleSamples {
   input {
     File vcf
-
+    Float female_max_F = 0.2
+    Float male_min_F = 0.8
     String output_name
   }
 
@@ -18,6 +19,8 @@ workflow ListMaleAndFemaleSamples {
       bed = LDPruneVcf.bed,
       bim = LDPruneVcf.bim,
       fam = LDPruneVcf.fam,
+      female_max_F = female_max_F,
+      male_min_F = male_min_F,
       output_name = output_name
   }
 
@@ -73,6 +76,8 @@ task ImputeSex {
     File bed
     File bim
     File fam
+    Float female_max_F = 0.2
+    Float male_min_F = 0.8
 
     String output_name
     Int mem = 16
@@ -85,7 +90,7 @@ task ImputeSex {
     ln -s ~{bim} input.bim
     ln -s ~{fam} input.fam
 
-    plink --bfile input --chr X --const-fid --impute-sex --make-bed --out sex_imputed
+    plink --bfile input --chr X --const-fid --impute-sex ~{female_max_F} ~{male_min_F} --make-bed --out sex_imputed
   >>>
 
   runtime {
