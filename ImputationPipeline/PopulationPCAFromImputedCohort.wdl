@@ -23,7 +23,7 @@ workflow PopulationPCAFromImputedCohort {
     }
   }
 
-  if (len(ArrayVcfToPlinkDataset.bed) > 1) {
+  if (length(ArrayVcfToPlinkDataset.bed) > 1) {
     call MergePlinkFilesets {
       input:
         beds = ArrayVcfToPlinkDataset.bed,
