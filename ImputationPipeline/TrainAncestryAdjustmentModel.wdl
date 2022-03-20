@@ -8,7 +8,7 @@ workflow TrainAncestryAdjustmentModel {
   input {
     NamedWeightSet named_weight_set # disease weights file
 
-    Array[File] population_pcs # population PCs, from PerformPopulationPCA
+    File population_pcs # population PCs, from PerformPopulationPCA
     Array[File] population_vcfs # population VCF, output from PerformPopulationPCA.  The variant IDs must exactly match those in the weights file
 
     String population_basename

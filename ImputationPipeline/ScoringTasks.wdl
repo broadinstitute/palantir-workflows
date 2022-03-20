@@ -402,7 +402,7 @@ task CombineMissingSitesAdjustedScores {
 
 task TrainAncestryModel {
   input {
-    Array[File] population_pcs
+    File population_pcs
     Array[File] population_scores
     String output_basename
     Int mem = 2
