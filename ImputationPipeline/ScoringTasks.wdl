@@ -402,8 +402,8 @@ task CombineMissingSitesAdjustedScores {
 
 task TrainAncestryModel {
   input {
-    File population_pcs
-    File population_scores
+    Array[File] population_pcs
+    Array[File] population_scores
     String output_basename
     Int mem = 2
   }
@@ -413,8 +413,10 @@ task TrainAncestryModel {
       library(dplyr)
       library(readr)
       library(tibble)
-      population_pcs = read_tsv("~{population_pcs}")
-      population_scores = read_tsv("~{population_scores}")
+      library(purrr)
+
+      population_pcs = list("~{sep='","' population_pcs}") %>% map(read_tsv) %>% reduce(bind_rows)
+      population_scores = list("~{sep='","' population_scores}") %>% map(read_tsv) %>% reduce(bind_rows)
 
       population_data = inner_join(population_pcs, population_scores, by=c("IID" = "#IID"))
 
