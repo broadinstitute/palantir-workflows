@@ -175,7 +175,7 @@ task MergePlinkFilesets {
   >>>
 
   runtime {
-    docker: "us.gcr.io/broad-dsde-methods/plink2_docker@sha256:4455bf22ada6769ef00ed0509b278130ed98b6172c91de69b5bc2045a60de124"
+    docker: "us.gcr.io/broad-dsde-methods/plink2_dev@sha256:09d8169ec169d1dead9264a3e60b755f2e628f06898d39b67f9ac53d30044d7f"
     disks: "local-disk " + disk_size + " HDD"
     memory: mem + " GB"
   }
