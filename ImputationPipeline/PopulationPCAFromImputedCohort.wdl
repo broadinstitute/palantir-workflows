@@ -4,7 +4,7 @@ import "PCATasks.wdl" as PCATasks
 
 workflow PopulationPCAFromImputedCohort {
   input {
-    File population_imputed_vcf
+    Array[File] population_imputed_vcfs
     String input_basename
     String output_basename
     Int? n_samples_thin
@@ -14,20 +14,32 @@ workflow PopulationPCAFromImputedCohort {
     Array[String] contigs
   }
 
-  call PCATasks.ArrayVcfToPlinkDataset {
-    input:
-      vcf = population_imputed_vcf,
-      basename = input_basename,
-      additional_arguments = ["--require-info TYPED"]
+  scatter (population_imputed_vcf in population_imputed_vcfs) {
+    call PCATasks.ArrayVcfToPlinkDataset {
+      input:
+        vcf = population_imputed_vcf,
+        basename = input_basename,
+        additional_arguments = ["--require-info TYPED"]
+    }
+  }
+
+  if (len(ArrayVcfToPlinkDataset.bed) > 1) {
+    call MergePlinkFilesets {
+      input:
+        beds = ArrayVcfToPlinkDataset.bed,
+        bims = ArrayVcfToPlinkDataset.bim,
+        fams = ArrayVcfToPlinkDataset.fam,
+        output_basename = output_basename
+    }
   }
 
   if (!defined(pruning_sites)) {
     scatter (contig in contigs) {
       call LDPrune {
         input:
-          bim = ArrayVcfToPlinkDataset.bim,
-          bed = ArrayVcfToPlinkDataset.bed,
-          fam = ArrayVcfToPlinkDataset.fam,
+          bim = select_first([MergePlinkFilesets.bim, ArrayVcfToPlinkDataset.bim[0]]),
+          bed = select_first([MergePlinkFilesets.bed, ArrayVcfToPlinkDataset.bed[0]]),
+          fam = select_first([MergePlinkFilesets.fam, ArrayVcfToPlinkDataset.fam[0]]),
           contig = contig,
           keep_samples = keep_samples,
           n_samples_thin = n_samples_thin,
@@ -44,9 +56,9 @@ workflow PopulationPCAFromImputedCohort {
 
   call PCATasks.PrunePopulation {
     input:
-      bim = ArrayVcfToPlinkDataset.bim,
-      bed = ArrayVcfToPlinkDataset.bed,
-      fam = ArrayVcfToPlinkDataset.fam,
+      bim = select_first([MergePlinkFilesets.bim, ArrayVcfToPlinkDataset.bim[0]]),
+      bed = select_first([MergePlinkFilesets.bed, ArrayVcfToPlinkDataset.bed[0]]),
+      fam = select_first([MergePlinkFilesets.fam, ArrayVcfToPlinkDataset.fam[0]]),
       excluded_samples = excluded_samples,
       keep_samples = keep_samples,
       output_basename = output_basename + ".pruned",
@@ -141,6 +153,37 @@ task ConcatenateLists {
 
   output {
     File concatenated_lists = "~{output_name}"
+  }
+}
+
+task MergePlinkFilesets {
+  input {
+    Array[File] beds
+    Array[File] bims
+    Array[File] fams
+
+    String output_basename
+    Int mem = 8
+  }
+
+  Int disk_size =  ceil(2.2*(size(beds, "GB") + size(bims, "GB") + size(fams, "GB"))) + 100
+
+  command <<<
+    paste ~{write_lines(beds)} ~{write_lines(bims)} ~{write_lines(fams)} > merge.list
+
+    /plink2 --pmerge-list merge.list bfile --make-bed --out ~{output_basename}
+  >>>
+
+  runtime {
+    docker: "us.gcr.io/broad-dsde-methods/plink2_docker@sha256:4455bf22ada6769ef00ed0509b278130ed98b6172c91de69b5bc2045a60de124"
+    disks: "local-disk " + disk_size + " HDD"
+    memory: mem + " GB"
+  }
+
+  output {
+    File bed = "~{output_basename}.bed"
+    File bim = "~{output_basename}.bim"
+    File fam = "~{output_basename}.fam"
   }
 }
 
