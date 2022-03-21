@@ -81,7 +81,7 @@ task MarkDuplicates {
     java -Xms8192m -jar /usr/gitc/picard.jar MarkDuplicates \
     -I ~{bam} \
     -O ~{output_bam_basename}.bam \
-    --METRICS_FILE ~{output_basename}_duplicate_metrics.txt \ 
+    --METRICS_FILE ~{output_basename}_duplicate_metrics.txt \
     --TAG_DUPLICATE_SET_MEMBERS true \
     ~{true='--READ_ONE_BARCODE_TAG BX' false='' use_umi} \
     ~{true="--REMOVE_DUPLICATES" false="" remove_duplicates}
