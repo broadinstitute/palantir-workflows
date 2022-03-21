@@ -2,7 +2,7 @@ version 1.0
 
 workflow UMIAwareDuplicateMarking {
   input {
-    File aligned_bam # aligned bam sorted by the query (read) name. 
+    File aligned_bam # unsorted aligned bam
     String output_basename
     Boolean remove_duplicates = false
     Boolean use_umi = true
@@ -30,19 +30,24 @@ workflow UMIAwareDuplicateMarking {
         output_bam_basename = output_basename + ".grouped_by_UMI"
     }
 
-    call SortSam as SortSamQueryName {
-      input:
-        input_bam = GroupByUMIs.grouped_bam,
-        output_bam_basename = output_basename + ".grouped.queryname_sorted",
-        sort_order = "queryname"
-    }
   }
 
-  File input_bam = if use_umi then select_first([SortSamQueryName.output_bam]) else aligned_bam
+  File unsorted_bam = if use_umi then select_first([GroupByUMIs.grouped_bam]) else aligned_bam
+
+  # Whether we use the umis or not, we must first sort by query name.
+  # Note that the output from STAR (when multiple threads are used) is unsorted.
+  call SortSam as SortSamQueryName {
+    input:
+      input_bam = unsorted_bam,
+      output_bam_basename = output_basename + ".grouped.queryname_sorted",
+      sort_order = "queryname"
+  }
+
+
 
   call MarkDuplicates {
     input:
-      bam = input_bam,
+      bam = SortSamQueryName.output_bam,
       output_basename = output_basename,
       use_umi = use_umi,
       remove_duplicates = remove_duplicates
