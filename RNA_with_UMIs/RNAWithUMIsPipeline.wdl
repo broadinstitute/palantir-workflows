@@ -103,12 +103,13 @@ workflow RNAWithUMIsPipeline {
 			ref_dict = refDict
 	}
 	
-	# This step should happen right after MD, before coordinate sorting.
-	call FormatTranscriptomeUMI {
-		input:
-			prefix = output_basename + "_transcriptome_RSEM_formatted",
-			input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam
-	}
+	# This step should happen right after MD, before coordinate sorting
+	# Temporarily disabled.
+	# call FormatTranscriptomeUMI {
+		# input:
+			#prefix = output_basename + "_transcriptome_RSEM_formatted",
+			#input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam
+	#}
 
 
 	# Extract the unaligned (i.e. unmapped) reads from the genome-aligned, duplicated marked bam,
@@ -212,8 +213,8 @@ workflow RNAWithUMIsPipeline {
 	Int transcriptome_read_count = STAR.transcriptome_read_count
 	Float pct_reads_unmapped_mismatches = STAR.pct_reads_unmapped_mismatches
 	Float pct_uniquely_mapped = STAR.pct_uniquely_mapped
-	File formatted_transcriptome_bam = FormatTranscriptomeUMI.output_bam
-	Int post_formatting_read_count = FormatTranscriptomeUMI.post_formatting_read_count
+	#File formatted_transcriptome_bam = FormatTranscriptomeUMI.output_bam
+	#Int post_formatting_read_count = FormatTranscriptomeUMI.post_formatting_read_count
 	
   }
 }
