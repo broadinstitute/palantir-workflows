@@ -35,7 +35,7 @@ workflow UMIAwareDuplicateMarking {
     # Sort the aligned bam by coordinate, so we can group duplicate sets using UMIs in the next step.
     call SortSam as SortSamFirst {
       input:
-        input_bam = aligned_bam, # TODO: likely will have to change this.
+        input_bam = MergeBamAlignment.merged_bam,
         output_bam_basename = output_basename + ".STAR_aligned.coorinate_sorted",
         sort_order = "coordinate"
     }
