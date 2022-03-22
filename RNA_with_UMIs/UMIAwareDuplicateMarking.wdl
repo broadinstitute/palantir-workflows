@@ -129,6 +129,7 @@ task MarkDuplicates {
     String output_basename
     Boolean use_umi
     Boolean remove_duplicates
+    File monitoring_script = "gs://broad-dsde-methods-monitoring/cromwell_monitoring_script.sh"
   }
 
   String output_bam_basename = output_basename + "_duplicate_marked"
@@ -137,7 +138,9 @@ task MarkDuplicates {
   # We add the TAG_DUPLICATE_SET_MEMBERS flag for debugging/analysis purposes.
   # The flag should be removed in production to save storage cost.
   command <<<
-    java -Xms16g -jar /usr/gitc/picard.jar MarkDuplicates \
+    bash ~{monitoring_script} > monitoring.log &
+
+    java -Xms12g -jar /usr/gitc/picard.jar MarkDuplicates \
     INPUT=~{bam} \
     OUTPUT=~{output_bam_basename}.bam \
     METRICS_FILE=~{output_basename}_duplicate_metrics.txt \
@@ -156,12 +159,14 @@ task MarkDuplicates {
     File duplicate_marked_bam = "~{output_bam_basename}.bam"
     File duplicate_metrics = "~{output_basename}_duplicate_metrics.txt"
     Int duplciate_marked_read_count = read_int("duplicate_marked_read_count.txt")
+    File monitoring_log = "monitoring.log"
   }
 
   runtime {
     docker: "us.gcr.io/broad-gotc-prod/genomes-in-the-cloud:2.5.7-2021-06-09_16-47-48Z" # Docker needs to have MarkDuplicates and samtools. "samtools-picard-bwa:1.0.0-0.7.15-2.23.8-1626449438" gives permission denier for docker pull.
     disks: "local-disk " + disk_size + " HDD"
     memory: "16 GB"
+    preemptible: 0
   }
 }
 
