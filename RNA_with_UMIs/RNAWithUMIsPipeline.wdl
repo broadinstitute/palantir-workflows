@@ -647,6 +647,37 @@ task FastqToSam {
 }
 
 # Query sorts and...does other things.
+task GATKRSEMPreprocess {
+  input {
+    String prefix
+    File input_bam
+    File gatk_jar
+  }
+
+  Int disk_gb = ceil(3*size(input_bam,"GB"))
+
+  command {
+    umi_tools prepare-for-rsem --tags UG,BX,RX \
+      -I ~{input_bam} --stdout ~{prefix}.bam
+
+    samtools view -c -F 0x100 ~{prefix}.bam > post_formatting_read_count.txt
+  }
+  
+  output {
+    File output_bam = "~{prefix}.bam"
+    Int post_formatting_read_count = read_int("post_formatting_read_count.txt")
+  }
+  
+  runtime {
+    docker        : "us.gcr.io/tag-public/neovax-tag-rnaseq:v1"
+    preemptible   : 0
+    cpu           : "8"
+    disks         : "local-disk " + disk_gb + " HDD"
+    memory        : "16GB"
+  }
+}
+
+# Query sorts and...does other things.
 task FormatTranscriptomeUMI {
   input {
     String prefix
