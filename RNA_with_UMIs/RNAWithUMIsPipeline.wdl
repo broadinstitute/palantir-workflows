@@ -663,7 +663,7 @@ task RSEMPostProcessing {
 		-O ~{prefix}_gatk.bam \
 		--disable-clipping ~{disable_clipping}
 
-		samtools view -c -F 0x100 ~{prefix}.bam > post_formatting_read_count.txt
+		samtools view -c -F 0x100 ~{prefix}_gatk.bam > post_formatting_read_count.txt
 	}
 
 	output {
