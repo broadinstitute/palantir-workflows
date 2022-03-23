@@ -652,7 +652,7 @@ task RSEMPostProcessing {
 		String prefix
 		File input_bam # the input must be queryname sorted
 		Boolean disable_clipping = true # no clipping needed
-		File gatk_jar = "gs://broad-dsde-methods-takuto/RNA/rsep_post_processing.jar"
+		File gatk_jar = "gs://broad-dsde-methods-takuto/RNA/gatk_post_processing.jar"
 	}
 
 	Int disk_gb = ceil(3*size(input_bam,"GB"))
