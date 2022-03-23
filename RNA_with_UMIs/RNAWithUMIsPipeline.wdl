@@ -103,13 +103,21 @@ workflow RNAWithUMIsPipeline {
 			ref_dict = refDict
 	}
 	
-	# This step should happen right after MD, before coordinate sorting
-	# Temporarily disabled.
-	# call FormatTranscriptomeUMI {
-		# input:
-			#prefix = output_basename + "_transcriptome_RSEM_formatted",
-			#input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam
-	#}
+	# Note that this task should take in the query-name sorted output of MD.
+	# (MD, when given a query-name sorted bam, outputs a query-name sorted bam)
+	call FormatTranscriptomeUMI {
+		input:
+			prefix = output_basename + "_transcriptome_RSEM_formatted",
+			input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam
+	}
+
+	# My version
+	call RSEMPostProcessing {
+		input:
+			prefix = output_basename + "_transcriptome_RSEM_formatted",
+			input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam,
+			disable_clipping = true
+	}
 
 
 	# Extract the unaligned (i.e. unmapped) reads from the genome-aligned, duplicated marked bam,
@@ -213,8 +221,11 @@ workflow RNAWithUMIsPipeline {
 	Int transcriptome_read_count = STAR.transcriptome_read_count
 	Float pct_reads_unmapped_mismatches = STAR.pct_reads_unmapped_mismatches
 	Float pct_uniquely_mapped = STAR.pct_uniquely_mapped
-	#File formatted_transcriptome_bam = FormatTranscriptomeUMI.output_bam
-	#Int post_formatting_read_count = FormatTranscriptomeUMI.post_formatting_read_count
+	
+	File formatted_transcriptome_bam = FormatTranscriptomeUMI.output_bam
+	Int post_formatting_read_count = FormatTranscriptomeUMI.post_formatting_read_count
+	File formatted_transcriptome_bam_gatk = RSEMPostProcessing.output_bam
+	Int post_formatting_read_count_gatk = RSEMPostProcessing.post_formatting_read_count
 	
   }
 }
@@ -632,7 +643,7 @@ task SamToFastq {
 		String output_prefix
 	}
 
-	Int disk_size = 2*ceil(size(bam, "GiB")) + 128
+	Int disk_size = 3*ceil(size(bam, "GiB")) + 128
 
 	command {
 		java -jar /usr/picard/picard.jar SamToFastq \
@@ -691,34 +702,65 @@ task FastqToSam {
 	}
 }
 
-# Query sorts and...does other things.
+task RSEMPostProcessing {
+	input {
+		String prefix
+		File input_bam # the input must be queryname sorted
+		Boolean disable_clipping = true # no clipping needed
+	}
+
+	Int disk_gb = ceil(3*size(input_bam,"GB"))
+
+	command {
+		java -jar $gatkjar ClipReadsForRSEM \
+		-I ~{input_bam} \
+		-O ~{prefix}_gatk.bam \
+		--disable-clipping ~{disable_clipping}
+
+		samtools view -c -F 0x100 ~{prefix}.bam > post_formatting_read_count.txt
+	}
+
+	output {
+		File output_bam = "~{prefix}_gatk.bam"
+		Int post_formatting_read_count = read_int("post_formatting_read_count.txt")
+	}
+
+	runtime {
+		docker        : "us.gcr.io/broad-gatk/gatk:4.2.0.0"
+		preemptible   : 0
+		cpu           : "8"
+		disks         : "local-disk " + disk_gb + " HDD"
+		memory        : "16GB"
+	}
+}
+
 task FormatTranscriptomeUMI {
-  input {
-    String prefix
-    File input_bam
-  }
+	input {
+		String prefix
+		File input_bam # the input must be queryname sorted
+	}
 
-  Int disk_gb = ceil(3*size(input_bam,"GB"))
+	Int disk_gb = ceil(3*size(input_bam,"GB"))
 
-  command {
-    umi_tools prepare-for-rsem --tags UG,BX,RX \
-      -I ~{input_bam} --stdout ~{prefix}.bam
+	command {
+		umi_tools prepare-for-rsem --tags UG,BX,RX \
+		-I ~{input_bam} --stdout ~{prefix}.bam
 
-    samtools view -c -F 0x100 ~{prefix}.bam > post_formatting_read_count.txt
-  }
-  
-  output {
-    File output_bam = "~{prefix}.bam"
-    Int post_formatting_read_count = read_int("post_formatting_read_count.txt")
-  }
-  
-  runtime {
-    docker        : "us.gcr.io/tag-public/neovax-tag-rnaseq:v1"
-    preemptible   : 0
-    cpu           : "8"
-    disks         : "local-disk " + disk_gb + " HDD"
-    memory        : "16GB"
-  }
+		samtools view -c -F 0x100 ~{prefix}.bam > post_formatting_read_count.txt
+	}
+
+	output {
+		File output_bam = "~{prefix}.bam"
+		Int post_formatting_read_count = read_int("post_formatting_read_count.txt")
+	}
+
+	runtime {
+		docker        : "us.gcr.io/tag-public/neovax-tag-rnaseq:v1"
+		preemptible   : 0
+		cpu           : "8"
+		disks         : "local-disk " + disk_gb + " HDD"
+		memory        : "16GB"
+	}
 }
 
 # for adapter clipping
