@@ -713,7 +713,7 @@ task RSEMPostProcessing {
 	Int disk_gb = ceil(3*size(input_bam,"GB"))
 
 	command {
-		java -jar ~{gatkjar} ClipReadsForRSEM \
+		java -jar ~{gatk_jar} ClipReadsForRSEM \
 		-I ~{input_bam} \
 		-O ~{prefix}_gatk.bam \
 		--disable-clipping ~{disable_clipping}
