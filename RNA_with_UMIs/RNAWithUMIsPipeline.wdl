@@ -651,7 +651,7 @@ task RSEMPostProcessing {
 	input {
 		String prefix
 		File input_bam # the input must be queryname sorted
-		Boolean disable_clipping = true # no clipping needed
+		Boolean disable_clipping = false # no clipping needed
 		File gatk_jar = "gs://broad-dsde-methods-takuto/RNA/gatk_post_processing.jar"
 	}
 
