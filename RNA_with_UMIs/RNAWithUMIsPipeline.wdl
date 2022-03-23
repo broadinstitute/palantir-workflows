@@ -655,7 +655,7 @@ task RSEMPostProcessing {
 		File gatk_jar = "gs://broad-dsde-methods-takuto/RNA/gatk_post_processing.jar"
 	}
 
-	Int disk_gb = ceil(3*size(input_bam,"GB"))
+	Int disk_gb = ceil(3*size(input_bam,"GB")) + 128
 
 	command {
 		java -jar ~{gatk_jar} ClipReadsForRSEM \
