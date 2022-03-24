@@ -21,21 +21,28 @@ workflow UMIAwareDuplicateMarking {
   }
 
   if (use_umi){
+    # call MergeBamAlignment {
+    #   input:
+    #     aligned_bam = QueryNameSortAlignedBam.output_bam,
+    #     ubam = select_first([ubam]), # if use_umi = true, then we should get the UMI-extracted ubam
+    #     output_basename = output_basename,
+    #     ref_fasta = ref_fasta,
+    #     ref_fasta_index = ref_fasta_index,
+    #     ref_dict = ref_dict
+    # }
+
     # Recover RX tag
-    call MergeBamAlignment {
+    call AddUMITagFromUnmappedBam {
       input:
         aligned_bam = QueryNameSortAlignedBam.output_bam,
         ubam = select_first([ubam]), # if use_umi = true, then we should get the UMI-extracted ubam
-        output_basename = output_basename,
-        ref_fasta = ref_fasta,
-        ref_fasta_index = ref_fasta_index,
-        ref_dict = ref_dict
+        output_basename = output_basename
     }
 
     # Sort the aligned bam by coordinate, so we can group duplicate sets using UMIs in the next step.
     call SortSam as SortSamFirst {
       input:
-        input_bam = MergeBamAlignment.merged_bam,
+        input_bam = AddUMITagFromUnmappedBam.merged_bam,
         output_bam_basename = output_basename + ".STAR_aligned.coorinate_sorted",
         sort_order = "coordinate"
     }
@@ -85,6 +92,35 @@ workflow UMIAwareDuplicateMarking {
     File duplicate_marked_bam_index = select_first([SortSamSecond.output_bam_index, "bam_index_not_found"])
     File duplicate_metrics = MarkDuplicates.duplicate_metrics
     Int duplciate_marked_read_count = MarkDuplicates.duplciate_marked_read_count
+  }
+}
+
+task AddUMITagFromUnmappedBam {
+  input {
+    File aligned_bam
+    File ubam
+    String output_basename
+    File gatk_jar = "gs://broad-dsde-methods-takuto/RNA/gatk_umi.jar"
+  }
+
+  Int disk_size = ceil(2 * size(aligned_bam, "GB")) + ceil(2 * size(ubam, "GB")) + 128
+  String output_bam_basename = output_basename + "_merged"
+  
+  command <<<
+    java -jar ~{gatk_jar} AddUMITagFromUnmappedBam \
+    -I ~{aligned_bam} \
+    --unmapped-sam ~{ubam} \
+    -O ~{output_bam_basename}.bam
+  >>>
+
+  output {
+    File merged_bam = "~{output_bam_basename}.bam"
+  }
+
+  runtime {
+    docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.26.11"
+    disks: "local-disk " + disk_size + " HDD"
+    memory: "16 GB"
   }
 }
 

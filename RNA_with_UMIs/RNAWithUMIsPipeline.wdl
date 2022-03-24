@@ -124,8 +124,8 @@ workflow RNAWithUMIsPipeline {
 	# which we will run FastQC on.
 	call CreateUnalignedBam {
 		input:
-			input_bam = UMIAwareDuplicateMarking.duplicate_marked_bam,
-			input_bam_index = UMIAwareDuplicateMarking.duplicate_marked_bam_index,
+			input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam,
+			input_bam_index = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_bam_index,
 			output_bam_prefix = output_basename,
 			preemptible_tries = 0
 	}
