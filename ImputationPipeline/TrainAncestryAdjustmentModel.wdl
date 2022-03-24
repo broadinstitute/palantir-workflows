@@ -31,7 +31,7 @@ workflow TrainAncestryAdjustmentModel {
           interaction_weights = select_first([named_weight_set.weight_set.interaction_weights]),
           scores = ScoreVcf.score,
           sites = sites,
-          basename = named_weight_set.condition_name + "_" + basename(population_vcf, ".vcf.gz") + population_basename,
+          basename = named_weight_set.condition_name + "_" + basename(population_vcf, ".vcf.gz") + "AoU_full_balanced_male", # hack to call-cache this one time
           self_exclusive_sites = named_weight_set.weight_set.interaction_self_exclusive_sites
       }
 
