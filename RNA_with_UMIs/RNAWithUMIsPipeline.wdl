@@ -18,6 +18,7 @@ workflow RNAWithUMIsPipeline {
 		File ribosomalIntervals
 
 		Boolean use_umi
+		String transcriptome_ban = "Singleend" # or "IndelSoftclipSingleend"
 	}
 
 	if (use_umi){
@@ -41,7 +42,7 @@ workflow RNAWithUMIsPipeline {
 		input:
 			bam = star_input_bam,
 			starIndex = starIndex,
-			transcriptome_ban = "Singleend" # What differentiates the clip later approach and clip first approach
+			transcriptome_ban = transcriptome_ban # What differentiates the clip later approach and clip first approach
 	}
 
 	call CopyReadGroupsToHeader {
@@ -65,12 +66,12 @@ workflow RNAWithUMIsPipeline {
 			remove_duplicates = true
 	}
 	
-	call RSEMPostProcessing {
-		input:
-			prefix = output_basename + "_transcriptome_RSEM_formatted",
-			input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam,
-			disable_clipping = true
-	}
+    # call RSEMPostProcessing {
+    #     input:
+    #         prefix = output_basename + "_transcriptome_RSEM_formatted",
+    #         input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam,
+    #         disable_clipping = true
+    # }
 
 
 	# Extract the unaligned (i.e. unmapped) reads from the genome-aligned, duplicated marked bam,
@@ -171,8 +172,8 @@ workflow RNAWithUMIsPipeline {
 	Float pct_reads_unmapped_mismatches = STAR.pct_reads_unmapped_mismatches
 	Float pct_uniquely_mapped = STAR.pct_uniquely_mapped
 
-	File formatted_transcriptome_bam_gatk = RSEMPostProcessing.output_bam
-	Int post_formatting_read_count_gatk = RSEMPostProcessing.post_formatting_read_count
+	#File formatted_transcriptome_bam_gatk = RSEMPostProcessing.output_bam
+	#Int post_formatting_read_count_gatk = RSEMPostProcessing.post_formatting_read_count
   }
 }
 
