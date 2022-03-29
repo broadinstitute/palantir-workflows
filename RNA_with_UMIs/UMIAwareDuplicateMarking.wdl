@@ -32,7 +32,7 @@ workflow UMIAwareDuplicateMarking {
     # }
 
     # Recover RX tag
-    call AddUMITagFromUnmappedBam {
+    call TransferReadTags {
       input:
         aligned_bam = QueryNameSortAlignedBam.output_bam,
         ubam = select_first([ubam]), # if use_umi = true, then we should get the UMI-extracted ubam
@@ -42,7 +42,7 @@ workflow UMIAwareDuplicateMarking {
     # Sort the aligned bam by coordinate, so we can group duplicate sets using UMIs in the next step.
     call SortSam as SortSamFirst {
       input:
-        input_bam = AddUMITagFromUnmappedBam.merged_bam,
+        input_bam = TransferReadTags.merged_bam,
         output_bam_basename = output_basename + ".STAR_aligned.coorinate_sorted",
         sort_order = "coordinate"
     }
@@ -95,22 +95,23 @@ workflow UMIAwareDuplicateMarking {
   }
 }
 
-task AddUMITagFromUnmappedBam {
+task TransferReadTags {
   input {
     File aligned_bam
     File ubam
     String output_basename
-    File gatk_jar = "gs://broad-dsde-methods-takuto/RNA/gatk_umi.jar"
+    File gatk_jar = "gs://broad-dsde-methods-takuto/RNA/gatk_transfer_read_tags.jar"
   }
 
   Int disk_size = ceil(2 * size(aligned_bam, "GB")) + ceil(2 * size(ubam, "GB")) + 128
   String output_bam_basename = output_basename + "_merged"
   
   command <<<
-    java -jar ~{gatk_jar} AddUMITagFromUnmappedBam \
+    java -jar ~{gatk_jar} TransferReadTags \
     -I ~{aligned_bam} \
     --unmapped-sam ~{ubam} \
-    -O ~{output_bam_basename}.bam
+    -O ~{output_bam_basename}.bam \
+    --read-tags RX
   >>>
 
   output {

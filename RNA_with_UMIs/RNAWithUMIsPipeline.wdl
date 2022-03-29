@@ -44,18 +44,20 @@ workflow RNAWithUMIsPipeline {
 				output_prefix = output_basename
 		}
 
-		call FastqToSam {
-			input:
-				fastq1=Fastp.fastq1_clipped,
-				fastq2=Fastp.fastq2_clipped,
-				sample_name=output_basename + "_clipped"
+		# Don't need this, delete. 
+        # call FastqToSam {
+        #     input:
+        #         fastq1=Fastp.fastq1_clipped,
+        #         fastq2=Fastp.fastq2_clipped,
+        #         sample_name=output_basename + "_clipped"
+        # }
+        call FastQCFastq as FastQCWithClipping {
+			input: 
+				fastq1 = Fastp.fastq1_clipped,
+				fastq2 = Fastp.fastq2_clipped,
+				basename = output_basename
 		}
 
-		call FastQC as FastQCWithClipping {
-			input:
-				unmapped_bam = FastqToSam.unmapped_bam,
-				sample_id = output_basename
-		}
 	}
 
 	call FastQC {
@@ -64,25 +66,42 @@ workflow RNAWithUMIsPipeline {
 			sample_id = output_basename
 	}
 
-	File star_input_bam = if use_umi then select_first([FastqToSam.unmapped_bam]) else bam
-
-	call STAR {
-		input:
-			bam = star_input_bam,
-			starIndex = starIndex,
-			transcriptome_ban = "IndelSoftclipSingleend"
+	if (!use_umi){
+		call SamToFastq as SamToFastqNoUMIs {
+			input:
+				bam = bam,
+				output_prefix = output_basename
+		}
 	}
+
+	File star_input_fastq1 = select_first([SamToFastqNoUMIs.fastq1, Fastp.fastq1_clipped])
+	File star_input_fastq2 = select_first([SamToFastqNoUMIs.fastq2, Fastp.fastq2_clipped])
+
+    call STARFastq {
+        input:
+            fastq1 = star_input_fastq1,
+            fastq2 = star_input_fastq2,
+            starIndex = starIndex,
+            transcriptome_ban = "IndelSoftclipSingleend"
+    }
+
+    # call STAR {
+    #     input:
+    #         bam = star_input_bam,
+    #         starIndex = starIndex,
+    #         transcriptome_ban = "IndelSoftclipSingleend"
+    # }
 
 	# There is a STAR argument to do this, but this also gets the job done.
 	call CopyReadGroupsToHeader {
 		input:
-			bam_with_readgroups = STAR.aligned_bam,
-			bam_without_readgroups = STAR.transcriptome_bam
+			bam_with_readgroups = STARFastq.aligned_bam,
+			bam_without_readgroups = STARFastq.transcriptome_bam
 	}
 
 	call UmiMD.UMIAwareDuplicateMarking {
 		input:
-			aligned_bam = STAR.aligned_bam,
+			aligned_bam = STARFastq.aligned_bam,
 			output_basename = output_basename,
 			use_umi = use_umi,
 			ubam = ExtractUMIs.bam_umis_extracted,
@@ -216,11 +235,11 @@ workflow RNAWithUMIsPipeline {
 	File transcriptome_insert_size_metrics = InsertSizeTranscriptome.insert_size_metrics
 	File alignment_metrics = CollectMultipleMetrics.alignment_summary_metrics
 	File rna_metrics = CollectRNASeqMetrics.rna_metrics
-	Int pre_alignment_read_count = STAR.pre_alignment_read_count
-	Int aligned_read_count = STAR.aligned_read_count
-	Int transcriptome_read_count = STAR.transcriptome_read_count
-	Float pct_reads_unmapped_mismatches = STAR.pct_reads_unmapped_mismatches
-	Float pct_uniquely_mapped = STAR.pct_uniquely_mapped
+	# Int pre_alignment_read_count = STARFastq.pre_alignment_read_count
+	Int aligned_read_count = STARFastq.aligned_read_count
+	Int transcriptome_read_count = STARFastq.transcriptome_read_count
+	Float pct_reads_unmapped_mismatches = STARFastq.pct_reads_unmapped_mismatches
+	Float pct_uniquely_mapped = STARFastq.pct_uniquely_mapped
 	
 	File formatted_transcriptome_bam = FormatTranscriptomeUMI.output_bam
 	Int post_formatting_read_count = FormatTranscriptomeUMI.post_formatting_read_count
@@ -228,6 +247,66 @@ workflow RNAWithUMIsPipeline {
 	Int post_formatting_read_count_gatk = RSEMPostProcessing.post_formatting_read_count
 	
   }
+}
+
+task STARFastq {
+	input {
+		File fastq1
+		File fastq2
+		File starIndex
+		Int num_protrude_bases = 20
+		String transcriptome_ban
+	}
+
+	Int disk_space = ceil(4 * size(fastq2, "GB") + size(starIndex, "GB")) + 250
+
+	command <<<
+		echo $(date +"[%b %d %H:%M:%S] Extracting STAR index")
+		mkdir star_index
+		tar -xvvf ~{starIndex} -C star_index --strip-components=1
+
+		STAR --readFilesIn ~{fastq1} ~{fastq2} --readFilesType Fastx --readFilesCommand zcat \
+			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
+			--outSAMunmapped Within \
+			--outFilterType BySJout --outFilterMultimapNmax 20 --outFilterScoreMinOverLread 0.2 \
+			--outFilterMatchNminOverLread 0.2 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.1 \
+			--alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --alignSJoverhangMin 8 \
+			--alignSJDBoverhangMin 1 --chimSegmentMin 15 --chimMainSegmentMultNmax 1 \
+			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM \
+			--quantTranscriptomeBan ~{transcriptome_ban} \
+			--alignEndsProtrude ~{num_protrude_bases} ConcordantPair \
+
+		samtools view -c -F 0x100 Aligned.out.bam > aligned_read_count.txt
+		samtools view -c -F 0x100 Aligned.toTranscriptome.out.bam > transcriptome_read_count.txt
+		ls > "ls.txt"
+
+		grep "% of reads unmapped: too many mismatches" Log.final.out | cut -d "|" -f 2 | tr -d "[:space:]%" > pct_reads_unmapped_mismatches.txt
+		grep "Uniquely mapped reads %" Log.final.out | cut -d "|" -f 2 | tr -d "[:space:]%" > pct_uniquely_mapped.txt
+	>>>
+
+	runtime {
+		docker : "us.gcr.io/broad-gotc-prod/samtools-star:1.0.0-1.11-2.7.10a-1642556627"
+		disks : "local-disk " + disk_space + " HDD"
+		memory : "64GB"
+		cpu : "8"
+		preemptible: 0
+	}
+
+	output {
+		File ls = "ls.txt"
+		File aligned_bam = "Aligned.out.bam"
+		File transcriptome_bam = "Aligned.toTranscriptome.out.bam"
+		File splice_junction_table = "SJ.out.tab"
+		File log_out = "Log.out"
+		File star_metrics_log = "Log.final.out"
+		# Int pre_alignment_read_count = read_int("pre_alignment_read_count.txt") # For a fastq just divide by 4....
+		Int aligned_read_count = read_int("aligned_read_count.txt")
+		Int transcriptome_read_count = read_int("transcriptome_read_count.txt")
+
+		# STAR metrics
+		Float pct_reads_unmapped_mismatches = read_float("pct_reads_unmapped_mismatches.txt")
+		Float pct_uniquely_mapped = read_float("pct_uniquely_mapped.txt")
+	}
 }
 
 task STAR {
@@ -502,6 +581,39 @@ task CrossCheckFingerprints {
 	}
 }
 
+task FastQCFastq {
+	input {
+		File fastq1
+		File fastq2
+		String basename
+		Float? mem = 4
+	}
+
+	Int disk_size = ceil(6*size(fastq1, "GiB"))  + 100
+
+	command {
+		perl /usr/tag/scripts/FastQC/fastqc ~{fastq1} ~{fastq2} --extract -o ./
+		mv ~{basename}_fastqc/fastqc_data.txt ~{basename}_fastqc_data.txt
+		ls > ls.txt
+
+		tail -n 2 ~{basename}_fastqc_data.txt | head -n 1 | cut -f 2 > ~{basename}_adapter_content.txt
+	}
+	
+	runtime {
+		docker: "us.gcr.io/tag-public/tag-tools:1.0.0"
+		disks: "local-disk " + disk_size + " HDD"
+		memory: mem + "GB"
+		cpu: "1"
+	}
+
+	output {
+		File ls = "ls.txt"
+		File fastqc_data = "~{basename}_fastqc_data.txt"
+		File fastqc_html = "~{basename}_fastqc.html"
+		Float adapter_content = read_float("~{basename}_adapter_content.txt")
+	}
+}
+
 
 task FastQC {
 	input {
@@ -648,8 +760,8 @@ task SamToFastq {
 	command {
 		java -jar /usr/picard/picard.jar SamToFastq \
 		I=~{bam} \
-		FASTQ=~{output_prefix}_1.fastq \
-		SECOND_END_FASTQ=~{output_prefix}_2.fastq
+		FASTQ=~{output_prefix}_1.fastq.gz \
+		SECOND_END_FASTQ=~{output_prefix}_2.fastq.gz
 
 	}
 
@@ -661,8 +773,8 @@ task SamToFastq {
 	}
 
 	output {
-		File fastq1 = output_prefix + "_1.fastq"
-		File fastq2 = output_prefix + "_2.fastq"
+		File fastq1 = output_prefix + "_1.fastq.gz"
+		File fastq2 = output_prefix + "_2.fastq.gz"
 	}
 }
 
@@ -776,7 +888,7 @@ task Fastp {
 	Int disk_size = 5*ceil(size(fastq1, "GiB")) + 128
 
 	command {
-		fastp --in1 ~{fastq1} --in2 ~{fastq2} --out1 ~{output_prefix}_read1_trimmed.fastq --out2 ~{output_prefix}_read2_trimmed.fastq \
+		fastp --in1 ~{fastq1} --in2 ~{fastq2} --out1 ~{output_prefix}_read1_trimmed.fastq.gz --out2 ~{output_prefix}_read2_trimmed.fastq.gz \
 		--disable_quality_filtering --adapter_fasta ~{adapter_fasta} 
 		ls > "ls.txt"
 	}
@@ -791,8 +903,8 @@ task Fastp {
 
 	output {
 		File ls = "ls.txt"
-		File fastq1_clipped = output_prefix + "_read1_trimmed.fastq"
-		File fastq2_clipped = output_prefix + "_read2_trimmed.fastq"
+		File fastq1_clipped = output_prefix + "_read1_trimmed.fastq.gz"
+		File fastq2_clipped = output_prefix + "_read2_trimmed.fastq.gz"
 		File html = "fastp.html"
 		File json = "fastp.json"
 	}
