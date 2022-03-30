@@ -226,9 +226,10 @@ workflow RNAWithUMIsPipeline {
 	File fastqc_report = FastQC.fastqc_html
 	File fastqc_table = FastQC.fastqc_data
 	Float fastqc_adapter_content = FastQC.adapter_content
-	File? fastqc_clipped_report = FastQCWithClipping.fastqc_html
-	File? fastqc_clipped_table = FastQCWithClipping.fastqc_data
-	Float? fastqc_clipped_adapter_content = FastQCWithClipping.adapter_content
+	# Read2 report not output (for now)
+	File? fastqc_clipped_report = FastQCWithClipping.fastqc_html_read1
+	File? fastqc_clipped_table = FastQCWithClipping.fastqc_data_read1
+	Float? fastqc_clipped_adapter_content = FastQCWithClipping.adapter_content_read1
 	File? fastp_html = Fastp.html
 
 	File genome_insert_size_metrics = CollectMultipleMetrics.insert_size_metrics
