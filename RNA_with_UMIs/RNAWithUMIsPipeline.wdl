@@ -591,8 +591,8 @@ task FastQCFastq {
 	}
 
 	Int disk_size = ceil(6*size(fastq1, "GiB")) + 100
-	String read1_basename = basename(fastq1, ".fastq")
-	String read2_basename = basename(fastq2, ".fastq")
+	String read1_basename = basename(fastq1, ".fastq.gz")
+	String read2_basename = basename(fastq2, ".fastq.gz")
 
 	command {
 		perl /usr/tag/scripts/FastQC/fastqc ~{fastq1} ~{fastq2} --extract
