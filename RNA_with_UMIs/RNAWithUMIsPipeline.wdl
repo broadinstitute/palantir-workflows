@@ -91,7 +91,8 @@ workflow RNAWithUMIsPipeline {
     #         transcriptome_ban = "IndelSoftclipSingleend"
     # }
 
-	# There is a STAR argument to do this, but this also gets the job done.
+	# A STAR argument (--outSAMattrRGline) might be able ot do this.
+	# But this also gets the job done.
 	call CopyReadGroupsToHeader {
 		input:
 			bam_with_readgroups = STARFastq.aligned_bam,
@@ -267,6 +268,7 @@ task STARFastq {
 
 		STAR --readFilesIn ~{fastq1} ~{fastq2} --readFilesType Fastx --readFilesCommand zcat \
 			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
+			--outSAMattrRGline 	ID:RG1 SM:sample LB:lb PL:ILLUMINA PU:pu \
 			--outSAMunmapped Within \
 			--outFilterType BySJout --outFilterMultimapNmax 20 --outFilterScoreMinOverLread 0.2 \
 			--outFilterMatchNminOverLread 0.2 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.1 \
