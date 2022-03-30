@@ -585,18 +585,21 @@ task FastQCFastq {
 	input {
 		File fastq1
 		File fastq2
-		String basename
 		Float? mem = 4
 	}
 
-	Int disk_size = ceil(6*size(fastq1, "GiB"))  + 100
+	Int disk_size = ceil(6*size(fastq1, "GiB")) + 100
+	String read1_basename = basename(fastq1, ".fastq")
+	String read2_basename = basename(fastq2, ".fastq")
 
 	command {
-		perl /usr/tag/scripts/FastQC/fastqc ~{fastq1} ~{fastq2} --extract -o ./
-		mv ~{basename}_fastqc/fastqc_data.txt ~{basename}_fastqc_data.txt
+		perl /usr/tag/scripts/FastQC/fastqc ~{fastq1} ~{fastq2} --extract
+		mv ~{read1_basename}_fastqc/fastqc_data.txt ~{read1_basename}_fastqc_data.txt
+		mv ~{read2_basename}_fastqc/fastqc_data.txt ~{read2_basename}_fastqc_data.txt
 		ls > ls.txt
 
-		tail -n 2 ~{basename}_fastqc_data.txt | head -n 1 | cut -f 2 > ~{basename}_adapter_content.txt
+		tail -n 2 ~{read1_basename}_fastqc_data.txt | head -n 1 | cut -f 2 > ~{read1_basename}_adapter_content.txt
+		tail -n 2 ~{read2_basename}_fastqc_data.txt | head -n 1 | cut -f 2 > ~{read2_basename}_adapter_content.txt
 	}
 	
 	runtime {
@@ -608,9 +611,12 @@ task FastQCFastq {
 
 	output {
 		File ls = "ls.txt"
-		File fastqc_data = "~{basename}_fastqc_data.txt"
-		File fastqc_html = "~{basename}_fastqc.html"
-		Float adapter_content = read_float("~{basename}_adapter_content.txt")
+		File fastqc_data_read1 = "~{read1_basename}_fastqc_data.txt"
+		File fastqc_html_read1 = "~{read1_basename}_fastqc.html"
+		Float adapter_content_read1 = read_float("~{read1_basename}_adapter_content.txt")
+		File fastqc_data_read2 = "~{read2_basename}_fastqc_data.txt"
+		File fastqc_html_read2 = "~{read2_basename}_fastqc.html"
+		Float adapter_content_read2 = read_float("~{read2_basename}_adapter_content.txt")
 	}
 }
 
