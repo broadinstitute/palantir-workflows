@@ -271,7 +271,7 @@ task STARFastq {
 			--outSAMattrRGline 	ID:RG1 SM:sample LB:lb PL:ILLUMINA PU:pu \
 			--outSAMunmapped Within \
 			--outFilterType BySJout --outFilterMultimapNmax 20 --outFilterScoreMinOverLread 0.2 \
-			--outFilterMatchNminOverLread 0.2 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.1 \
+			--outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.1 \
 			--alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --alignSJoverhangMin 8 \
 			--alignSJDBoverhangMin 1 --chimSegmentMin 15 --chimMainSegmentMultNmax 1 \
 			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM \
@@ -332,7 +332,7 @@ task STAR {
 			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
 			--outSAMunmapped Within \
 			--outFilterType BySJout --outFilterMultimapNmax 20 --outFilterScoreMinOverLread 0.2 \
-			--outFilterMatchNminOverLread 0.2 --outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.1 \
+			--outFilterMismatchNmax 999 --outFilterMismatchNoverLmax 0.1 \
 			--alignIntronMin 20 --alignIntronMax 1000000 --alignMatesGapMax 1000000 --alignSJoverhangMin 8 \
 			--alignSJDBoverhangMin 1 --chimSegmentMin 15 --chimMainSegmentMultNmax 1 \
 			--chimOutType WithinBAM SoftClip --chimOutJunctionFormat 0 --twopassMode Basic --quantMode TranscriptomeSAM \
@@ -594,8 +594,9 @@ task FastQCFastq {
 	String read1_basename = basename(fastq1, ".fastq.gz")
 	String read2_basename = basename(fastq2, ".fastq.gz")
 
+	# Note: we need -o ./ to direct the output to pwd
 	command {
-		perl /usr/tag/scripts/FastQC/fastqc ~{fastq1} ~{fastq2} --extract
+		perl /usr/tag/scripts/FastQC/fastqc ~{fastq1} ~{fastq2} --extract -o ./
 		mv ~{read1_basename}_fastqc/fastqc_data.txt ~{read1_basename}_fastqc_data.txt
 		mv ~{read2_basename}_fastqc/fastqc_data.txt ~{read2_basename}_fastqc_data.txt
 		ls > ls.txt
