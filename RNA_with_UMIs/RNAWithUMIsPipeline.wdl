@@ -54,8 +54,7 @@ workflow RNAWithUMIsPipeline {
         call FastQCFastq as FastQCWithClipping {
 			input: 
 				fastq1 = Fastp.fastq1_clipped,
-				fastq2 = Fastp.fastq2_clipped,
-				basename = output_basename
+				fastq2 = Fastp.fastq2_clipped
 		}
 
 	}
