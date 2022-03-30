@@ -227,9 +227,9 @@ workflow RNAWithUMIsPipeline {
 	File fastqc_table = FastQC.fastqc_data
 	Float fastqc_adapter_content = FastQC.adapter_content
 	# Read2 report not output (for now)
-	File? fastqc_clipped_report = FastQCWithClipping.fastqc_html_read1
-	File? fastqc_clipped_table = FastQCWithClipping.fastqc_data_read1
-	Float? fastqc_clipped_adapter_content = FastQCWithClipping.adapter_content_read1
+	#File? fastqc_clipped_report = FastQCWithClipping.fastqc_html_read1
+	#File? fastqc_clipped_table = FastQCWithClipping.fastqc_data_read1
+	#Float? fastqc_clipped_adapter_content = FastQCWithClipping.adapter_content_read1
 	File? fastp_html = Fastp.html
 
 	File genome_insert_size_metrics = CollectMultipleMetrics.insert_size_metrics
@@ -613,12 +613,12 @@ task FastQCFastq {
 
 	output {
 		File ls = "ls.txt"
-		File fastqc_data_read1 = "~{read1_basename}_fastqc_data.txt"
-		File fastqc_html_read1 = "~{read1_basename}_fastqc.html"
-		Float adapter_content_read1 = read_float("~{read1_basename}_adapter_content.txt")
-		File fastqc_data_read2 = "~{read2_basename}_fastqc_data.txt"
-		File fastqc_html_read2 = "~{read2_basename}_fastqc.html"
-		Float adapter_content_read2 = read_float("~{read2_basename}_adapter_content.txt")
+		#File fastqc_data_read1 = "~{read1_basename}_fastqc_data.txt"
+		#File fastqc_html_read1 = "~{read1_basename}_fastqc.html"
+		#Float adapter_content_read1 = read_float("~{read1_basename}_adapter_content.txt")
+		#File fastqc_data_read2 = "~{read2_basename}_fastqc_data.txt"
+		#File fastqc_html_read2 = "~{read2_basename}_fastqc.html"
+		#Float adapter_content_read2 = read_float("~{read2_basename}_adapter_content.txt")
 	}
 }
 
