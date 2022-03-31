@@ -23,12 +23,6 @@ commands:
       - run: |
             apt-get update
             apt-get install -y make
-  
-  install-java:
-    description: "Install recent OpenJDK version"
-    steps:
-      - run: |
-            apt install -y openjdk-8-jre-headless
 jobs:
   validate:
     executor: womtool-executor
