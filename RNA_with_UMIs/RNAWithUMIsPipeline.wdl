@@ -124,11 +124,11 @@ workflow RNAWithUMIsPipeline {
 	
 	# Note that this task should take in the query-name sorted output of MD.
 	# (MD, when given a query-name sorted bam, outputs a query-name sorted bam)
-	call FormatTranscriptomeUMI {
-		input:
-			prefix = output_basename + "_transcriptome_RSEM_formatted",
-			input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam
-	}
+    # call FormatTranscriptomeUMI {
+    #     input:
+    #         prefix = output_basename + "_transcriptome_RSEM_formatted",
+    #         input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam
+    # }
 
 	# My version
 	call RSEMPostProcessing {
