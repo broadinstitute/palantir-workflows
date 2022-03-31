@@ -242,8 +242,8 @@ workflow RNAWithUMIsPipeline {
 	Float pct_reads_unmapped_mismatches = STARFastq.pct_reads_unmapped_mismatches
 	Float pct_uniquely_mapped = STARFastq.pct_uniquely_mapped
 	
-	File formatted_transcriptome_bam = FormatTranscriptomeUMI.output_bam
-	Int post_formatting_read_count = FormatTranscriptomeUMI.post_formatting_read_count
+	#File formatted_transcriptome_bam = FormatTranscriptomeUMI.output_bam
+	#Int post_formatting_read_count = FormatTranscriptomeUMI.post_formatting_read_count
 	File formatted_transcriptome_bam_gatk = RSEMPostProcessing.output_bam
 	Int post_formatting_read_count_gatk = RSEMPostProcessing.post_formatting_read_count
 	
