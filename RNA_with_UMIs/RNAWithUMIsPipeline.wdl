@@ -236,7 +236,7 @@ workflow RNAWithUMIsPipeline {
 	File transcriptome_insert_size_metrics = InsertSizeTranscriptome.insert_size_metrics
 	File alignment_metrics = CollectMultipleMetrics.alignment_summary_metrics
 	File rna_metrics = CollectRNASeqMetrics.rna_metrics
-	# Int pre_alignment_read_count = STARFastq.pre_alignment_read_count
+	Int pre_alignment_read_count = STARFastq.pre_alignment_read_count
 	Int aligned_read_count = STARFastq.aligned_read_count
 	Int transcriptome_read_count = STARFastq.transcriptome_read_count
 	Float pct_reads_unmapped_mismatches = STARFastq.pct_reads_unmapped_mismatches
@@ -265,6 +265,11 @@ task STARFastq {
 		echo $(date +"[%b %d %H:%M:%S] Extracting STAR index")
 		mkdir star_index
 		tar -xvvf ~{starIndex} -C star_index --strip-components=1
+
+		count_temp=`cat ~{fastq1}`
+
+		# fastq has 4 lines per read, and the reads are paired
+		expr $count_tmp / 2 > pre_alignment_read_count.txt
 
 		STAR --readFilesIn ~{fastq1} ~{fastq2} --readFilesType Fastx --readFilesCommand zcat \
 			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
@@ -302,7 +307,7 @@ task STARFastq {
 		File splice_junction_table = "SJ.out.tab"
 		File log_out = "Log.out"
 		File star_metrics_log = "Log.final.out"
-		# Int pre_alignment_read_count = read_int("pre_alignment_read_count.txt") # For a fastq just divide by 4....
+		Int pre_alignment_read_count = read_int("pre_alignment_read_count.txt") # For a fastq just divide by 4....
 		Int aligned_read_count = read_int("aligned_read_count.txt")
 		Int transcriptome_read_count = read_int("transcriptome_read_count.txt")
 
