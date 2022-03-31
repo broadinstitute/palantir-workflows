@@ -266,7 +266,7 @@ task STARFastq {
 		mkdir star_index
 		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
-		count_tmp=`gzcat ~{fastq1} | grep ^@ | wc -l`
+		count_tmp=`zcat ~{fastq1} | grep ^@ | wc -l`
 
 		test=`zcat ~{fastq1} | grep ^@ | wc -l`
 		echo testing $test 
