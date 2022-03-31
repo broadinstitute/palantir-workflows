@@ -266,10 +266,13 @@ task STARFastq {
 		mkdir star_index
 		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
-		count_tmp=`wc -l ~{fastq1}`
+		count_tmp=`gzcat ~{fastq1} | grep ^@ | wc -l`
 
-		# fastq has 4 lines per read, and the reads are paired
-		expr $count_tmp / 2 > pre_alignment_read_count.txt
+		test=`zcat ~{fastq1} | grep ^@ | wc -l`
+		echo testing $test 
+
+		# account for 2 both reads in a pair
+		expr $count_tmp \* 2 > pre_alignment_read_count.txt
 
 		STAR --readFilesIn ~{fastq1} ~{fastq2} --readFilesType Fastx --readFilesCommand zcat \
 			--runMode alignReads --genomeDir star_index --outSAMtype BAM Unsorted --runThreadN 8 \
