@@ -266,7 +266,7 @@ task STARFastq {
 		mkdir star_index
 		tar -xvvf ~{starIndex} -C star_index --strip-components=1
 
-		count_temp=`cat ~{fastq1}`
+		count_temp=`wc -l ~{fastq1}`
 
 		# fastq has 4 lines per read, and the reads are paired
 		expr $count_tmp / 2 > pre_alignment_read_count.txt
