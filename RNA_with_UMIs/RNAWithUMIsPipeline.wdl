@@ -246,6 +246,11 @@ workflow RNAWithUMIsPipeline {
 	#Int post_formatting_read_count = FormatTranscriptomeUMI.post_formatting_read_count
 	File formatted_transcriptome_bam_gatk = RSEMPostProcessing.output_bam
 	Int post_formatting_read_count_gatk = RSEMPostProcessing.post_formatting_read_count
+
+	Int mt_primary_count = CollectMultipleMetrics.mt_primary_count
+	Int mt_count = CollectMultipleMetrics.mt_count
+	Int primary_count = CollectMultipleMetrics.primary_count
+	Int count = CollectMultipleMetrics.count
 	
   }
 }
