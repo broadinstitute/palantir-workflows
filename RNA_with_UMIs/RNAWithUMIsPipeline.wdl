@@ -731,15 +731,15 @@ task CollectMultipleMetrics {
 		pc=`cat primary_count.txt`
 		c=`cat count.txt`
 
-		echo "$mtpc / $pc " | bc -l > mt_primary_ratio.txt
-		echo "$mtc / $c " | bc -l > mt_ratio.txt
+		# echo "$mtpc / $pc " | bc -l > mt_primary_ratio.txt
+		# echo "$mtc / $c " | bc -l > mt_ratio.txt
 
 		cat mt_primary_count.txt
 		cat mt_count.txt
 		cat primary_count.txt
 		cat count.txt
-		cat mt_primary_ratio.txt
-		cat mt_ratio.txt
+		# cat mt_primary_ratio.txt
+		# cat mt_ratio.txt
 
 		ls > ls.txt
 	}	
@@ -760,8 +760,8 @@ task CollectMultipleMetrics {
 		Int mt_count = read_int("mt_count.txt")
 		Int primary_count = read_int("primary_count.txt")
 		Int count = read_int("count.txt")
-		Float mt_primary_ratio = read_float("mt_primary_ratio.txt")
-		Float mt_ratio = read_float("mt_ratio.txt")
+		# Float mt_primary_ratio = read_float("mt_primary_ratio.txt")
+		# Float mt_ratio = read_float("mt_ratio.txt")
 	}
 }
 
