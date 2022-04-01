@@ -717,9 +717,31 @@ task CollectMultipleMetrics {
 		PROGRAM=CollectAlignmentSummaryMetrics \
 		REFERENCE_SEQUENCE=~{ref_fasta}
 
-		ls > ls.txt
 		cp ~{output_bam_prefix}".alignment_summary_metrics" ~{output_bam_prefix}_alignment_summary_metrics.txt
 		cp ~{output_bam_prefix}".insert_size_metrics" ~{output_bam_prefix}_insert_size_metrics.txt
+
+		samtools view -c -F 0x100 ~{input_bam} MT > mt_primary_count.txt
+		samtools view -c ~{input_bam} MT > mt_count.txt
+
+		samtools view -c -F 0x100 ~{input_bam} > primary_count.txt
+		samtools view -c ~{input_bam} > count.txt
+
+		mtpc=`cat mt_primary_count.txt`
+		mtc=`cat mt_count.txt`
+		pc=`cat primary_count.txt`
+		c=`cat count.txt`
+
+		echo "$mtpc / $pc " | bc -l > mt_primary_ratio.txt
+		echo "$mtc / $c " | bc -l > mt_ratio.txt
+
+		cat mt_primary_count.txt
+		cat mt_count.txt
+		cat primary_count.txt
+		cat count.txt
+		cat mt_primary_ratio.txt
+		cat mt_ratio.txt
+
+		ls > ls.txt
 	}	
 
 	runtime {
@@ -733,6 +755,13 @@ task CollectMultipleMetrics {
 		File ls = "ls.txt"
 		File alignment_summary_metrics = output_bam_prefix + "_alignment_summary_metrics.txt"
 		File insert_size_metrics = output_bam_prefix + "_insert_size_metrics.txt"
+
+		Int mt_primary_count = read_int("mt_primary_count.txt")
+		Int mt_count = read_int("mt_count.txt")
+		Int primary_count = read_int("primary_count.txt")
+		Int count = read_int("count.txt")
+		Float mt_primary_ratio = read_float("mt_primary_ratio.txt")
+		Float mt_ratio = read_float("mt_ratio.txt")
 	}
 }
 
@@ -807,7 +836,7 @@ task FastqToSam {
 	Int disk_size = 3*ceil(size(fastq1, "GiB") + size(fastq2, "GiB")) + 256
 
 
-	command {
+	command {	
 		java -Xms8192m -jar /usr/picard/picard.jar FastqToSam \
 		F1=~{fastq1} \
 		F2=~{fastq2} \
