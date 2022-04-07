@@ -61,8 +61,7 @@ workflow RNAWithUMIsPipeline {
 
 	call FastQC {
 		input:
-			unmapped_bam = bam,
-			sample_id = output_basename
+			unmapped_bam = bam
 	}
 
 	if (!use_umi){
@@ -151,8 +150,7 @@ workflow RNAWithUMIsPipeline {
 
 	call FastQC as FastQCUnalignablereads {
 		input:
-			unmapped_bam = CreateUnalignedBam.unaligned_bam,
-			sample_id = output_basename
+			unmapped_bam = CreateUnalignedBam.unaligned_bam
 	}
 
 	# PLACEHOLDER FOR CROSSCHECK
@@ -252,8 +250,8 @@ workflow RNAWithUMIsPipeline {
 	Int primary_count = CollectMultipleMetrics.primary_count
 	Int count = CollectMultipleMetrics.count
 
-	Int pre_transfer_count = UMIAwareDuplicateMarkingTranscriptome.pre_transfer_count
-    Int post_transfer_count = UMIAwareDuplicateMarkingTranscriptome.post_transfer_count
+	Int? pre_transfer_count = UMIAwareDuplicateMarkingTranscriptome.pre_transfer_count
+    Int? post_transfer_count = UMIAwareDuplicateMarkingTranscriptome.post_transfer_count
   }
 }
 

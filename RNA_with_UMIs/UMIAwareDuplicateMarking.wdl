@@ -92,8 +92,8 @@ workflow UMIAwareDuplicateMarking {
     File duplicate_marked_bam_index = select_first([SortSamSecond.output_bam_index, "bam_index_not_found"])
     File duplicate_metrics = MarkDuplicates.duplicate_metrics
     Int duplciate_marked_read_count = MarkDuplicates.duplciate_marked_read_count
-    Int pre_transfer_count = TransferReadTags.pre_transfer_count
-    Int post_transfer_count = TransferReadTags.post_transfer_count
+    Int? pre_transfer_count = TransferReadTags.pre_transfer_count
+    Int? post_transfer_count = TransferReadTags.post_transfer_count
   }
 }
 
