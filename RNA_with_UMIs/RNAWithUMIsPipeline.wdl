@@ -280,6 +280,9 @@ workflow RNAWithUMIsPipeline {
 
 	Int? pre_transfer_count = UMIAwareDuplicateMarkingTranscriptome.pre_transfer_count
     Int? post_transfer_count = UMIAwareDuplicateMarkingTranscriptome.post_transfer_count
+
+    File gene_expr = RSEM.genes
+    File isoform_expr = RSEM.isoforms
   }
 }
 
