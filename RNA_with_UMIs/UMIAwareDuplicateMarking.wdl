@@ -16,7 +16,7 @@ workflow UMIAwareDuplicateMarking {
   call SortSam as QueryNameSortAlignedBam {
     input:
       input_bam = aligned_bam,
-      output_bam_basename = output_basename + ".grouped.queryname_sorted",
+      output_bam_basename = output_basename + ".queryname_sorted",
       sort_order = "queryname"
   }
 
@@ -42,7 +42,7 @@ workflow UMIAwareDuplicateMarking {
     # Sort the aligned bam by coordinate, so we can group duplicate sets using UMIs in the next step.
     call SortSam as SortSamFirst {
       input:
-        input_bam = TransferReadTags.merged_bam,
+        input_bam = TransferReadTags.output_bam,
         output_bam_basename = output_basename + ".STAR_aligned.coorinate_sorted",
         sort_order = "coordinate"
     }
@@ -92,6 +92,8 @@ workflow UMIAwareDuplicateMarking {
     File duplicate_marked_bam_index = select_first([SortSamSecond.output_bam_index, "bam_index_not_found"])
     File duplicate_metrics = MarkDuplicates.duplicate_metrics
     Int duplciate_marked_read_count = MarkDuplicates.duplciate_marked_read_count
+    Int pre_transfer_count = TransferReadTags.pre_transfer_count
+    Int post_transfer_count = TransferReadTags.post_transfer_count
   }
 }
 
@@ -104,7 +106,7 @@ task TransferReadTags {
   }
 
   Int disk_size = ceil(2 * size(aligned_bam, "GB")) + ceil(2 * size(ubam, "GB")) + 128
-  String output_bam_basename = output_basename + "_merged"
+  String output_bam_basename = output_basename + "_RX_transferred"
   
   command <<<
     java -jar ~{gatk_jar} TransferReadTags \
@@ -112,10 +114,15 @@ task TransferReadTags {
     --unmapped-sam ~{ubam} \
     -O ~{output_bam_basename}.bam \
     --read-tags RX
+
+    samtools view -c ~{aligned_bam} > pre_transfer_count.txt
+    samtools view -c ~{output_bam_basename}.bam > post_transfer_count.txt
   >>>
 
   output {
-    File merged_bam = "~{output_bam_basename}.bam"
+    File output_bam = "~{output_bam_basename}.bam"
+    Int pre_transfer_count = read_int("pre_transfer_count.txt")
+    Int post_transfer_count = read_int("post_transfer_count.txt")
   }
 
   runtime {

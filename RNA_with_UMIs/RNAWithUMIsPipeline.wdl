@@ -251,7 +251,9 @@ workflow RNAWithUMIsPipeline {
 	Int mt_count = CollectMultipleMetrics.mt_count
 	Int primary_count = CollectMultipleMetrics.primary_count
 	Int count = CollectMultipleMetrics.count
-	
+
+	Int pre_transfer_count = UMIAwareDuplicateMarkingTranscriptome.pre_transfer_count
+    Int post_transfer_count = UMIAwareDuplicateMarkingTranscriptome.post_transfer_count
   }
 }
 
@@ -641,7 +643,6 @@ task FastQCFastq {
 task FastQC {
 	input {
 		File unmapped_bam
-		String sample_id
 		Float? mem = 4
 	}
 
@@ -877,10 +878,9 @@ task RSEMPostProcessing {
 	Int disk_gb = ceil(3*size(input_bam,"GB")) + 128
 
 	command {
-		java -jar ~{gatk_jar} ClipReadsForRSEM \
+		java -jar ~{gatk_jar} PostProcessReadsForRSEM \
 		-I ~{input_bam} \
-		-O ~{prefix}_gatk.bam \
-		--disable-clipping ~{disable_clipping}
+		-O ~{prefix}_gatk.bam
 
 		samtools view -c -F 0x100 ~{prefix}_gatk.bam > post_formatting_read_count.txt
 	}
