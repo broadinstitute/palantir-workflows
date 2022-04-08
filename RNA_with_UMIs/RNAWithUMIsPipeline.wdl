@@ -970,7 +970,9 @@ task Fastp {
 
 	command {
 		fastp --in1 ~{fastq1} --in2 ~{fastq2} --out1 ~{output_prefix}_read1_trimmed.fastq.gz --out2 ~{output_prefix}_read2_trimmed.fastq.gz \
-		--disable_quality_filtering --adapter_fasta ~{adapter_fasta} 
+		--disable_quality_filtering \
+		--disable_length_filtering \
+		--adapter_fasta ~{adapter_fasta} 
 		ls > "ls.txt"
 	}
 	
