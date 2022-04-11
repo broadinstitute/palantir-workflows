@@ -46,19 +46,18 @@ task CollectErrorMetrics {
     Int disk_size = ceil(1.5 * (size(bam,"GB") + size(bam_index,"GB") + size(vcf_index,"GB") + size(vcf_index,"GB")) + size(reference_fasta, "GB") + size(reference_index, "GB"))
 
     command <<<
-        gatk CollectSamErrorMetrics -I ~{bam} -V ~{vcf} -R ~{reference_fasta} -O output_basename \
-            --ERROR_METRICS \
-                ERROR:GC_CONTENT \
-                ERROR:READ_ORDINALITY \
-                ERROR:REFERENCE_BASE \
-                ERROR:PRE_DINUC \
-                ERROR:POST_DINUC \
-                ERROR:CYCLE \
-                ERROR:INSERT_LENGTH \
-                ERROR:BASE_QUALITY \
-                ERROR:MAPPING_QUALITY \
-                ERROR:ONE_BASE_PADDED_CONTEXT \
-                ERROR:INDEL_LENGTH
+        gatk CollectSamErrorMetrics -I ~{bam} -V ~{vcf} -R ~{reference_fasta} -O ~{output_basename} \
+            --ERROR_METRICS ERROR:GC_CONTENT \
+            --ERROR_METRICS ERROR:READ_ORDINALITY \
+            --ERROR_METRICS ERROR:REFERENCE_BASE \
+            --ERROR_METRICS ERROR:PRE_DINUC \
+            --ERROR_METRICS ERROR:POST_DINUC \
+            --ERROR_METRICS ERROR:CYCLE \
+            --ERROR_METRICS ERROR:INSERT_LENGTH \
+            --ERROR_METRICS ERROR:BASE_QUALITY \
+            --ERROR_METRICS ERROR:MAPPING_QUALITY \
+            --ERROR_METRICS ERROR:ONE_BASE_PADDED_CONTEXT \
+            --ERROR_METRICS ERROR:INDEL_LENGTH
     >>>
 
     runtime {
