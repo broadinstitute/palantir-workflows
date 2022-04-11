@@ -36,6 +36,7 @@ task CollectErrorMetrics {
         File reference_fasta
         File reference_index
 
+        Int preemptible = 1
         String docker = "us.gcr.io/broad-gatk/gatk:4.2.6.0"
         Int mem_gb = 4
     }
@@ -44,8 +45,8 @@ task CollectErrorMetrics {
 
     Int disk_size = ceil(1.5 * (size(bam,"GB") + size(bam_index,"GB") + size(vcf_index,"GB") + size(vcf_index,"GB")) + size(reference_fasta, "GB") + size(reference_index, "GB"))
 
-	command <<<
-		gatk CollectSamErrorMetrics -I ~{bam} -V ~{vcf} -R ~{reference_fasta} -O output_basename \
+    command <<<
+        gatk CollectSamErrorMetrics -I ~{bam} -V ~{vcf} -R ~{reference_fasta} -O output_basename \
             --ERROR_METRICS \
                 ERROR:GC_CONTENT \
                 ERROR:READ_ORDINALITY \
@@ -58,14 +59,15 @@ task CollectErrorMetrics {
                 ERROR:MAPPING_QUALITY \
                 ERROR:ONE_BASE_PADDED_CONTEXT \
                 ERROR:INDEL_LENGTH
-	>>>
+    >>>
 
-	runtime {
-		docker: docker
-		disks: "local-disk " + disk_size + " HDD"
+    runtime {
+        docker: docker
+        preemptible: preemptible
+        disks: "local-disk " + disk_size + " HDD"
         cpu: 4
-		memory: mem_gb + " GB"
-	}
+        memory: mem_gb + " GB"
+    }
 
     output {
         Array[File] error_metrics = glob(output_basename + ".*")
