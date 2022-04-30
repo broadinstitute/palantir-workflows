@@ -244,7 +244,7 @@ task BuildHTMLReport {
     population_pcs <- read_tsv("~{population_pc_projections}")
 
     p <- ggplot(population_pcs, aes(x=PC1, y=PC2, color="~{population_name}")) +
-      geom_point(size=0.1, alpha=0.1) +
+      geom_point() +
       geom_point(data=target_pcs, aes(color="~{lab_batch}", text=paste0("Sample ID: ", IID))) +
       theme_bw()
     ggplotly(p, tooltip="text")
@@ -252,7 +252,56 @@ task BuildHTMLReport {
 
     ## Individual Sample Results (without control sample)
     \`\`\`{r sample results , echo = FALSE, results = "asis"}
-    kable(batch_all_results %>% filter(!is_control_sample) %>% select(-is_control_sample) %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green")))))), escape = FALSE, digits = 2, format = "pandoc")
+    batch_results_table <- batch_all_results %>%
+      filter(!is_control_sample) %>% select(!is_control_sample) %>%
+      mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green"))))))
+    all_cols = batch_results_table %>% colnames()
+    risk_cols = which(endsWith(all_cols, "risk"))
+    raw_cols = which(endsWith(all_cols, "raw"))
+    adjusted_cols = which(endsWith(all_cols, "adjusted"))
+    percentile_cols = which(endsWith(all_cols, "percentile"))
+    reason_not_resulted_cols = which(endsWith(all_cols, "reason_not_resulted"))
+    numeric_cols = batch_all_results %>% select(where(is.numeric)) %>% colnames()
+    DT::datatable(batch_results_table,
+                  escape = FALSE,
+                  extensions = c("Buttons", "FixedColumns"),
+                  rownames = FALSE,
+                  options=list(scrollX = TRUE,
+                  fixedColumns = list(leftColumns = 2),
+                  pageLength = 20,
+                  lengthMenu = c(10, 20, 50, 100),
+                  dom = 'Blfrtip',
+                  buttons = list(
+                                list(
+                                  extend = 'columnToggle',
+                                  columns = raw_cols - 1,
+                                  text = "Raw Scores"
+                                ),
+                                list(
+                                  extend = 'columnToggle',
+                                  columns = adjusted_cols - 1,
+                                  text = "Adjusted Scores"
+                                ),
+                                list(
+                                  extend = 'columnToggle',
+                                  columns = percentile_cols - 1,
+                                  text = "Percentile"
+                                ),
+                                list(
+                                  extend = 'columnToggle',
+                                  columns = risk_cols - 1,
+                                  text = "Risk"
+                                ),
+                                list(
+                                  extend = 'columnToggle',
+                                  columns = reason_not_resulted_cols - 1,
+                                  text = "Reason Not Resulted"
+                                )
+                          )
+                  )
+    )  %>%
+    formatStyle(columns = c("sample_id", "lab_batch"), fontWeight = 'bold') %>%
+    formatRound(columns = numeric_cols)
     \`\`\`
 
     ## Missing sites
