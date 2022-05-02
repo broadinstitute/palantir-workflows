@@ -322,7 +322,7 @@ task BuildHTMLReport {
   >>>
 
   runtime {
-    docker: "us.gcr.io/broad-dsde-methods/tidyverse_kableextra_docker@sha256:fd21f5608a3d43add02f8a8490e49db67f078cb2b906f8cd959a9767350b8c24"
+    docker: "us.gcr.io/broad-dsde-methods/tidyverse_kableextra_docker@sha256:f9ad840130f45cabe53d2464e3d5fc4130fd8964e263bab9b3de79d45021e1a1"
     disks: "local-disk 100 HDD"
     memory: "4 GB"
   }
