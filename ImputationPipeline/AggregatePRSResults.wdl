@@ -230,7 +230,7 @@ task BuildHTMLReport {
 
     ## Batch Summary
     \`\`\`{r summary table, echo = FALSE, results = "asis" }
-    kable(batch_summary, digits = 2)
+    kable(batch_summary, digits = 2, escape = FALSE, format = "pandoc")
     \`\`\`
 
 
