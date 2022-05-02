@@ -209,6 +209,7 @@ task BuildHTMLReport {
     library(purrr)
     library(tibble)
     library(plotly)
+    library(DT)
 
     batch_all_results <- read_tsv("~{batch_all_results}")
     batch_control_results <- read_tsv("~{batch_control_results}")
