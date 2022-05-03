@@ -111,7 +111,7 @@ task AggregateResults {
       ylab("density")
     ggsave(filename = paste0(lab_batch, "_score_distribution.png"), dpi=300, width = 6, height = 6)
 
-    write_tsv(results_pivoted, paste0(lab_bath, "_pivoted_results.tsv"))
+    write_tsv(results_pivoted, paste0(lab_batch, "_pivoted_results.tsv"))
 
     writeLines(lab_batch, "lab_batch.txt")
 
