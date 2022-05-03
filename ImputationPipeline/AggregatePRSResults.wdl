@@ -34,7 +34,7 @@ workflow AggregatePRSResults {
       batch_missing_sites_shifts = AggregateResults.batch_missing_sites_shifts,
       expected_control_results = expected_control_results,
       batch_summarised_results = AggregateResults.batch_summarised_results,
-      score_distribution = AggregateResults.batch_score_distribution,
+      batch_pivoted_results = AggregateResults.batch_pivoted_results,
       target_pc_projections = target_pc_projections,
       population_pc_projections = population_pc_projections,
       population_name = population_name
