@@ -192,6 +192,13 @@ task BuildHTMLReport {
     set -xeo pipefail
 
     cat << EOF > ~{lab_batch}_report.Rmd
+    <style type="text/css">
+    .main-container {
+    max-width: 100% !important;
+    margin: auto;
+    }
+    </style>
+
     ---
     title: "Batch ~{lab_batch} PRS Summary"
     output:
