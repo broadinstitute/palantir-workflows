@@ -247,7 +247,7 @@ task BuildHTMLReport {
 
 
     ## Batch Score distribution
-    \`\`\`{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
+    \`\`\`{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis", fig.align='center'}
     ggplot(batch_results_pivoted, aes(x=adjusted)) +
       geom_density(aes(color=condition), fill=NA, position = "identity") +
       xlim(-5,5) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
@@ -256,7 +256,7 @@ task BuildHTMLReport {
 
     ## PCA
     #### Hover for sample ID
-    \`\`\`{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
+    \`\`\`{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis", fig.align='center'}
     target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows)
     population_pcs <- read_tsv("~{population_pc_projections}")
 
