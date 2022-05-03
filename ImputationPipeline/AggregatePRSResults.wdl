@@ -195,13 +195,6 @@ task BuildHTMLReport {
     set -xeo pipefail
 
     cat << EOF > ~{lab_batch}_report.Rmd
-    <style type="text/css">
-    .main-container {
-    max-width: 100% !important;
-    margin: auto;
-    }
-    </style>
-
     ---
     title: "Batch ~{lab_batch} PRS Summary"
     output:
@@ -227,6 +220,17 @@ task BuildHTMLReport {
     batch_pivoted_restuls <- read_tsv("~{batch_pivoted_results}")
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
+    \`\`\`
+
+    \`\`\`{css, echo=FALSE}
+    .main-container {
+    max-width: 100% !important;
+    margin: auto;
+    }
+
+    .plotly {
+    margin: auto;
+    }
     \`\`\`
 
 
