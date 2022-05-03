@@ -111,6 +111,8 @@ task AggregateResults {
       ylab("density")
     ggsave(filename = paste0(lab_batch, "_score_distribution.png"), dpi=300, width = 6, height = 6)
 
+    write_tsv(results_pivoted, paste0(lab_bath, "_pivoted_results.tsv"))
+
     writeLines(lab_batch, "lab_batch.txt")
 
     missing_sites_shifts <-  c("~{sep='","' missing_sites_shifts}") %>% map(read_tsv) %>% reduce(bind_rows)
@@ -129,6 +131,7 @@ task AggregateResults {
     File batch_all_results = "~{lab_batch}_all_results.tsv"
     File batch_control_results = "~{lab_batch}_control_results.tsv"
     File batch_summarised_results = "~{lab_batch}_summarised_results.tsv"
+    File batch_pivoted_results = "~{lab_batch}_pivoted_results.tsv"
     File batch_score_distribution = "~{lab_batch}_score_distribution.png"
     File batch_missing_sites_shifts = "~{lab_batch}_missing_sites_shifts.tsv"
   }
@@ -181,7 +184,7 @@ task BuildHTMLReport {
     File batch_missing_sites_shifts
     File expected_control_results
     File batch_summarised_results
-    File score_distribution
+    File batch_pivoted_results
     Array[File] target_pc_projections
     File population_pc_projections
     String population_name
@@ -221,6 +224,7 @@ task BuildHTMLReport {
     batch_all_results <- read_tsv("~{batch_all_results}")
     batch_control_results <- read_tsv("~{batch_control_results}")
     expected_control_results <- read_csv("~{expected_control_results}")
+    batch_pivoted_restuls <- read_tsv("~{batch_pivoted_results}")
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
     \`\`\`
@@ -243,7 +247,12 @@ task BuildHTMLReport {
 
 
     ## Batch Score distribution
-    ![](~{score_distribution})
+    \`\`\`{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
+    ggplot(batch_results_pivoted, aes(x=adjusted)) +
+      geom_density(aes(color=condition), fill=NA, position = "identity") +
+      xlim(-5,5) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
+      ylab("density")
+    \`\`\`
 
     ## PCA
     #### Hover for sample ID
