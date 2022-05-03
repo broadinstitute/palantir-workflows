@@ -217,14 +217,14 @@ task BuildHTMLReport {
     batch_all_results <- read_tsv("~{batch_all_results}")
     batch_control_results <- read_tsv("~{batch_control_results}")
     expected_control_results <- read_csv("~{expected_control_results}")
-    batch_pivoted_restuls <- read_tsv("~{batch_pivoted_results}")
+    batch_pivoted_results <- read_tsv("~{batch_pivoted_results}")
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
     \`\`\`
 
     \`\`\`{css, echo=FALSE}
     .main-container {
-    max-width: 100% !important;
+    max-width: 100%;
     margin: auto;
     }
 
@@ -252,7 +252,7 @@ task BuildHTMLReport {
 
     ## Batch Score distribution
     \`\`\`{r score distributions, echo=FALSE, message=FALSE, warning=FALSE, results="asis", fig.align='center'}
-    ggplot(batch_pivoted_restuls, aes(x=adjusted)) +
+    ggplot(batch_pivoted_results, aes(x=adjusted)) +
       geom_density(aes(color=condition), fill=NA, position = "identity") +
       xlim(-5,5) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
       ylab("density")
@@ -274,15 +274,16 @@ task BuildHTMLReport {
     ## Individual Sample Results (without control sample)
     \`\`\`{r sample results , echo = FALSE, results = "asis"}
     batch_results_table <- batch_all_results %>%
-      filter(!is_control_sample) %>% select(!is_control_sample) %>%
-      mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green"))))))
+    filter(!is_control_sample) %>% select(!is_control_sample) %>%
+    rename_with(.cols = ends_with("percentile"), .fn = ~gsub("_percentile", " %", .x,fixed=TRUE)) %>%
+    mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green"))))))
     all_cols = batch_results_table %>% colnames()
     risk_cols = which(endsWith(all_cols, "risk"))
     raw_cols = which(endsWith(all_cols, "raw"))
     adjusted_cols = which(endsWith(all_cols, "adjusted"))
-    percentile_cols = which(endsWith(all_cols, "percentile"))
+    percentile_cols = which(endsWith(all_cols, "%"))
     reason_not_resulted_cols = which(endsWith(all_cols, "reason_not_resulted"))
-    numeric_cols = batch_all_results %>% select(where(is.numeric)) %>% colnames()
+    numeric_cols = batch_results_table %>% select(where(is.numeric)) %>% colnames()
     DT::datatable(batch_results_table,
                   escape = FALSE,
                   extensions = c("Buttons", "FixedColumns"),
