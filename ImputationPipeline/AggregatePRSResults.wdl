@@ -248,7 +248,7 @@ task BuildHTMLReport {
 
     ## Batch Score distribution
     \`\`\`{r score distributions, echo=FALSE, message=FALSE, warning=FALSE, results="asis", fig.align='center'}
-    ggplot(batch_results_pivoted, aes(x=adjusted)) +
+    ggplot(batch_pivoted_restuls, aes(x=adjusted)) +
       geom_density(aes(color=condition), fill=NA, position = "identity") +
       xlim(-5,5) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
       ylab("density")
