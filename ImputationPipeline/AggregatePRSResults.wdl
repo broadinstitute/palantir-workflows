@@ -34,7 +34,7 @@ workflow AggregatePRSResults {
       batch_missing_sites_shifts = AggregateResults.batch_missing_sites_shifts,
       expected_control_results = expected_control_results,
       batch_summarised_results = AggregateResults.batch_summarised_results,
-      score_distribution = AggregateResults.batch_score_distribution,
+      batch_pivoted_results = AggregateResults.batch_pivoted_results,
       target_pc_projections = target_pc_projections,
       population_pc_projections = population_pc_projections,
       population_name = population_name
@@ -111,6 +111,8 @@ task AggregateResults {
       ylab("density")
     ggsave(filename = paste0(lab_batch, "_score_distribution.png"), dpi=300, width = 6, height = 6)
 
+    write_tsv(results_pivoted, paste0(lab_batch, "_pivoted_results.tsv"))
+
     writeLines(lab_batch, "lab_batch.txt")
 
     missing_sites_shifts <-  c("~{sep='","' missing_sites_shifts}") %>% map(read_tsv) %>% reduce(bind_rows)
@@ -129,6 +131,7 @@ task AggregateResults {
     File batch_all_results = "~{lab_batch}_all_results.tsv"
     File batch_control_results = "~{lab_batch}_control_results.tsv"
     File batch_summarised_results = "~{lab_batch}_summarised_results.tsv"
+    File batch_pivoted_results = "~{lab_batch}_pivoted_results.tsv"
     File batch_score_distribution = "~{lab_batch}_score_distribution.png"
     File batch_missing_sites_shifts = "~{lab_batch}_missing_sites_shifts.tsv"
   }
@@ -181,7 +184,7 @@ task BuildHTMLReport {
     File batch_missing_sites_shifts
     File expected_control_results
     File batch_summarised_results
-    File score_distribution
+    File batch_pivoted_results
     Array[File] target_pc_projections
     File population_pc_projections
     String population_name
@@ -209,12 +212,25 @@ task BuildHTMLReport {
     library(purrr)
     library(tibble)
     library(plotly)
+    library(DT)
 
     batch_all_results <- read_tsv("~{batch_all_results}")
     batch_control_results <- read_tsv("~{batch_control_results}")
     expected_control_results <- read_csv("~{expected_control_results}")
+    batch_pivoted_results <- read_tsv("~{batch_pivoted_results}")
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
+    \`\`\`
+
+    \`\`\`{css, echo=FALSE}
+    .main-container {
+    max-width: 100%;
+    margin: auto;
+    }
+
+    .plotly {
+    margin: auto;
+    }
     \`\`\`
 
 
@@ -229,22 +245,27 @@ task BuildHTMLReport {
 
     ## Batch Summary
     \`\`\`{r summary table, echo = FALSE, results = "asis" }
-    kable(batch_summary, digits = 2)
+    kable(batch_summary, digits = 2, escape = FALSE, format = "pandoc")
     \`\`\`
 
 
 
     ## Batch Score distribution
-    ![](~{score_distribution})
+    \`\`\`{r score distributions, echo=FALSE, message=FALSE, warning=FALSE, results="asis", fig.align='center'}
+    ggplot(batch_pivoted_results, aes(x=adjusted)) +
+      geom_density(aes(color=condition), fill=NA, position = "identity") +
+      xlim(-5,5) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
+      ylab("density")
+    \`\`\`
 
     ## PCA
     #### Hover for sample ID
-    \`\`\`{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis"}
+    \`\`\`{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis", fig.align='center'}
     target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows)
     population_pcs <- read_tsv("~{population_pc_projections}")
 
     p <- ggplot(population_pcs, aes(x=PC1, y=PC2, color="~{population_name}")) +
-      geom_point(size=0.1, alpha=0.1) +
+      geom_point() +
       geom_point(data=target_pcs, aes(color="~{lab_batch}", text=paste0("Sample ID: ", IID))) +
       theme_bw()
     ggplotly(p, tooltip="text")
@@ -252,7 +273,57 @@ task BuildHTMLReport {
 
     ## Individual Sample Results (without control sample)
     \`\`\`{r sample results , echo = FALSE, results = "asis"}
-    kable(batch_all_results %>% filter(!is_control_sample) %>% select(-is_control_sample) %>% mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green")))))), escape = FALSE, digits = 2, format = "pandoc")
+    batch_results_table <- batch_all_results %>%
+    filter(!is_control_sample) %>% select(!is_control_sample) %>%
+    rename_with(.cols = ends_with("percentile"), .fn = ~gsub("_percentile", " %", .x,fixed=TRUE)) %>%
+    mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green"))))))
+    all_cols = batch_results_table %>% colnames()
+    risk_cols = which(endsWith(all_cols, "risk"))
+    raw_cols = which(endsWith(all_cols, "raw"))
+    adjusted_cols = which(endsWith(all_cols, "adjusted"))
+    percentile_cols = which(endsWith(all_cols, "%"))
+    reason_not_resulted_cols = which(endsWith(all_cols, "reason_not_resulted"))
+    numeric_cols = batch_results_table %>% select(where(is.numeric)) %>% colnames()
+    DT::datatable(batch_results_table,
+                  escape = FALSE,
+                  extensions = c("Buttons", "FixedColumns"),
+                  rownames = FALSE,
+                  options=list(scrollX = TRUE,
+                  fixedColumns = list(leftColumns = 2),
+                  pageLength = 20,
+                  lengthMenu = c(10, 20, 50, 100),
+                  dom = 'Blfrtip',
+                  buttons = list(
+                                list(
+                                  extend = 'columnToggle',
+                                  columns = raw_cols - 1,
+                                  text = "Raw Scores"
+                                ),
+                                list(
+                                  extend = 'columnToggle',
+                                  columns = adjusted_cols - 1,
+                                  text = "Adjusted Scores"
+                                ),
+                                list(
+                                  extend = 'columnToggle',
+                                  columns = percentile_cols - 1,
+                                  text = "Percentile"
+                                ),
+                                list(
+                                  extend = 'columnToggle',
+                                  columns = risk_cols - 1,
+                                  text = "Risk"
+                                ),
+                                list(
+                                  extend = 'columnToggle',
+                                  columns = reason_not_resulted_cols - 1,
+                                  text = "Reason Not Resulted"
+                                )
+                          )
+                  )
+    )  %>%
+    formatStyle(columns = c("sample_id", "lab_batch"), fontWeight = 'bold') %>%
+    formatRound(columns = numeric_cols)
     \`\`\`
 
     ## Missing sites
@@ -272,7 +343,7 @@ task BuildHTMLReport {
   >>>
 
   runtime {
-    docker: "us.gcr.io/broad-dsde-methods/tidyverse_kableextra_docker@sha256:fd21f5608a3d43add02f8a8490e49db67f078cb2b906f8cd959a9767350b8c24"
+    docker: "us.gcr.io/broad-dsde-methods/tidyverse_kableextra_docker@sha256:f9ad840130f45cabe53d2464e3d5fc4130fd8964e263bab9b3de79d45021e1a1"
     disks: "local-disk 100 HDD"
     memory: "4 GB"
   }

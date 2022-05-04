@@ -2,3 +2,4 @@ FROM rocker/tidyverse@sha256:aaace6c41a258e13da76881f0b282932377680618fcd5d12158
 
 RUN R -e 'install.packages("kableExtra")'
 RUN R -e 'install.packages("plotly")'
+RUN R -e 'install.packages("DT")'
