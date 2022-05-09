@@ -133,8 +133,7 @@ workflow RNAWithUMIsPipeline {
 	call RSEMPostProcessing {
 		input:
 			prefix = output_basename + "_transcriptome_RSEM_formatted",
-			input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam,
-			disable_clipping = true
+			input_bam = UMIAwareDuplicateMarkingTranscriptome.duplicate_marked_query_sorted_bam
 	}
 
 
@@ -900,7 +899,6 @@ task RSEMPostProcessing {
 	input {
 		String prefix
 		File input_bam # the input must be queryname sorted
-		Boolean disable_clipping = true # no clipping needed
 		File gatk_jar = "gs://broad-dsde-methods-takuto/RNA/gatk_post_processing.jar"
 	}
 
@@ -963,12 +961,15 @@ task Fastp {
 		File fastq1
 		File fastq2
 		String output_prefix
+	    File monitoring_script = "gs://broad-dsde-methods-monitoring/cromwell_monitoring_script.sh"
 	}
 
 	File adapter_fasta = "gs://broad-dsde-methods-takuto/RNA/resources/Illumina_adapters.fasta"
 	Int disk_size = 5*ceil(size(fastq1, "GiB")) + 128
 
 	command {
+		bash ~{monitoring_script} > monitoring.log &
+
 		fastp --in1 ~{fastq1} --in2 ~{fastq2} --out1 ~{output_prefix}_read1_trimmed.fastq.gz --out2 ~{output_prefix}_read2_trimmed.fastq.gz \
 		--disable_quality_filtering \
 		--disable_length_filtering \
@@ -990,6 +991,7 @@ task Fastp {
 		File fastq2_clipped = output_prefix + "_read2_trimmed.fastq.gz"
 		File html = "fastp.html"
 		File json = "fastp.json"
+		File monitoring_log = "monitoring.log"
 	}
 
 }

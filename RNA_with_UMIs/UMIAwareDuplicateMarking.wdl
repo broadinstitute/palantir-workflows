@@ -259,10 +259,15 @@ task GroupByUMIs {
     File bam
     File bam_index
     String output_bam_basename
+    File monitoring_script = "gs://broad-dsde-methods-monitoring/cromwell_monitoring_script.sh"
+
   }
 
   Int disk_space = ceil(4 * size(bam, "GB")) + 300
+
   command <<<
+    bash ~{monitoring_script} > monitoring.log &
+
     umi_tools group -I ~{bam} --paired --no-sort-output --output-bam -S ~{output_bam_basename}.bam --umi-tag-delimiter "-" \
     --extract-umi-method tag --umi-tag RX --unmapped-reads use \
     --group-out ~{output_bam_basename}_umi_groups.txt
@@ -271,6 +276,8 @@ task GroupByUMIs {
   output {
     File grouped_bam = "~{output_bam_basename}.bam"
     File groups_file = "~{output_bam_basename}_umi_groups.txt"
+    File monitoring_log = "monitoring.log"
+
   }
 
   runtime {
