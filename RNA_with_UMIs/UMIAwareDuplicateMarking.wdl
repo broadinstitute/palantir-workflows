@@ -31,11 +31,18 @@ workflow UMIAwareDuplicateMarking {
     #     ref_dict = ref_dict
     # }
 
+    call SortSam as QueryNameSortUBam {
+      input:
+        input_bam = select_first([ubam]),  # if use_umi = true, then we should get the UMI-extracted ubam
+        output_bam_basename = output_basename + ".u.queryname_sorted",
+        sort_order = "queryname"
+    }
+
     # Recover RX tag
     call TransferReadTags {
       input:
         aligned_bam = QueryNameSortAlignedBam.output_bam,
-        ubam = select_first([ubam]), # if use_umi = true, then we should get the UMI-extracted ubam
+        ubam = QueryNameSortUBam.output_bam,
         output_basename = output_basename
     }
 
