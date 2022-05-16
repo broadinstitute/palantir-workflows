@@ -980,7 +980,7 @@ task Fastp {
 
 	runtime {
 		docker: "biocontainers/fastp:v0.20.1_cv1"
-		memory: "8 GiB"
+		memory: "16 GiB"
 		disks: "local-disk " + disk_size + " HDD"
 		preemptible: 0
 	}
