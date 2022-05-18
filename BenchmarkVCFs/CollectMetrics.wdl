@@ -21,8 +21,15 @@ workflow CollectMetrics {
         File bam
         File bam_index
 
+        File calling_interval
+        Int read_length
+
         File reference_fasta
         File reference_index
+        File reference_dict
+
+        String gatk_tag
+        Int preemptible = 1
     }
 
     call CollectErrorMetrics {
@@ -32,11 +39,28 @@ workflow CollectMetrics {
             bam = bam,
             bam_index = bam_index,
             reference_fasta = reference_fasta,
-            reference_index = reference_index
+            reference_index = reference_index,
+            reference_dict = reference_dict,
+            gatk_tag = gatk_tag,
+            preemptible = preemptible
+    }
+
+    call CollectWgsMetrics {
+        input:
+            input_bam = bam,
+            input_bam_index = bam_index,
+            wgs_coverage_interval_list = calling_interval,
+            read_length = read_length,
+            reference_fasta = reference_fasta,
+            reference_index = reference_index,
+            reference_dict = reference_dict,
+            gatk_tag = gatk_tag,
+            preemptible = preemptible
     }
 
     output {
         MetricsFiles error_metrics = CollectErrorMetrics.error_metrics
+        File wgs_metrics = CollectWgsMetrics.metrics
     }
 }
 
@@ -49,9 +73,10 @@ task CollectErrorMetrics {
 
         File reference_fasta
         File reference_index
+        File reference_dict
 
-        Int preemptible = 1
-        String docker = "us.gcr.io/broad-gatk/gatk:4.2.6.0"
+        Int preemptible
+        String gatk_tag
         Int mem_gb = 4
     }
 
@@ -67,11 +92,11 @@ task CollectErrorMetrics {
     >>>
 
     runtime {
-        docker: docker
+        docker: "us.gcr.io/broad-gatk/gatk:" + gatk_tag
         preemptible: preemptible
         disks: "local-disk " + disk_size + " HDD"
         cpu: 4
-        memory: mem_gb + " GB"
+        memory: mem_gb + " GiB"
     }
 
     output {
@@ -89,4 +114,47 @@ task CollectErrorMetrics {
                 "error_by_indel_length": output_basename + ".error_by_indel_length",
             }
     }
+}
+
+task CollectWgsMetrics {
+  input {
+    File input_bam
+    File input_bam_index
+    File wgs_coverage_interval_list
+    File reference_fasta
+    File reference_index
+    File reference_dict
+    Int read_length
+
+    String gatk_tag
+    Int preemptible = 1
+    Int mem_gb = 4
+  }
+
+  Float ref_size = size(reference_fasta, "GiB") + size(reference_fasta, "GiB")
+  Int disk_size = ceil(size(input_bam, "GiB") + ref_size) + 20
+
+  String output_name = sub(basename(input_bam), "\.(bam|cram)$", "") + ".wgs_metrics"
+
+  command {
+    java -Xms2000m -Xmx2500m -jar /usr/picard/picard.jar \
+      CollectWgsMetrics \
+      INPUT=~{input_bam} \
+      VALIDATION_STRINGENCY=SILENT \
+      REFERENCE_SEQUENCE=~{reference_fasta} \
+      INCLUDE_BQ_HISTOGRAM=true \
+      INTERVALS=~{wgs_coverage_interval_list} \
+      OUTPUT=~{output_name} \
+      USE_FAST_ALGORITHM=true \
+      READ_LENGTH=~{read_length}
+  }
+  runtime {
+    docker: "us.gcr.io/broad-gatk/gatk:" + gatk_tag
+    preemptible: preemptible
+    memory: mem_gb + " GiB"
+    disks: "local-disk " + disk_size + " HDD"
+  }
+  output {
+    File metrics = "~{output_name}"
+  }
 }
