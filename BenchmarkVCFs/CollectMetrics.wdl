@@ -137,7 +137,7 @@ task CollectWgsMetrics {
   String output_name = sub(basename(input_bam), "\.(bam|cram)$", "") + ".wgs_metrics"
 
   command {
-    java -Xms2000m -Xmx2500m -jar /usr/picard/picard.jar \
+    gatk \
       CollectWgsMetrics \
       INPUT=~{input_bam} \
       VALIDATION_STRINGENCY=SILENT \
