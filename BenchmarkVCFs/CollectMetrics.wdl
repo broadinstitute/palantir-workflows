@@ -86,6 +86,7 @@ task CollectErrorMetrics {
 
     command <<<
         gatk CollectSamErrorMetrics -I ~{bam} -V ~{vcf} -R ~{reference_fasta} -O ~{output_basename} \
+            --ERROR_METRICS null \
             --ERROR_METRICS ERROR:REFERENCE_BASE \
             --ERROR_METRICS ERROR:PRE_DINUC \
             --ERROR_METRICS ERROR:POST_DINUC
