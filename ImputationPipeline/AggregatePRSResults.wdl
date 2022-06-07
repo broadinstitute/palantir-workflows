@@ -235,7 +235,7 @@ task BuildHTMLReport {
 
 
     ## Control Sample
-    \`\`\`{r control, echo = FALSE, results = "asis"}
+    \`\`\`{r control, echo = FALSE, results = "asis", warning = FALSE}
     control_and_expected <- bind_rows(list(batch_control_results, expected_control_results)) %>% select(ends_with('_adjusted'))
     delta_frame_colored <- (control_and_expected[-1,] - control_and_expected[-nrow(control_and_expected),]) %>% mutate(across(everything(), ~ round(.x, digits=2))) %>% mutate(across(everything(), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x) || abs(.x) > 0.12, "red", "green"))))
     control_and_expected_char <- control_and_expected %>% mutate(across(everything(), ~ format(round(.x, digits=2), nsmall=2)))
