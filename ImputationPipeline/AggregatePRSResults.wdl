@@ -270,14 +270,18 @@ task BuildHTMLReport {
 
     ## Individual Sample Results (without control sample)
     \`\`\`{r sample results , echo = FALSE, results = "asis"}
-    initial_col_order <- batch_all_results %>% select(!is_control_sample) %>% colnames()
     batch_results_table <- batch_pivoted_results %>% filter(!is_control_sample) %>% select(!is_control_sample) %>%
-    mutate(across(!c(sample_id, lab_batch, reason_not_resulted, condition), ~kableExtra::cell_spec(gsub("_", " ", ifelse(is.na(as.numeric(.x)), ifelse(is.na(.x), 'SCORE NOT REQUESTED', .x), round(as.numeric(.x), 2))), color=ifelse(is.na(risk), "blue", ifelse(risk=="NOT_RESULTED", "red", ifelse(risk == "HIGH", "orange", "green")))))) %>% # round numbers, color all by risk
-    mutate(reason_not_resulted = ifelse(is.na(reason_not_resulted), reason_not_resulted, kableExtra::cell_spec(reason_not_resulted, color="red"))) %>% # reason not resulted always red if exists
-    pivot_wider(id_cols = c(sample_id, lab_batch), names_from = condition, names_glue = "{condition}_{.value}", values_from = c(raw, adjusted, percentile, risk, reason_not_resulted)) %>% # pivot to wide format
-    select(all_of(initial_col_order)) %>% # order columns by initial ordering
-    rename_with(.cols = ends_with("percentile"), .fn = ~gsub("_percentile", " %", .x,fixed=TRUE)) %>%
-    rename_with(.cols = ends_with("adjusted"), .fn = ~gsub("_adjusted", "_adj", .x,fixed=TRUE))
+      mutate(across(!c(sample_id, lab_batch, reason_not_resulted, condition), ~kableExtra::cell_spec(gsub("_", " ", ifelse(is.na(as.numeric(.x)), ifelse(is.na(.x), 'SCORE NOT REQUESTED', .x), round(as.numeric(.x), 2))), color=ifelse(is.na(risk), "blue", ifelse(risk=="NOT_RESULTED", "red", ifelse(risk == "HIGH", "orange", "green")))))) %>% # round numbers, color all by risk
+      mutate(reason_not_resulted = ifelse(is.na(reason_not_resulted), reason_not_resulted, kableExtra::cell_spec(reason_not_resulted, color="red"))) %>% # reason not resulted always red if exists
+      pivot_wider(id_cols = c(sample_id, lab_batch), names_from = condition, names_glue = "{condition}_{.value}", values_from = c(raw, adjusted, percentile, risk, reason_not_resulted)) # pivot to wide format
+
+    #order columns as desired
+    cols <- batch_results_table %>% select(-sample_id, -lab_batch) %>% colnames()
+    desired_order_values <- c("raw", "adjusted", "percentile", "risk", "reason_not_resulted")
+    col_order <- c("sample_id", "lab_batch", cols[order(sapply(stri_split_fixed(cols, "_", n=2), "[",1), match(sapply(stri_split_fixed(cols, "_", n=2), "[",2), desired_order_values))])
+    batch_results_table <- batch_results_table %>% select(all_of(col_order)) %>%
+      rename_with(.cols = ends_with("percentile"), .fn = ~gsub("_percentile", " %", .x,fixed=TRUE)) %>%
+      rename_with(.cols = ends_with("adjusted"), .fn = ~gsub("_adjusted", "_adj", .x,fixed=TRUE))
 
     all_cols = batch_results_table %>% colnames()
     risk_cols = which(endsWith(all_cols, "risk"))
