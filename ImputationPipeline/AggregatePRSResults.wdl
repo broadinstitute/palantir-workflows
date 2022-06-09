@@ -29,7 +29,6 @@ workflow AggregatePRSResults {
   call BuildHTMLReport {
     input:
       lab_batch = lab_batch,
-      batch_all_results = AggregateResults.batch_all_results,
       batch_control_results = AggregateResults.batch_control_results,
       batch_missing_sites_shifts = AggregateResults.batch_missing_sites_shifts,
       expected_control_results = expected_control_results,
@@ -90,7 +89,7 @@ task AggregateResults {
 
     write_tsv(results %>% filter(is_control_sample), paste0(lab_batch, "_control_results.tsv"))
 
-    results_pivoted <- results %>% select(-lab_batch, -is_control_sample) %>% pivot_longer(!sample_id, names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
+    results_pivoted <- results %>% pivot_longer(!c(sample_id, lab_batch, is_control_sample), names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
     results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
                                                                           raw = as.numeric(raw),
                                                                           percentile = as.numeric(percentile)) %T>% {options(warn=0)}
@@ -179,7 +178,6 @@ task PlotPCA {
 
 task BuildHTMLReport {
   input {
-    File batch_all_results
     File batch_control_results
     File batch_missing_sites_shifts
     File expected_control_results
@@ -214,7 +212,6 @@ task BuildHTMLReport {
     library(plotly)
     library(DT)
 
-    batch_all_results <- read_tsv("~{batch_all_results}")
     batch_control_results <- read_tsv("~{batch_control_results}", col_types = cols(.default = 'n'))
     expected_control_results <- read_csv("~{expected_control_results}", col_types = cols(.default = 'n'))
     batch_pivoted_results <- read_tsv("~{batch_pivoted_results}")
@@ -273,14 +270,15 @@ task BuildHTMLReport {
 
     ## Individual Sample Results (without control sample)
     \`\`\`{r sample results , echo = FALSE, results = "asis"}
-    batch_results_table <- batch_all_results %>%
-    filter(!is_control_sample) %>% select(!is_control_sample) %>%
-    mutate(across(ends_with("raw") | ends_with("adjusted") | ends_with("percentile"), ~ kableExtra::cell_spec(gsub("_", " ", ifelse(is.na(as.numeric(.x)), ifelse(is.na(.x), 'SCORE NOT REQUESTED', .x), round(as.numeric(.x), 2))), color = ifelse(is.na(.x), "blue", ifelse(.x == "NOT_RESULTED", "red", "black"))))) %>%
-    mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(gsub("_", " ", ifelse(is.na(.x), 'SCORE NOT REQUESTED', .x)), color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green")))))) %>%
-    mutate(across(ends_with("reason_not_resulted"), ~ifelse(is.na(.x), .x, kableExtra::cell_spec(.x, color = "red")))) %>%
+    initial_col_order <- batch_all_results %>% select(!is_control_sample) %>% colnames()
+    batch_results_table <- batch_pivoted_results %>% filter(!is_control_sample) %>% select(!is_control_sample) %>%
+    mutate(across(!c(sample_id, lab_batch, reason_not_resulted, condition), ~kableExtra::cell_spec(gsub("_", " ", ifelse(is.na(as.numeric(.x)), ifelse(is.na(.x), 'SCORE NOT REQUESTED', .x), round(as.numeric(.x), 2))), color=ifelse(is.na(risk), "blue", ifelse(risk=="NOT_RESULTED", "red", ifelse(risk == "HIGH", "orange", "green")))))) %>% # round numbers, color all by risk
+    mutate(reason_not_resulted = ifelse(is.na(reason_not_resulted), reason_not_resulted, kableExtra::cell_spec(reason_not_resulted, color="red"))) %>% # reason not resulted always red if exists
+    pivot_wider(id_cols = c(sample_id, lab_batch), names_from = condition, names_glue = "{condition}_{.value}", values_from = c(raw, adjusted, percentile, risk, reason_not_resulted)) %>% # pivot to wide format
+    select(all_of(initial_col_order)) %>% # order columns by initial ordering
     rename_with(.cols = ends_with("percentile"), .fn = ~gsub("_percentile", " %", .x,fixed=TRUE)) %>%
     rename_with(.cols = ends_with("adjusted"), .fn = ~gsub("_adjusted", "_adj", .x,fixed=TRUE))
-    
+
     all_cols = batch_results_table %>% colnames()
     risk_cols = which(endsWith(all_cols, "risk"))
     raw_cols = which(endsWith(all_cols, "raw"))
