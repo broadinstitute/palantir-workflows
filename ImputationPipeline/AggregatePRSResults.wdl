@@ -275,8 +275,12 @@ task BuildHTMLReport {
     \`\`\`{r sample results , echo = FALSE, results = "asis"}
     batch_results_table <- batch_all_results %>%
     filter(!is_control_sample) %>% select(!is_control_sample) %>%
+    mutate(across(ends_with("raw") | ends_with("adjusted") | ends_with("percentile"), ~ kableExtra::cell_spec(gsub("_", " ", ifelse(is.na(as.numeric(.x)), ifelse(is.na(.x), 'SCORE NOT REQUESTED', .x), round(as.numeric(.x), 2))), color = ifelse(is.na(.x), "blue", ifelse(.x == "NOT_RESULTED", "red", "black"))))) %>%
+    mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(gsub("_", " ", ifelse(is.na(.x), 'SCORE NOT REQUESTED', .x)), color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green")))))) %>%
+    mutate(across(ends_with("reason_not_resulted"), ~ifelse(is.na(.x), .x, kableExtra::cell_spec(.x, color = "red")))) %>%
     rename_with(.cols = ends_with("percentile"), .fn = ~gsub("_percentile", " %", .x,fixed=TRUE)) %>%
-    mutate(across(ends_with("risk"), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x), "blue", ifelse(.x=="NOT_RESULTED", "red", ifelse(.x == "HIGH", "orange", "green"))))))
+    rename_with(.cols = ends_with("adjusted"), .fn = ~gsub("_adjusted", "_adj", .x,fixed=TRUE))
+    
     all_cols = batch_results_table %>% colnames()
     risk_cols = which(endsWith(all_cols, "risk"))
     raw_cols = which(endsWith(all_cols, "raw"))
