@@ -211,6 +211,8 @@ task BuildHTMLReport {
     library(tibble)
     library(plotly)
     library(DT)
+    library(stringi)
+    library(tidyr)
 
     batch_control_results <- read_tsv("~{batch_control_results}", col_types = cols(.default = 'n'))
     expected_control_results <- read_csv("~{expected_control_results}", col_types = cols(.default = 'n'))
