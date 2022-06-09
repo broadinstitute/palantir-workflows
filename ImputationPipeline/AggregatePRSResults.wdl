@@ -271,7 +271,7 @@ task BuildHTMLReport {
     \`\`\`
 
     ## Individual Sample Results (without control sample)
-    \`\`\`{r sample results , echo = FALSE, results = "asis"}
+    \`\`\`{r sample results , echo = FALSE, results = "asis", warning = FALSE}
     batch_results_table <- batch_pivoted_results %>% filter(!is_control_sample) %>% select(!is_control_sample) %>%
       mutate(across(!c(sample_id, lab_batch, reason_not_resulted, condition), ~kableExtra::cell_spec(gsub("_", " ", ifelse(is.na(as.numeric(.x)), ifelse(is.na(.x), 'SCORE NOT REQUESTED', .x), round(as.numeric(.x), 2))), color=ifelse(is.na(risk), "blue", ifelse(risk=="NOT_RESULTED", "red", ifelse(risk == "HIGH", "orange", "green")))))) %>% # round numbers, color all by risk
       mutate(reason_not_resulted = ifelse(is.na(reason_not_resulted), reason_not_resulted, kableExtra::cell_spec(reason_not_resulted, color="red"))) %>% # reason not resulted always red if exists
@@ -330,8 +330,7 @@ task BuildHTMLReport {
                           )
                   )
     )  %>%
-    formatStyle(columns = c("sample_id", "lab_batch"), fontWeight = 'bold') %>%
-    formatRound(columns = numeric_cols)
+    formatStyle(columns = c("sample_id", "lab_batch"), fontWeight = 'bold')
     \`\`\`
 
     ## Missing sites
