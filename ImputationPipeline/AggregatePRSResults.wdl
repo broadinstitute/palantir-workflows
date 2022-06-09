@@ -215,8 +215,8 @@ task BuildHTMLReport {
     library(DT)
 
     batch_all_results <- read_tsv("~{batch_all_results}")
-    batch_control_results <- read_tsv("~{batch_control_results}")
-    expected_control_results <- read_csv("~{expected_control_results}")
+    batch_control_results <- read_tsv("~{batch_control_results}", col_types = cols(.default = 'n'))
+    expected_control_results <- read_csv("~{expected_control_results}", col_types = cols(.default = 'n'))
     batch_pivoted_results <- read_tsv("~{batch_pivoted_results}")
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
@@ -235,7 +235,7 @@ task BuildHTMLReport {
 
 
     ## Control Sample
-    \`\`\`{r control, echo = FALSE, results = "asis"}
+    \`\`\`{r control, echo = FALSE, results = "asis", warning = FALSE}
     control_and_expected <- bind_rows(list(batch_control_results, expected_control_results)) %>% select(ends_with('_adjusted'))
     delta_frame_colored <- (control_and_expected[-1,] - control_and_expected[-nrow(control_and_expected),]) %>% mutate(across(everything(), ~ round(.x, digits=2))) %>% mutate(across(everything(), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x) || abs(.x) > 0.12, "red", "green"))))
     control_and_expected_char <- control_and_expected %>% mutate(across(everything(), ~ format(round(.x, digits=2), nsmall=2)))
