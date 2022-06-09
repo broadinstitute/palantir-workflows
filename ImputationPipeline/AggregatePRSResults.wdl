@@ -288,7 +288,7 @@ task BuildHTMLReport {
     all_cols = batch_results_table %>% colnames()
     risk_cols = which(endsWith(all_cols, "risk"))
     raw_cols = which(endsWith(all_cols, "raw"))
-    adjusted_cols = which(endsWith(all_cols, "adjusted"))
+    adjusted_cols = which(endsWith(all_cols, "adj"))
     percentile_cols = which(endsWith(all_cols, "%"))
     reason_not_resulted_cols = which(endsWith(all_cols, "reason_not_resulted"))
     numeric_cols = batch_results_table %>% select(where(is.numeric)) %>% colnames()
