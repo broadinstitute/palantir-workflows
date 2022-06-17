@@ -39,16 +39,22 @@ workflow RNAWithUMIsPipeline {
 			bam_without_readgroups = STAR.transcriptome_bam
 	}
 
-	call SimpleMD.SimpleDuplicateMarking {
+    # call SimpleMD.SimpleDuplicateMarking {
+    #     input:
+    #         aligned_bam = STAR.aligned_bam,
+    #         output_basename = output_basename
+    # }
+
+	call SortSamQuery {
 		input:
-			aligned_bam = STAR.aligned_bam,
-			output_basename = output_basename
+			input_bam = CopyReadGroupsToHeader.output_bam,
+			output_bam_basename = "aligned_query_sorted"
 	}
 
-	call SimpleMD.SimpleDuplicateMarking as SimpleDuplicateMarkingTranscriptome {
+	call PostprocessTranscriptomeForRSEM {
 		input:
-			aligned_bam = CopyReadGroupsToHeader.output_bam,
-			output_basename = output_basename + ".transcriptome"
+			prefix = output_basename + ".transcriptome_with_duplicates",
+			input_bam = SortSamQuery.output_bam
 	}
 
 	call GetSampleName {
@@ -56,75 +62,118 @@ workflow RNAWithUMIsPipeline {
 			bam = bam
 	}
 
-	call rnaseqc2 {
-		input:
-			bam_file = SimpleDuplicateMarking.duplicate_marked_bam,
-			genes_gtf = gtf,
-			sample_id = GetSampleName.sample_name
-	}
+    # call rnaseqc2 {
+    #     input:
+    #         bam_file = SimpleDuplicateMarking.duplicate_marked_bam,
+    #         genes_gtf = gtf,
+    #         sample_id = GetSampleName.sample_name
+    # }
 
-	# This should be removed before turning this into production
-	call rnaseqc2 as RNASeQC2Transcriptome {
-		input:
-			bam_file = SimpleDuplicateMarkingTranscriptome.duplicate_marked_bam,
-			genes_gtf = gtf,
-			sample_id = GetSampleName.sample_name
-	}
+    # call CollectRNASeqMetrics {
+    #     input:
+    #         input_bam=SimpleDuplicateMarking.duplicate_marked_bam,
+    #         input_bam_index=SimpleDuplicateMarking.duplicate_marked_bam_index,
+    #         output_bam_prefix=GetSampleName.sample_name,
+    #         ref_dict=refDict,
+    #         ref_fasta=ref,
+    #         ref_fasta_index=refIndex,
+    #         ref_flat=refFlat,
+    #         ribosomal_intervals=ribosomalIntervals,
+    #         preemptible_tries=0
+    # }
 
-	call CollectRNASeqMetrics {
-		input:
-			input_bam=SimpleDuplicateMarking.duplicate_marked_bam,
-			input_bam_index=SimpleDuplicateMarking.duplicate_marked_bam_index,
-			output_bam_prefix=GetSampleName.sample_name,
-			ref_dict=refDict,
-			ref_fasta=ref,
-			ref_fasta_index=refIndex,
-			ref_flat=refFlat,
-			ribosomal_intervals=ribosomalIntervals,
-			preemptible_tries=0
-	}
-
-	call CollectMultipleMetrics {
-		input:
-			input_bam=SimpleDuplicateMarking.duplicate_marked_bam,
-			input_bam_index=SimpleDuplicateMarking.duplicate_marked_bam_index,
-			output_bam_prefix=GetSampleName.sample_name,
-			ref_dict=refDict,
-			ref_fasta=ref,
-			ref_fasta_index=refIndex,
-			preemptible_tries=0
-	}
-
-	call CollectInsertSizeMetrics as InsertSizeTranscriptome {
-		input:
-			input_bam = SimpleDuplicateMarkingTranscriptome.duplicate_marked_bam,
-			input_bam_index = SimpleDuplicateMarkingTranscriptome.duplicate_marked_bam_index,
-			output_bam_prefix = GetSampleName.sample_name + "_transcriptome",
-			preemptible_tries = 0
-	}
-
+    # call CollectMultipleMetrics {
+    #     input:
+    #         input_bam=SimpleDuplicateMarking.duplicate_marked_bam,
+    #         input_bam_index=SimpleDuplicateMarking.duplicate_marked_bam_index,
+    #         output_bam_prefix=GetSampleName.sample_name,
+    #         ref_dict=refDict,
+    #         ref_fasta=ref,
+    #         ref_fasta_index=refIndex,
+    #         preemptible_tries=0
+    # }
 
 
   output {
-	File transcriptome_bam = SimpleDuplicateMarkingTranscriptome.duplicate_marked_bam
-	File transcriptome_bam_index = SimpleDuplicateMarkingTranscriptome.duplicate_marked_bam_index
-	File transcriptome_duplicate_metrics = SimpleDuplicateMarkingTranscriptome.duplicate_metrics
-	File output_bam = SimpleDuplicateMarking.duplicate_marked_bam
-	File output_bam_index = SimpleDuplicateMarking.duplicate_marked_bam_index
-	File duplicate_metrics = SimpleDuplicateMarking.duplicate_metrics
-	File gene_tpm = rnaseqc2.gene_tpm
-	File gene_counts = rnaseqc2.gene_counts
-	File exon_counts = rnaseqc2.exon_counts
-	File metrics = rnaseqc2.metrics
+	File transcriptome_bam = PostprocessTranscriptomeForRSEM.output_bam
+
+	# File output_bam = SimpleDuplicateMarking.duplicate_marked_bam
+	# File output_bam_index = SimpleDuplicateMarking.duplicate_marked_bam_index
+	# File duplicate_metrics = SimpleDuplicateMarking.duplicate_metrics
+
 	Float fastqc_adapter_content = FastQC.adapter_content
 	File fastqc_report = FastQC.fastqc_html
 	File fastqc_table = FastQC.fastqc_data
-	File genome_insert_size_metrics = CollectMultipleMetrics.insert_size_metrics
-	File transcriptome_insert_size_metrics = InsertSizeTranscriptome.insert_size_metrics
-	File alignment_metrics = CollectMultipleMetrics.alignment_summary_metrics
-	File rna_metrics = CollectRNASeqMetrics.rna_metrics
+
+	# File gene_tpm = rnaseqc2.gene_tpm
+	# File gene_counts = rnaseqc2.gene_counts
+	# File exon_counts = rnaseqc2.exon_counts
+	# File metrics = rnaseqc2.metrics
+	
+	# File genome_insert_size_metrics = CollectMultipleMetrics.insert_size_metrics
+	# File alignment_metrics = CollectMultipleMetrics.alignment_summary_metrics
+	# File rna_metrics = CollectRNASeqMetrics.rna_metrics
 
 		
+  }
+}
+
+task PostprocessTranscriptomeForRSEM {
+  input {
+    String prefix
+    File input_bam # the input must be queryname sorted
+    Int disk_size_gb = ceil(3*size(input_bam,"GiB")) + 128
+    String docker = "us.gcr.io/broad-gatk/gatk:4.2.6.0"
+    Int memory_mb = 16000
+  }
+
+  command {
+    gatk PostProcessReadsForRSEM \
+    -I ~{input_bam} \
+    -O ~{prefix}_RSEM_post_processed.bam
+  }
+
+  output {
+    File output_bam = "~{prefix}_RSEM_post_processed.bam"
+  }
+
+  runtime {
+    docker: docker 
+    disks: "local-disk ~{disk_size_gb} HDD"
+    memory: "${memory_mb} MiB"
+  }
+}
+
+task SortSamQuery {
+  input {
+    File input_bam
+    String output_bam_basename
+  }
+  # SortSam spills to disk a lot more because we are only store 300000 records in RAM now because its faster for our data so it needs
+  # more disk space.  Also it spills to disk in an uncompressed format so we need to account for that with a larger multiplier
+  Float sort_sam_disk_multiplier = 3.25
+  Int disk_size = ceil(sort_sam_disk_multiplier * size(input_bam, "GiB")) + 20
+
+  command {
+    java -Xms4000m -jar /usr/picard/picard.jar \
+    SortSam \
+    INPUT=~{input_bam} \
+    OUTPUT=~{output_bam_basename}.bam \
+    SORT_ORDER="queryname" \
+    CREATE_INDEX=false \
+    CREATE_MD5_FILE=false \
+    MAX_RECORDS_IN_RAM=300000
+
+  }
+  runtime {
+    docker: "us.gcr.io/broad-gotc-prod/picard-cloud:2.23.8"
+    disks: "local-disk " + disk_size + " HDD"
+    cpu: "1"
+    memory: "5000 MiB"
+    preemptible: 0
+  }
+  output {
+    File output_bam = "~{output_bam_basename}.bam"
   }
 }
 

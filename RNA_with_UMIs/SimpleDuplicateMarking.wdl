@@ -7,27 +7,15 @@ workflow SimpleDuplicateMarking {
     String output_basename
   }
 
-#  call SortSam as SortSamFirst {
-#    input:
-#      input_bam = aligned_bam,
-#      output_bam_basename = "STAR.aligned.sorted"
-#  }
-
-#  call GroupByUMIs {
-#    input:
-#      bam = SortSamFirst.output_bam,
-#      bam_index = SortSamFirst.output_bam_index
-#  }
-
-#  call SortSamQuery {
-#    input:
-#      input_bam = GroupByUMIs.grouped_bam,
-#      output_bam_basename = "Grouped.queryname.sorted"
-#  }
+  call SortSamQuery {
+    input:
+      input_bam = aligned_bam,
+      output_bam_basename = output_basename + "_query_sorted"
+  }
 
   call MarkDuplicates {
     input:
-      bam = aligned_bam
+      bam = SortSamQuery.output_bam
   }
 
   call SortSam {
@@ -118,8 +106,8 @@ task SortSamQuery {
     INPUT=~{input_bam} \
     OUTPUT=~{output_bam_basename}.bam \
     SORT_ORDER="queryname" \
-    CREATE_INDEX=true \
-    CREATE_MD5_FILE=true \
+    CREATE_INDEX=false \
+    CREATE_MD5_FILE=false \
     MAX_RECORDS_IN_RAM=300000
 
   }
