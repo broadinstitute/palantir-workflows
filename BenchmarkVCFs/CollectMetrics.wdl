@@ -1,17 +1,17 @@
 version 1.0
 
 struct MetricsFiles {
-    #File error_by_gc
-    #File error_by_read_ordinality
+    File error_by_gc
+    File error_by_read_ordinality
     File error_by_ref_base
     File error_by_pre_dinuc
     File error_by_post_dinuc
-    #File error_by_cycle
-    #File error_by_insert_length
-    #File error_by_base_quality
-    #File error_by_mapping_quality
-    #File error_by_one_base_padded_context
-    #File error_by_indel_length
+    File error_by_cycle
+    File error_by_insert_length
+    File error_by_base_quality
+    File error_by_mapping_quality
+    File error_by_one_base_padded_context
+    File error_by_indel_length
 }
 
 workflow CollectMetrics {
@@ -87,9 +87,17 @@ task CollectErrorMetrics {
     command <<<
         gatk CollectSamErrorMetrics -I ~{bam} -V ~{vcf} -R ~{reference_fasta} -O ~{output_basename} \
             --ERROR_METRICS null \
+            --ERROR_METRICS ERROR:GC_CONTENT \
+            --ERROR_METRICS ERROR:READ_ORDINALITY \
             --ERROR_METRICS ERROR:REFERENCE_BASE \
             --ERROR_METRICS ERROR:PRE_DINUC \
-            --ERROR_METRICS ERROR:POST_DINUC
+            --ERROR_METRICS ERROR:POST_DINUC\
+            --ERROR_METRICS ERROR:CYCLE \
+            --ERROR_METRICS ERROR:INSERT_LENGTH \
+            --ERROR_METRICS ERROR:BASE_QUALITY \
+            --ERROR_METRICS ERROR:MAPPING_QUALITY \
+            --ERROR_METRICS ERROR:ONE_BASE_PADDED_CONTEXT \
+            --ERROR_METRICS ERROR:INDEL_LENGTH
     >>>
 
     runtime {
@@ -102,17 +110,17 @@ task CollectErrorMetrics {
 
     output {
         MetricsFiles error_metrics = {
-                #"error_by_gc": output_basename + ".error_by_gc",
-                #"error_by_read_ordinality": output_basename + ".error_by_read_ordinality",
+                "error_by_gc": output_basename + ".error_by_gc",
+                "error_by_read_ordinality": output_basename + ".error_by_read_ordinality",
                 "error_by_ref_base": output_basename + ".error_by_ref_base",
                 "error_by_pre_dinuc": output_basename + ".error_by_pre_dinuc",
                 "error_by_post_dinuc": output_basename + ".error_by_post_dinuc",
-                #"error_by_cycle": output_basename + ".error_by_cycle",
-                #"error_by_insert_length": output_basename + ".error_by_insert_length",
-                #"error_by_base_quality": output_basename + ".error_by_base_quality",
-                #"error_by_mapping_quality": output_basename + ".error_by_mapping_quality",
-                #"error_by_one_base_padded_context": output_basename + ".error_by_one_base_padded_context",
-                #"error_by_indel_length": output_basename + ".error_by_indel_length",
+                "error_by_cycle": output_basename + ".error_by_cycle",
+                "error_by_insert_length": output_basename + ".error_by_insert_length",
+                "error_by_base_quality": output_basename + ".error_by_base_quality",
+                "error_by_mapping_quality": output_basename + ".error_by_mapping_quality",
+                "error_by_one_base_padded_context": output_basename + ".error_by_one_base_padded_context",
+                "error_by_indel_length": output_basename + ".error_by_indel_length",
             }
     }
 }
