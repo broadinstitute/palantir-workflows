@@ -71,6 +71,8 @@ task CollectErrorMetrics {
         File bam
         File bam_index
 
+        File? intervals
+
         File reference_fasta
         File reference_index
         File reference_dict
@@ -86,6 +88,7 @@ task CollectErrorMetrics {
 
     command <<<
         gatk CollectSamErrorMetrics -I ~{bam} -V ~{vcf} -R ~{reference_fasta} -O ~{output_basename} \
+            ~{true="-L" false="" defined(intervals)} ~{default="" intervals} \
             --ERROR_METRICS null \
             --ERROR_METRICS ERROR:GC_CONTENT \
             --ERROR_METRICS ERROR:READ_ORDINALITY \
