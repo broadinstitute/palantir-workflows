@@ -1,17 +1,17 @@
 version 1.0
 
 struct MetricsFiles {
-    File error_by_gc
-    File error_by_read_ordinality
+    #File error_by_gc
+    #File error_by_read_ordinality
     File error_by_ref_base
     File error_by_pre_dinuc
     File error_by_post_dinuc
-    File error_by_cycle
-    File error_by_insert_length
-    File error_by_base_quality
-    File error_by_mapping_quality
-    File error_by_one_base_padded_context
-    File error_by_indel_length
+    #File error_by_cycle
+    #File error_by_insert_length
+    #File error_by_base_quality
+    #File error_by_mapping_quality
+    #File error_by_one_base_padded_context
+    #File error_by_indel_length
 }
 
 workflow CollectMetrics {
@@ -102,17 +102,17 @@ task CollectErrorMetrics {
 
     output {
         MetricsFiles error_metrics = {
-                "error_by_gc": output_basename + ".error_by_gc",
-                "error_by_read_ordinality": output_basename + ".error_by_read_ordinality",
+                #"error_by_gc": output_basename + ".error_by_gc",
+                #"error_by_read_ordinality": output_basename + ".error_by_read_ordinality",
                 "error_by_ref_base": output_basename + ".error_by_ref_base",
                 "error_by_pre_dinuc": output_basename + ".error_by_pre_dinuc",
                 "error_by_post_dinuc": output_basename + ".error_by_post_dinuc",
-                "error_by_cycle": output_basename + ".error_by_cycle",
-                "error_by_insert_length": output_basename + ".error_by_insert_length",
-                "error_by_base_quality": output_basename + ".error_by_base_quality",
-                "error_by_mapping_quality": output_basename + ".error_by_mapping_quality",
-                "error_by_one_base_padded_context": output_basename + ".error_by_one_base_padded_context",
-                "error_by_indel_length": output_basename + ".error_by_indel_length",
+                #"error_by_cycle": output_basename + ".error_by_cycle",
+                #"error_by_insert_length": output_basename + ".error_by_insert_length",
+                #"error_by_base_quality": output_basename + ".error_by_base_quality",
+                #"error_by_mapping_quality": output_basename + ".error_by_mapping_quality",
+                #"error_by_one_base_padded_context": output_basename + ".error_by_one_base_padded_context",
+                #"error_by_indel_length": output_basename + ".error_by_indel_length",
             }
     }
 }
