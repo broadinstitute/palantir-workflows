@@ -11,7 +11,6 @@ struct MetricsFiles {
     File error_by_base_quality
     File error_by_mapping_quality
     File error_by_one_base_padded_context
-    File error_by_indel_length
 }
 
 workflow CollectMetrics {
@@ -99,8 +98,7 @@ task CollectErrorMetrics {
             --ERROR_METRICS ERROR:INSERT_LENGTH \
             --ERROR_METRICS ERROR:BASE_QUALITY \
             --ERROR_METRICS ERROR:MAPPING_QUALITY \
-            --ERROR_METRICS ERROR:ONE_BASE_PADDED_CONTEXT \
-            --ERROR_METRICS ERROR:INDEL_LENGTH
+            --ERROR_METRICS ERROR:ONE_BASE_PADDED_CONTEXT
     >>>
 
     runtime {
@@ -123,7 +121,6 @@ task CollectErrorMetrics {
                 "error_by_base_quality": output_basename + ".error_by_base_quality",
                 "error_by_mapping_quality": output_basename + ".error_by_mapping_quality",
                 "error_by_one_base_padded_context": output_basename + ".error_by_one_base_padded_context",
-                "error_by_indel_length": output_basename + ".error_by_indel_length",
             }
     }
 }
