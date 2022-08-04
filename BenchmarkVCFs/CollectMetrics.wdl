@@ -20,7 +20,8 @@ workflow CollectMetrics {
         File bam
         File bam_index
 
-        File calling_interval
+        File intervals_for_wgs_metrics
+        File? intervals_for_error_metrics
         Int read_length
 
         File reference_fasta
@@ -37,6 +38,7 @@ workflow CollectMetrics {
             vcf_index = vcf_index,
             bam = bam,
             bam_index = bam_index,
+            intervals = intervals_for_error_metrics,
             reference_fasta = reference_fasta,
             reference_index = reference_index,
             reference_dict = reference_dict,
@@ -48,7 +50,7 @@ workflow CollectMetrics {
         input:
             input_bam = bam,
             input_bam_index = bam_index,
-            wgs_coverage_interval_list = calling_interval,
+            wgs_coverage_interval_list = intervals_for_wgs_metrics,
             read_length = read_length,
             reference_fasta = reference_fasta,
             reference_index = reference_index,
