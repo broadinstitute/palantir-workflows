@@ -24,6 +24,8 @@ workflow CollectMetrics {
         File? intervals_for_error_metrics
         Int read_length
 
+        Boolean use_fast_algorithm = false
+
         File reference_fasta
         File reference_index
         File reference_dict
@@ -52,6 +54,7 @@ workflow CollectMetrics {
             input_bam_index = bam_index,
             wgs_coverage_interval_list = intervals_for_wgs_metrics,
             read_length = read_length,
+            use_fast_algorithm = use_fast_algorithm,
             reference_fasta = reference_fasta,
             reference_index = reference_index,
             reference_dict = reference_dict,
@@ -132,6 +135,7 @@ task CollectWgsMetrics {
     File input_bam
     File input_bam_index
     File wgs_coverage_interval_list
+    Boolean use_fast_algorithm
     File reference_fasta
     File reference_index
     File reference_dict
@@ -156,7 +160,7 @@ task CollectWgsMetrics {
       INCLUDE_BQ_HISTOGRAM=true \
       INTERVALS=~{wgs_coverage_interval_list} \
       OUTPUT=~{output_name} \
-      USE_FAST_ALGORITHM=true \
+      USE_FAST_ALGORITHM=~{use_fast_algorithm} \
       READ_LENGTH=~{read_length}
   }
   runtime {
