@@ -160,7 +160,8 @@ workflow ScoringImputedDataset {
 			vcf = imputed_array_vcf,
 			pruning_sites = select_first([pruning_sites_for_pca]),
 			basename = basename,
-			mem = vcf_to_plink_mem
+			mem = vcf_to_plink_mem,
+			allow_vcf_half_calls = allow_vcf_half_calls
 		}
 
 		if (defined(population_vcf)) {
