@@ -32,6 +32,8 @@ workflow ScoringImputedDataset {
 	# is the effect allele, and the 13th column is the effect weight
 	Boolean redoPCA = false
 	Boolean adjustScores = true
+
+	Boolean allow_vcf_half_calls = false
   }
 
   if (adjustScores) {
@@ -105,7 +107,8 @@ workflow ScoringImputedDataset {
 		weights = named_weight_set.weight_set.linear_weights,
 		base_mem = scoring_mem,
 		extra_args = columns_for_scoring,
-		sites = select_first([ExtractIDsPopulation.ids, sites_used_in_scoring_for_model])
+		sites = select_first([ExtractIDsPopulation.ids, sites_used_in_scoring_for_model]),
+		allow_vcf_half_calls = allow_vcf_half_calls
 	}
 
 	if (defined(named_weight_set.weight_set.interaction_weights)) {
@@ -139,7 +142,8 @@ workflow ScoringImputedDataset {
 					vcf = select_first([population_vcf]),
 					pruning_sites = select_first([pruning_sites_for_pca]),
 					subset_to_sites = ExtractIDsPlink.ids,
-					basename = "population"
+					basename = "population",
+					allow_vcf_half_calls = allow_vcf_half_calls
 			}
 
 			call PCATasks.PerformPCA {

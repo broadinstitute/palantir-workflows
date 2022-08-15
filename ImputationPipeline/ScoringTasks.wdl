@@ -11,6 +11,7 @@ task ScoreVcf {
     Int base_mem = 8
     String? extra_args
     File? sites
+    Boolean allow_vcf_half_calls = false
   }
 
   Int runtime_mem = base_mem + 2
@@ -20,7 +21,7 @@ task ScoreVcf {
   command {
     /plink2 --score ~{weights} header ignore-dup-ids list-variants no-mean-imputation \
     cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --set-all-var-ids @:#:\$1:\$2 --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
-    --new-id-max-allele-len 1000 missing ~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem}
+    --new-id-max-allele-len 1000 missing ~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem} ~{if allow_vcf_half_calls then "--vcf-half-call missing" else ""}
   }
 
   output {
