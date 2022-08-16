@@ -101,16 +101,18 @@ task ArrayVcfToPlinkDataset {
     File pruning_sites
     File? subset_to_sites
     String basename
-    Int mem = 8
+    Int mem = 16
     Boolean allow_vcf_half_calls = false
   }
 
   Int disk_space =  3*ceil(size(vcf, "GB")) + 20
+  Int memory_for_plink = (mem - 2) * 1024
 
   command {
 
     /plink2 --vcf ~{vcf} --extract-intersect ~{pruning_sites} ~{subset_to_sites} --allow-extra-chr --set-all-var-ids @:#:\$1:\$2 \
-    --new-id-max-allele-len 1000 missing --out ~{basename} --make-bed --rm-dup force-first ~{if allow_vcf_half_calls then "--vcf-half-call missing" else ""}
+    --new-id-max-allele-len 1000 missing --out ~{basename} --make-bed --rm-dup force-first ~{if allow_vcf_half_calls then "--vcf-half-call missing" else ""} \
+    --memory ~{memory_for_plink}
   }
 
   output {
