@@ -28,7 +28,7 @@ task CombineSucceededVCFs {
         i=0
 
         # Loop over all shards for all benchmarking tasks
-        for WORKFLOW in $(gsutil ls gs://~{ws_name}/~{sub_id}/FindSamplesAndBenchmark/)
+        for WORKFLOW in $(gsutil ls gs://~{ws_name}/submissions/~{sub_id}/FindSamplesAndBenchmark/)
         do
             for SHARD in $(gsutil ls "${WORKFLOW}call-BenchmarkVCF")
             do
