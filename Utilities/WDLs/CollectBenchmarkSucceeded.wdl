@@ -38,11 +38,11 @@ task CombineSucceeded {
         submission_id = "~{submission_id}"
 
         # Get all workflows associated with given submission id
-        bench = fapi.get_submission(namespace, workspace_name, submission_id).json()
+        benchmark_submission = fapi.get_submission(namespace, workspace_name, submission_id).json()
         benchmark_df = pd.DataFrame()
 
         # Loop over all workflows to get outputs from those that succeeded
-        for wf in bench['workflows']:
+        for wf in benchmark_submission['workflows']:
             if wf['status'] == 'Succeeded':
                 wf_meta = fapi.get_workflow_metadata(namespace, workspace_name, submission_id, wf['workflowId']).json()
                 summary = wf_meta['outputs']['FindSamplesAndBenchmark.benchmark_vcf_summary']
