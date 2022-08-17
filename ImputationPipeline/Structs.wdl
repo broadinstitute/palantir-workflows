@@ -35,5 +35,5 @@ struct PRSWrapperConditionResource {
 	Boolean score_condition
 	Float percentile_threshold
 	NamedWeightSet named_weight_set
-	AncestryAdjustmentModelParams ancestry_model_params_and_sites
+	AncestryAdjustmentModelParams? ancestry_model_params_and_sites
 }
