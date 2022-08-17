@@ -216,7 +216,7 @@ def plot_region(ax, region_data, dataset, var_type, region, signed_difference, s
     if np.isfinite(max_y) and np.isfinite(min_y):
         ax.set_ylim(min(0, min_y * 1.1), max(0, max_y * 1.1))
     else:
-        print('Invalid plot data for {} {} {}'.format(dataset, var_type, region))
+        print(f'Invalid plot data for dataset {dataset}, var_type {var_type}, region {region}.')
 
     ax.set_xlim(0, plot_qual_limit)
     ax.set_xlabel('Quality threshold q')
@@ -238,7 +238,7 @@ def plot_region(ax, region_data, dataset, var_type, region, signed_difference, s
         titlecolor = 'white'
         fe_status = 0
         
-    ax.set_title(r'{} {}'.format(var_type, region), backgroundcolor=titlecolor, zorder=0)
+    ax.set_title(f'{var_type} {region}', backgroundcolor=titlecolor, zorder=0)
 
     # Write values to the summary file
     for threshold in range(plot_qual_limit):
@@ -282,10 +282,10 @@ def plot_dataset(data, dataset, tool1_label, tool2_label, additional_label, sign
         axes[1, 2].axis('off')
     
             
-    fig.suptitle('Dataset: {}'.format(dataset) + ('' if not additional_label else ', {}'.format(additional_label)) + '\n' +
+    fig.suptitle(f'Dataset: {dataset}' + ('' if not additional_label else f', {additional_label}') + '\n' +
                 ('Signed ' if signed_difference else 'Absolute ') +
                 r'$F_1 = \frac{TP}{TP + \frac{1}{2} (FP + FN)}$ score differences for calls with $QUAL \geq q$' +
-                ' (# replicates: {})'.format(len(data.loc[data['dataset'] == dataset].replicate.unique())))
+                f' (# replicates: {len(data.loc[data["dataset"] == dataset].replicate.unique())})')
     if signed_difference:
         inter_label = 'Inter: $F_{1, ' + tool1_label + '\\ rep 1} - F_{1, ' + tool2_label + '\\ rep 1}$'
     else:
@@ -295,7 +295,7 @@ def plot_dataset(data, dataset, tool1_label, tool2_label, additional_label, sign
     legend_intra_tool2_line = matplotlib.lines.Line2D([], [], color='C1', label='Intra: $|F_{1, ' + tool2_label + '\\ rep 1} - F_{1, ' + tool2_label + '\\ rep 2}|$')
     fig.legend(bbox_to_anchor=(0.5, 0.2), loc='center', handles=[legend_inter_line, legend_intra_tool1_line, legend_intra_tool2_line])
     plt.tight_layout()
-    fig.savefig('f1_plot_{}.png'.format(dataset), dpi=100)
+    fig.savefig(f'f1_plot_{dataset}.png', dpi=100)
     return fe_status
 
 def main(roc_tables, tool1_label, tool2_label, additional_label, signed_difference):
