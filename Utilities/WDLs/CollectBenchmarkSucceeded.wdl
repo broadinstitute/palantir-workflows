@@ -2,63 +2,60 @@ version 1.0
 
 workflow CollectBenchmarkSucceeded {
     input {
-        String workspace_bucket_name
+        String namespace
+        String workspace_name
         String submission_id
     }
 
-    call CombineSucceededVCFs {
+    call CombineSucceeded {
         input:
-            ws_name = workspace_bucket_name,
-            sub_id = submission_id
+            namespace = namespace,
+            workspace_name = workspace_name,
+            submission_id = submission_id
     }
 
     output {
-        File combined_summaries = CombineSucceededVCFs.combined_summaries
+        File combined_summaries = CombineSucceeded.combined_summaries
     }
 }
 
 
-task CombineSucceededVCFs {
+task CombineSucceeded {
     input {
-        String ws_name
-        String sub_id
+        String namespace
+        String workspace_name
+        String submission_id
     }
 
     command <<<
-        i=0
+        python <<CODE
+        import pandas as pd
+        import firecloud.api as fapi
 
-        # Loop over all shards for all benchmarking tasks
-        for WORKFLOW in $(gsutil ls gs://~{ws_name}/submissions/~{sub_id}/FindSamplesAndBenchmark/)
-        do
-            for SHARD in $(gsutil ls "${WORKFLOW}call-BenchmarkVCF")
-            do
-               benchmark_url=$(gsutil ls "${SHARD}Benchmark")
-               summary_url=$(gsutil ls "${benchmark_url}call-CombineSummaries/summary.csv")
 
-                # Check if summary exists, i.e. shard was successful
-                return_code=$(echo $?)
+        namespace = "~{namespace}"
+        workspace_name = "~{workspace_name}"
+        submission_id = "~{submission_id}"
 
-                 # If successful, copy benchmark output to ith shard
-                 if [ $return_code -eq 0 ]; then
-                    gsutil cp $summary_url "shard-${i}.csv"
-                    ((++i))
-                 fi
-            done
-        done
+        # Get all workflows associated with given submission id
+        bench = fapi.get_submission(namespace, workspace_name, submission_id).json()
+        benchmark_df = pd.DataFrame()
 
-        # Create summary file
-        > CombinedBenchmarkSummaries.csv
+        # Loop over all workflows to get outputs from those that succeeded
+        for wf in bench['workflows']:
+            if wf['status'] == 'Succeeded':
+                wf_meta = fapi.get_workflow_metadata(namespace, workspace_name, submission_id, wf['workflowId']).json()
+                summary = wf_meta['outputs']['FindSamplesAndBenchmark.benchmark_vcf_summary']
+                new_df = pd.read_csv(summary)
+                benchmark_df = pd.concat([benchmark_df, new_df])    # Combine into one df
 
-        # Copy header from first shard
-        head -1 shard-0.csv >> CombinedBenchmarkSummaries.csv
+        benchmark_df.to_csv('CombinedBenchmarkSummaries.csv', index=False)
 
-        # Combine all summaries into one and clean
-        awk FNR-1 shard-*.csv >> CombinedBenchmarkSummaries.csv
-        rm shard-*.csv
+        CODE
     >>>
 
     runtime {
-    docker: "gcr.io/google.com/cloudsdktool/cloud-sdk:alpine"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim"
     }
 
     output {
