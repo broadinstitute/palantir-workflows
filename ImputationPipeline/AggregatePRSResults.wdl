@@ -220,7 +220,7 @@ task BuildHTMLReport {
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
     multi_high_samples <- batch_pivoted_results %>% filter(risk=="HIGH") %>% group_by(sample_id) %>%
-      summarise(`high risk conditions` = paste(condition, collapse = ","), n=n()) %>%
+      summarise(\`high risk conditions\` = paste(condition, collapse = ","), n=n()) %>%
       filter(n>1) %>% select(-n)
     \`\`\`
 
