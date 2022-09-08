@@ -263,7 +263,7 @@ task BuildHTMLReport {
     ggplot(batch_pivoted_results %>% filter(condition %in% conditions_with_more_than_3_samples), aes(x=adjusted)) +
       geom_density(aes(color=condition), fill=NA, position = "identity") +
       xlim(-5,5) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
-      geom_point(data = batch_pivoted_results %>% filter(!(conditions_with_more_than_3_samples)), aes(color=condition, x = adjusted), y=0) +
+      geom_point(data = batch_pivoted_results %>% filter(!(condition %in% conditions_with_more_than_3_samples)), aes(color=condition, x = adjusted), y=0) +
       ylab("density")
     \`\`\`
 
