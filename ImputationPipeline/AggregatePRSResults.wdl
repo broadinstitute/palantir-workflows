@@ -279,7 +279,7 @@ task BuildHTMLReport {
     \`\`\`
 
     ## Individual Sample Results (without control sample)
-    \`\`\`{r sample results , echo = FALSE, results = "asis", warning = FALSE}
+    \`\`\`{r sample results , echo = FALSE, results = "asis", warning = FALSE, message = FALSE}
     batch_high_counts_per_sample <- batch_pivoted_results %>% group_by(sample_id) %>% summarise(n_high_risk = sum(ifelse(!is.na(risk) & risk =="HIGH", 1, 0)))
     batch_results_table <- batch_pivoted_results %>% filter(!is_control_sample) %>% select(!is_control_sample) %>%
       mutate(across(!c(sample_id, lab_batch, reason_not_resulted, condition), ~kableExtra::cell_spec(gsub("_", " ", ifelse(is.na(as.numeric(.x)), ifelse(is.na(.x), 'SCORE NOT REQUESTED', .x), round(as.numeric(.x), 2))), color=ifelse(is.na(risk), "lightgrey", ifelse(risk=="NOT_RESULTED", "red", ifelse(risk == "HIGH", "orange", "green")))))) %>% # round numbers, color all by risk
