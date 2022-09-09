@@ -300,7 +300,7 @@ task BuildHTMLReport {
       rename_with(.cols = ends_with("adjusted"), .fn = ~gsub("_adjusted", "_adj", .x,fixed=TRUE))
 
     all_cols = batch_results_table %>% colnames()
-    risk_cols = which(endsWith(all_cols, "risk"))
+    risk_cols = which(endsWith(all_cols, "risk") & all_cols != "n_high_risk")
     raw_cols = which(endsWith(all_cols, "raw"))
     adjusted_cols = which(endsWith(all_cols, "adj"))
     percentile_cols = which(endsWith(all_cols, "%"))
