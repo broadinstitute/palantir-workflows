@@ -259,12 +259,14 @@ task BuildHTMLReport {
 
     ## Batch Score distribution
     \`\`\`{r score distributions, echo=FALSE, message=FALSE, warning=FALSE, results="asis", fig.align='center'}
+    normal_dist <- tibble(x=seq(-5,5,0.01)) %>% mutate(y=dnorm(x)) # needed because plotly doesn't work with geom_function
     conditions_with_more_than_4_samples <- batch_pivoted_results %>% group_by(condition) %>% filter(!is.na(adjusted)) %>% count() %>% filter(n>4) %>% pull(condition)
-    ggplot(batch_pivoted_results %>% filter(condition %in% conditions_with_more_than_4_samples), aes(x=adjusted)) +
-      geom_density(aes(color=condition), fill=NA, position = "identity") +
-      xlim(-5,5) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
-      geom_point(data = batch_pivoted_results %>% filter(!(condition %in% conditions_with_more_than_4_samples)), aes(color=condition, x = adjusted), y=0) +
+    p_dist <- ggplot(batch_pivoted_results %>% filter(condition %in% conditions_with_more_than_4_samples), aes(x=adjusted)) +
+      stat_density(aes(color=condition, text=condition), geom="line", position = "identity") +
+      xlim(-5,5) + theme_bw() + xlab("z-score") + geom_line(data=normal_dist, aes(x=x, y=y), color="black") +
+      geom_point(data = batch_pivoted_results %>% filter(!(condition %in% conditions_with_more_than_4_samples)), aes(color=condition, x = adjusted, text=condition), y=0) +
       ylab("density")
+    ggplotly(p_dist, tooltip="text")
     \`\`\`
 
     ## PCA
