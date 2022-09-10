@@ -54,3 +54,7 @@ workflows:
   - name: TrainAncestryAdjustmentModel
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/TrainAncestryAdjustmentModel.wdl
+  - name: CombineSummaries
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/CombineSummaries.wdl
+    
