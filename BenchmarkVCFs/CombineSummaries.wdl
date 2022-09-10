@@ -7,10 +7,10 @@ workflow CombineSummaries{
 
 	}
 	call BM.CombineSummaries as CS{
-		input {
+		input :
 			summaries=summaries,
 			preemptible=3
-		}
+		
 	}
 
 	output{
