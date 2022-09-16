@@ -1,0 +1,34 @@
+{
+  "lb_1" : {
+    "lab_batch" : "lb_1",
+    "group" : 1,
+    "samples" : [
+      "sample_id_1",
+      "sample_id_2",
+      "sample_id_3",
+      "sample_id_7"
+    ],
+    "delivered" : false,
+    "redeliver" : false
+  },
+  "lb_2" : {
+    "lab_batch" : "lb_2",
+    "group" : 1,
+    "samples" : [
+      "sample_id_4",
+      "sample_id_5"
+    ],
+    "delivered" : true,
+    "redeliver" : false
+  },
+  "lb_2_group_2" : {
+    "lab_batch" : "lb_2",
+    "group" : 2,
+    "samples" : [
+      "sample_id_4",
+      "sample_id_6"
+    ],
+    "delivered" : false,
+    "redeliver" : false
+  }
+}

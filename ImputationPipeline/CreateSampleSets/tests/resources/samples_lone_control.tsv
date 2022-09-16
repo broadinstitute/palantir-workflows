@@ -1,0 +1,4 @@
+entity:sample_id	lab_batch	is_control_sample
+sample_id_1	lb_1	true
+sample_id_4	lb_2	true
+sample_id_5	lb_2	false
