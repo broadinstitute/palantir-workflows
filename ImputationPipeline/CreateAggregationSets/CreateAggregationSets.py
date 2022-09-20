@@ -1,10 +1,9 @@
 import firecloud.api as fapi
-import json
 import argparse
-import os
-from datetime import datetime, timezone
+from datetime import datetime
 import pytz
 from dataclasses import dataclass, field
+from io import StringIO
 
 
 @dataclass
@@ -44,7 +43,7 @@ class GroupBuilder:
         entity_types_response = fapi.list_entity_types(self.workspace_namespace, self.workspace_name)
         if not entity_types_response.ok:
             raise RuntimeError(f'ERROR: {entity_types_response.text}')
-        self.entity_types_dict = json.loads(entity_types_response.text)
+        self.entity_types_dict = entity_types_response.json()
         self.available_tables = self.entity_types_dict.keys()
 
     def build_groups(self):
@@ -53,12 +52,6 @@ class GroupBuilder:
                 self.group_samples_into_batches(table_name)
 
     def group_samples_into_batches(self, table_name):
-        if os.path.exists('CreateSampleSets_data'):
-            os.system('rm -r CreateSampleSets_data')
-        os.system('mkdir -p CreateSampleSets_data')
-        sample_sets_membership_path = f'CreateSampleSets_data/new_{table_name}_set_membership.tsv'
-        updated_samples_path = f'CreateSampleSets_data/{table_name}.tsv'
-
         samples_already_in_aggregation_sets = set()  # set of samples already in aggregation sets
         lab_batch_sample_sets_dict = dict()  # dict from lab_batch to highest group aggregation_set for that lab_batch
 
@@ -68,10 +61,7 @@ class GroupBuilder:
             sample_set_response = fapi.get_entities(self.workspace_namespace, self.workspace_name, f'{table_name}_set')
             if not sample_set_response.ok:
                 raise RuntimeError(f'ERROR: {sample_set_response.text}')
-            sample_sets_dict = json.loads(sample_set_response.text)
-            existing_sample_sets = {s['name']: [e['entityName'] for e in s['attributes'][f'{table_name}s']['items']] for
-                                    s
-                                    in sample_sets_dict}
+            sample_sets_dict = sample_set_response.json()
 
             for sample_set in sample_sets_dict:
                 samples = [e['entityName'] for e in sample_set['attributes'][f'{table_name}s']['items']]
@@ -80,13 +70,13 @@ class GroupBuilder:
             for sample_set in sample_sets_dict:
                 attributes = sample_set['attributes']
                 lab_batch = attributes['lab_batch']
-                this_aggregation_set = pre_existing_aggregation_set(lab_batch, attributes['group'],
-                                                                    attributes['delivered'])
+                this_aggregation_set = AggregationSet(lab_batch, attributes['group'], attributes['delivered'], True)
                 if lab_batch in lab_batch_sample_sets_dict:
                     if lab_batch_sample_sets_dict[lab_batch].group < this_aggregation_set.group:
                         if not lab_batch_sample_sets_dict[lab_batch].delivered:
                             raise RuntimeError(
-                                f'Aggregation set {lab_batch_sample_sets_dict[lab_batch].set_id} has not been delivered, '
+                                f'Aggregation set {lab_batch_sample_sets_dict[lab_batch].set_id}'
+                                f' has not been delivered, '
                                 f'but later set {this_aggregation_set.set_id} also exists')
                         lab_batch_sample_sets_dict[attributes['lab_batch']] = this_aggregation_set
                 else:
@@ -98,16 +88,16 @@ class GroupBuilder:
         if not sample_response.ok:
             raise RuntimeError(f'ERROR: {sample_response.text}')
 
-        samples = json.loads(sample_response.text)
+        samples = sample_response.json()
         # Writing new sample_set_membership.tsv
         added_sample_sets_dict = dict()  # dictionary from lab_batch to aggregation sets with added samples
         control_samples_dict = dict()  # dictionary from lab_batch to sample id of control sample
         added_samples_dict = dict()  # dictionary from set_id to list of samples to be added to the set
-        with open(sample_sets_membership_path, 'w') as new_membership_file, \
-                open(updated_samples_path, 'w') as samples_updated_file:
+        with StringIO() as new_membership_io, \
+                StringIO() as samples_updated_io:
             # Write header
-            new_membership_file.write(f'membership:{table_name}_set_id\t{table_name}\n')
-            samples_updated_file.write(f'entity:{table_name}_id\trework\n')
+            new_membership_io.write(f'membership:{table_name}_set_id\t{table_name}\n')
+            samples_updated_io.write(f'entity:{table_name}_id\trework\n')
             for sample in samples:
                 if 'lab_batch' not in sample['attributes']:
                     continue
@@ -119,10 +109,12 @@ class GroupBuilder:
                     # do we already have a control sample for this lab batch?  that would be bad...
                     if lab_batch in control_samples_dict:
                         raise RuntimeError(
-                            f'Multiple control samples for lab_bath {lab_batch}: {sample_name}, {control_samples_dict[lab_batch]}')
+                            f'Multiple control samples for lab_bath {lab_batch}: {sample_name}, '
+                            f'{control_samples_dict[lab_batch]}')
                     # store control sample name in dictionary
                     control_samples_dict[lab_batch] = sample_name
-                    # we do not create aggregation sets if we only have the control sample.  We will add control samples to newly created aggregation sets later
+                    # we do not create aggregation sets if we only have the control sample.
+                    # We will add control samples to newly created aggregation sets later
                     continue
                 if rework or sample_name not in samples_already_in_aggregation_sets:
                     # this (non-control) sample needs to be added to an aggregation set.
@@ -132,7 +124,8 @@ class GroupBuilder:
                             previous_aggregation_set = lab_batch_sample_sets_dict[lab_batch]
                             if previous_aggregation_set.delivered:
                                 # we need to create the next aggregation set for this lab batch
-                                added_sample_sets_dict[lab_batch] = next_aggregation_set(previous_aggregation_set)
+                                added_sample_sets_dict[lab_batch] = AggregationSet(previous_aggregation_set.lab_batch,
+                                                                                   previous_aggregation_set.group + 1)
                             else:
                                 # we can add to the previous aggregation set
                                 added_sample_sets_dict[lab_batch] = previous_aggregation_set
@@ -151,81 +144,80 @@ class GroupBuilder:
                 if agg_set.contains_control:
                     # if this aggregation set already contains control, we can simply add new samples
                     for sample in added_samples_dict[set_id]:
-                        new_membership_file.write(f'{set_id}\t{sample}\n')
-                        samples_updated_file.write(f'{sample}\tfalse\n')
+                        new_membership_io.write(f'{set_id}\t{sample}\n')
+                        samples_updated_io.write(f'{sample}\tfalse\n')
                 elif lab_batch in control_samples_dict:
                     # found control sample, so this aggregation set can be added
                     # add control sample to this aggregation set
                     added_samples_dict[set_id].append(control_samples_dict[lab_batch])
                     # write samples, including controls
                     for sample in added_samples_dict[set_id]:
-                        new_membership_file.write(f'{set_id}\t{sample}\n')
-                        samples_updated_file.write(f'{sample}\tfalse\n')
+                        new_membership_io.write(f'{set_id}\t{sample}\n')
+                        samples_updated_io.write(f'{sample}\tfalse\n')
                 else:
                     # no control sample for this aggregation set found, so will not aggregate yet
                     del added_samples_dict[set_id]
                     lab_batches_without_controls.append(lab_batch)
             for lab_batch in lab_batches_without_controls:
                 del added_sample_sets_dict[lab_batch]
-        if len(added_samples_dict) == 0:
-            print(f'No new {table_name}_sets to be added.')
-        else:
-            if f'{table_name}_set' not in self.available_tables:
-                print(f'Creating new table {table_name}_set')
-                # Need to upload tsv to create new table
-                new_sample_sets_path = f'CreateSampleSets_data/new_{table_name}_set.tsv'
-                with open(new_sample_sets_path, 'w') as new_set_table:
-                    new_set_table.write(f'entity:{table_name}_set_id\n')
-                    for set_id in added_samples_dict:
-                        new_set_table.write(f'{set_id}\n')
-                upload_new_table_response = fapi.upload_entities_tsv(self.workspace_namespace, self.workspace_name,
-                                                                     new_sample_sets_path,
-                                                                     "flexible")
-                if not upload_new_table_response.ok:
-                    raise RuntimeError(f'ERROR: {upload_new_table_response.text}')
-            print(f'Uploading new {table_name}_set table... ')
-            upload_response = fapi.upload_entities_tsv(self.workspace_namespace, self.workspace_name,
-                                                       sample_sets_membership_path,
-                                                       "flexible")
-            if not upload_response.ok:
-                raise RuntimeError(f'ERROR: {upload_response.text}')
-            # Add date and time created to sample_set
-            print(f'Adding date and time to newly created {table_name}_sets...')
+            if len(added_samples_dict) == 0:
+                print(f'No new {table_name}_sets to be added.')
+            else:
+                if f'{table_name}_set' not in self.available_tables:
+                    print(f'Creating new table {table_name}_set')
+                    # Need to upload tsv to create new table
+                    with StringIO() as new_sample_sets_io:
+                        new_sample_sets_io.write(f'entity:{table_name}_set_id\n')
+                        for set_id in added_samples_dict:
+                            new_sample_sets_io.write(f'{set_id}\n')
+                        upload_new_table_response = fapi.upload_entities_tsv(self.workspace_namespace,
+                                                                             self.workspace_name,
+                                                                             new_sample_sets_io,
+                                                                             "flexible")
+                        if not upload_new_table_response.ok:
+                            raise RuntimeError(f'ERROR: {upload_new_table_response.text}')
+                print(f'Uploading new {table_name}_set table... ')
+                upload_response = fapi.upload_entities_tsv(self.workspace_namespace, self.workspace_name,
+                                                           new_membership_io,
+                                                           "flexible")
+                if not upload_response.ok:
+                    raise RuntimeError(f'ERROR: {upload_response.text}')
+                # Add date and time created to sample_set
+                print(f'Adding date and time to newly created {table_name}_sets...')
 
-            now = str(datetime.now(pytz.timezone('US/Eastern')))
-            for i, (this_lab_batch, this_aggregation_set) in enumerate(added_sample_sets_dict.items()):
-                update_response = fapi.update_entity(self.workspace_namespace, self.workspace_name,
-                                                     f'{table_name}_set', this_aggregation_set.set_id,
-                                                     [{"op": "AddUpdateAttribute",
-                                                       "attributeName": "time_sample_set_updated",
-                                                       "addUpdateAttribute": now},
-                                                      {"op": "AddUpdateAttribute", "attributeName": "delivered",
-                                                       "addUpdateAttribute": False},
-                                                      {"op": "AddUpdateAttribute", "attributeName": "redeliver",
-                                                       "addUpdateAttribute": False},
-                                                      {"op": "AddUpdateAttribute", "attributeName": "group",
-                                                       "addUpdateAttribute": this_aggregation_set.group},
-                                                      {"op": "AddUpdateAttribute", "attributeName": "lab_batch",
-                                                       "addUpdateAttribute": this_aggregation_set.lab_batch}
-                                                      ])
-                if not update_response.ok:
-                    raise RuntimeError(f'ERROR: {update_response.text}')
-                print(f'    Completed {i + 1}/{len(added_samples_dict)}')
+                now = str(datetime.now(pytz.timezone('US/Eastern')))
+                for i, (this_lab_batch, this_aggregation_set) in enumerate(added_sample_sets_dict.items()):
+                    update_response = fapi.update_entity(self.workspace_namespace, self.workspace_name,
+                                                         f'{table_name}_set', this_aggregation_set.set_id,
+                                                         [{"op": "AddUpdateAttribute",
+                                                           "attributeName": "time_sample_set_updated",
+                                                           "addUpdateAttribute": now},
+                                                          {"op": "AddUpdateAttribute", "attributeName": "delivered",
+                                                           "addUpdateAttribute": False},
+                                                          {"op": "AddUpdateAttribute", "attributeName": "redeliver",
+                                                           "addUpdateAttribute": False},
+                                                          {"op": "AddUpdateAttribute", "attributeName": "group",
+                                                           "addUpdateAttribute": this_aggregation_set.group},
+                                                          {"op": "AddUpdateAttribute", "attributeName": "lab_batch",
+                                                           "addUpdateAttribute": this_aggregation_set.lab_batch}
+                                                          ])
+                    if not update_response.ok:
+                        raise RuntimeError(f'ERROR: {update_response.text}')
+                    print(f'    Completed {i + 1}/{len(added_samples_dict)}')
 
-            print(f'Updating rework field in {table_name} table')
-            upload_sample_rework_response = fapi.upload_entities_tsv(self.workspace_namespace, self.workspace_name,
-                                                                 updated_samples_path,
-                                                                 "flexible")
-            if not upload_sample_rework_response.ok:
-                raise RuntimeError(f'ERROR: {upload_sample_rework_response.text}')
-            # Uploading new sample_set table
-            print('SUCCESS')
-            print(f'Printing update {table_name}_set_membership.tsv:')
-            os.system(f'cat {sample_sets_membership_path}')
-        os.system('rm -r CreateSampleSets_data')
+                print(f'Updating rework field in {table_name} table')
+                upload_sample_rework_response = fapi.upload_entities_tsv(self.workspace_namespace, self.workspace_name,
+                                                                         samples_updated_io,
+                                                                         "flexible")
+                if not upload_sample_rework_response.ok:
+                    raise RuntimeError(f'ERROR: {upload_sample_rework_response.text}')
+                # Uploading new sample_set table
+                print('SUCCESS')
+                print(f'Printing update {table_name}_set_membership.tsv:')
+                print(new_membership_io.getvalue())
 
 
-def main(workspace_namespace, workspace_name):
+def run(workspace_namespace, workspace_name):
     group_builder = GroupBuilder(workspace_namespace, workspace_name)
     group_builder.build_groups()
 
@@ -233,6 +225,6 @@ def main(workspace_namespace, workspace_name):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspace_namespace", dest="workspace_namespace", required=True)
-    parser.add_argument("--worspace_name", dest="workspace_name", required=True)
+    parser.add_argument("--workspace_name", dest="workspace_name", required=True)
     parser.parse_args()
-    main(parser.workspace_namespace, parser.workspace_name)
+    run(parser.workspace_namespace, parser.workspace_name)

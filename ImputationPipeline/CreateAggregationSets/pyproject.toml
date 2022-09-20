@@ -9,3 +9,4 @@ root = "../../"
 [project]
 name = "CreateAggregationSets"
 dynamic = ["version"]
+dependencies = ['firecloud >= 0.16.33', 'pytz >= 2022.2.1']

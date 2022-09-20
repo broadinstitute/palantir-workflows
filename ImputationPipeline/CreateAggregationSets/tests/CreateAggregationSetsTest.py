@@ -38,7 +38,7 @@ class IntegrationTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.workspace_namespace = os.getenv("WORKSPACE_NAMESPACE")
+        cls.workspace_namespace = os.getenv("TEST_WORKSPACE_NAMESPACE")
         if cls.workspace_namespace is None:
             raise (RuntimeError("Environment variable WORKSPACE_NAMESPACE must be set to run tests"))
         workspace_hash = random.getrandbits(64)
@@ -80,7 +80,7 @@ class IntegrationTests(unittest.TestCase):
                                 ]
                                )
 
-        CreateAggregationSets.main(self.workspace_namespace, self.workspace_name)
+        CreateAggregationSets.run(self.workspace_namespace, self.workspace_name)
         if expected_sample_sets_json is not None:
             self.assert_expected_sample_sets(expected_sample_sets_json)
         self.assert_all_reworks_false()
