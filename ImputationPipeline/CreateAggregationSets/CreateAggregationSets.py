@@ -56,8 +56,9 @@ class GroupBuilder:
         if os.path.exists('CreateSampleSets_data'):
             os.system('rm -r CreateSampleSets_data')
         os.system('mkdir -p CreateSampleSets_data')
+        sample_sets_membership_path = f'CreateSampleSets_data/new_{table_name}_set_membership.tsv'
+        updated_samples_path = f'CreateSampleSets_data/{table_name}.tsv'
 
-        existing_sample_sets = dict()  # dictionary from sample_set id to list of samples in sample_set
         samples_already_in_aggregation_sets = set()  # set of samples already in aggregation sets
         lab_batch_sample_sets_dict = dict()  # dict from lab_batch to highest group aggregation_set for that lab_batch
 
@@ -102,9 +103,11 @@ class GroupBuilder:
         added_sample_sets_dict = dict()  # dictionary from lab_batch to aggregation sets with added samples
         control_samples_dict = dict()  # dictionary from lab_batch to sample id of control sample
         added_samples_dict = dict()  # dictionary from set_id to list of samples to be added to the set
-        with open(f'CreateSampleSets_data/new_{table_name}_set_membership.tsv', 'w') as new_membership_file:
+        with open(sample_sets_membership_path, 'w') as new_membership_file, \
+                open(updated_samples_path, 'w') as samples_updated_file:
             # Write header
             new_membership_file.write(f'membership:{table_name}_set_id\t{table_name}\n')
+            samples_updated_file.write(f'entity:{table_name}_id\trework\n')
             for sample in samples:
                 if 'lab_batch' not in sample['attributes']:
                     continue
@@ -149,6 +152,7 @@ class GroupBuilder:
                     # if this aggregation set already contains control, we can simply add new samples
                     for sample in added_samples_dict[set_id]:
                         new_membership_file.write(f'{set_id}\t{sample}\n')
+                        samples_updated_file.write(f'{sample}\tfalse\n')
                 elif lab_batch in control_samples_dict:
                     # found control sample, so this aggregation set can be added
                     # add control sample to this aggregation set
@@ -156,6 +160,7 @@ class GroupBuilder:
                     # write samples, including controls
                     for sample in added_samples_dict[set_id]:
                         new_membership_file.write(f'{set_id}\t{sample}\n')
+                        samples_updated_file.write(f'{sample}\tfalse\n')
                 else:
                     # no control sample for this aggregation set found, so will not aggregate yet
                     del added_samples_dict[set_id]
@@ -168,18 +173,19 @@ class GroupBuilder:
             if f'{table_name}_set' not in self.available_tables:
                 print(f'Creating new table {table_name}_set')
                 # Need to upload tsv to create new table
-                with open(f'CreateSampleSets_data/new_{table_name}_set.tsv', 'w') as new_set_table:
+                new_sample_sets_path = f'CreateSampleSets_data/new_{table_name}_set.tsv'
+                with open(new_sample_sets_path, 'w') as new_set_table:
                     new_set_table.write(f'entity:{table_name}_set_id\n')
                     for set_id in added_samples_dict:
                         new_set_table.write(f'{set_id}\n')
                 upload_new_table_response = fapi.upload_entities_tsv(self.workspace_namespace, self.workspace_name,
-                                                                     f'CreateSampleSets_data/new_{table_name}_set.tsv',
+                                                                     new_sample_sets_path,
                                                                      "flexible")
                 if not upload_new_table_response.ok:
                     raise RuntimeError(f'ERROR: {upload_new_table_response.text}')
             print(f'Uploading new {table_name}_set table... ')
             upload_response = fapi.upload_entities_tsv(self.workspace_namespace, self.workspace_name,
-                                                       f'CreateSampleSets_data/new_{table_name}_set_membership.tsv',
+                                                       sample_sets_membership_path,
                                                        "flexible")
             if not upload_response.ok:
                 raise RuntimeError(f'ERROR: {upload_response.text}')
@@ -207,18 +213,15 @@ class GroupBuilder:
                 print(f'    Completed {i + 1}/{len(added_samples_dict)}')
 
             print(f'Updating rework field in {table_name} table')
-            for samples_list in added_samples_dict.values():
-                for sample in samples_list:
-                    update_response = fapi.update_entity(self.workspace_namespace, self.workspace_name,
-                                                         f'{table_name}', sample,
-                                                         [{"op": "AddUpdateAttribute", "attributeName": "rework",
-                                                           "addUpdateAttribute": False}])
-                    if not update_response.ok:
-                        raise RuntimeError(f'ERROR: {update_response.text}')
+            upload_sample_rework_response = fapi.upload_entities_tsv(self.workspace_namespace, self.workspace_name,
+                                                                 updated_samples_path,
+                                                                 "flexible")
+            if not upload_sample_rework_response.ok:
+                raise RuntimeError(f'ERROR: {upload_sample_rework_response.text}')
             # Uploading new sample_set table
             print('SUCCESS')
             print(f'Printing update {table_name}_set_membership.tsv:')
-            os.system(f'cat CreateSampleSets_data/new_{table_name}_set_membership.tsv')
+            os.system(f'cat {sample_sets_membership_path}')
         os.system('rm -r CreateSampleSets_data')
 
 
