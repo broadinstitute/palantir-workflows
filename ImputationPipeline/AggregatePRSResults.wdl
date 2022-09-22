@@ -5,6 +5,7 @@ workflow AggregatePRSResults {
     Array[File] results
     Array[File] target_pc_projections
     Array[File] missing_sites_shifts
+    File high_risk_thresholds
     File population_pc_projections
     String population_name = "Reference Population"
     File expected_control_results
@@ -36,7 +37,8 @@ workflow AggregatePRSResults {
       batch_pivoted_results = AggregateResults.batch_pivoted_results,
       target_pc_projections = target_pc_projections,
       population_pc_projections = population_pc_projections,
-      population_name = population_name
+      population_name = population_name,
+      high_risk_thresholds = high_risk_thresholds
   }
 
   output {
@@ -183,6 +185,7 @@ task BuildHTMLReport {
     File expected_control_results
     File batch_summarised_results
     File batch_pivoted_results
+    File high_risk_thresholds
     Array[File] target_pc_projections
     File population_pc_projections
     String population_name
@@ -219,9 +222,32 @@ task BuildHTMLReport {
     batch_pivoted_results <- read_tsv("~{batch_pivoted_results}")
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
-    multi_high_samples <- batch_pivoted_results %>% filter(risk=="HIGH") %>% group_by(sample_id) %>%
-      summarise(\`high risk conditions\` = paste(condition, collapse = ","), n=n()) %>%
-      filter(n>1) %>% select(-n)
+    condition_thresholds <- read_tsv("~{high_risk_thresholds}"}
+    get_probs_n_high_per_sample_distribution <- function(thresholds_list) {
+  probs_n_high <- tibble(n_high = seq(0,length(thresholds_list)), prob=c(1,rep(0,length(thresholds_list - 1))))
+  for (threshold in thresholds_list) {
+    new_probs_n_high <- probs_n_high %>% mutate(prob=prob*(threshold) + lag(prob, default=0)*(1-threshold))
+    probs_n_high <- new_probs_n_high
+  }
+
+  probs_n_high <- probs_n_high %>% pivot_wider(names_from = n_high, names_prefix = "prob_high_", values_from = prob) %>%
+    mutate(thresholds = paste0(thresholds_list, collapse = ","))
+}
+
+thresholds_sets <- batch_pivoted_results %>% filter(risk == "HIGH" | risk == "NOT_HIGH") %>% group_by(sample_id) %>% inner_join(condition_thresholds) %>%
+  summarise(thresholds = list(sort(threshold))) %>% pull(thresholds) %>% unique() %>% map(get_probs_n_high_per_sample_distribution) %>%
+  reduce(bind_rows) %>% mutate(across(-thresholds, ~ifelse(is.na(.), 0, .))) %>% pivot_longer(-thresholds, names_to = "n_high",
+                                                                                                      names_prefix = "prob_high_",
+                                                                                                      values_to="prob") %>%
+  mutate(n_high = as.integer(n_high))
+
+threshold_set_per_sample <- batch_pivoted_results %>% filter(risk == "HIGH" | risk == "NOT_HIGH") %>% group_by(sample_id) %>% inner_join(condition_thresholds) %>%
+  summarise(thresholds = paste0(sort(threshold), collapse=",")) %>% inner_join(thresholds_sets)
+
+multi_high_samples <- batch_pivoted_results %>% filter(risk=="HIGH") %>% group_by(sample_id) %>%
+  summarise(\`high risk conditions\` = paste(condition, collapse = ","), n=n()) %>%
+  filter(n>1) %>% inner_join(threshold_set_per_sample) %>% group_by(sample_id, \`high risk conditions\`, n, thresholds) %>% filter(n_high >= n) %>%
+  summarise(significance=paste0(signif(qnorm(1-sum(prob)),2), "\U03C3")) %>% select(-n,-thresholds
     \`\`\`
 
     \`\`\`{css, echo=FALSE}
@@ -251,7 +277,7 @@ task BuildHTMLReport {
     \`\`\`
 
     ## Samples High Risk for Multiple Conditions
-    \`r if (multi_high_samples %>% count() == 0) {"No Samples were high risk for multiple conditions."} else {"The following samples were high risk for multiple conditions."}\`
+    \`r if (multi_high_samples %>% count() == 0) {"No Samples were high risk for multiple conditions."} else {"The following samples were high risk for multiple conditions.  Significance represents the likelihood that a sample scored for the same conditions as this sample would be high for at least as many conditions, assuming all conditions are uncorrelated."}\`
     \`\`\`{r multi high samples table, echo = FALSE, results = "asis" }
     if (multi_high_samples %>% count() > 0) {
     kable(multi_high_samples, digits = 2, escape = FALSE, format = "pandoc") }
