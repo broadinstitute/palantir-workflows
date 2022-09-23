@@ -26,8 +26,8 @@ class FailAllConditionsForSampleTests(unittest.TestCase):
 
     def assert_initial_widget_status(self):
         # sample selection and reason should be cleared
-        self.selected_batch_gui.sample_failure_selection.value = ''
-        self.selected_batch_gui.sample_failure_reason_selection.value = ''
+        self.assertEqual(self.selected_batch_gui.sample_failure_selection.value, '')
+        self.assertEqual(self.selected_batch_gui.sample_failure_reason_selection.value, '')
         # sample selection should be enabled
         self.assertFalse(self.selected_batch_gui.sample_failure_selection.disabled)
         # reason, fail and unfail buttons should be disabled
@@ -73,8 +73,24 @@ class FailAllConditionsForSampleTests(unittest.TestCase):
         output_results = pd.read_csv(os.path.join(resources_dir, "single_sample_failed_all_conditions.tsv"),
                                      delimiter='\t').fillna("NA").set_index('sample_id')
         pd.testing.assert_frame_equal(self.selected_batch_gui.modified_results.fillna("NA"),
-                         output_results)
+                                      output_results)
 
+    def test_widget_status_failed_sample_selected(self):
+        sample_to_fail = "205247030027_R06C01"
+        self.selected_batch_gui.sample_failure_selection.value = sample_to_fail
+        self.selected_batch_gui.sample_failure_reason_selection.value = \
+            self.selected_batch_gui.sample_failure_reason_selection.options[0]
+        self.selected_batch_gui.fail_sample_all_conditions_button.click()
+        self.selected_batch_gui.sample_failure_selection.value = sample_to_fail
+
+        self.assertEqual(self.selected_batch_gui.sample_failure_selection.value, sample_to_fail)
+        self.assertEqual(self.selected_batch_gui.sample_failure_reason_selection.value,
+                         self.selected_batch_gui.sample_failure_reason_selection.options[0])
+        #sample selection, reason, and unfail should be enabled
+        self.assertFalse(self.selected_batch_gui.sample_failure_selection.disabled)
+        self.assertFalse(self.selected_batch_gui.sample_failure_reason_selection.disabled)
+        self.assertFalse(self.selected_batch_gui.fail_sample_all_conditions_button.disabled)
+        self.assertFalse(self.selected_batch_gui.unfail_sample_all_conditions_button.disabled)
 
 
 if __name__ == '__main__':
