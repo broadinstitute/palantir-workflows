@@ -69,7 +69,7 @@ task AggregateResults {
     library(ggplot2)
 
     results <- c("~{sep='","' results}") %>% map(read_csv, col_types=cols(is_control_sample='l', .default='c')) %>% reduce(bind_rows)
-    
+
     lab_batch <- results %>% pull(lab_batch) %>% unique()
 
     if (length(lab_batch) != 1) {
