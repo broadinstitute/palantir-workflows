@@ -247,7 +247,7 @@ threshold_set_per_sample <- batch_pivoted_results %>% filter(risk == "HIGH" | ri
 multi_high_samples <- batch_pivoted_results %>% filter(risk=="HIGH") %>% group_by(sample_id) %>%
   summarise(\`high risk conditions\` = paste(condition, collapse = ","), n=n()) %>%
   filter(n>1) %>% inner_join(threshold_set_per_sample) %>% group_by(sample_id, \`high risk conditions\`, n, thresholds) %>% filter(n_high >= n) %>%
-  summarise(significance=paste0(signif(qnorm(1-sum(prob)),2), "\U03C3")) %>% select(-n,-thresholds)
+  summarise(significance=paste0(signif(qnorm(1-sum(prob)),2), "\\U03C3")) %>% select(-n,-thresholds)
     \`\`\`
 
     \`\`\`{css, echo=FALSE}
