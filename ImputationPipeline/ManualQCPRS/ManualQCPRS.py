@@ -547,6 +547,7 @@ class SelectedBatchModificationGui(WidgetGUI):
         self.modified_results.loc[sample, condition + "_percentile"] = self.results.loc[
             sample, condition + "_percentile"]
         self.modified_results.loc[sample, condition + "_risk"] = self.results.loc[sample, condition + "_risk"]
+        self.modified_results.loc[sample, condition + "_reason_not_resulted"] = self.results.loc[sample, condition + "_reason_not_resulted"]
 
     def manuallyFailSampleForAllConditions(self, sample, reason):
         for condition in self.conditions:

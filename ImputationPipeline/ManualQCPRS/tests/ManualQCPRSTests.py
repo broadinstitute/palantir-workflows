@@ -20,6 +20,16 @@ class FailAllConditionsForSampleTests(unittest.TestCase):
         self.selected_batch_gui.run()
         self.selected_batch_gui.finished_addition_imputation_failures_button.click()
 
+    def fail_sample(self, sample, reason):
+        self.selected_batch_gui.sample_failure_selection.value = sample
+        self.selected_batch_gui.sample_failure_reason_selection.value = reason
+        self.selected_batch_gui.fail_sample_all_conditions_button.click()
+
+    def unfail_sample(self, sample):
+        self.selected_batch_gui.sample_failure_selection.value = sample
+        self.assertFalse(self.selected_batch_gui.unfail_sample_all_conditions_button.disabled)
+        self.selected_batch_gui.unfail_sample_all_conditions_button.click()
+
     def test_correct_samples_available(self):
         self.assertEqual(set(self.results[~self.results.is_control_sample].index),
                          set(self.selected_batch_gui.sample_failure_selection.options))
@@ -60,12 +70,9 @@ class FailAllConditionsForSampleTests(unittest.TestCase):
         # unfail button should be disabled
         self.assertTrue(self.selected_batch_gui.unfail_sample_all_conditions_button.disabled)
 
-    def test_click_fail(self):
+    def test_fail_sample(self):
         sample_to_fail = "205247030027_R06C01"
-        self.selected_batch_gui.sample_failure_selection.value = sample_to_fail
-        self.selected_batch_gui.sample_failure_reason_selection.value = \
-            self.selected_batch_gui.sample_failure_reason_selection.options[0]
-        self.selected_batch_gui.fail_sample_all_conditions_button.click()
+        self.fail_sample(sample_to_fail, self.selected_batch_gui.sample_failure_reason_selection.options[0])
         self.assert_initial_widget_status()
         # all samples other than failed should be unchanged
         remaining_samples = list(self.results.index)
@@ -77,10 +84,8 @@ class FailAllConditionsForSampleTests(unittest.TestCase):
 
     def test_widget_status_failed_sample_selected(self):
         sample_to_fail = "205247030027_R06C01"
-        self.selected_batch_gui.sample_failure_selection.value = sample_to_fail
-        self.selected_batch_gui.sample_failure_reason_selection.value = \
-            self.selected_batch_gui.sample_failure_reason_selection.options[0]
-        self.selected_batch_gui.fail_sample_all_conditions_button.click()
+        self.fail_sample(sample_to_fail, self.selected_batch_gui.sample_failure_reason_selection.options[0])
+
         self.selected_batch_gui.sample_failure_selection.value = sample_to_fail
 
         self.assertEqual(self.selected_batch_gui.sample_failure_selection.value, sample_to_fail)
@@ -92,6 +97,25 @@ class FailAllConditionsForSampleTests(unittest.TestCase):
         self.assertFalse(self.selected_batch_gui.fail_sample_all_conditions_button.disabled)
         self.assertFalse(self.selected_batch_gui.unfail_sample_all_conditions_button.disabled)
 
+    def test_fail_then_unfail(self):
+        sample_to_fail = "205247030027_R06C01"
+        self.fail_sample(sample_to_fail, self.selected_batch_gui.sample_failure_reason_selection.options[0])
+        self.unfail_sample(sample_to_fail)
+        self.assert_initial_widget_status()
+        output_results = self.results.copy().reindex(columns=self.results.columns.tolist() + ['poly_test_not_performed_reason', 'notes']).fillna("NA")
+        pd.testing.assert_frame_equal(self.selected_batch_gui.modified_results.fillna("NA"),
+                                      output_results)
+
+    def test_fail_then_change_reason(self):
+        sample_to_fail = "205247030027_R06C01"
+        new_reason = "a new reason"
+        self.fail_sample(sample_to_fail, self.selected_batch_gui.sample_failure_reason_selection.options[0])
+        print("message is: " + self.selected_batch_gui.out_failed_sample_all_conditions.msg_id + " done")
+        self.fail_sample(sample_to_fail, new_reason)
+        output_results = pd.read_csv(os.path.join(resources_dir, "single_sample_failed_all_conditions_a_new_reason.tsv"),
+                                     delimiter='\t').fillna("NA").set_index('sample_id')
+        pd.testing.assert_frame_equal(self.selected_batch_gui.modified_results.fillna("NA"),
+                                      output_results)
 
 if __name__ == '__main__':
     unittest.main()
