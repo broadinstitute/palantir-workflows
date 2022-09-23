@@ -224,30 +224,30 @@ task BuildHTMLReport {
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
     condition_thresholds <- read_tsv("~{high_risk_thresholds}"}
     get_probs_n_high_per_sample_distribution <- function(thresholds_list) {
-  probs_n_high <- tibble(n_high = seq(0,length(thresholds_list)), prob=c(1,rep(0,length(thresholds_list - 1))))
-  for (threshold in thresholds_list) {
-    new_probs_n_high <- probs_n_high %>% mutate(prob=prob*(threshold) + lag(prob, default=0)*(1-threshold))
-    probs_n_high <- new_probs_n_high
-  }
+      probs_n_high <- tibble(n_high = seq(0,length(thresholds_list)), prob=c(1,rep(0,length(thresholds_list - 1))))
+        for (threshold in thresholds_list) {
+          new_probs_n_high <- probs_n_high %>% mutate(prob=prob*(threshold) + lag(prob, default=0)*(1-threshold))
+          probs_n_high <- new_probs_n_high
+        }
 
-  probs_n_high <- probs_n_high %>% pivot_wider(names_from = n_high, names_prefix = "prob_high_", values_from = prob) %>%
-    mutate(thresholds = paste0(thresholds_list, collapse = ","))
-}
+        probs_n_high <- probs_n_high %>% pivot_wider(names_from = n_high, names_prefix = "prob_high_", values_from = prob) %>%
+          mutate(thresholds = paste0(thresholds_list, collapse = ","))
+    }
 
-thresholds_sets <- batch_pivoted_results %>% filter(risk == "HIGH" | risk == "NOT_HIGH") %>% group_by(sample_id) %>% inner_join(condition_thresholds) %>%
-  summarise(thresholds = list(sort(threshold))) %>% pull(thresholds) %>% unique() %>% map(get_probs_n_high_per_sample_distribution) %>%
-  reduce(bind_rows) %>% mutate(across(-thresholds, ~ifelse(is.na(.), 0, .))) %>% pivot_longer(-thresholds, names_to = "n_high",
-                                                                                                      names_prefix = "prob_high_",
-                                                                                                      values_to="prob") %>%
-  mutate(n_high = as.integer(n_high))
+    thresholds_sets <- batch_pivoted_results %>% filter(risk == "HIGH" | risk == "NOT_HIGH") %>% group_by(sample_id) %>% inner_join(condition_thresholds) %>%
+      summarise(thresholds = list(sort(threshold))) %>% pull(thresholds) %>% unique() %>% map(get_probs_n_high_per_sample_distribution) %>%
+      reduce(bind_rows) %>% mutate(across(-thresholds, ~ifelse(is.na(.), 0, .))) %>% pivot_longer(-thresholds, names_to = "n_high",
+                                                                                                          names_prefix = "prob_high_",
+                                                                                                          values_to="prob") %>%
+      mutate(n_high = as.integer(n_high))
 
-threshold_set_per_sample <- batch_pivoted_results %>% filter(risk == "HIGH" | risk == "NOT_HIGH") %>% group_by(sample_id) %>% inner_join(condition_thresholds) %>%
-  summarise(thresholds = paste0(sort(threshold), collapse=",")) %>% inner_join(thresholds_sets)
+    threshold_set_per_sample <- batch_pivoted_results %>% filter(risk == "HIGH" | risk == "NOT_HIGH") %>% group_by(sample_id) %>% inner_join(condition_thresholds) %>%
+      summarise(thresholds = paste0(sort(threshold), collapse=",")) %>% inner_join(thresholds_sets)
 
-multi_high_samples <- batch_pivoted_results %>% filter(risk=="HIGH") %>% group_by(sample_id) %>%
-  summarise(\`high risk conditions\` = paste(condition, collapse = ","), n=n()) %>%
-  filter(n>1) %>% inner_join(threshold_set_per_sample) %>% group_by(sample_id, \`high risk conditions\`, n, thresholds) %>% filter(n_high >= n) %>%
-  summarise(significance=paste0(signif(qnorm(1-sum(prob)),2), "\\U03C3")) %>% select(-n,-thresholds)
+    multi_high_samples <- batch_pivoted_results %>% filter(risk=="HIGH") %>% group_by(sample_id) %>%
+      summarise(\`high risk conditions\` = paste(condition, collapse = ","), n=n()) %>%
+      filter(n>1) %>% inner_join(threshold_set_per_sample) %>% group_by(sample_id, \`high risk conditions\`, n, thresholds) %>% filter(n_high >= n) %>%
+      summarise(significance=paste0(signif(qnorm(1-sum(prob)),2), "\\U03C3")) %>% select(-n,-thresholds)
     \`\`\`
 
     \`\`\`{css, echo=FALSE}
