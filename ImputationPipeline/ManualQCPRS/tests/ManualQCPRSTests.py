@@ -9,6 +9,46 @@ current_dir = os.path.dirname(__file__)
 resources_dir = os.path.join(current_dir, "resources")
 
 
+class FailSampleForConditionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.results = pd.read_csv(os.path.join(resources_dir, "test_results.tsv"), delimiter='\t'). \
+            fillna("NA").set_index('sample_id')
+        cls.lab_batch = "BATCH_12345"
+
+    def setUp(self) -> None:
+        self.selected_batch_gui = ManualQCPRS.SelectedBatchModificationGui(self.results, self.lab_batch)
+        self.selected_batch_gui.run()
+        self.selected_batch_gui.finished_addition_imputation_failures_button.click()
+        self.selected_batch_gui.finished_sample_failures_button.click()
+        self.selected_batch_gui.finished_condition_failures_button.click()
+        self.default_reason = self.selected_batch_gui.standard_failure_reasons[0]
+
+    def assert_widget_status(self, selected_sample='', condition_status_dictionary: dict[str, tuple(str, str)] = None):
+        if condition_status_dictionary is None:
+            condition_status_dictionary = {}
+        self.assertEqual(self.selected_batch_gui.sample_selection.value, selected_sample)
+        self.assertFalse(self.selected_batch_gui.sample_selection.disabled)
+        for sample, failure_hbox in self.selected_batch_gui.manual_failure_hbox_dict.items():
+            if sample != selected_sample:
+                self.assertEqual(failure_hbox.layout.display, "none")
+            else:
+                self.assertEqual(failure_hbox.layout.display, "inline-flex")
+
+
+
+    def test_correct_samples_available(self):
+        self.assertEqual(set(self.results.query("not is_control_sample").index),
+                         set(self.selected_batch_gui.sample_selection.options))
+
+    def test_initial_widget_status(self):
+        self.assert_widget_status()
+
+    def test_select_sample_widget_status(self):
+        sample_id = "sample_2"
+        self.selected_batch_gui.sample_selection.value = sample_id
+        self.assertTrue(True)
+
 class FailConditionForAllSamplesTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -235,7 +275,7 @@ class FailAllConditionsForSampleTests(unittest.TestCase):
         self.selected_batch_gui.unfail_sample_all_conditions_button.click()
 
     def test_correct_samples_available(self):
-        self.assertEqual(set(self.results[~self.results.is_control_sample].index),
+        self.assertEqual(set(self.results.query("not is_control_sample").index),
                          set(self.selected_batch_gui.sample_failure_selection.options))
 
     def assert_widget_status(self, sample_value='', reason_value='',
@@ -247,30 +287,13 @@ class FailAllConditionsForSampleTests(unittest.TestCase):
         self.assertEqual(self.selected_batch_gui.fail_sample_all_conditions_button.disabled, not fail_enabled)
         self.assertEqual(self.selected_batch_gui.unfail_sample_all_conditions_button.disabled, not unfail_enabled)
 
-    def assert_output_text_correct(self, failed_samples_with_reasons: dict = None):
-        if not failed_samples_with_reasons:
-            expected_text = "No Samples Will Be Failed For All Conditions"
-            self.assertEqual(self.selected_batch_gui.out_failed_sample_all_conditions.outputs[0]["text"],
-                             expected_text)
-        else:
-            output_text = self.selected_batch_gui.out_failed_sample_all_conditions.outputs.output[0]["text"].strip().split("\n")
-            output_first_line = output_text[0]
-            expected_first_line = 'The following samples will be marked as Failed PRS and failed for all conditions'
-            self.assertEqual(output_first_line, expected_first_line)
-            # not concerned with order of sample failure text
-            sample_failure_text = set(output_text[1:])
-            expected_failure_text = {f'{sample}, notes: {reason}' for sample, reason in failed_samples_with_reasons.items()}
-            self.assertEqual(sample_failure_text, expected_failure_text)
-
     def test_initial_widget_status(self):
         self.assert_widget_status(reason_enabled=False, fail_enabled=False, unfail_enabled=False)
-        self.assert_output_text_correct()
 
     def test_select_sample(self):
         sample_to_fail = "sample_2"
         self.selected_batch_gui.sample_failure_selection.value = sample_to_fail
         self.assert_widget_status(sample_value=sample_to_fail, fail_enabled=False, unfail_enabled=False)
-        self.assert_output_text_correct()
 
     def test_select_reason(self):
         sample_to_fail = "sample_2"
@@ -278,7 +301,6 @@ class FailAllConditionsForSampleTests(unittest.TestCase):
         self.selected_batch_gui.sample_failure_reason_selection.value = self.default_reason
         self.assert_widget_status(sample_value=sample_to_fail, unfail_enabled=False,
                                   reason_value=self.default_reason)
-        self.assert_output_text_correct()
 
     def test_fail_sample(self):
         sample_to_fail = "sample_2"
