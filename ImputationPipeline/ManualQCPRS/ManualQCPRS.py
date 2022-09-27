@@ -376,7 +376,7 @@ class SelectedBatchModificationGui(WidgetGUI):
     def build_failed_imputation_section(self):
         self.out_failed_imputation = widgets.Output(layout={'border': '1px solid black'})
 
-        self.conditions = [col.split("_")[0] for col in self.results.columns if col.endswith("risk")]
+        self.conditions = [col.rsplit("_", 1)[0] for col in self.results.columns if col.endswith("risk")]
 
         self.failed_imputation_samples = pd.DataFrame(
             columns=['sample_id', 'lab_batch', 'is_control_sample', 'poly_test_not_performed_reason',
