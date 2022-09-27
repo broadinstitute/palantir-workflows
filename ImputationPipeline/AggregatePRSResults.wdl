@@ -222,7 +222,7 @@ task BuildHTMLReport {
     batch_pivoted_results <- read_tsv("~{batch_pivoted_results}")
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
-    condition_thresholds <- read_tsv("~{high_risk_thresholds}"}
+    condition_thresholds <- read_tsv("~{high_risk_thresholds}")
     get_probs_n_high_per_sample_distribution <- function(thresholds_list) {
       probs_n_high <- tibble(n_high = seq(0,length(thresholds_list)), prob=c(1,rep(0,length(thresholds_list - 1))))
         for (threshold in thresholds_list) {
