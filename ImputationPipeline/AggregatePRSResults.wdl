@@ -277,9 +277,9 @@ task BuildHTMLReport {
     \`\`\`
 
     ## Samples High Risk for Multiple Conditions
-    \`r if (multi_high_samples %>% count() == 0) {"No Samples were high risk for multiple conditions."} else {"The following samples were high risk for multiple conditions.  Significance represents the likelihood that a sample scored for the same conditions as this sample would be high for at least as many conditions, assuming all conditions are uncorrelated."}\`
-    \`\`\`{r multi high samples table, echo = FALSE, results = "asis" }
-    if (multi_high_samples %>% count() > 0) {
+    \`r if (multi_high_samples %>% nrow() == 0) {"No Samples were high risk for multiple conditions."} else {"The following samples were high risk for multiple conditions.  Significance represents the likelihood that a sample scored for the same conditions as this sample would be high for at least as many conditions, assuming all conditions are uncorrelated."}\`
+    \`\`\`{r multi high samples table, echo = FALSE, results = "asis", warning = FALSE }
+    if (multi_high_samples %>% nrow() > 0) {
     kable(multi_high_samples, digits = 2, escape = FALSE, format = "pandoc") }
     \`\`\`
 
