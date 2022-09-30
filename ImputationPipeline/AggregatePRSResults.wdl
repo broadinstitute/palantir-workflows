@@ -5,6 +5,7 @@ workflow AggregatePRSResults {
     Array[File] results
     Array[File] target_pc_projections
     Array[File] missing_sites_shifts
+    File high_risk_thresholds
     File population_pc_projections
     String population_name = "Reference Population"
     File expected_control_results
@@ -36,7 +37,8 @@ workflow AggregatePRSResults {
       batch_pivoted_results = AggregateResults.batch_pivoted_results,
       target_pc_projections = target_pc_projections,
       population_pc_projections = population_pc_projections,
-      population_name = population_name
+      population_name = population_name,
+      high_risk_thresholds = high_risk_thresholds
   }
 
   output {
@@ -67,7 +69,7 @@ task AggregateResults {
     library(ggplot2)
 
     results <- c("~{sep='","' results}") %>% map(read_csv, col_types=cols(is_control_sample='l', .default='c')) %>% reduce(bind_rows)
-    
+
     lab_batch <- results %>% pull(lab_batch) %>% unique()
 
     if (length(lab_batch) != 1) {
@@ -89,7 +91,7 @@ task AggregateResults {
 
     write_tsv(results %>% filter(is_control_sample), paste0(lab_batch, "_control_results.tsv"))
 
-    results_pivoted <- results %>% pivot_longer(!c(sample_id, lab_batch, is_control_sample), names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
+    results_pivoted <- results %>% filter(!is_control_sample) %>% pivot_longer(!c(sample_id, lab_batch, is_control_sample), names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
     results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
                                                                           raw = as.numeric(raw),
                                                                           percentile = as.numeric(percentile)) %T>% {options(warn=0)}
@@ -183,6 +185,7 @@ task BuildHTMLReport {
     File expected_control_results
     File batch_summarised_results
     File batch_pivoted_results
+    File high_risk_thresholds
     Array[File] target_pc_projections
     File population_pc_projections
     String population_name
@@ -219,6 +222,32 @@ task BuildHTMLReport {
     batch_pivoted_results <- read_tsv("~{batch_pivoted_results}")
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
+    condition_thresholds <- read_tsv("~{high_risk_thresholds}")
+    get_probs_n_high_per_sample_distribution <- function(thresholds_list) {
+      probs_n_high <- tibble(n_high = seq(0,length(thresholds_list)), prob=c(1,rep(0,length(thresholds_list - 1))))
+        for (threshold in thresholds_list) {
+          new_probs_n_high <- probs_n_high %>% mutate(prob=prob*(threshold) + lag(prob, default=0)*(1-threshold))
+          probs_n_high <- new_probs_n_high
+        }
+
+        probs_n_high <- probs_n_high %>% pivot_wider(names_from = n_high, names_prefix = "prob_high_", values_from = prob) %>%
+          mutate(thresholds = paste0(thresholds_list, collapse = ","))
+    }
+
+    thresholds_sets <- batch_pivoted_results %>% filter(risk == "HIGH" | risk == "NOT_HIGH") %>% group_by(sample_id) %>% inner_join(condition_thresholds) %>%
+      summarise(thresholds = list(sort(threshold))) %>% pull(thresholds) %>% unique() %>% map(get_probs_n_high_per_sample_distribution) %>%
+      reduce(bind_rows) %>% mutate(across(-thresholds, ~ifelse(is.na(.), 0, .))) %>% pivot_longer(-thresholds, names_to = "n_high",
+                                                                                                          names_prefix = "prob_high_",
+                                                                                                          values_to="prob") %>%
+      mutate(n_high = as.integer(n_high))
+
+    threshold_set_per_sample <- batch_pivoted_results %>% filter(risk == "HIGH" | risk == "NOT_HIGH") %>% group_by(sample_id) %>% inner_join(condition_thresholds) %>%
+      summarise(thresholds = paste0(sort(threshold), collapse=",")) %>% inner_join(thresholds_sets)
+
+    multi_high_samples <- batch_pivoted_results %>% filter(risk=="HIGH") %>% group_by(sample_id) %>%
+      summarise(\`high risk conditions\` = paste(condition, collapse = ","), n=n()) %>%
+      filter(n>1) %>% inner_join(threshold_set_per_sample) %>% group_by(sample_id, \`high risk conditions\`, n, thresholds) %>% filter(n_high >= n) %>%
+      summarise(significance=paste0(signif(qnorm(1-sum(prob)),2), "\\U03C3")) %>% select(-n,-thresholds)
     \`\`\`
 
     \`\`\`{css, echo=FALSE}
@@ -247,14 +276,23 @@ task BuildHTMLReport {
     kable(batch_summary, digits = 2, escape = FALSE, format = "pandoc")
     \`\`\`
 
-
+    ## Samples High Risk for Multiple Conditions
+    \`r if (multi_high_samples %>% nrow() == 0) {"No Samples were high risk for multiple conditions."} else {"The following samples were high risk for multiple conditions.  Significance represents the likelihood that a sample scored for the same conditions as this sample would be high for at least as many conditions, assuming all conditions are uncorrelated."}\`
+    \`\`\`{r multi high samples table, echo = FALSE, results = "asis", warning = FALSE }
+    if (multi_high_samples %>% nrow() > 0) {
+    kable(multi_high_samples, digits = 2, escape = FALSE, format = "pandoc") }
+    \`\`\`
 
     ## Batch Score distribution
     \`\`\`{r score distributions, echo=FALSE, message=FALSE, warning=FALSE, results="asis", fig.align='center'}
-    ggplot(batch_pivoted_results, aes(x=adjusted)) +
-      geom_density(aes(color=condition), fill=NA, position = "identity") +
-      xlim(-5,5) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
+    normal_dist <- tibble(x=seq(-5,5,0.01)) %>% mutate(y=dnorm(x)) # needed because plotly doesn't work with geom_function
+    conditions_with_more_than_4_samples <- batch_pivoted_results %>% group_by(condition) %>% filter(!is.na(adjusted)) %>% count() %>% filter(n>4) %>% pull(condition)
+    p_dist <- ggplot(batch_pivoted_results %>% filter(condition %in% conditions_with_more_than_4_samples), aes(x=adjusted)) +
+      stat_density(aes(color=condition, text=condition), geom="line", position = "identity") +
+      xlim(-5,5) + theme_bw() + xlab("z-score") + geom_line(data=normal_dist, aes(x=x, y=y), color="black") +
+      geom_point(data = batch_pivoted_results %>% filter(!(condition %in% conditions_with_more_than_4_samples)), aes(color=condition, x = adjusted, text=condition), y=0) +
       ylab("density")
+    ggplotly(p_dist, tooltip="text")
     \`\`\`
 
     ## PCA
@@ -271,22 +309,24 @@ task BuildHTMLReport {
     \`\`\`
 
     ## Individual Sample Results (without control sample)
-    \`\`\`{r sample results , echo = FALSE, results = "asis", warning = FALSE}
+    \`\`\`{r sample results , echo = FALSE, results = "asis", warning = FALSE, message = FALSE}
+    batch_high_counts_per_sample <- batch_pivoted_results %>% group_by(sample_id) %>% summarise(n_high_risk = sum(ifelse(!is.na(risk) & risk =="HIGH", 1, 0)))
     batch_results_table <- batch_pivoted_results %>% filter(!is_control_sample) %>% select(!is_control_sample) %>%
       mutate(across(!c(sample_id, lab_batch, reason_not_resulted, condition), ~kableExtra::cell_spec(gsub("_", " ", ifelse(is.na(as.numeric(.x)), ifelse(is.na(.x), 'SCORE NOT REQUESTED', .x), round(as.numeric(.x), 2))), color=ifelse(is.na(risk), "lightgrey", ifelse(risk=="NOT_RESULTED", "red", ifelse(risk == "HIGH", "orange", "green")))))) %>% # round numbers, color all by risk
       mutate(reason_not_resulted = ifelse(is.na(reason_not_resulted), reason_not_resulted, kableExtra::cell_spec(reason_not_resulted, color="red"))) %>% # reason not resulted always red if exists
-      pivot_wider(id_cols = c(sample_id, lab_batch), names_from = condition, names_glue = "{condition}_{.value}", values_from = c(raw, adjusted, percentile, risk, reason_not_resulted)) # pivot to wide format
+      pivot_wider(id_cols = c(sample_id, lab_batch), names_from = condition, names_glue = "{condition}_{.value}", values_from = c(raw, adjusted, percentile, risk, reason_not_resulted)) %>% # pivot to wide format
+      inner_join(batch_high_counts_per_sample) # add number of high risk conditions for each sample
 
     #order columns as desired
-    cols <- batch_results_table %>% select(-sample_id, -lab_batch) %>% colnames()
+    cols <- batch_results_table %>% select(-sample_id, -lab_batch, -n_high_risk) %>% colnames()
     desired_order_values <- c("raw", "adjusted", "percentile", "risk", "reason_not_resulted")
-    col_order <- c("sample_id", "lab_batch", cols[order(sapply(stri_split_fixed(cols, "_", n=2), "[",1), match(sapply(stri_split_fixed(cols, "_", n=2), "[",2), desired_order_values))])
+    col_order <- c("sample_id", "lab_batch", "n_high_risk", cols[order(sapply(stri_split_fixed(cols, "_", n=2), "[",1), match(sapply(stri_split_fixed(cols, "_", n=2), "[",2), desired_order_values))])
     batch_results_table <- batch_results_table %>% select(all_of(col_order)) %>%
       rename_with(.cols = ends_with("percentile"), .fn = ~gsub("_percentile", " %", .x,fixed=TRUE)) %>%
       rename_with(.cols = ends_with("adjusted"), .fn = ~gsub("_adjusted", "_adj", .x,fixed=TRUE))
 
     all_cols = batch_results_table %>% colnames()
-    risk_cols = which(endsWith(all_cols, "risk"))
+    risk_cols = which(endsWith(all_cols, "risk") & all_cols != "n_high_risk")
     raw_cols = which(endsWith(all_cols, "raw"))
     adjusted_cols = which(endsWith(all_cols, "adj"))
     percentile_cols = which(endsWith(all_cols, "%"))
