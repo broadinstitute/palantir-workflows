@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "ImputationPipeline/ManualQCPRS/_version.py"
+root = "../../"
+
+[project]
+name = "ManualQCPRS"
+dynamic = ["version"]
+dependencies = ['firecloud >= 0.16.33', 'pytz >= 2022.2.1']

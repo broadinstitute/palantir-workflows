@@ -40,7 +40,7 @@ class IntegrationTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.workspace_namespace = os.getenv("TEST_WORKSPACE_NAMESPACE")
         if cls.workspace_namespace is None:
-            raise (RuntimeError("Environment variable WORKSPACE_NAMESPACE must be set to run tests"))
+            raise (RuntimeError("Environment variable TEST_WORKSPACE_NAMESPACE must be set to run tests"))
         workspace_hash = random.getrandbits(64)
         cls.workspace_name = f'test_workspace_{workspace_hash:016x}'
         print(f"Creating test workspace {cls.workspace_namespace}/{cls.workspace_name}")
@@ -55,7 +55,6 @@ class IntegrationTests(unittest.TestCase):
     def tearDown(self) -> None:
         fapi.delete_entities_of_type(self.workspace_namespace, self.workspace_name, "sample_set")
         fapi.delete_entities_of_type(self.workspace_namespace, self.workspace_name, "sample")
-        pass
 
     def run_test(self, samples_tsv=None, expected_sample_sets_json=None, sample_sets_to_mark_delivered=None,
                  samples_to_mark_rework=None):

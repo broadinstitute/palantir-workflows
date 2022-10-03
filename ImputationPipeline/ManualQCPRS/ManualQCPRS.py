@@ -5,9 +5,8 @@ import pandas as pd
 import firecloud.api as fapi
 import json
 from google.cloud import storage
-from datetime import datetime, timezone
+from datetime import datetime
 import pytz
-import os
 from abc import ABC, abstractmethod
 import argparse
 
@@ -119,7 +118,8 @@ class ResultsModificationGUI(WidgetGUI):
             print("Finding batches with aggregated results...")
 
         # lab_batch selection and import/export buttons
-        self.lab_batch_map = {s['name']: s for s in sample_sets if 'batch_all_results' in s['attributes']}
+        self.agg_batch_map = {s['name']: s for s in sample_sets if 'batch_all_results' in s['attributes'] and
+                              (not s['attributes']['delivered'] or s['attributes']["redeliver"])}
 
         with self.status_output_box:
             print("Done")
@@ -145,18 +145,18 @@ class ResultsModificationGUI(WidgetGUI):
                 print("No delivery bucket found")
 
     def build_lab_batch_selection_section(self):
-        self.lab_batch_selection_dropdown = widgets.Combobox(options=list(self.lab_batch_map.keys()),
+        self.agg_batch_selection_dropdown = widgets.Combobox(options=list(self.agg_batch_map.keys()),
                                                              description='Select Lab Batch',
                                                              style={"description_width": 'initial'},
                                                              layout=widgets.Layout(width='auto'),
                                                              continuous_update=False,
                                                              ensure_option=True
                                                              )
-        self.lab_batch_download_button = widgets.Button(description="Load Initial Batch Results",
+        self.agg_batch_download_button = widgets.Button(description="Load Initial Batch Results",
                                                         disabled=True,
                                                         layout=widgets.Layout(width='auto')
                                                         )
-        self.lab_batch_upload_button = widgets.Button(description="Save QC'd Batch Results",
+        self.agg_batch_upload_button = widgets.Button(description="Save QC'd Batch Results",
                                                       disabled=True,
                                                       layout=widgets.Layout(width='auto')
                                                       )
@@ -166,16 +166,16 @@ class ResultsModificationGUI(WidgetGUI):
                                              layout=widgets.Layout(width='auto')
                                              )
 
-        self.lab_batch_hbox = widgets.HBox([self.lab_batch_selection_dropdown,
-                                            self.lab_batch_download_button,
-                                            self.lab_batch_upload_button,
+        self.lab_batch_hbox = widgets.HBox([self.agg_batch_selection_dropdown,
+                                            self.agg_batch_download_button,
+                                            self.agg_batch_upload_button,
                                             self.discard_button
                                             ])
         self.register_widget(self.lab_batch_hbox)
 
-        self.lab_batch_selection_dropdown.observe(self.lab_batch_selected, names='value')
-        self.lab_batch_download_button.on_click(self.lab_batch_download_button_clicked)
-        self.lab_batch_upload_button.on_click(self.save_modified_results_button_clicked)
+        self.agg_batch_selection_dropdown.observe(self.lab_batch_selected, names='value')
+        self.agg_batch_download_button.on_click(self.lab_batch_download_button_clicked)
+        self.agg_batch_upload_button.on_click(self.save_modified_results_button_clicked)
         self.discard_button.on_click(self.discard_button_clicked)
 
     def lab_batch_selected(self, change):
@@ -183,7 +183,7 @@ class ResultsModificationGUI(WidgetGUI):
         if lab_batch_name == '':
             return
         self.print_lab_batch_result_info(lab_batch_name)
-        self.lab_batch_download_button.disabled = False
+        self.agg_batch_download_button.disabled = False
 
     def get_time_created(self, uri):
         bucket_name, path = get_bucket_and_blob(uri)
@@ -194,62 +194,63 @@ class ResultsModificationGUI(WidgetGUI):
     def print_lab_batch_result_info(self, lab_batch_name):
         with self.lab_batch_output_box:
             clear_output()
-            results_uri = self.lab_batch_map[lab_batch_name]['attributes']['batch_all_results']
+            results_uri = self.agg_batch_map[lab_batch_name]['attributes']['batch_all_results']
             time_results_created = self.get_time_created(results_uri)
             print("Aggregated results for " + lab_batch_name + " were created at " +
                   time_results_created.astimezone(tz=self.eastern_tz).strftime("%Y-%m-%d %H:%M:%S %Z"))
-            if 'qcd_batch_results' in self.lab_batch_map[lab_batch_name]['attributes']:
-                prev_qcd_results_uri = self.lab_batch_map[lab_batch_name]['attributes']['qcd_batch_results']
+            if 'qcd_batch_results' in self.agg_batch_map[lab_batch_name]['attributes']:
+                prev_qcd_results_uri = self.agg_batch_map[lab_batch_name]['attributes']['qcd_batch_results']
                 time_previous_qcd_results_created = self.get_time_created(prev_qcd_results_uri)
                 print("This batch already has a qcd results file, which was created at " +
                       time_previous_qcd_results_created.astimezone(tz=self.eastern_tz).strftime("%Y-%m-%d %H:%M:%S %Z"))
 
     def lab_batch_download_button_clicked(self, button):
-        self.lab_batch_download_button.disabled = True
-        self.lab_batch_selection_dropdown.disabled = True
+
+        self.agg_batch_download_button.disabled = True
+        self.agg_batch_selection_dropdown.disabled = True
         self.discard_button.disabled = False
-        self.lab_batch_upload_button.disabled = False
-        self.lab_batch = self.lab_batch_selection_dropdown.value
-        results_uri = self.lab_batch_map[self.lab_batch]['attributes']['batch_all_results']
+        self.agg_batch_upload_button.disabled = False
+        self.agg_batch = self.agg_batch_selection_dropdown.value
+        results_uri = self.agg_batch_map[self.agg_batch]['attributes']['batch_all_results']
         results = self.download_aggregated_results(results_uri)
-        self.selected_batch_gui = SelectedBatchModificationGui(results, self.lab_batch)
+        lab_batch = self.agg_batch_map[self.agg_batch]['attributes']['lab_batch']
+        self.selected_batch_gui = SelectedBatchModificationGui(results, lab_batch)
         self.selected_batch_gui.run()
 
     def download_aggregated_results(self, uri):
         return pd.read_csv(uri, delimiter='\t').fillna("NA").set_index('sample_id')
 
     def discard_button_clicked(self, button):
-        self.lab_batch_upload_button.disabled = True
-        self.lab_batch_download_button.disabled = True
+        self.agg_batch_upload_button.disabled = True
+        self.agg_batch_download_button.disabled = True
         self.discard_button.disabled = True
         self.selected_batch_gui.close_widgets()
-        self.lab_batch_selection_dropdown.disabled = False
-        self.lab_batch_selection_dropdown.value = ''
-        self.lab_batch = None
+        self.agg_batch_selection_dropdown.disabled = False
+        self.agg_batch_selection_dropdown.value = ''
+        self.agg_batch = None
         self.selected_batch_gui = None
 
     def save_modified_results_button_clicked(self, button):
-        self.lab_batch_upload_button.disabled = True
-        self.lab_batch_download_button.disabled = True
+        self.agg_batch_upload_button.disabled = True
+        self.agg_batch_download_button.disabled = True
         self.discard_button.disabled = True
         self.selected_batch_gui.close_widgets()
         path = self.save_modified_batch_results()
         self.update_sample_sets_table_with_modified_results(path)
-        self.lab_batch_selection_dropdown.disabled = False
-        self.lab_batch_selection_dropdown.value = ''
-        self.lab_batch = None
+        self.agg_batch_selection_dropdown.disabled = False
+        self.agg_batch_selection_dropdown.value = ''
         self.selected_batch_gui = None
         if self.delivery_bucket:
-            self.delivery_confirmation_box = DeliveryConfirmationBox(path, self.delivery_bucket,
-                                                                     self.lab_batch_selection_dropdown,
-                                                                     self.status_output_box)
+            self.delivery_confirmation_box = DeliveryConfirmationBox(path, self)
             self.delivery_confirmation_box.run()
+
+        self.agg_batch = None
 
     def update_sample_sets_table_with_modified_results(self, path):
         with self.status_output_box:
-            print(f"Updating {self.table_name} data table for " + self.lab_batch + "...")
+            print(f"Updating {self.table_name} data table for " + self.agg_batch + "...")
         update_response = fapi.update_entity(self.workspace_namespace, self.workspace_name, self.table_name,
-                                             f'{self.lab_batch}',
+                                             f'{self.agg_batch}',
                                              [{"op": "AddUpdateAttribute",
                                                "attributeName": "qcd_batch_results", "addUpdateAttribute": path}]
                                              )
@@ -265,7 +266,7 @@ class ResultsModificationGUI(WidgetGUI):
         path = "/".join([self.workspace_bucket_name,
                          "manually_qcd_prs_results",
                          "_".join([
-                             self.lab_batch,
+                             self.agg_batch,
                              now,
                              "manually_qcd_prs_results.csv"
                          ])
@@ -278,13 +279,16 @@ class ResultsModificationGUI(WidgetGUI):
 
 class DeliveryConfirmationBox(WidgetGUI):
 
-    def __init__(self, source_path, delivery_bucket, drop_down_button, higher_status_output_box):
+    def __init__(self, source_path, requesting_results_modification_gui: ResultsModificationGUI):
         super().__init__()
         self.source_path = source_path
-        self.delivery_bucket = delivery_bucket
-        self.higher_status_output_box = higher_status_output_box
-        self.drop_down_button = drop_down_button
-        self.drop_down_button.disabled = True
+        self.delivery_bucket = requesting_results_modification_gui.delivery_bucket
+        self.agg_batch = requesting_results_modification_gui.agg_batch
+        self.workspace_namespace = requesting_results_modification_gui.workspace_namespace
+        self.workspace_name = requesting_results_modification_gui.workspace_name
+        self.table_name = requesting_results_modification_gui.table_name
+        self.requesting_results_modification_gui = requesting_results_modification_gui
+        self.requesting_results_modification_gui.agg_batch_selection_dropdown.disabled = True
         self.delivery_output_box = widgets.Output(layout={'border': '1px solid black'})
         self.register_widget(self.delivery_output_box)
 
@@ -316,11 +320,13 @@ class DeliveryConfirmationBox(WidgetGUI):
     def deliver_button_clicked(self, button):
         self.deliver_modified_batch_results()
         self.close_widgets()
-        self.drop_down_button.disabled = False
+        self.update_data_table()
+        self.remove_set_from_lab_selection_dropdown()
+        self.requesting_results_modification_gui.agg_batch_selection_dropdown.disabled = False
 
     def dont_deliver_button_clicked(self, button):
         self.close_widgets()
-        self.drop_down_button.disabled = False
+        self.requesting_results_modification_gui.agg_batch_selection_dropdown.disabled = False
 
     def deliver_modified_batch_results(self):
         source_bucket_name, source_blob_name = get_bucket_and_blob(self.source_path)
@@ -331,9 +337,22 @@ class DeliveryConfirmationBox(WidgetGUI):
         destination_bucket = storage_client.bucket(self.delivery_bucket.replace("gs://", ""))
         destination_blob_name = source_blob_name.split("/")[-1]
         source_bucket.copy_blob(source_blob, destination_bucket, destination_blob_name)
-        with self.higher_status_output_box:
+        with self.requesting_results_modification_gui.status_output_box:
             print(f'{color.BOLD} {color.BLUE} Delivering qcd results to bucket {destination_bucket.name} {color.END}')
 
+    def update_data_table(self):
+        update_response = fapi.update_entity(self.workspace_namespace, self.workspace_name,self.table_name, self.agg_batch,
+                           [fapi._attr_set("delivered", True),
+                            fapi._attr_set("redeliver", False)
+                            ]
+                           )
+        fapi._check_response_code(update_response, 200)
+
+    def remove_set_from_lab_selection_dropdown(self):
+        self.requesting_results_modification_gui.agg_batch_selection_dropdown.options = \
+            tuple(option for option in
+                  self.requesting_results_modification_gui.agg_batch_selection_dropdown.options if
+                  option != self.agg_batch)
 
 class SelectedBatchModificationGui(WidgetGUI):
     result_to_status_dict = {"HIGH": "PASS",
@@ -363,12 +382,10 @@ class SelectedBatchModificationGui(WidgetGUI):
     def validate_results(self):
         batches_in_results = set(self.results['lab_batch'])
         if len(batches_in_results) > 1:
-            raise RuntimeError('Error: more than one lab_batch in the same results table.  Batches in table are: ' +
-                               batches_in_results)
+            raise RuntimeError(f'Error: more than one lab_batch in the same results table.  Batches in table are: {batches_in_results}')
         if self.lab_batch not in batches_in_results:
             raise RuntimeError(
-                'Error: lab_batch ' + self.lab_batch + ' not seen in results table, which contains batch ' +
-                batches_in_results)
+                f'Error: lab_batch {self.lab_batch } not seen in results table, which contains batch {batches_in_results}')
 
     def run(self):
         self.build_failed_imputation_section()
@@ -394,7 +411,7 @@ class SelectedBatchModificationGui(WidgetGUI):
         self.finished_addition_imputation_failures_button = widgets.Button(
             description='Finished Adding Imputation Failures',
             layout=widgets.Layout(width='auto')
-            )
+        )
 
         self.failed_imputation_sample_text_box.observe(self.enterTextForSampleFailedImputation, names='value')
         self.failed_imputation_sample_add_button.on_click(self.clickAddFailedImputationSampleButton)
@@ -438,6 +455,12 @@ class SelectedBatchModificationGui(WidgetGUI):
 
     def enterTextForSampleFailedImputation(self, change):
         if change['new'] == '':
+            return
+        if change['new'] in self.results.index:
+            with self.out_failed_imputation:
+                print(f'{change["new"]} already included as scored sample, '
+                      f'cannot be added as sample which failed imputation')
+            self.failed_imputation_sample_text_box.value = ''
             return
         self.failed_imputation_notes_text_box.disabled = False
         self.failed_imputation_notes_text_box.placeholder = 'notes...'
@@ -535,11 +558,13 @@ class SelectedBatchModificationGui(WidgetGUI):
         self.fail_sample_all_conditions_button.disabled = False
 
     def addManualFailureToResults(self, sample, condition, reason):
-        self.modified_results.loc[sample, condition + "_raw"] = "NA"
-        self.modified_results.loc[sample, condition + "_adjusted"] = "NA"
-        self.modified_results.loc[sample, condition + "_percentile"] = "NA"
-        self.modified_results.loc[sample, condition + "_risk"] = "NOT_RESULTED"
-        self.modified_results.loc[sample, condition + "_reason_not_resulted"] = reason
+        # only need to fail if scored
+        if self.results.loc[sample, f'{condition}_risk'] != "NA":
+            self.modified_results.loc[sample, condition + "_raw"] = "NA"
+            self.modified_results.loc[sample, condition + "_adjusted"] = "NA"
+            self.modified_results.loc[sample, condition + "_percentile"] = "NA"
+            self.modified_results.loc[sample, condition + "_risk"] = "NOT_RESULTED"
+            self.modified_results.loc[sample, condition + "_reason_not_resulted"] = reason
 
     def removeManualFailureFromResults(self, sample, condition):
         self.modified_results.loc[sample, condition + "_raw"] = self.results.loc[sample, condition + "_raw"]
@@ -547,7 +572,8 @@ class SelectedBatchModificationGui(WidgetGUI):
         self.modified_results.loc[sample, condition + "_percentile"] = self.results.loc[
             sample, condition + "_percentile"]
         self.modified_results.loc[sample, condition + "_risk"] = self.results.loc[sample, condition + "_risk"]
-        self.modified_results.loc[sample, condition + "_reason_not_resulted"] = self.results.loc[sample, condition + "_reason_not_resulted"]
+        self.modified_results.loc[sample, condition + "_reason_not_resulted"] = self.results.loc[
+            sample, condition + "_reason_not_resulted"]
 
     def manuallyFailSampleForAllConditions(self, sample, reason):
         for condition in self.conditions:
@@ -628,7 +654,7 @@ class SelectedBatchModificationGui(WidgetGUI):
             ensure_option=False,
             disabled=True,
             layout=widgets.Layout(width='auto')
-            )
+        )
         self.fail_condition_all_samples_button = widgets.Button(description='Fail', disabled=True,
                                                                 style={"description_width": 'initial'},
                                                                 layout=widgets.Layout(width='auto')
@@ -641,7 +667,7 @@ class SelectedBatchModificationGui(WidgetGUI):
         self.finished_condition_failures_button = widgets.Button(
             description='Finished Failing Conditions For All Samples',
             layout=widgets.Layout(width='auto')
-            )
+        )
 
         self.condition_failure_hbox = widgets.HBox(
             [self.condition_failure_selection, self.condition_failure_reason_selection,
@@ -797,14 +823,13 @@ class SelectedBatchModificationGui(WidgetGUI):
                                          button_style=self.status_to_style_dict[condition_status])
 
         failure_reason = widgets.Dropdown(options=["NOT CALCULATED"] if condition_status == "INFO" else
-        self.standard_failure_options,
-                                          disabled=condition_status != "PASS")
+            self.standard_failure_options, disabled=condition_status != "PASS")
         if condition_status == "PASS":
             failure_reason.value = 'PASS'
         elif condition_status != "INFO":
             failure_reason.value = self.modified_results.loc[sample, condition + "_reason_not_resulted"] if \
-            self.modified_results.loc[
-                sample, condition + "_reason_not_resulted"] in self.standard_failure_reasons else 'Other'
+                self.modified_results.loc[
+                    sample, condition + "_reason_not_resulted"] in self.standard_failure_reasons else 'Other'
         failure_reason.observe(self.select_failure_reason, names='value')
 
         custom_failure_reason = widgets.Text(disabled=True, continuous_update=False)
@@ -840,7 +865,7 @@ def main(workspace_namespace, workspace_name, workspace_bucket_name):
 
     entity_types_dict = json.loads(entity_types_response.text)
     available_tables = [t for t in entity_types_dict if all(
-        x in entity_types_dict[t]['attributeNames'] for x in ['batch_all_results', 'time_sample_set_created'])]
+        x in entity_types_dict[t]['attributeNames'] for x in ['batch_all_results', 'time_sample_set_updated'])]
 
     if len(available_tables) == 1:
         app = ResultsModificationGUI(workspace_namespace, workspace_name, workspace_bucket_name, available_tables[0])
