@@ -39,7 +39,7 @@ class TableSelectionGUI:
         self.build_table_selection_dropdown()
 
     def build_table_selection_dropdown(self):
-        self.table_selection_dropdown = widgets.Dropdown(options=[None] + available_tables,
+        self.table_selection_dropdown = widgets.Dropdown(options=[None] + self.available_tables,
                                                          description='Select Table to Load Batches From',
                                                          style={"description_width": 'initial'},
                                                          layout=widgets.Layout(width='auto')
