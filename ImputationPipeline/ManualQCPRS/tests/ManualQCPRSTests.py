@@ -307,6 +307,7 @@ class ResultsModificationTest(unittest.TestCase):
         expected_agg_batches = {"BATCH_123456", "BATCH_12345_group_2", "BATCH_12345"}  # delivered batch not available
         self.assertEqual(expected_agg_batches, set(self.results_modification_gui.agg_batch_selection_dropdown.options))
 
+
 class FailSampleForConditionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -351,9 +352,12 @@ class FailSampleForConditionTests(unittest.TestCase):
         expected_unfailed_results = pd.concat(
             [expected_unfailed_results, pd.Series({'poly_test_not_performed_reason': 'NA',
                                                    'notes': 'NA'})])
+        unfailed_result = this_sample_modified_series[~this_sample_modified_series.index.isin(failed_condition_columns)].fillna("NA")
+        # need to put in same order
+        expected_unfailed_results = expected_unfailed_results.reindex(unfailed_result.index.tolist())
         pd.testing.assert_series_equal(
-            this_sample_modified_series[~this_sample_modified_series.index.isin(failed_condition_columns)].fillna("NA"),
-            expected_unfailed_results, check_like=True, check_names=False)
+            unfailed_result,
+            expected_unfailed_results, check_names=False)
 
         # finally, assert that failed conditions are correctly failed
         data = {f'{c_and_r[0]}_{metric}': "NA" for c_and_r, metric in
@@ -364,7 +368,8 @@ class FailSampleForConditionTests(unittest.TestCase):
             {f'{condition}_reason_not_resulted': reason for condition, reason in failed_conditions_with_reasons})
         expected_failed_results = pd.Series(data)
         failed_results = this_sample_modified_series[failed_condition_columns]
-        pd.testing.assert_series_equal(expected_failed_results, failed_results, check_like=True, check_names=False)
+        expected_failed_results = expected_failed_results.reindex(failed_results.index.tolist())
+        pd.testing.assert_series_equal(expected_failed_results, failed_results, check_names=False)
 
     def fail_sample_for_condition(self, sample, condition, reason=None):
         self.selected_batch_gui.sample_selection.value = sample
