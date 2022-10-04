@@ -880,5 +880,5 @@ if __name__ == '__main__':
     parser.add_argument("--workspace_namespace", dest="workspace_namespace", required=True)
     parser.add_argument("--worspace_name", dest="workspace_name", required=True)
     parser.add_argument("--worspace_bucket_name", dest="workspace_bucket_name", required=True)
-    parser.parse_args()
-    main(parser.workspace_namespace, parser.workspace_name, parser.workspace_bucket_name)
+    args = parser.parse_args()
+    main(args.workspace_namespace, args.workspace_name, args.workspace_bucket_name)

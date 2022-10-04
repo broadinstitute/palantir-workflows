@@ -226,5 +226,5 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspace_namespace", dest="workspace_namespace", required=True)
     parser.add_argument("--workspace_name", dest="workspace_name", required=True)
-    parser.parse_args()
-    run(parser.workspace_namespace, parser.workspace_name)
+    args = parser.parse_args()
+    run(args.workspace_namespace, args.workspace_name)
