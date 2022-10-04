@@ -1,5 +1,5 @@
 import ipywidgets as widgets
-from IPython.core.display import display
+from IPython.display import display
 from IPython.display import clear_output
 import pandas as pd
 import firecloud.api as fapi
