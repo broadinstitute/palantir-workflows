@@ -265,7 +265,7 @@ EOF
     }
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/mgatzen/python-data-slim:98f9877658fbb4a8298fbd69f7daf0fa5415c6f79d7f4d0ef47a4ed41a5c5ad3"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim-plots:1.0"
         preemptible: select_first([preemptible, 0])
         memory: machine_mem_gb + " GB"
         disks: "local-disk 20 HDD"
