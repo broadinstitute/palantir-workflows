@@ -45,6 +45,7 @@ workflow CompareBenchmarks {
 
     output {
         File comparison_csv = CompareBenchmarksTask.comparison_csv
+        File raw_data = CompareBenchmarksTask.raw_data
         Array[File] gc_plots = CreateGCPlotsTask.gc_plots
     }
 }
@@ -387,6 +388,8 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
 
     data = calculate_metrics(data, unique_sample_ids, unique_configurations, stratifiers)
 
+    data.to_csv('raw_data.csv')
+
     with open('comparison.csv', 'w') as output_file:
         chainable_output = ChainableOutput(output_file, ',')
         write_header(chainable_output, unique_sample_ids, unique_configurations, deltas, include_counts)
@@ -420,5 +423,6 @@ EOF
 
     output {
         File comparison_csv = "comparison.csv"
+        File raw_data = "raw_data.csv"
     }
 }

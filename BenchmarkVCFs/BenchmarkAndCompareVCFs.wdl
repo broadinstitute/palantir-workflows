@@ -106,6 +106,7 @@ workflow BenchmarkAndCompareVCFs {
 
     output {
         File comparison_csv = CompareBenchmarks.comparison_csv
+        File raw_data = CompareBenchmarks.raw_data
         Array[File] gc_plots = CompareBenchmarks.gc_plots
         Array[File] summaries = RenameSummary.summary
     }
