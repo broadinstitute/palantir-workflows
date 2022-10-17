@@ -46,8 +46,6 @@ task FEEvaluationTask {
     command <<<
         set -xeuo pipefail
         
-        source activate fe_evaluation
-        
         cat <<EOF > script.py
 import matplotlib.pyplot as plt
 import argparse
@@ -267,7 +265,7 @@ EOF
     }
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/functionalequivalence/fe_evaluation:1.0.0"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim-plots:1.0"
         preemptible: select_first([preemptible, 0])
         memory: machine_mem_gb + " GB"
         disks: "local-disk 20 HDD"
