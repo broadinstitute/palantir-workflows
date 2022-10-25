@@ -93,7 +93,7 @@ def make_prec_recall_plot(df, marginal):
     color = None if df['Experiment'].iloc[0] == 'No_ExpGroups_Provided' else 'Experiment'
     marginal = marginal.lower() if marginal != 'None' else None
     return px.scatter(df, x='Recall', y='Precision', color=color, marginal_x=marginal, marginal_y=marginal,
-                      hover_data=['Call_Name', 'Total_Base', 'Total_Call'], title=f'Precision vs Recall Plot over {strat} for {type_}')
+                      hover_data=['Call_Name'], title=f'Precision vs Recall Plot over {strat} for {type_}')
 
 
 def make_stat_corr_plot(df, stat_corr, stat):
