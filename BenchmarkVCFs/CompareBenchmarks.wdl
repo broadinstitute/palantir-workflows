@@ -399,7 +399,7 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create a table to compare output of BenchmarkVCFs.')
-    parser.add_argument('--stratifiers', type=str, nargs='+', help='Explicitly specify the stratifiers that have to be present in all samples. "all" will automatically be added. If not specified, the stratifiers will be inferred. If specified, this argument also defines the order of the stratifiers.')
+    parser.add_argument('--stratifiers', type=str, nargs='*', help='Explicitly specify the stratifiers that have to be present in all samples. "all" will automatically be added. If not specified, the stratifiers will be inferred. If specified, this argument also defines the order of the stratifiers.')
     parser.add_argument('--order-of-samples', type=str, nargs='+', help='Order of samples. If not specified, the order will be the same as the supplied inputs.')
     parser.add_argument('--order-of-configurations', type=str, nargs='+', help='Order of configurations. If not specified, the order will be the same as the supplied inputs.')
     parser.add_argument('--deltas', type=str, nargs='+', help='A list of configuration (zero-based) indices to compare. E.g. for comparing configurations 0 to 1 and 0 to 2, pass the values 0 1 0 2.')
