@@ -248,7 +248,7 @@ task VCFEval {
 
         # Runtime params
         Int? preemptible
-        Int disk_size = ceil(size(call_vcf, "GB") + size(base_vcf, "GB") + size(reference.fasta, "GB") + size(evaluation_bed, "GB")) + 20
+        Int disk_size = ceil(size(call_vcf, "GB") + size(base_vcf, "GB") + size(reference.fasta, "GB")) + 25
         Int cpu = 8
         Int memory = 16
     }
