@@ -59,6 +59,9 @@ workflow SimpleBenchmark {
         String? extra_column
         String? extra_column_label
 
+        # Toggle for more tries on preemptible machines for potentially cheaper runs at the risk of longer runtime
+        Int preemptible = 3
+
         # Null File type -- do NOT assign; Needed until WDL has better support for null File values
         File? NULL_FILE
     }
@@ -95,7 +98,7 @@ workflow SimpleBenchmark {
                 stratifier=stratifier,
                 interval_padding=interval_padding,
                 gatk_tag=subset_gatk_tag,
-                preemptible=3
+                preemptible=preemptible
         }
 
         call SubsetVCF as SubsetTruth {
@@ -107,7 +110,7 @@ workflow SimpleBenchmark {
                 stratifier=stratifier,
                 interval_padding=interval_padding,
                 gatk_tag=subset_gatk_tag,
-                preemptible=3
+                preemptible=preemptible
         }
 
         # Run over different score_fields to produce other ROC outputs
@@ -124,7 +127,7 @@ workflow SimpleBenchmark {
                     evaluation_bed=evaluation_bed,
                     score_field=score_field,
                     strat_label=stratifier.label,
-                    preemptible=3
+                    preemptible=preemptible
             }
         }
 
@@ -350,8 +353,6 @@ task BCFToolsStats {
         Int memory = 32
     }
 
-    Int actual_cpu = if cpu < 4 then 4 else cpu    # Make sure to assign at least 4 CPUs to split across 4 parallel procs
-
     # Handle parsing bcf_selector with surrounding quotes, with empty case handled separately
     String selection = if bcf_selector!= "" then "-i " + '"' + bcf_selector + '"' else ""
 
@@ -359,19 +360,10 @@ task BCFToolsStats {
         set -xeuo pipefail
 
         # Subset to evaluation bed if provided, to ensure not too many FNs picked up outside of it
-        bcftools stats ~{selection} -s- ~{"-R" + evaluation_bed} --threads ~{floor(actual_cpu / 4)} ~{tp_base_vcf} > tp_base_stats.tsv &
-        TP_BASE_PID=$!
-        bcftools stats ~{selection} -s- ~{"-R" + evaluation_bed} --threads ~{floor(actual_cpu / 4)} ~{tp_call_vcf} > tp_call_stats.tsv &
-        TP_CALL_PID=$!
-        bcftools stats ~{selection} -s- ~{"-R" + evaluation_bed} --threads ~{floor(actual_cpu / 4)} ~{fp_vcf} > fp_stats.tsv &
-        FP_PID=$!
-        bcftools stats ~{selection} -s- ~{"-R" + evaluation_bed} --threads ~{floor(actual_cpu / 4)} ~{fn_vcf} > fn_stats.tsv
-
-        # Proceed only after all above parallel commands finish
-        wait $TP_BASE_PID
-        wait $TP_CALL_PID
-        wait $FP_PID
-
+        bcftools stats ~{selection} -s- ~{"-R" + evaluation_bed} --threads ~{cpu} ~{tp_base_vcf} > tp_base_stats.tsv
+        bcftools stats ~{selection} -s- ~{"-R" + evaluation_bed} --threads ~{cpu} ~{tp_call_vcf} > tp_call_stats.tsv
+        bcftools stats ~{selection} -s- ~{"-R" + evaluation_bed} --threads ~{cpu} ~{fp_vcf} > fp_stats.tsv
+        bcftools stats ~{selection} -s- ~{"-R" + evaluation_bed} --threads ~{cpu} ~{fn_vcf} > fn_stats.tsv
 
         python3 << CODE
         import io
@@ -460,7 +452,7 @@ task BCFToolsStats {
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.0"
         disks: "local-disk " + disk_size + " HDD"
-        cpu: actual_cpu
+        cpu: cpu
         memory: memory + "GB"
     }
 
