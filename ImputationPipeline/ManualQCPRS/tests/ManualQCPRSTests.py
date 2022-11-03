@@ -47,9 +47,11 @@ class ResultsModificationTest(unittest.TestCase):
         cls.workspace_namespace = os.getenv("TEST_WORKSPACE_NAMESPACE")
         if cls.workspace_namespace is None:
             raise (RuntimeError("Environment variable TEST_WORKSPACE_NAMESPACE must be set to run tests"))
-        workspace_hash = random.getrandbits(64)
-        cls.workspace_name = f'test_workspace_{workspace_hash:016x}'
+        user = fapi.whoami().split("@")[0]
+        cls.workspace_name = f'test_workspace_ManualQCPRSTests_{user}'
         print(f"Creating test workspace {cls.workspace_namespace}/{cls.workspace_name}")
+        fapi.unlock_workspace(cls.workspace_namespace, cls.workspace_name)
+        fapi.delete_workspace(cls.workspace_namespace, cls.workspace_name)
         r = fapi.create_workspace(cls.workspace_namespace, cls.workspace_name)
         fapi._check_response_code(r, 201)
         cls.workspace_bucket_name = r.json()["bucketName"]
@@ -157,8 +159,8 @@ class ResultsModificationTest(unittest.TestCase):
         expected_lab_batch = "BATCH_12345"
         # cannot use assert_called_with because dataframe equality comparison doesn't work
         # so must compare arguments individually
-        pd.testing.assert_frame_equal(expected_input_df, mock_selected_batch_modification_gui.call_args.args[0])
-        self.assertEqual(expected_lab_batch, mock_selected_batch_modification_gui.call_args.args[1])
+        pd.testing.assert_frame_equal(expected_input_df, mock_selected_batch_modification_gui.call_args[0][0])
+        self.assertEqual(expected_lab_batch, mock_selected_batch_modification_gui.call_args[0][1])
         # select_batch_gui has been run
         self.results_modification_gui.selected_batch_gui.run.assert_called()
 
@@ -324,7 +326,7 @@ class FailSampleForConditionTests(unittest.TestCase):
         self.default_reason = self.selected_batch_gui.standard_failure_reasons[0]
         self.other_reason = 'Other'
 
-    def assert_modified_as_expected(self, failure_dict: dict[str, list[tuple]] = None):
+    def assert_modified_as_expected(self, failure_dict: dict = None):
         if failure_dict is None:
             failure_dict = {}
         # first assert that all samples without manual failures remain unchanged
@@ -339,7 +341,7 @@ class FailSampleForConditionTests(unittest.TestCase):
         for sample, condition_and_reason in failure_dict.items():
             self.assert_sample_failed_correct_conditions(sample, condition_and_reason)
 
-    def assert_sample_failed_correct_conditions(self, sample, failed_conditions_with_reasons: list[tuple]):
+    def assert_sample_failed_correct_conditions(self, sample, failed_conditions_with_reasons: list):
         this_sample_input_series = self.results.loc[sample]
         this_sample_modified_series = self.selected_batch_gui.modified_results.loc[sample]
         # first assert that all unfailed condition columns remain unchanged
@@ -396,7 +398,7 @@ class FailSampleForConditionTests(unittest.TestCase):
         status_selection_dropdown: ipywidgets.Dropdown = sample_condition_vbox.children[1]
         status_selection_dropdown.value = "PASS"
 
-    def assert_condition_widget_box_status(self, condition_vbox, condition_status_dictionary: dict[str, tuple]):
+    def assert_condition_widget_box_status(self, condition_vbox, condition_status_dictionary: dict):
         # each condition vbox should contain 3 children
         children = condition_vbox.children
         self.assertEqual(len(children), 3)
@@ -458,7 +460,7 @@ class FailSampleForConditionTests(unittest.TestCase):
                     self.assertEqual(custom_failure_entry.value, expected_reason)
                     self.assertFalse(custom_failure_entry.disabled)
 
-    def assert_widget_status(self, selected_sample='', condition_status_dictionary: dict[str, tuple] = None):
+    def assert_widget_status(self, selected_sample='', condition_status_dictionary: dict = None):
         if condition_status_dictionary is None:
             condition_status_dictionary = {}
         self.assertEqual(self.selected_batch_gui.sample_selection.value, selected_sample)

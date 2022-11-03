@@ -3,7 +3,6 @@ import unittest
 import os
 import firecloud.api as fapi
 import json
-import random
 
 current_dir = os.path.dirname(__file__)
 resources_dir = os.path.join(current_dir, "resources")
@@ -41,9 +40,11 @@ class IntegrationTests(unittest.TestCase):
         cls.workspace_namespace = os.getenv("TEST_WORKSPACE_NAMESPACE")
         if cls.workspace_namespace is None:
             raise (RuntimeError("Environment variable TEST_WORKSPACE_NAMESPACE must be set to run tests"))
-        workspace_hash = random.getrandbits(64)
-        cls.workspace_name = f'test_workspace_{workspace_hash:016x}'
+        user = fapi.whoami().split("@")[0]
+        cls.workspace_name = f'test_workspace_ManualQCPRSTests_{user}'
         print(f"Creating test workspace {cls.workspace_namespace}/{cls.workspace_name}")
+        fapi.unlock_workspace(cls.workspace_namespace, cls.workspace_name)
+        fapi.delete_workspace(cls.workspace_namespace, cls.workspace_name)
         r = fapi.create_workspace(cls.workspace_namespace, cls.workspace_name)
         fapi._check_response_code(r, 201)
 
