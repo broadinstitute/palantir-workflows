@@ -56,7 +56,8 @@ class ResultsModificationTest(unittest.TestCase):
         fapi._check_response_code(r, 201)
         cls.workspace_bucket_name = r.json()["bucketName"]
         # set delivery bucket to workspace bucket
-        r = fapi.update_workspace_attributes(cls.workspace_namespace, cls.workspace_name, [fapi._attr_set("delivery-bucket", cls.workspace_bucket_name)])
+        r = fapi.update_workspace_attributes(cls.workspace_namespace, cls.workspace_name,
+                                             [fapi._attr_set("delivery-bucket", cls.workspace_bucket_name)])
         fapi._check_response_code(r, 200)
 
         # upload test_results into bucket
@@ -92,8 +93,10 @@ class ResultsModificationTest(unittest.TestCase):
             if not upload_sample_sets_response.ok:
                 raise RuntimeError(f'ERROR: {upload_sample_sets_response.text}')
 
-        self.results_modification_gui = ManualQCPRS.ResultsModificationGUI(self.workspace_namespace, self.workspace_name,
-                                                                           f'gs://{self.workspace_bucket_name}', "sample_set")
+        self.results_modification_gui = ManualQCPRS.ResultsModificationGUI(self.workspace_namespace,
+                                                                           self.workspace_name,
+                                                                           f'gs://{self.workspace_bucket_name}',
+                                                                           "sample_set")
         self.results_modification_gui.run()
 
     @classmethod
@@ -118,7 +121,8 @@ class ResultsModificationTest(unittest.TestCase):
     def assert_widget_status(self, batch_selection_value='', batch_selection_enabled=True, load_enabled=True,
                              save_enabled=True, discard_enabled=True):
         self.assertEqual(batch_selection_value, self.results_modification_gui.agg_batch_selection_dropdown.value)
-        self.assertEqual(batch_selection_enabled, not self.results_modification_gui.agg_batch_selection_dropdown.disabled)
+        self.assertEqual(batch_selection_enabled,
+                         not self.results_modification_gui.agg_batch_selection_dropdown.disabled)
         self.assertEqual(load_enabled, not self.results_modification_gui.agg_batch_download_button.disabled)
         self.assertEqual(save_enabled, not self.results_modification_gui.agg_batch_upload_button.disabled)
         self.assertEqual(discard_enabled, not self.results_modification_gui.discard_button.disabled)
@@ -154,8 +158,8 @@ class ResultsModificationTest(unittest.TestCase):
         self.results_modification_gui.agg_batch_selection_dropdown.value = batch
         self.results_modification_gui.agg_batch_download_button.click()
 
-        expected_input_df = pd.read_csv(os.path.join(resources_dir, "test_results_2.tsv"), delimiter='\t').fillna("NA").\
-            set_index('sample_id')
+        expected_input_df = pd.read_csv(os.path.join(resources_dir, "test_results_2.tsv"), delimiter='\t')\
+            .fillna("NA").set_index('sample_id')
         expected_lab_batch = "BATCH_12345"
         # cannot use assert_called_with because dataframe equality comparison doesn't work
         # so must compare arguments individually
@@ -176,15 +180,17 @@ class ResultsModificationTest(unittest.TestCase):
         self.assertIsNone(self.results_modification_gui.selected_batch_gui)
 
         # check table updated
-        saved_path = fapi.get_entity(self.workspace_namespace, self.workspace_name, "sample_set", batch).json()['attributes']['qcd_batch_results']
+        saved_path = fapi.get_entity(self.workspace_namespace, self.workspace_name, "sample_set", batch)\
+            .json()['attributes']['qcd_batch_results']
         expected_regex = "gs://" + os.path.join(self.workspace_bucket_name, "manually_qcd_prs_results",
-                                                batch + "_\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}_EDT_manually_qcd_prs_results.csv")
+                                                batch + "_\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}_E[D,S]T_manually_qcd_prs_results.csv")
         self.assertRegex(saved_path, expected_regex)
 
         # check saved result as expected
         saved_df = pd.read_csv(saved_path).fillna("NA")
         expected_df = pd.read_csv(os.path.join(resources_dir, "test_results_2.tsv"), sep="\t")
-        expected_df = expected_df.reindex(columns=expected_df.columns.tolist() + ['poly_test_not_performed_reason', 'notes']).fillna("NA")
+        expected_df = expected_df.reindex(columns=expected_df.columns.tolist() + ['poly_test_not_performed_reason',
+                                                                                  'notes']).fillna("NA")
         pd.testing.assert_frame_equal(expected_df, saved_df, check_dtype=False)
 
         # check delivery confirmation box
@@ -207,8 +213,8 @@ class ResultsModificationTest(unittest.TestCase):
         self.results_modification_gui.delivery_confirmation_box.deliver_button.click()
 
         # check for delivery
-        saved_path = fapi.get_entity(self.workspace_namespace, self.workspace_name, "sample_set", batch).json()['attributes'][
-            'qcd_batch_results']
+        saved_path = fapi.get_entity(self.workspace_namespace, self.workspace_name, "sample_set", batch)\
+            .json()['attributes']['qcd_batch_results']
 
         delivered_path = f'gs://{self.workspace_bucket_name}/{os.path.basename(saved_path)}'
         delivered_df = pd.read_csv(delivered_path).fillna("NA")
@@ -218,7 +224,8 @@ class ResultsModificationTest(unittest.TestCase):
         pd.testing.assert_frame_equal(expected_df, delivered_df)
 
         # check that table is updated correctly
-        attributes = fapi.get_entity(self.workspace_namespace, self.workspace_name, "sample_set", batch).json()['attributes']
+        attributes = fapi.get_entity(self.workspace_namespace, self.workspace_name, "sample_set", batch)\
+            .json()['attributes']
         self.assertTrue(attributes['delivered'])
         self.assertFalse(attributes['redeliver'])
 
@@ -237,8 +244,8 @@ class ResultsModificationTest(unittest.TestCase):
         self.results_modification_gui.delivery_confirmation_box.dont_deliver_button.click()
 
         # check that not delivered
-        saved_path = fapi.get_entity(self.workspace_namespace, self.workspace_name, "sample_set", batch).json()['attributes'][
-            'qcd_batch_results']
+        saved_path = fapi.get_entity(self.workspace_namespace, self.workspace_name, "sample_set", batch)\
+            .json()['attributes']['qcd_batch_results']
 
         delivered_path = f'gs://{self.workspace_bucket_name}/{os.path.basename(saved_path)}'
         bucket = self.storage_client.bucket(self.workspace_bucket_name)
@@ -264,8 +271,8 @@ class ResultsModificationTest(unittest.TestCase):
 
         # check for delivery
         saved_path = \
-        fapi.get_entity(self.workspace_namespace, self.workspace_name, "sample_set", batch).json()['attributes'][
-            'qcd_batch_results']
+            fapi.get_entity(self.workspace_namespace, self.workspace_name, "sample_set", batch)\
+                .json()['attributes']['qcd_batch_results']
 
         delivered_path = f'gs://{self.workspace_bucket_name}/{os.path.basename(saved_path)}'
         delivered_df = pd.read_csv(delivered_path).fillna("NA")
@@ -349,12 +356,14 @@ class FailSampleForConditionTests(unittest.TestCase):
                                     itertools.product(
                                         [condition for condition, reason in failed_conditions_with_reasons],
                                         ["raw", "adjusted", "percentile", "risk", "reason_not_resulted"])]
-        expected_unfailed_results = this_sample_input_series[~this_sample_input_series.index. \
+        expected_unfailed_results = this_sample_input_series[~this_sample_input_series.index.
             isin(failed_condition_columns)]
         expected_unfailed_results = pd.concat(
             [expected_unfailed_results, pd.Series({'poly_test_not_performed_reason': 'NA',
                                                    'notes': 'NA'})])
-        unfailed_result = this_sample_modified_series[~this_sample_modified_series.index.isin(failed_condition_columns)].fillna("NA")
+        unfailed_result = this_sample_modified_series[
+            ~this_sample_modified_series.index.isin(failed_condition_columns)
+        ].fillna("NA")
         # need to put in same order
         expected_unfailed_results = expected_unfailed_results.reindex(unfailed_result.index.tolist())
         pd.testing.assert_series_equal(
@@ -825,14 +834,14 @@ class FailConditionForAllSamplesTests(unittest.TestCase):
                         condition_failure_hbox_close_mock, \
                 patch.object(self.selected_batch_gui, 'build_fail_sample_for_condition_section') as \
                         build_fail_sample_for_condition_section_mock, \
-                patch.object(self.selected_batch_gui, 'printManualFailureStatus') as \
-                        printManualFailureStatus_mock:
+                patch.object(self.selected_batch_gui, 'print_manual_failure_status') as \
+                        print_manual_failure_status_mock:
             self.selected_batch_gui.finished_condition_failures_button.click()
 
         finished_condition_failures_button_close_mock.assert_called()
         condition_failure_hbox_close_mock.assert_called()
         build_fail_sample_for_condition_section_mock.assert_called()
-        printManualFailureStatus_mock.assert_called()
+        print_manual_failure_status_mock.assert_called()
 
 
 class FailAllConditionsForSampleTests(unittest.TestCase):
@@ -1017,14 +1026,14 @@ class FailAllConditionsForSampleTests(unittest.TestCase):
                 patch.object(self.selected_batch_gui.sample_failure_hbox, 'close') as sample_failure_hbox_close_mock, \
                 patch.object(self.selected_batch_gui, 'build_fail_condition_section') as \
                         build_fail_condition_section_mock, \
-                patch.object(self.selected_batch_gui, 'printFailedConditionsAllSamples') as \
-                        printFailedConditionsAllSamples_mock:
+                patch.object(self.selected_batch_gui, 'print_failed_conditions_all_samples') as \
+                        print_failed_conditions_all_samples_mock:
             self.selected_batch_gui.finished_sample_failures_button.click()
 
         finished_sample_failures_button_close_mock.assert_called()
         sample_failure_hbox_close_mock.assert_called()
         build_fail_condition_section_mock.assert_called()
-        printFailedConditionsAllSamples_mock.assert_called()
+        print_failed_conditions_all_samples_mock.assert_called()
 
 
 class AddSampleFailedImputationTests(unittest.TestCase):
@@ -1148,14 +1157,14 @@ class AddSampleFailedImputationTests(unittest.TestCase):
                         failed_imputation_hbox_close_mock, \
                 patch.object(self.selected_batch_gui, 'build_fail_samples_all_conditions_section') as \
                         build_fail_samples_all_conditions_section_mock, \
-                patch.object(self.selected_batch_gui, 'printFailedSamplesAllConditions') as \
-                        printFailedSamplesAllConditions_mock:
+                patch.object(self.selected_batch_gui, 'print_failed_samples_all_conditions') as \
+                        print_failed_samples_all_conditions_mock:
             self.selected_batch_gui.finished_addition_imputation_failures_button.click()
 
         finished_addition_imputation_failures_close_mock.assert_called()
         failed_imputation_hbox_close_mock.assert_called()
         build_fail_samples_all_conditions_section_mock.assert_called()
-        printFailedSamplesAllConditions_mock.assert_called()
+        print_failed_samples_all_conditions_mock.assert_called()
 
 
 if __name__ == '__main__':

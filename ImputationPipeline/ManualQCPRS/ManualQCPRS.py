@@ -9,13 +9,14 @@ from datetime import datetime
 import pytz
 from abc import ABC, abstractmethod
 import argparse
+import os
 
 
 def get_bucket_and_blob(uri):
     return uri.replace("gs://", "").split("/", 1)
 
 
-class color:
+class Color:
     PURPLE = '\033[95m'
     CYAN = '\033[96m'
     DARKCYAN = '\033[36m'
@@ -34,6 +35,8 @@ class TableSelectionGUI:
         self.workspace_namespace = workspace_namespace
         self.workspace_name = workspace_name
         self.workspace_bucket_name = workspace_bucket_name
+        self.table_selection_dropdown = None
+        self.app = None
 
     def run(self):
         self.build_table_selection_dropdown()
@@ -48,9 +51,9 @@ class TableSelectionGUI:
         display(self.table_selection_dropdown)
 
     def select_table(self, change):
-        if change['old'] != None:
+        if change['old'] is not None:
             self.app.close_widgets()
-        if change['new'] != None:
+        if change['new'] is not None:
             self.app = ResultsModificationGUI(self.workspace_namespace, self.workspace_name, self.workspace_bucket_name,
                                               change['new'])
             self.app.run()
@@ -69,7 +72,6 @@ class WidgetGUI(ABC):
             widget.close()
 
     def register_widget(self, widget):
-        # test
         self.registered_widgets.append(widget)
         display(widget)
 
@@ -79,14 +81,24 @@ class ResultsModificationGUI(WidgetGUI):
 
     def __init__(self, workspace_namespace, workspace_name, workspace_bucket_name, table_name):
         super().__init__()
+        self.agg_batch_map = None
+        self.storage_client = None
+        self.agg_batch_selection_dropdown = None
+        self.agg_batch_download_button = None
+        self.agg_batch_upload_button = None
+        self.discard_button = None
+        self.lab_batch_hbox = None
+        self.agg_batch = None
+        self.selected_batch_gui = None
+        self.delivery_bucket = None
+        self.delivery_confirmation_box = None
+
         self.workspace_namespace = workspace_namespace
         self.workspace_name = workspace_name
         self.workspace_bucket_name = workspace_bucket_name
-        self.delivery_bucket = None
         self.table_name = table_name
         self.lab_batch_output_box = widgets.Output(layout={'border': '1px solid black'})
         self.status_output_box = widgets.Output(layout={'border': '1px solid black'})
-        self.selected_batch_gui = None
         self.register_widget(self.status_output_box)
         self.register_widget(self.lab_batch_output_box)
         self.initialize_workspace_info_and_gcloud()
@@ -97,13 +109,14 @@ class ResultsModificationGUI(WidgetGUI):
     def close_widgets(self):
         super().close_widgets()
 
-        if self.selected_batch_gui != None:
+        if self.selected_batch_gui is not None:
             self.selected_batch_gui.close_widgets()
 
     def initialize_workspace_info_and_gcloud(self):
         with self.status_output_box:
             print(
-                f"Getting {self.table_name} information for workspace " + self.workspace_namespace + "/" + self.workspace_name + "...")
+                f"Getting {self.table_name} information for workspace " + self.workspace_namespace + "/" +
+                self.workspace_name + "...")
 
         sample_set_response = fapi.get_entities(self.workspace_namespace, self.workspace_name, self.table_name)
         if not sample_set_response.ok:
@@ -139,7 +152,7 @@ class ResultsModificationGUI(WidgetGUI):
         if 'delivery-bucket' in workspace_attributes:
             self.delivery_bucket = workspace_attributes['delivery-bucket']
             with self.status_output_box:
-                print(f"Delivery bucket set to {color.BOLD} {color.BLUE} {self.delivery_bucket} {color.END}")
+                print(f"Delivery bucket set to {Color.BOLD} {Color.BLUE} {self.delivery_bucket} {Color.END}")
         else:
             with self.status_output_box:
                 print("No delivery bucket found")
@@ -204,7 +217,7 @@ class ResultsModificationGUI(WidgetGUI):
                 print("This batch already has a qcd results file, which was created at " +
                       time_previous_qcd_results_created.astimezone(tz=self.eastern_tz).strftime("%Y-%m-%d %H:%M:%S %Z"))
 
-    def lab_batch_download_button_clicked(self, button):
+    def lab_batch_download_button_clicked(self, _):
 
         self.agg_batch_download_button.disabled = True
         self.agg_batch_selection_dropdown.disabled = True
@@ -212,15 +225,16 @@ class ResultsModificationGUI(WidgetGUI):
         self.agg_batch_upload_button.disabled = False
         self.agg_batch = self.agg_batch_selection_dropdown.value
         results_uri = self.agg_batch_map[self.agg_batch]['attributes']['batch_all_results']
-        results = self.download_aggregated_results(results_uri)
+        results = ResultsModificationGUI.download_aggregated_results(results_uri)
         lab_batch = self.agg_batch_map[self.agg_batch]['attributes']['lab_batch']
         self.selected_batch_gui = SelectedBatchModificationGui(results, lab_batch)
         self.selected_batch_gui.run()
 
-    def download_aggregated_results(self, uri):
+    @staticmethod
+    def download_aggregated_results(uri):
         return pd.read_csv(uri, delimiter='\t').fillna("NA").set_index('sample_id')
 
-    def discard_button_clicked(self, button):
+    def discard_button_clicked(self, _):
         self.agg_batch_upload_button.disabled = True
         self.agg_batch_download_button.disabled = True
         self.discard_button.disabled = True
@@ -230,7 +244,7 @@ class ResultsModificationGUI(WidgetGUI):
         self.agg_batch = None
         self.selected_batch_gui = None
 
-    def save_modified_results_button_clicked(self, button):
+    def save_modified_results_button_clicked(self, _):
         self.agg_batch_upload_button.disabled = True
         self.agg_batch_download_button.disabled = True
         self.discard_button.disabled = True
@@ -263,14 +277,14 @@ class ResultsModificationGUI(WidgetGUI):
         modified_batch_results = self.selected_batch_gui.modified_results.append(
             self.selected_batch_gui.failed_imputation_samples).fillna("NA")
         now = datetime.now(self.eastern_tz).strftime("%Y-%m-%d_%H:%M:%S_%Z")
-        path = "/".join([self.workspace_bucket_name,
-                         "manually_qcd_prs_results",
-                         "_".join([
-                             self.agg_batch,
-                             now,
-                             "manually_qcd_prs_results.csv"
-                         ])
-                         ])
+        path = os.path.join(self.workspace_bucket_name,
+                            "manually_qcd_prs_results",
+                            "_".join([
+                                self.agg_batch,
+                                now,
+                                "manually_qcd_prs_results.csv"
+                            ])
+                            )
         with self.status_output_box:
             print("Saving qcd results to " + path)
         modified_batch_results.to_csv(path)
@@ -281,6 +295,10 @@ class DeliveryConfirmationBox(WidgetGUI):
 
     def __init__(self, source_path, requesting_results_modification_gui: ResultsModificationGUI):
         super().__init__()
+        self.deliver_button = None
+        self.dont_deliver_button = None
+        self.button_hbox = None
+
         self.source_path = source_path
         self.delivery_bucket = requesting_results_modification_gui.delivery_bucket
         self.agg_batch = requesting_results_modification_gui.agg_batch
@@ -298,7 +316,8 @@ class DeliveryConfirmationBox(WidgetGUI):
     def build_confirmation_box(self):
         with self.delivery_output_box:
             print(
-                f'{color.BOLD} Are you sure you want to deliver {self.source_path} to bucket {color.BLUE} {self.delivery_bucket}? {color.END}')
+                f'{Color.BOLD} Are you sure you want to deliver {self.source_path} to bucket {Color.BLUE} '
+                f'{self.delivery_bucket}? {Color.END}')
         self.deliver_button = widgets.Button(description="Yes, deliver",
                                              layout=widgets.Layout(width='auto'),
                                              button_style='success'
@@ -317,14 +336,14 @@ class DeliveryConfirmationBox(WidgetGUI):
 
         self.register_widget(self.button_hbox)
 
-    def deliver_button_clicked(self, button):
+    def deliver_button_clicked(self, _):
         self.deliver_modified_batch_results()
         self.close_widgets()
         self.update_data_table()
         self.remove_set_from_lab_selection_dropdown()
         self.requesting_results_modification_gui.agg_batch_selection_dropdown.disabled = False
 
-    def dont_deliver_button_clicked(self, button):
+    def dont_deliver_button_clicked(self, _):
         self.close_widgets()
         self.requesting_results_modification_gui.agg_batch_selection_dropdown.disabled = False
 
@@ -338,14 +357,15 @@ class DeliveryConfirmationBox(WidgetGUI):
         destination_blob_name = source_blob_name.split("/")[-1]
         source_bucket.copy_blob(source_blob, destination_bucket, destination_blob_name)
         with self.requesting_results_modification_gui.status_output_box:
-            print(f'{color.BOLD} {color.BLUE} Delivering qcd results to bucket {destination_bucket.name} {color.END}')
+            print(f'{Color.BOLD} {Color.BLUE} Delivering qcd results to bucket {destination_bucket.name} {Color.END}')
 
     def update_data_table(self):
-        update_response = fapi.update_entity(self.workspace_namespace, self.workspace_name,self.table_name, self.agg_batch,
-                           [fapi._attr_set("delivered", True),
-                            fapi._attr_set("redeliver", False)
-                            ]
-                           )
+        update_response = fapi.update_entity(self.workspace_namespace, self.workspace_name,
+                                             self.table_name, self.agg_batch,
+                                             [fapi._attr_set("delivered", True),
+                                              fapi._attr_set("redeliver", False)
+                                              ]
+                                             )
         fapi._check_response_code(update_response, 200)
 
     def remove_set_from_lab_selection_dropdown(self):
@@ -353,6 +373,7 @@ class DeliveryConfirmationBox(WidgetGUI):
             tuple(option for option in
                   self.requesting_results_modification_gui.agg_batch_selection_dropdown.options if
                   option != self.agg_batch)
+
 
 class SelectedBatchModificationGui(WidgetGUI):
     result_to_status_dict = {"HIGH": "PASS",
@@ -366,6 +387,39 @@ class SelectedBatchModificationGui(WidgetGUI):
 
     def __init__(self, results, lab_batch):
         super().__init__()
+        self.out_failed_imputation = None
+        self.conditions = None
+        self.failed_imputation_samples = None
+        self.failed_imputation_sample_text_box = None
+        self.failed_imputation_notes_text_box = None
+        self.failed_imputation_sample_add_button = None
+        self.failed_imputation_sample_remove_button = None
+        self.finished_addition_imputation_failures_button = None
+        self.failed_imputation_hbox = None
+        self.failed_imputation_vbox = None
+        self.out_failed_sample_all_conditions = None
+        self.non_control_samples = None
+        self.sample_failure_selection = None
+        self.sample_failure_reason_selection = None
+        self.fail_sample_all_conditions_button = None
+        self.unfail_sample_all_conditions_button = None
+        self.finished_sample_failures_button = None
+        self.sample_failure_hbox = None
+        self.sample_failure_vbox = None
+        self.out_failed_condition_all_samples = None
+        self.condition_failure_selection = None
+        self.condition_failure_reason_selection = None
+        self.fail_condition_all_samples_button = None
+        self.unfail_condition_all_samples_button = None
+        self.finished_condition_failures_button = None
+        self.condition_failure_hbox = None
+        self.condition_failure_vbox = None
+        self.out = None
+        self.sample_selection = None
+        self.standard_failure_reasons = None
+        self.standard_failure_options = None
+        self.sample_condition_failure_vbox = None
+
         self.manual_fails = {}
         self.drop_down_label_dict = {}
         self.drop_down_custom_dict = {}
@@ -382,10 +436,13 @@ class SelectedBatchModificationGui(WidgetGUI):
     def validate_results(self):
         batches_in_results = set(self.results['lab_batch'])
         if len(batches_in_results) > 1:
-            raise RuntimeError(f'Error: more than one lab_batch in the same results table.  Batches in table are: {batches_in_results}')
+            raise RuntimeError(
+                f'Error: more than one lab_batch in the same results table.  '
+                f'Batches in table are: {batches_in_results}')
         if self.lab_batch not in batches_in_results:
             raise RuntimeError(
-                f'Error: lab_batch {self.lab_batch } not seen in results table, which contains batch {batches_in_results}')
+                f'Error: lab_batch {self.lab_batch} not seen in results table, '
+                f'which contains batch {batches_in_results}')
 
     def run(self):
         self.build_failed_imputation_section()
@@ -398,7 +455,7 @@ class SelectedBatchModificationGui(WidgetGUI):
         self.failed_imputation_samples = pd.DataFrame(
             columns=['sample_id', 'lab_batch', 'is_control_sample', 'poly_test_not_performed_reason',
                      'notes']).set_index('sample_id')
-        self.printFailedImputationSamples()
+        self.print_failed_imputation_samples()
 
         self.failed_imputation_sample_text_box = widgets.Text(continuous_update=False,
                                                               placeholder='Add Sample Which Failed Imputation...')
@@ -413,10 +470,10 @@ class SelectedBatchModificationGui(WidgetGUI):
             layout=widgets.Layout(width='auto')
         )
 
-        self.failed_imputation_sample_text_box.observe(self.enterTextForSampleFailedImputation, names='value')
-        self.failed_imputation_sample_add_button.on_click(self.clickAddFailedImputationSampleButton)
-        self.failed_imputation_sample_remove_button.on_click(self.clickRemoveFailedImputationSampleButton)
-        self.finished_addition_imputation_failures_button.on_click(self.clickFinishedImputationFailuresButton)
+        self.failed_imputation_sample_text_box.observe(self.enter_text_for_sample_failed_imputation, names='value')
+        self.failed_imputation_sample_add_button.on_click(self.click_add_failed_imputation_sample_button)
+        self.failed_imputation_sample_remove_button.on_click(self.click_remove_failed_imputation_sample_button)
+        self.finished_addition_imputation_failures_button.on_click(self.click_finished_imputation_failures_button)
 
         self.failed_imputation_hbox = widgets.HBox([self.failed_imputation_sample_text_box,
                                                     self.failed_imputation_notes_text_box,
@@ -432,7 +489,7 @@ class SelectedBatchModificationGui(WidgetGUI):
                                                     ])
         self.register_widget(self.failed_imputation_vbox)
 
-    def printFailedImputationSamples(self):
+    def print_failed_imputation_samples(self):
         with self.out_failed_imputation:
             clear_output()
             if self.failed_imputation_samples.empty:
@@ -442,18 +499,18 @@ class SelectedBatchModificationGui(WidgetGUI):
                 for row in self.failed_imputation_samples.iterrows():
                     print(row[0] + ", notes: " + row[1]['notes'])
 
-    def addFailedImputationSample(self, sample, notes):
+    def add_failed_imputation_sample(self, sample, notes):
         self.failed_imputation_samples.loc[sample, 'poly_test_not_performed_reason'] = 'Failed Imputation'
         self.failed_imputation_samples.loc[sample, 'notes'] = notes
         self.failed_imputation_samples.loc[sample, 'lab_batch'] = self.lab_batch
         self.failed_imputation_samples.loc[sample, 'is_control_sample'] = False
-        self.printFailedImputationSamples()
+        self.print_failed_imputation_samples()
 
-    def removeFailedImputationSample(self, sample):
+    def remove_failed_imputation_sample(self, sample):
         self.failed_imputation_samples.drop(sample, inplace=True)
-        self.printFailedImputationSamples()
+        self.print_failed_imputation_samples()
 
-    def enterTextForSampleFailedImputation(self, change):
+    def enter_text_for_sample_failed_imputation(self, change):
         if change['new'] == '':
             return
         if change['new'] in self.results.index:
@@ -469,29 +526,29 @@ class SelectedBatchModificationGui(WidgetGUI):
             self.failed_imputation_notes_text_box.value = self.failed_imputation_samples.loc[change['new'], 'notes']
         self.failed_imputation_sample_add_button.disabled = False
 
-    def resetFailedImputationWidgets(self):
+    def reset_failed_imputation_widgets(self):
         self.failed_imputation_notes_text_box.disabled = True
         self.failed_imputation_sample_add_button.disabled = True
         self.failed_imputation_sample_remove_button.disabled = True
         self.failed_imputation_sample_text_box.value = ''
         self.failed_imputation_notes_text_box.value = ''
 
-    def clickAddFailedImputationSampleButton(self, button):
+    def click_add_failed_imputation_sample_button(self, _):
         sample = self.failed_imputation_sample_text_box.value
         notes = self.failed_imputation_notes_text_box.value
-        self.addFailedImputationSample(sample, notes)
-        self.resetFailedImputationWidgets()
+        self.add_failed_imputation_sample(sample, notes)
+        self.reset_failed_imputation_widgets()
 
-    def clickRemoveFailedImputationSampleButton(self, button):
+    def click_remove_failed_imputation_sample_button(self, _):
         sample = self.failed_imputation_sample_text_box.value
-        self.removeFailedImputationSample(sample)
-        self.resetFailedImputationWidgets()
+        self.remove_failed_imputation_sample(sample)
+        self.reset_failed_imputation_widgets()
 
-    def clickFinishedImputationFailuresButton(self, button):
+    def click_finished_imputation_failures_button(self, _):
         self.failed_imputation_hbox.close()
         self.finished_addition_imputation_failures_button.close()
         self.build_fail_samples_all_conditions_section()
-        self.printFailedSamplesAllConditions()
+        self.print_failed_samples_all_conditions()
 
     def build_fail_samples_all_conditions_section(self):
         self.out_failed_sample_all_conditions = widgets.Output(layout={'border': '1px solid black'})
@@ -531,17 +588,17 @@ class SelectedBatchModificationGui(WidgetGUI):
                                                  self.finished_sample_failures_button
                                                  ])
 
-        self.sample_failure_selection.observe(self.selectSampleToFailAllConditions, names='value')
-        self.sample_failure_reason_selection.observe(self.selectSampleFailureReason, names='value')
+        self.sample_failure_selection.observe(self.select_sample_to_fail_all_conditions, names='value')
+        self.sample_failure_reason_selection.observe(self.select_sample_failure_reason, names='value')
 
-        self.fail_sample_all_conditions_button.on_click(self.clickFailForAllConditionsButton)
-        self.unfail_sample_all_conditions_button.on_click(self.clickUnfailForAllConditionsButton)
+        self.fail_sample_all_conditions_button.on_click(self.click_fail_for_all_conditions_button)
+        self.unfail_sample_all_conditions_button.on_click(self.click_unfail_for_all_conditions_button)
 
-        self.finished_sample_failures_button.on_click(self.clickFinishedSampleFailuresButton)
+        self.finished_sample_failures_button.on_click(self.click_finished_sample_failures_button)
         self.register_widget(self.sample_failure_vbox)
 
     # when sample selected, enable reason combobox, and unfail button if already failed
-    def selectSampleToFailAllConditions(self, change):
+    def select_sample_to_fail_all_conditions(self, change):
         sample_to_fail = change['new']
         if sample_to_fail != '':
             self.sample_failure_reason_selection.disabled = False
@@ -551,13 +608,13 @@ class SelectedBatchModificationGui(WidgetGUI):
             else:
                 self.sample_failure_reason_selection.value = ''
         else:
-            self.resetSampleFailureWidgets()
+            self.reset_sample_failure_widgets()
 
     # when reason selected, enable Fail button
-    def selectSampleFailureReason(self, changed):
+    def select_sample_failure_reason(self, _):
         self.fail_sample_all_conditions_button.disabled = False
 
-    def addManualFailureToResults(self, sample, condition, reason):
+    def add_manual_failure_to_results(self, sample, condition, reason):
         # only need to fail if scored
         if self.results.loc[sample, f'{condition}_risk'] != "NA":
             self.modified_results.loc[sample, condition + "_raw"] = "NA"
@@ -566,7 +623,7 @@ class SelectedBatchModificationGui(WidgetGUI):
             self.modified_results.loc[sample, condition + "_risk"] = "NOT_RESULTED"
             self.modified_results.loc[sample, condition + "_reason_not_resulted"] = reason
 
-    def removeManualFailureFromResults(self, sample, condition):
+    def remove_manual_failure_from_results(self, sample, condition):
         self.modified_results.loc[sample, condition + "_raw"] = self.results.loc[sample, condition + "_raw"]
         self.modified_results.loc[sample, condition + "_adjusted"] = self.results.loc[sample, condition + "_adjusted"]
         self.modified_results.loc[sample, condition + "_percentile"] = self.results.loc[
@@ -575,53 +632,53 @@ class SelectedBatchModificationGui(WidgetGUI):
         self.modified_results.loc[sample, condition + "_reason_not_resulted"] = self.results.loc[
             sample, condition + "_reason_not_resulted"]
 
-    def manuallyFailSampleForAllConditions(self, sample, reason):
+    def manually_fail_sample_for_all_conditions(self, sample, reason):
         for condition in self.conditions:
-            self.addManualFailureToResults(sample, condition, reason)
+            self.add_manual_failure_to_results(sample, condition, reason)
         self.modified_results.loc[sample, 'poly_test_not_performed_reason'] = 'Failed PRS'
         self.modified_results.loc[sample, 'notes'] = reason
-        self.printFailedSamplesAllConditions()
+        self.print_failed_samples_all_conditions()
 
-    def manuallyUnFailSampleForAllConditions(self, sample):
+    def manually_un_fail_sample_for_all_conditions(self, sample):
         for condition in self.conditions:
-            self.removeManualFailureFromResults(sample, condition)
+            self.remove_manual_failure_from_results(sample, condition)
         self.modified_results.loc[sample, 'poly_test_not_performed_reason'] = 'NA'
         self.modified_results.loc[sample, 'notes'] = 'NA'
-        self.printFailedSamplesAllConditions()
+        self.print_failed_samples_all_conditions()
 
-    def manuallyFailConditionForSample(self, sample, condition, reason):
-        self.addManualFailureToResults(sample, condition, reason)
+    def manually_fail_condition_for_sample(self, sample, condition, reason):
+        self.add_manual_failure_to_results(sample, condition, reason)
         if sample not in self.manual_fails:
             self.manual_fails[sample] = {condition: reason}
         else:
             self.manual_fails[sample][condition] = reason
 
-    def manuallyUnFailConditionForSample(self, sample, condition):
-        self.removeManualFailureFromResults(sample, condition)
+    def manually_un_fail_condition_for_sample(self, sample, condition):
+        self.remove_manual_failure_from_results(sample, condition)
         self.manual_fails[sample].pop(condition)
         if len(self.manual_fails[sample]) == 0:
             self.manual_fails.pop(sample)
 
     # when buttons clicked, fail or unfail sample for all conditions
-    def resetSampleFailureWidgets(self):
+    def reset_sample_failure_widgets(self):
         self.sample_failure_selection.value = ''
         self.sample_failure_reason_selection.value = ''
         self.sample_failure_reason_selection.disabled = True
         self.fail_sample_all_conditions_button.disabled = True
         self.unfail_sample_all_conditions_button.disabled = True
 
-    def clickFailForAllConditionsButton(self, b):
+    def click_fail_for_all_conditions_button(self, _):
         sample = self.sample_failure_selection.value
         reason = self.sample_failure_reason_selection.value
-        self.manuallyFailSampleForAllConditions(sample, reason)
-        self.resetSampleFailureWidgets()
+        self.manually_fail_sample_for_all_conditions(sample, reason)
+        self.reset_sample_failure_widgets()
 
-    def clickUnfailForAllConditionsButton(self, b):
+    def click_unfail_for_all_conditions_button(self, _):
         sample = self.sample_failure_selection.value
-        self.manuallyUnFailSampleForAllConditions(sample)
-        self.resetSampleFailureWidgets()
+        self.manually_un_fail_sample_for_all_conditions(sample)
+        self.reset_sample_failure_widgets()
 
-    def printFailedSamplesAllConditions(self):
+    def print_failed_samples_all_conditions(self):
         with self.out_failed_sample_all_conditions:
             clear_output()
             failed_samples_all_conditions_results = self.modified_results.loc[
@@ -635,11 +692,11 @@ class SelectedBatchModificationGui(WidgetGUI):
 
     # third section, fail condition for all samples
     # third section displays when second section completed
-    def clickFinishedSampleFailuresButton(self, button):
+    def click_finished_sample_failures_button(self, _):
         self.sample_failure_hbox.close()
         self.finished_sample_failures_button.close()
         self.build_fail_condition_section()
-        self.printFailedConditionsAllSamples()
+        self.print_failed_conditions_all_samples()
 
     def build_fail_condition_section(self):
         self.out_failed_condition_all_samples = widgets.Output(layout={'border': '1px solid black'})
@@ -677,15 +734,15 @@ class SelectedBatchModificationGui(WidgetGUI):
                                                     self.condition_failure_hbox,
                                                     self.finished_condition_failures_button
                                                     ])
-        self.condition_failure_selection.observe(self.selectConditionToFailAllConditions, names='value')
-        self.condition_failure_reason_selection.observe(self.selectConditionFailureReason, names='value')
-        self.fail_condition_all_samples_button.on_click(self.clickFailForAllSamplesButton)
-        self.unfail_condition_all_samples_button.on_click(self.clickUnfailForAllSamplesButton)
-        self.finished_condition_failures_button.on_click(self.clickFinishedConditionFailuresButton)
+        self.condition_failure_selection.observe(self.select_condition_to_fail_all_conditions, names='value')
+        self.condition_failure_reason_selection.observe(self.select_condition_failure_reason, names='value')
+        self.fail_condition_all_samples_button.on_click(self.click_fail_for_all_samples_button)
+        self.unfail_condition_all_samples_button.on_click(self.click_unfail_for_all_samples_button)
+        self.finished_condition_failures_button.on_click(self.click_finished_condition_failures_button)
         self.register_widget(self.condition_failure_vbox)
 
     # when condition selected, enable reason combobox
-    def selectConditionToFailAllConditions(self, change):
+    def select_condition_to_fail_all_conditions(self, change):
         condition_to_fail = change['new']
         if condition_to_fail is not None:
             self.condition_failure_reason_selection.disabled = False
@@ -695,44 +752,44 @@ class SelectedBatchModificationGui(WidgetGUI):
             else:
                 self.condition_failure_reason_selection.value = ''
         else:
-            self.resetConditionFailureWidgets()
+            self.reset_condition_failure_widgets()
 
     # when reason selected, enable Fail button
-    def selectConditionFailureReason(self, changed):
+    def select_condition_failure_reason(self, _):
         self.fail_condition_all_samples_button.disabled = False
 
     # when buttons clicked, fail or unfail condition for all samples
-    def resetConditionFailureWidgets(self):
+    def reset_condition_failure_widgets(self):
         self.condition_failure_selection.value = None
         self.condition_failure_reason_selection.value = ''
         self.condition_failure_reason_selection.disabled = True
         self.fail_condition_all_samples_button.disabled = True
         self.unfail_condition_all_samples_button.disabled = True
 
-    def clickFailForAllSamplesButton(self, b):
+    def click_fail_for_all_samples_button(self, _):
         condition = self.condition_failure_selection.value
         reason = self.condition_failure_reason_selection.value
-        self.manuallyFailConditionForAllSamples(condition, reason)
-        self.resetConditionFailureWidgets()
+        self.manually_fail_condition_for_all_samples(condition, reason)
+        self.reset_condition_failure_widgets()
 
-    def clickUnfailForAllSamplesButton(self, b):
+    def click_unfail_for_all_samples_button(self, _):
         condition = self.condition_failure_selection.value
-        self.manuallyUnFailConditionForAllSamples(condition)
-        self.resetConditionFailureWidgets()
+        self.manually_un_fail_condition_for_all_samples(condition)
+        self.reset_condition_failure_widgets()
 
-    def manuallyFailConditionForAllSamples(self, condition, reason):
+    def manually_fail_condition_for_all_samples(self, condition, reason):
         for sample in self.non_control_samples:
-            self.addManualFailureToResults(sample, condition, reason)
+            self.add_manual_failure_to_results(sample, condition, reason)
         self.failed_conditions[condition] = reason
-        self.printFailedConditionsAllSamples()
+        self.print_failed_conditions_all_samples()
 
-    def manuallyUnFailConditionForAllSamples(self, condition):
+    def manually_un_fail_condition_for_all_samples(self, condition):
         for sample in self.non_control_samples:
-            self.removeManualFailureFromResults(sample, condition)
+            self.remove_manual_failure_from_results(sample, condition)
         self.failed_conditions.pop(condition)
-        self.printFailedConditionsAllSamples()
+        self.print_failed_conditions_all_samples()
 
-    def printFailedConditionsAllSamples(self):
+    def print_failed_conditions_all_samples(self):
         with self.out_failed_condition_all_samples:
             clear_output()
             if not self.failed_conditions:
@@ -744,11 +801,11 @@ class SelectedBatchModificationGui(WidgetGUI):
 
     # final section, fail particular sample for particular condition
     # display when finished failing conditions for all samples
-    def clickFinishedConditionFailuresButton(self, button):
+    def click_finished_condition_failures_button(self, _):
         self.condition_failure_hbox.close()
         self.finished_condition_failures_button.close()
         self.build_fail_sample_for_condition_section()
-        self.printManualFailureStatus()
+        self.print_manual_failure_status()
 
     def build_fail_sample_for_condition_section(self):
         self.out = widgets.Output(layout={'border': '1px solid black', 'text_color': 'gray'})
@@ -778,20 +835,21 @@ class SelectedBatchModificationGui(WidgetGUI):
         sample = self.sample_selection.value
         custom_reason_text = self.drop_down_custom_dict[change['owner']]
         if new_value == 'PASS':
-            self.manuallyUnFailConditionForSample(sample, condition)
+            self.manually_un_fail_condition_for_sample(sample, condition)
             condition_label.button_style = 'success'
-            self.resetCustomReasonText(custom_reason_text)
-            self.printManualFailureStatus()
+            self.reset_custom_reason_text(custom_reason_text)
+            self.print_manual_failure_status()
         elif new_value == 'Other':
             custom_reason_text.disabled = False
             custom_reason_text.placeholder = 'Enter Custom Failure Reason'
         else:
-            self.manuallyFailConditionForSample(sample, condition, new_value)
+            self.manually_fail_condition_for_sample(sample, condition, new_value)
             condition_label.button_style = 'danger'
-            self.resetCustomReasonText(custom_reason_text)
-            self.printManualFailureStatus()
+            SelectedBatchModificationGui.reset_custom_reason_text(custom_reason_text)
+            self.print_manual_failure_status()
 
-    def resetCustomReasonText(self, custom_reason_text):
+    @staticmethod
+    def reset_custom_reason_text(custom_reason_text):
         custom_reason_text.disabled = True
         custom_reason_text.placeholder = ''
         custom_reason_text.value = ''
@@ -804,10 +862,10 @@ class SelectedBatchModificationGui(WidgetGUI):
         new_value = change['new']
         sample = self.sample_selection.value
         condition_label.button_style = 'danger'
-        self.manuallyFailConditionForSample(sample, condition, new_value)
-        self.printManualFailureStatus()
+        self.manually_fail_condition_for_sample(sample, condition, new_value)
+        self.print_manual_failure_status()
 
-    def printManualFailureStatus(self):
+    def print_manual_failure_status(self):
         with self.out:
             clear_output()
             if not self.manual_fails:
@@ -817,13 +875,13 @@ class SelectedBatchModificationGui(WidgetGUI):
                 for s in self.manual_fails:
                     print(s + " : " + ", ".join([c + "(" + r + ")" for c, r in self.manual_fails[s].items()]))
 
-    def build_sample_condition_VBox(self, condition, sample):
+    def build_sample_condition_vbox(self, condition, sample):
         condition_status = self.result_to_status_dict[self.modified_results.loc[sample, condition + "_risk"]]
         condition_label = widgets.Button(description=condition,
                                          button_style=self.status_to_style_dict[condition_status])
 
         failure_reason = widgets.Dropdown(options=["NOT CALCULATED"] if condition_status == "INFO" else
-            self.standard_failure_options, disabled=condition_status != "PASS")
+                                            self.standard_failure_options, disabled=condition_status != "PASS")
         if condition_status == "PASS":
             failure_reason.value = 'PASS'
         elif condition_status != "INFO":
@@ -850,7 +908,7 @@ class SelectedBatchModificationGui(WidgetGUI):
         if new_sample == '':
             return
         if new_sample not in self.manual_failure_hbox_dict:
-            vboxes = [self.build_sample_condition_VBox(c, change['new']) for c in self.conditions]
+            vboxes = [self.build_sample_condition_vbox(c, change['new']) for c in self.conditions]
             hbox = widgets.HBox(vboxes, layout=widgets.Layout(display='inline-flex', flex_flow='row wrap'))
             self.manual_failure_hbox_dict[new_sample] = hbox
             self.register_widget(hbox)
@@ -878,7 +936,7 @@ def main(workspace_namespace, workspace_name, workspace_bucket_name):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspace_namespace", dest="workspace_namespace", required=True)
-    parser.add_argument("--worspace_name", dest="workspace_name", required=True)
-    parser.add_argument("--worspace_bucket_name", dest="workspace_bucket_name", required=True)
+    parser.add_argument("--workspace_name", dest="workspace_name", required=True)
+    parser.add_argument("--workspace_bucket_name", dest="workspace_bucket_name", required=True)
     args = parser.parse_args()
     main(args.workspace_namespace, args.workspace_name, args.workspace_bucket_name)
