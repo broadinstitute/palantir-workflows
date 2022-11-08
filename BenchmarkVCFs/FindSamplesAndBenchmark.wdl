@@ -190,7 +190,7 @@ workflow FindSamplesAndBenchmark {
     }
 
     output {
-        File benchmark_vcf_summary = CombineSummaries.summaryOut
+        File benchmark_vcf_summary = CombineSummaries.simple_summary
         File crosscheck = CrosscheckFingerprints.crosscheck
         Array[Array[String]] matches = PickMatches.matches
     }
