@@ -1,5 +1,5 @@
 version 1.0
-import "BenchmarkVCFs.wdl" as Benchmark
+import "SimpleBenchmark.wdl" as Benchmark
 
 workflow FindSamplesAndBenchmark {
 
@@ -131,32 +131,25 @@ workflow FindSamplesAndBenchmark {
                 bcftoolsDocker = bcftoolsDocker
         }
 
-        call Benchmark.Benchmark as BenchmarkVCF{
+        call Benchmark.SimpleBenchmark as BenchmarkVCF{
             input:
-                analysisRegion = analysis_region,
-                evalVcf = ExtractSampleFromCallset.output_vcf,
-                evalLabel = evalLabels[match.leftFile],
-                evalVcfIndex = ExtractSampleFromCallset.output_vcf_index,
-                truthVcf = match.rightFile,
-                confidenceInterval = truthIntervals[match.rightFile],
-                truthLabel = truthLabels[match.rightFile],
-                truthVcfIndex = truthIndex[match.rightFile],
-                reference = ref_fasta,
-                refIndex = ref_fasta_index,
-                refDict = ref_fasta_dict,
-                hapMap = haplotype_database,
-                stratIntervals = allStratIntervals,
-                stratLabels = allStratLabels,
-                jexlVariantSelectors = jexlVariantSelectors,
-                variantSelectorLabels = variantSelectorLabels,
-                referenceVersion = referenceVersion,
-                doIndelLengthStratification = doIndelLengthStratification,
-                gatkTag = gatkTag,
-                requireMatchingGenotypes = requireMatchingGenotypes,
-                passingOnly = passingOnly,
-                vcfScoreField = vcf_score_field,
-                gatkJarForAnnotation = gatkJarForAnnotation,
-                annotationNames = annotationNames
+                base_vcf = match.rightFile,
+                base_vcf_index = truthIndex[match.rightFile],
+                base_output_sample_name = truthLabels[match.rightFile],
+                base_vcf_sample_name = match.rightSample,
+                call_vcf = ExtractSampleFromCallset.output_vcf,
+                call_vcf_index = ExtractSampleFromCallset.output_vcf_index,
+                call_output_sample_name = match.leftSample,
+                call_vcf_sample_name = match.leftSample,
+                ref_fasta = ref_fasta,
+                ref_index = ref_fasta_index,
+                ref_dict = ref_fasta_dict,
+                strat_intervals = allStratIntervals,
+                strat_labels = allStratLabels,
+                bcf_selectors = jexlVariantSelectors,
+                bcf_labels = variantSelectorLabels,
+                evaluation_bed = truthIntervals[match.rightFile],
+                preemptible = 1
         }
 
         Pair[File,File] vcf_and_index_original = zip([ExtractSampleFromCallset.output_vcf],[ExtractSampleFromCallset.output_vcf_index])[0]
@@ -188,7 +181,7 @@ workflow FindSamplesAndBenchmark {
     }
     call Benchmark.CombineSummaries as CombineSummaries{
         input:
-            summaries = select_all(BenchmarkVCF.summary),
+            summaries = select_all(BenchmarkVCF.simple_summary),
             preemptible = 1
     }
 
