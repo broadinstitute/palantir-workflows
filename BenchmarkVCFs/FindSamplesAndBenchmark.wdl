@@ -1,5 +1,6 @@
 version 1.0
 import "SimpleBenchmark.wdl" as Benchmark
+import "BenchmarkVCFs.wdl" as Tasks
 
 workflow FindSamplesAndBenchmark {
 
@@ -93,7 +94,7 @@ workflow FindSamplesAndBenchmark {
 
 
     scatter(interval_and_label in zip(stratIntervals, stratLabels)){
-        call Benchmark.ConvertIntervals as ConvertIntervals {
+        call Tasks.ConvertIntervals as ConvertIntervals {
             input:
                 inputIntervals = interval_and_label.left,
                 refDict = ref_fasta_dict,
