@@ -185,8 +185,7 @@ workflow FindSamplesAndBenchmark {
             ROC_summaries = BenchmarkVCF.combined_ROC,
             SN_summaries = BenchmarkVCF.simple_summary,
             IDD_summaries = BenchmarkVCF.combined_IDD,
-            ST_summaries = BenchmarkVCF.combined_ST,
-            preemptible = 1
+            ST_summaries = BenchmarkVCF.combined_ST
     }
 
     output {
