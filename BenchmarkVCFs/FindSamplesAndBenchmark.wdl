@@ -182,7 +182,10 @@ workflow FindSamplesAndBenchmark {
     }
     call Benchmark.CombineSummaries as CombineSummaries{
         input:
-            summaries = select_all(BenchmarkVCF.simple_summary),
+            ROC_summaries = BenchmarkVCF.combined_ROC,
+            SN_summaries = BenchmarkVCF.simple_summary,
+            IDD_summaries = BenchmarkVCF.combined_IDD,
+            ST_summaries = BenchmarkVCF.combined_ST,
             preemptible = 1
     }
 
