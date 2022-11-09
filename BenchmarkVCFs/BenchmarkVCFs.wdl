@@ -1410,7 +1410,7 @@ task CombineSummaries {
         library(purrr)
         summary_files <- read_delim("~{write_lines(summaries)}", delim="~{delimeter}", col_names=FALSE)
         merged<- as.list(summary_files$X1) %>% map(read_delim, delim="~{delimeter}") %>% reduce(bind_rows)
-        write.table(merged,"~{output_filename}",row.names=FALSE, sep="~{delimeter}", quotes = ~{quotes_string})
+        write.table(merged,"~{output_filename}",row.names=FALSE, sep="~{delimeter}", quote = ~{quotes_string})
         EOF
     >>>
 
