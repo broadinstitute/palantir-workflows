@@ -1398,7 +1398,7 @@ task CombineSummaries {
         Boolean quotes_in_output = true
         String output_filename = "summary.csv"
     }
-    String quotes_string = ifelse(quotes_in_output) then "TRUE" else "FALSE"
+    String quotes_string = if quotes_in_output then "TRUE" else "FALSE"
 
     Int disk_size = 10 + ceil(2 * size(summaries, "GB"))
     command <<<
