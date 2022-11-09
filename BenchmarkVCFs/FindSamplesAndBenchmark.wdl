@@ -183,22 +183,30 @@ workflow FindSamplesAndBenchmark {
     call Tasks.CombineSummaries as CombineSummariesROC{
         input:
             summaries = BenchmarkVCF.combined_ROC,
-            delimeter = "\t"
+            delimeter = "\t",
+            quotes_in_output = false,
+            output_filename = "Full_ROC.tsv"
     }
     call Tasks.CombineSummaries as CombineSummariesSimple{
         input:
             summaries = BenchmarkVCF.simple_summary,
-            delimeter = "\t"
+            delimeter = "\t",
+            quotes_in_output = false,
+            output_filename = "SimpleSummary.tsv"
     }
     call Tasks.CombineSummaries as CombineSummariesIDD{
         input:
             summaries = BenchmarkVCF.combined_IDD,
-            delimeter = "\t"
+            delimeter = "\t",
+            quotes_in_output = false,
+            output_filename = "Full_IDD.tsv"
     }
     call Tasks.CombineSummaries as CombineSummariesST{
         input:
             summaries = BenchmarkVCF.combined_ST,
-            delimeter = "\t"
+            delimeter = "\t",
+            quotes_in_output = false,
+            output_filename = "Full_ST.tsv"
     }
 
     output {

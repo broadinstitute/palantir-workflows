@@ -1395,8 +1395,10 @@ task CombineSummaries {
         Array[File] summaries
         Int? preemptible
         String delimeter = ","
+        Boolean quotes_in_output = true
+        String output_filename = "summary.csv"
     }
-    String dollar="$"
+    String quotes_string = ifelse(quotes_in_output) then "TRUE" else "FALSE"
 
     Int disk_size = 10 + ceil(2 * size(summaries, "GB"))
     command <<<
@@ -1408,7 +1410,7 @@ task CombineSummaries {
         library(purrr)
         summary_files <- read_delim("~{write_lines(summaries)}", delim="~{delimeter}", col_names=FALSE)
         merged<- as.list(summary_files$X1) %>% map(read_delim, delim="~{delimeter}") %>% reduce(bind_rows)
-        write.table(merged,"summary.csv",row.names=FALSE, sep="~{delimeter}")
+        write.table(merged,"~{output_filename}",row.names=FALSE, sep="~{delimeter}", quotes = ~{quotes_string})
         EOF
     >>>
 
@@ -1419,7 +1421,7 @@ task CombineSummaries {
         }
 
     output{
-        File summaryOut="summary.csv"
+        File summaryOut="~{output_filename}"
     }
 }
 
