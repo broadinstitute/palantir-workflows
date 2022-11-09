@@ -202,8 +202,8 @@ workflow FindSamplesAndBenchmark {
     }
 
     output {
-        File benchmark_vcf_summary = CombineSummariesSimple.summaryOut
-        File benchmark_roc = CombineSummariesROC.summaryOut
+        File benchmark_summary = CombineSummariesSimple.summaryOut
+        File benchmark_ROC = CombineSummariesROC.summaryOut
         File benchmark_IDD = CombineSummariesIDD.summaryOut
         File benchmark_ST = CombineSummariesST.summaryOut
         File crosscheck = CrosscheckFingerprints.crosscheck
