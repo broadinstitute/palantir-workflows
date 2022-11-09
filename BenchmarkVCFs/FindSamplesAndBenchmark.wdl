@@ -180,16 +180,32 @@ workflow FindSamplesAndBenchmark {
         Pair[File,File] vcf_and_index_to_compare = select_first([vcf_and_index_symbolic_removed,vcf_and_index_original])
 
     }
-    call Benchmark.CombineSummaries as CombineSummaries{
+    call Tasks.CombineSummaries as CombineSummariesROC{
         input:
-            ROC_summaries = BenchmarkVCF.combined_ROC,
-            SN_summaries = BenchmarkVCF.simple_summary,
-            IDD_summaries = BenchmarkVCF.combined_IDD,
-            ST_summaries = BenchmarkVCF.combined_ST
+            summaries = BenchmarkVCF.combined_ROC,
+            delimeter = "\t"
+    }
+    call Tasks.CombineSummaries as CombineSummariesSimple{
+        input:
+            summaries = BenchmarkVCF.simple_summary,
+            delimeter = "\t"
+    }
+    call Tasks.CombineSummaries as CombineSummariesIDD{
+        input:
+            summaries = BenchmarkVCF.combined_IDD,
+            delimeter = "\t"
+    }
+    call Tasks.CombineSummaries as CombineSummariesST{
+        input:
+            summaries = BenchmarkVCF.combined_ST,
+            delimeter = "\t"
     }
 
     output {
-        File benchmark_vcf_summary = CombineSummaries.simple_summary
+        File benchmark_vcf_summary = CombineSummariesSimple.summaryOut
+        File benchmark_roc = CombineSummariesROC.summaryOut
+        File benchmark_IDD = CombineSummariesIDD.summaryOut
+        File benchmark_ST = CombineSummariesST.summaryOut
         File crosscheck = CrosscheckFingerprints.crosscheck
         Array[Array[String]] matches = PickMatches.matches
     }

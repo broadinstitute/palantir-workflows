@@ -1394,6 +1394,7 @@ task CombineSummaries {
     input {
         Array[File] summaries
         Int? preemptible
+        String delimeter = ","
     }
     String dollar="$"
 
@@ -1405,9 +1406,9 @@ task CombineSummaries {
         library(readr)
         library(dplyr)
         library(purrr)
-        summary_files <- read_csv("~{write_lines(summaries)}", col_names=FALSE)
-        merged<- as.list(summary_files$X1) %>% map(read_csv) %>% reduce(bind_rows)
-        write.csv(merged,"summary.csv",row.names=FALSE)
+        summary_files <- read_delim("~{write_lines(summaries)}", delim=~{delimeter}, col_names=FALSE)
+        merged<- as.list(summary_files$X1) %>% map(read_delim, delim=~{delimeter}) %>% reduce(bind_rows)
+        write.table(merged,"summary.csv",row.names=FALSE, sep=~{delimeter})
         EOF
     >>>
 
