@@ -80,6 +80,7 @@ workflow FindSamplesAndBenchmark {
             input_data = input_callset,
             metrics_basename = "crosscheck",
             ground_truth_files = ground_truth_files,
+            ground_truth_indexes = ground_truth_indexes,
             haplotype_database = haplotype_database,
             disk_size = VCF_disk_size,
             preemptible_tries = 3,
@@ -252,6 +253,7 @@ task CrosscheckFingerprints {
         Array[File] input_data
         String metrics_basename
         Array[File] ground_truth_files
+        Array[File] ground_truth_indexes
         File haplotype_database
         Int disk_size
         Int preemptible_tries
