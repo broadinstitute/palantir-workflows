@@ -46,6 +46,10 @@ workflow FindSamplesAndBenchmark {
         Array[String] jexlVariantSelectors = ["vc.isSimpleIndel()  && vc.getIndelLengths().0<0", "vc.isSimpleIndel() && vc.getIndelLengths().0>0"]
         Array[String] variantSelectorLabels = ["deletion","insertion"]
 
+        String? experiment_label
+        String? extra_column
+        String? extra_column_label
+
         # Input for monitoring_script can be found here: https://github.com/broadinstitute/palantir-workflows/blob/main/Scripts/monitoring/cromwell_monitoring_script.sh.
         # It must be copied to a google bucket and then the google bucket path can be used as the input for monitoring_script.
         File monitoring_script = "gs://broad-dsde-methods-hydro-gen-truth-data-public/scripts/cromwell_monitoring_script.sh"
@@ -150,6 +154,9 @@ workflow FindSamplesAndBenchmark {
                 bcf_selectors = jexlVariantSelectors,
                 bcf_labels = variantSelectorLabels,
                 evaluation_bed = truthIntervals[match.rightFile],
+                experiment_label = experiment_label,
+                extra_column = extra_column,
+                extra_column_label = extra_column_label,
                 preemptible = 1
         }
 
