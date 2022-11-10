@@ -414,7 +414,7 @@ task BCFToolsStats {
         full_sn_df = pd.DataFrame({'Category': df_dict['TP_Base']['SN_df']['Category']})
         for stat in df_dict:
             full_sn_df = df_dict[stat]['SN_df'].rename(columns={'Count': f'{stat}_Count'}).merge(full_sn_df, on='Category', how='outer')
-        full_sn_df.fillna(0)
+        full_sn_df = full_sn_df.fillna(0)
         full_sn_df['Call_Name'] = "~{call_output_sample_name}"
         full_sn_df['Base_Name'] = "~{base_output_sample_name}"
         full_sn_df['Stratifier'] = "~{strat_label}"
@@ -424,7 +424,7 @@ task BCFToolsStats {
         full_idd_df = pd.DataFrame({'INDEL_Length': df_dict['TP_Base']['IDD_df']['INDEL_Length']})
         for stat in df_dict:
             full_idd_df = df_dict[stat]['IDD_df'].rename(columns={'Count': f'{stat}_Count'}).merge(full_idd_df, on='INDEL_Length', how='outer')
-        full_idd_df.fillna(0)
+        full_idd_df = full_idd_df.fillna(0)
         full_idd_df['Call_Name'] = "~{call_output_sample_name}"
         full_idd_df['Base_Name'] = "~{base_output_sample_name}"
         full_idd_df['Stratifier'] = "~{strat_label}"
