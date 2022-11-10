@@ -68,14 +68,12 @@ workflow FindSamplesAndBenchmark {
     call MakeStringMap as intervalsMap {input: keys=ground_truth_files, values=ground_truth_intervals}
     call MakeStringMap as labelsMap    {input: keys=ground_truth_files, values=truth_labels}
     call MakeStringMap as indexesMap   {input: keys=ground_truth_files, values=ground_truth_indexes}
-    call MakeStringMap as evalLabelsMap {input: keys=input_callset,     values=input_callset_labels}
     if (defined(experiment_label)) {call MakeStringMap as experimentLabelMap {input: keys=input_callset, values=select_first([experiment_label])}}
     if (defined(extra_column))     {call MakeStringMap as extraColumnMap     {input: keys=input_callset, values=select_first([extra_column])}}
 
     Map[File, File]   truthIntervals = intervalsMap.map
     Map[File, String] truthLabels    = labelsMap.map
     Map[File, File]   truthIndex     = indexesMap.map
-    Map[File, String] evalLabels     = evalLabelsMap.map
     Map[File, String]? experimentLabels = experimentLabelMap.map
     Map[File, String]? extraColumns     = extraColumnMap.map
 
@@ -133,8 +131,8 @@ workflow FindSamplesAndBenchmark {
                           rightSample: matchArray[3]
                       }
 
-        if (defined(experimentLabels)) {String? thisExperimentLabel = select_first([experimentLabels])[match.rightFile]}
-        if (defined(extraColumns))     {String? thisExtraColumn     = select_first([extraColumns])[match.rightFile]}
+        if (defined(experimentLabels)) {String? thisExperimentLabel = select_first([experimentLabels])[match.leftFile]}
+        if (defined(extraColumns))     {String? thisExtraColumn     = select_first([extraColumns])[match.leftFile]}
 
         call ExtractSampleFromCallset {
             input:
@@ -232,19 +230,6 @@ workflow FindSamplesAndBenchmark {
         File crosscheck = CrosscheckFingerprints.crosscheck
         Array[Array[String]] matches = PickMatches.matches
     }
-}
-
-struct Truth {
-    File truthVcf
-    File truthVcfIndex
-    File confidenceIntervals
-    String truthLabel
-}
-
-struct Eval {
-    File evalVcf
-    File evalVcfIndex
-    String evalLabel
 }
 
 struct Match{
