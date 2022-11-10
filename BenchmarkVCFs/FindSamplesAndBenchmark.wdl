@@ -69,8 +69,8 @@ workflow FindSamplesAndBenchmark {
     call MakeStringMap as labelsMap    {input: keys=ground_truth_files, values=truth_labels}
     call MakeStringMap as indexesMap   {input: keys=ground_truth_files, values=ground_truth_indexes}
     call MakeStringMap as evalLabelsMap {input: keys=input_callset,     values=input_callset_labels}
-    if is_defined(experiment_label) then call MakeStringMap as experimentLabelMap {input: keys=input_callset, values=experiment_label}
-    if is_defined(extra_column) then call MakeStringMap as extraColumnMap {input: keys=input_callset,         values=extra_column}
+    if defined(experiment_label) then call MakeStringMap as experimentLabelMap {input: keys=input_callset, values=experiment_label}
+    if defined(extra_column) then call MakeStringMap as extraColumnMap {input: keys=input_callset,         values=extra_column}
 
     Map[File, File]   truthIntervals = intervalsMap.map
     Map[File, String] truthLabels    = labelsMap.map
@@ -133,8 +133,8 @@ workflow FindSamplesAndBenchmark {
                           rightSample: matchArray[3]
                       }
 
-        String? thisExperimentLabel = if is_defined(experimentLabels) then experimentLabels[match.rightFile]
-        String? thisExtraColumn = if is_defined(extraColumns) then extraColumns[match.rightFile]
+        String? thisExperimentLabel = if defined(experimentLabels) then experimentLabels[match.rightFile]
+        String? thisExtraColumn = if defined(extraColumns) then extraColumns[match.rightFile]
 
         call ExtractSampleFromCallset {
             input:
