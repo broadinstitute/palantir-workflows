@@ -133,8 +133,8 @@ workflow FindSamplesAndBenchmark {
                           rightSample: matchArray[3]
                       }
 
-        if defined(experimentLabels) {String? thisExperimentLabel = select_first([experimentLabels])[match.rightFile]}
-        if defined(extraColumns)     {String? thisExtraColumn     = select_first([extraColumns])[match.rightFile]}
+        if (defined(experimentLabels)) {String? thisExperimentLabel = select_first([experimentLabels])[match.rightFile]}
+        if (defined(extraColumns))     {String? thisExtraColumn     = select_first([extraColumns])[match.rightFile]}
 
         call ExtractSampleFromCallset {
             input:
