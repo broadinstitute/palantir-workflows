@@ -76,8 +76,8 @@ workflow FindSamplesAndBenchmark {
     Map[File, String] truthLabels    = labelsMap.map
     Map[File, File]   truthIndex     = indexesMap.map
     Map[File, String] evalLabels     = evalLabelsMap.map
-    Map[File, String]? expeimentLabels = experimentLabelMap.map
-    Map[File, String]? extraColumns    = extraColumnMap.map
+    Map[File, String]? experimentLabels = experimentLabelMap.map
+    Map[File, String]? extraColumns     = extraColumnMap.map
 
     call CrosscheckFingerprints {
         input:
