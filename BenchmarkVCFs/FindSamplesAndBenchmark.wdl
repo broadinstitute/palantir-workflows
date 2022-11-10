@@ -46,8 +46,8 @@ workflow FindSamplesAndBenchmark {
         Array[String] jexlVariantSelectors = ["vc.isSimpleIndel()  && vc.getIndelLengths().0<0", "vc.isSimpleIndel() && vc.getIndelLengths().0>0"]
         Array[String] variantSelectorLabels = ["deletion","insertion"]
 
-        String? experiment_label
-        String? extra_column
+        Array[String]? experiment_label
+        Array[String]? extra_column
         String? extra_column_label
 
         # Input for monitoring_script can be found here: https://github.com/broadinstitute/palantir-workflows/blob/main/Scripts/monitoring/cromwell_monitoring_script.sh.
@@ -69,11 +69,15 @@ workflow FindSamplesAndBenchmark {
     call MakeStringMap as labelsMap    {input: keys=ground_truth_files, values=truth_labels}
     call MakeStringMap as indexesMap   {input: keys=ground_truth_files, values=ground_truth_indexes}
     call MakeStringMap as evalLabelsMap {input: keys=input_callset,     values=input_callset_labels}
+    if is_defined(experiment_label) then call MakeStringMap as experimentLabelMap {input: keys=input_callset, values=experiment_label}
+    if is_defined(extra_column) then call MakeStringMap as extraColumnMap {input: keys=input_callset,         values=extra_column}
 
     Map[File, File]   truthIntervals = intervalsMap.map
     Map[File, String] truthLabels    = labelsMap.map
     Map[File, File]   truthIndex     = indexesMap.map
     Map[File, String] evalLabels     = evalLabelsMap.map
+    Map[File, String]? expeimentLabels = experimentLabelMap.map
+    Map[File, String]? extraColumns    = extraColumnMap.map
 
     call CrosscheckFingerprints {
         input:
@@ -129,6 +133,9 @@ workflow FindSamplesAndBenchmark {
                           rightSample: matchArray[3]
                       }
 
+        String? thisExperimentLabel = if is_defined(experimentLabels) then experimentLabels[match.rightFile]
+        String? thisExtraColumn = if is_defined(extraColumns) then extraColumns[match.rightFile]
+
         call ExtractSampleFromCallset {
             input:
                 callset = match.leftFile,
@@ -155,8 +162,8 @@ workflow FindSamplesAndBenchmark {
                 bcf_selectors = jexlVariantSelectors,
                 bcf_labels = variantSelectorLabels,
                 evaluation_bed = truthIntervals[match.rightFile],
-                experiment_label = experiment_label,
-                extra_column = extra_column,
+                experiment_label = thisExperimentLabel,
+                extra_column = thisExtraColumn,
                 extra_column_label = extra_column_label,
                 preemptible = 1
         }
