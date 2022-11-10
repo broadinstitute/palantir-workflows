@@ -1,4 +1,4 @@
-version 1.1
+version 1.0
 import "SimpleBenchmark.wdl" as Benchmark
 import "BenchmarkVCFs.wdl" as Tasks
 
@@ -133,8 +133,8 @@ workflow FindSamplesAndBenchmark {
                           rightSample: matchArray[3]
                       }
 
-        String? thisExperimentLabel = if defined(experimentLabels) then select_first([experimentLabels])[match.rightFile] else None
-        String? thisExtraColumn =     if defined(extraColumns)     then select_first([extraColumns])[match.rightFile]     else None
+        String? thisExperimentLabel = if defined(experimentLabels) {select_first([experimentLabels])[match.rightFile]}
+        String? thisExtraColumn =     if defined(extraColumns)     {select_first([extraColumns])[match.rightFile]}
 
         call ExtractSampleFromCallset {
             input:
