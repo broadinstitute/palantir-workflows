@@ -1,4 +1,4 @@
-version 1.0
+version 1.1
 import "SimpleBenchmark.wdl" as Benchmark
 import "BenchmarkVCFs.wdl" as Tasks
 
