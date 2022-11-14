@@ -870,6 +870,7 @@ class FailAllConditionsForSampleTests(unittest.TestCase):
         data["is_control_sample"] = False
         expected_results = pd.DataFrame(data).set_index("sample_id")
         expected_results["notes"] = expected_results.index.map(failed_samples_with_reasons)
+        expected_results = expected_results.join(self.results[['PC1', 'PC2']])
         for i in range(1, 4):
             expected_results[f'condition_{i}_reason_not_resulted'] = \
                 expected_results.index.map(failed_samples_with_reasons)
