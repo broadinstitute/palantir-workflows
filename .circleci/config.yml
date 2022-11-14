@@ -79,4 +79,4 @@ workflows:
   python-tests:
     jobs:
       - python-3_7-tests:
-          tag: "3.7
+          tag: "3.7"
