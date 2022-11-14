@@ -60,12 +60,12 @@ jobs:
     executor:
       name: python/default
       tag: "3.7"
-      app-dir: ~/palantir-workflows
     steps:
       - checkout
       - python/install-packages:
           pkg-manager: pip-dist
           path-args: ImputationPipeline/CreateAggregtationSets ImputationPipeline/ManualQCPRS
+          app-dir: ~/palantir-workflows
 
 workflows:
   version: 2
