@@ -67,7 +67,7 @@ jobs:
       - run: pip install --upgrade pip
       - python/install-packages:
           pkg-manager: pip-dist
-          path-args: ImputationPipeline/CreateAggregtationSets/ ImputationPipeline/ManualQCPRS/
+          path-args: ImputationPipeline/CreateAggregtationSets/
           app-dir: ~/palantir-workflows
 
 workflows:
