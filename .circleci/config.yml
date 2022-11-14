@@ -62,6 +62,8 @@ jobs:
       tag: "3.7"
     steps:
       - checkout
+      - run: ls
+      - run: ls ImputationPipeline/ManualQCPRS/
       - python/install-packages:
           pkg-manager: pip-dist
           path-args: ImputationPipeline/CreateAggregtationSets/ ImputationPipeline/ManualQCPRS/
