@@ -58,8 +58,8 @@ jobs:
 
   python-3_7-tests:
     executor:
-      - python/default:
-          tag: "3.7"
+      name: python/default:
+      tag: "3.7"
     steps:
       - checkout
       - python/install-packages:
