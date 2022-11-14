@@ -10,6 +10,7 @@ workflow AggregatePRSResults {
     String population_name = "Reference Population"
     File expected_control_results
     String lab_batch
+    Int group_n
   }
 
   call AggregateResults {
@@ -57,8 +58,10 @@ task AggregateResults {
     Array[File] results
     Array[File] missing_sites_shifts
     String lab_batch
+    Int group_n
   }
 
+  String output_prefix = lab_batch + if group_n > 1 then  "_group_" + group_n else ""
   command <<<
     Rscript - <<- "EOF"
     library(dplyr)
@@ -87,9 +90,9 @@ task AggregateResults {
       stop(paste0("There are ", num_control_samples, " control samples in the input tables, however, only 1 is expected."))
     }
 
-    write_tsv(results, paste0(lab_batch, "_all_results.tsv"))
+    write_tsv(results, "~{output_prefix}_all_results.tsv")
 
-    write_tsv(results %>% filter(is_control_sample), paste0(lab_batch, "_control_results.tsv"))
+    write_tsv(results %>% filter(is_control_sample), "~{output_prefix}_control_results.tsv")
 
     results_pivoted <- results %>% filter(!is_control_sample) %>% pivot_longer(!c(sample_id, lab_batch, is_control_sample), names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
     results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
@@ -104,20 +107,20 @@ task AggregateResults {
                                                         num_not_high = sum(risk=="NOT_HIGH", na.rm=TRUE),
                                                         num_not_resulted = sum(risk=="NOT_RESULTED", na.rm = TRUE))
 
-    write_tsv(results_summarised, paste0(lab_batch, "_summarised_results.tsv"))
+    write_tsv(results_summarised, "~{output_prefix}_summarised_results.tsv")
 
     ggplot(results_pivoted, aes(x=adjusted)) +
       geom_density(aes(color=condition), fill=NA, position = "identity") +
       xlim(-5,5) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
       ylab("density")
-    ggsave(filename = paste0(lab_batch, "_score_distribution.png"), dpi=300, width = 6, height = 6)
+    ggsave(filename = "~{output_prefix}_score_distribution.png", dpi=300, width = 6, height = 6)
 
-    write_tsv(results_pivoted, paste0(lab_batch, "_pivoted_results.tsv"))
+    write_tsv(results_pivoted, "~{output_prefix}_pivoted_results.tsv")
 
     writeLines(lab_batch, "lab_batch.txt")
 
     missing_sites_shifts <-  c("~{sep='","' missing_sites_shifts}") %>% map(read_tsv) %>% reduce(bind_rows)
-    write_tsv(missing_sites_shifts, paste0(lab_batch, "_missing_sites_shifts.tsv"))
+    write_tsv(missing_sites_shifts, "~{output_prefix}_missing_sites_shifts.tsv")
 
     EOF
   >>>
@@ -129,12 +132,12 @@ task AggregateResults {
   }
 
   output {
-    File batch_all_results = "~{lab_batch}_all_results.tsv"
-    File batch_control_results = "~{lab_batch}_control_results.tsv"
-    File batch_summarised_results = "~{lab_batch}_summarised_results.tsv"
-    File batch_pivoted_results = "~{lab_batch}_pivoted_results.tsv"
-    File batch_score_distribution = "~{lab_batch}_score_distribution.png"
-    File batch_missing_sites_shifts = "~{lab_batch}_missing_sites_shifts.tsv"
+    File batch_all_results = "~{output_prefix}_all_results.tsv"
+    File batch_control_results = "~{output_prefix}_control_results.tsv"
+    File batch_summarised_results = "~{output_prefix}_summarised_results.tsv"
+    File batch_pivoted_results = "~{output_prefix}_pivoted_results.tsv"
+    File batch_score_distribution = "~{output_prefix}_score_distribution.png"
+    File batch_missing_sites_shifts = "~{output_prefix}_missing_sites_shifts.tsv"
   }
 }
 
@@ -143,9 +146,11 @@ task PlotPCA {
     Array[File] target_pc_projections
     File population_pc_projections
     String lab_batch
+    Int group_n
     String population_name
   }
 
+  String output_prefix = lab_batch + if group_n > 1 then  "_group_" + group_n else ""
   command <<<
     Rscript - <<- "EOF"
     library(dplyr)
@@ -161,7 +166,7 @@ task PlotPCA {
       geom_point(data=target_pcs, aes(color="~{lab_batch}")) +
       theme_bw()
 
-    ggsave(filename = "~{lab_batch}_PCA_plot.png", dpi=300, width = 6, height = 6)
+    ggsave(filename = "~{output_prefix}_PCA_plot.png", dpi=300, width = 6, height = 6)
 
     EOF
 
@@ -174,7 +179,7 @@ task PlotPCA {
   }
 
   output {
-    File pc_plot = "~{lab_batch}_PCA_plot.png"
+    File pc_plot = "~{output_prefix}_PCA_plot.png"
   }
 }
 
@@ -190,14 +195,17 @@ task BuildHTMLReport {
     File population_pc_projections
     String population_name
     String lab_batch
+    Int group_n
   }
 
+  String output_prefix = lab_batch + if group_n > 1 then  "_group_" + group_n else ""
+  String title_batch = lab_batch + if group_n > 1 then  "(group " + group_n + ")"else ""
   command <<<
     set -xeo pipefail
 
-    cat << EOF > ~{lab_batch}_report.Rmd
+    cat << EOF > ~{output_prefix}_report.Rmd
     ---
-    title: "Batch ~{lab_batch} PRS Summary"
+    title: "Batch ~{title_batch} PRS Summary"
     output:
     html_document:
       df_print: paged
@@ -386,7 +394,7 @@ task BuildHTMLReport {
     \`\`\`
     EOF
 
-    Rscript -e "library(rmarkdown); rmarkdown::render('~{lab_batch}_report.Rmd', 'html_document')"
+    Rscript -e "library(rmarkdown); rmarkdown::render('~{output_prefix}_report.Rmd', 'html_document')"
   >>>
 
   runtime {
@@ -396,6 +404,6 @@ task BuildHTMLReport {
   }
 
   output {
-    File report = "~{lab_batch}_report.html"
+    File report = "~{output_prefix}_report.html"
   }
 }

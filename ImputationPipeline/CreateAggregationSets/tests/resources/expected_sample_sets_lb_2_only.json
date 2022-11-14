@@ -1,0 +1,12 @@
+{
+  "lb_2" : {
+    "lab_batch" : "lb_2",
+    "group" : 1,
+    "samples" : [
+      "sample_id_4",
+      "sample_id_5"
+    ],
+    "delivered" : false,
+    "redeliver" : false
+  }
+}
