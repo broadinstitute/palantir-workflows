@@ -82,5 +82,5 @@ workflows:
       - python/test:
           version: "3.7"
           pkg-manager: poetry
-          args: ImputationPipeline/ManualQCPRS/
+          app-dir: ImputationPipeline/ManualQCPRS/
           test-tool-args: -p "*Test.py"
