@@ -58,7 +58,6 @@ jobs:
 
   python-3_7-tests:
     executor: python/default
-      tag: "3.7"
     steps:
       - checkout
       - python/install-packages:
@@ -79,4 +78,5 @@ workflows:
             - validate-with-json
   python-tests:
     jobs:
-      - python-3_7-tests
+      - python-3_7-tests:
+          tag: "3.7
