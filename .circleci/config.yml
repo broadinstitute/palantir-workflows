@@ -57,7 +57,8 @@ jobs:
           path: /home/circleci/project/call_logs
 
   python-3_7-tests:
-    executor: python/3.7
+    executor: python/default
+      tag: "3.7"
     steps:
       - checkout
       - python/install-packages:
