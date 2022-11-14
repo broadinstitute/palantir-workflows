@@ -11,6 +11,9 @@ executors:
     working_directory: ~/palantir-workflows
     environment: WOMTOOL_JAR=/app/womtool.jar
 
+orbs:
+  python: circleci/python@2.1.1
+
 commands:
   get-cromwell-jar:
     description: "Download cromwell jar"
@@ -53,6 +56,15 @@ jobs:
       - store_artifacts:
           path: /home/circleci/project/call_logs
 
+  python-3.7-tests:
+    executor: python/3.7
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+      - run: pip install ImputationPipeline/CreateAggregtationSets
+      - run: pip install ImputationPipeline/ManualQCPRS
+      - run: python -m unittest discover -p "*Test.py"
 
 workflows:
   version: 2
@@ -64,3 +76,6 @@ workflows:
           requires:
             - validate
             - validate-with-json
+  python-tests:
+    jobs:
+      - python-3.7-tests
