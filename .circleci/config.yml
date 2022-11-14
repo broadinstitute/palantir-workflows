@@ -58,7 +58,7 @@ jobs:
 
   python-3_7-tests:
     executor:
-      name: python/default:
+      name: python/default
       tag: "3.7"
     steps:
       - checkout
