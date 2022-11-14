@@ -79,8 +79,8 @@ workflows:
   python-tests:
     jobs:
       - python-3_7-tests
-  python/test:
-    version: "3.7"
-    pkg-manager: poetry
-    args: ImputationPipeline/ManualQCPRS/
-    test-tool-args: -p "*Test.py"
+      - python/test:
+          version: "3.7"
+          pkg-manager: poetry
+          args: ImputationPipeline/ManualQCPRS/
+          test-tool-args: -p "*Test.py"
