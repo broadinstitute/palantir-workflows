@@ -59,13 +59,14 @@ jobs:
   python-3_7-tests:
     executor:
       name: python/default
-      tag: "3.7"
+      tag: 3.7
     steps:
       - checkout
       - python/install-packages:
-          pkg-manager: pip
-      - run: pip install ImputationPipeline/CreateAggregtationSets
-      - run: pip install ImputationPipeline/ManualQCPRS
+          pkg-manager: pip-dist
+          path-args:
+            - ImputationPipeline/CreateAggregtationSets
+            - ImputationPipeline/ManualQCPRS
       - run: python -m unittest discover -p "*Test.py"
 
 workflows:
