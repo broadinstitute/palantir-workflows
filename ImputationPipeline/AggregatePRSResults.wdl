@@ -54,7 +54,7 @@ workflow AggregatePRSResults {
     File score_distribution = AggregateResults.batch_score_distribution
     File pc_plot = PlotPCA.pc_plot
     File report = BuildHTMLReport.report
-    File batch_pcs = AggregateResults.batch_pcs,
+    File batch_pcs = AggregateResults.batch_pcs
   }
 }
 
