@@ -56,7 +56,7 @@ jobs:
       - store_artifacts:
           path: /home/circleci/project/call_logs
 
-  python-3.7-tests:
+  python-3_7-tests:
     executor: python/3.7
     steps:
       - checkout
@@ -78,4 +78,4 @@ workflows:
             - validate-with-json
   python-tests:
     jobs:
-      - python-3.7-tests
+      - python-3_7-tests
