@@ -65,10 +65,7 @@ jobs:
       - run: ls
       - run: ls ImputationPipeline/ManualQCPRS/
       - run: pip install ImputationPipeline/ManualQCPRS/
-      - python/install-packages:
-          pkg-manager: pip-dist
-          path-args: ImputationPipeline/CreateAggregtationSets/
-          app-dir: ~/palantir-workflows
+      - run: pip install ImputationPipeline/CreateAggregtationSets/
 
 workflows:
   version: 2
