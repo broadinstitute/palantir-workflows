@@ -64,7 +64,7 @@ jobs:
       - checkout
       - run: ls
       - run: ls ImputationPipeline/ManualQCPRS/
-      - run: pip ugrade
+      - run: pip install --ugrade pip
       - python/install-packages:
           pkg-manager: pip-dist
           path-args: ImputationPipeline/CreateAggregtationSets/ ImputationPipeline/ManualQCPRS/
