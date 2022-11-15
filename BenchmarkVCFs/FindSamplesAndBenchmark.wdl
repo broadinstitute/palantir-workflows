@@ -47,8 +47,8 @@ workflow FindSamplesAndBenchmark {
         Array[String] variantSelectorLabels = ["deletion","insertion"]
 
         Array[String]? experiment_label
-        Array[String]? extra_column
-        String? extra_column_label
+        Array[String]? extra_column_label
+        String? extra_column
 
         # Input for monitoring_script can be found here: https://github.com/broadinstitute/palantir-workflows/blob/main/Scripts/monitoring/cromwell_monitoring_script.sh.
         # It must be copied to a google bucket and then the google bucket path can be used as the input for monitoring_script.
@@ -69,13 +69,13 @@ workflow FindSamplesAndBenchmark {
     call MakeStringMap as labelsMap    {input: keys=ground_truth_files, values=truth_labels}
     call MakeStringMap as indexesMap   {input: keys=ground_truth_files, values=ground_truth_indexes}
     if (defined(experiment_label)) {call MakeStringMap as experimentLabelMap {input: keys=input_callset, values=select_first([experiment_label])}}
-    if (defined(extra_column))     {call MakeStringMap as extraColumnMap     {input: keys=input_callset, values=select_first([extra_column])}}
+    if (defined(extra_column_label))     {call MakeStringMap as extraColumnMap     {input: keys=input_callset, values=select_first([extra_column_label])}}
 
     Map[File, File]   truthIntervals = intervalsMap.map
     Map[File, String] truthLabels    = labelsMap.map
     Map[File, File]   truthIndex     = indexesMap.map
-    Map[File, String]? experimentLabels = experimentLabelMap.map
-    Map[File, String]? extraColumns     = extraColumnMap.map
+    Map[File, String]? experimentLabels  = experimentLabelMap.map
+    Map[File, String]? extraColumnLabels = extraColumnMap.map
 
     call CrosscheckFingerprints {
         input:
@@ -131,8 +131,8 @@ workflow FindSamplesAndBenchmark {
                           rightSample: matchArray[3]
                       }
 
-        if (defined(experimentLabels)) {String? thisExperimentLabel = select_first([experimentLabels])[match.leftFile]}
-        if (defined(extraColumns))     {String? thisExtraColumn     = select_first([extraColumns])[match.leftFile]}
+        if (defined(experimentLabels)) {String? thisExperimentLabel      = select_first([experimentLabels])[match.leftFile]}
+        if (defined(extraColumnLabels))     {String? thisExtraColumnLabel = select_first([extraColumnLabels])[match.leftFile]}
 
         call ExtractSampleFromCallset {
             input:
@@ -161,8 +161,8 @@ workflow FindSamplesAndBenchmark {
                 bcf_labels = variantSelectorLabels,
                 evaluation_bed = truthIntervals[match.rightFile],
                 experiment_label = thisExperimentLabel,
-                extra_column = thisExtraColumn,
-                extra_column_label = extra_column_label,
+                extra_column_label = thisExtraColumnLabel,
+                extra_column = extra_column,
                 preemptible = 1
         }
 
