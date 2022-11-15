@@ -158,7 +158,10 @@ workflow SimpleBenchmark {
             ROC_summaries=flatten(StandardVCFEval.ROC_summary),
             SN_summaries=flatten(BCFToolsStats.full_sn),
             IDD_summaries=flatten(BCFToolsStats.full_idd),
-            ST_summaries=flatten(BCFToolsStats.full_st)
+            ST_summaries=flatten(BCFToolsStats.full_st),
+            extra_column = extra_column,
+            extra_column_label = extra_column_label,
+            experiment_label = experiment_label
     }
 
     output {
