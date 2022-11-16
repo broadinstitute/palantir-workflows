@@ -179,8 +179,6 @@ task PlotPCA {
 
     ggsave(filename = "~{output_prefix}_PCA_plot.png", dpi=300, width = 6, height = 6)
 
-    write_tsv(target_pcs, "~{output_prefix}.pcs.tsv")
-
     EOF
 
   >>>
