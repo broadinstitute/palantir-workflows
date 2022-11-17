@@ -322,7 +322,7 @@ task BuildHTMLReport {
 
     p <- ggplot(population_pcs, aes(x=PC1, y=PC2, color="~{population_name}")) +
       geom_point() +
-      geom_point(data=target_pcs, aes(color="~{lab_batch}", text=paste0("Sample ID: ", IID))) +
+      geom_point(data=target_pcs, aes(color="~{lab_batch}", text=paste0("Sample ID: ", sample_id))) +
       theme_bw()
     ggplotly(p, tooltip="text")
     \`\`\`
