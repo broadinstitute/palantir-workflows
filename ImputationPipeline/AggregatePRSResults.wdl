@@ -103,7 +103,7 @@ task AggregateResults {
 
     write_tsv(results %>% filter(is_control_sample), "~{output_prefix}_control_results.tsv")
 
-    results_pivoted <- results %>% filter(!is_control_sample) %>% pivot_longer(!c(sample_id, lab_batch, is_control_sample), names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
+    results_pivoted <- results %>% select(-starts_with("PC")) %>% filter(!is_control_sample) %>% pivot_longer(!c(sample_id, lab_batch, is_control_sample), names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
     results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
                                                                           raw = as.numeric(raw),
                                                                           percentile = as.numeric(percentile)) %T>% {options(warn=0)}
