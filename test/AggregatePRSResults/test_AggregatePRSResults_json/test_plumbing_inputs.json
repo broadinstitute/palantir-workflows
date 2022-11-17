@@ -1,7 +1,7 @@
 {
-  "test_AggregatePRSResults.results": ["/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_1_results.tsv",
-                                      "/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_2_results.tsv",
-                                      "/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_3_results.tsv"],
+  "test_AggregatePRSResults.results": ["/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_1_results.csv",
+                                      "/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_2_results.csv",
+                                      "/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_3_results.csv"],
   "test_AggregatePRSResults.target_pc_projections": ["/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_1_projections.tsv",
                                                     "/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_2_projections.tsv",
                                                     "/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_3_projections.tsv"],
