@@ -15,6 +15,9 @@ workflows:
   - name: BenchmarkVCFs
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/BenchmarkVCFs.wdl
+  - name: SimpleBenchmark
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/SimpleBenchmark.wdl
   - name: ValidateImputation
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/Validation/ValidateImputation.wdl
