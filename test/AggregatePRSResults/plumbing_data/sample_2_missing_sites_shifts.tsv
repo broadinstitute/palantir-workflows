@@ -1,0 +1,5 @@
+sample_id	condition	n_missing_sites	adjusted_score	percentile	potential_high_adjusted_score	potential_high_percentile	potential_low_adjusted_score	potential_low_percentile
+sample_2	condition_1	0	2.1	0.98	2.1	0.98	2.1	0.98
+sample_2	condition_2	0	0.9	0.82	0.9	0.82	0.9	0.82
+sample_2	condition_3	0	-0.3	0.38	-0.3	0.38	-0.3	0.38
+sample_2	condition_4	0	0.32	0.63	0.32	0.63	0.32	0.63

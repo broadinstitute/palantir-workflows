@@ -15,28 +15,32 @@ workflow AggregatePRSResults {
 
   call AggregateResults {
     input:
+      group_n = group_n,
       results = results,
       missing_sites_shifts = missing_sites_shifts,
-      lab_batch = lab_batch
+      lab_batch = lab_batch,
+      target_pc_projections = target_pc_projections
   }
 
   call PlotPCA {
     input:
+      group_n = group_n,
       lab_batch = lab_batch,
       population_name = population_name,
-      target_pc_projections = target_pc_projections,
+      batch_pcs = AggregateResults.batch_pcs,
       population_pc_projections = population_pc_projections
   }
 
   call BuildHTMLReport {
     input:
+      group_n = group_n,
       lab_batch = lab_batch,
       batch_control_results = AggregateResults.batch_control_results,
       batch_missing_sites_shifts = AggregateResults.batch_missing_sites_shifts,
       expected_control_results = expected_control_results,
       batch_summarised_results = AggregateResults.batch_summarised_results,
       batch_pivoted_results = AggregateResults.batch_pivoted_results,
-      target_pc_projections = target_pc_projections,
+      batch_pcs = AggregateResults.batch_pcs,
       population_pc_projections = population_pc_projections,
       population_name = population_name,
       high_risk_thresholds = high_risk_thresholds
@@ -50,6 +54,7 @@ workflow AggregatePRSResults {
     File score_distribution = AggregateResults.batch_score_distribution
     File pc_plot = PlotPCA.pc_plot
     File report = BuildHTMLReport.report
+    File batch_pcs = AggregateResults.batch_pcs
   }
 }
 
@@ -57,6 +62,7 @@ task AggregateResults {
   input {
     Array[File] results
     Array[File] missing_sites_shifts
+    Array[File] target_pc_projections
     String lab_batch
     Int group_n
   }
@@ -72,6 +78,9 @@ task AggregateResults {
     library(ggplot2)
 
     results <- c("~{sep='","' results}") %>% map(read_csv, col_types=cols(is_control_sample='l', .default='c')) %>% reduce(bind_rows)
+    target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows) %>% select(-FID) %>% rename(sample_id = IID)
+
+    results <- inner_join(results, target_pcs)
 
     lab_batch <- results %>% pull(lab_batch) %>% unique()
 
@@ -94,7 +103,7 @@ task AggregateResults {
 
     write_tsv(results %>% filter(is_control_sample), "~{output_prefix}_control_results.tsv")
 
-    results_pivoted <- results %>% filter(!is_control_sample) %>% pivot_longer(!c(sample_id, lab_batch, is_control_sample), names_to=c("condition",".value"), names_pattern="([^_]+)_(.+)")
+    results_pivoted <- results %>% select(-starts_with("PC")) %>% filter(!is_control_sample) %>% pivot_longer(!c(sample_id, lab_batch, is_control_sample), names_to=c("condition",".value"), names_pattern="(.+)(?<!not)(?<!reason)_(.+)$")
     results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
                                                                           raw = as.numeric(raw),
                                                                           percentile = as.numeric(percentile)) %T>% {options(warn=0)}
@@ -121,6 +130,7 @@ task AggregateResults {
 
     missing_sites_shifts <-  c("~{sep='","' missing_sites_shifts}") %>% map(read_tsv) %>% reduce(bind_rows)
     write_tsv(missing_sites_shifts, "~{output_prefix}_missing_sites_shifts.tsv")
+    write_tsv(target_pcs, "~{output_prefix}_pcs.tsv")
 
     EOF
   >>>
@@ -138,12 +148,13 @@ task AggregateResults {
     File batch_pivoted_results = "~{output_prefix}_pivoted_results.tsv"
     File batch_score_distribution = "~{output_prefix}_score_distribution.png"
     File batch_missing_sites_shifts = "~{output_prefix}_missing_sites_shifts.tsv"
+    File batch_pcs = "~{output_prefix}_pcs.tsv"
   }
 }
 
 task PlotPCA {
   input {
-    Array[File] target_pc_projections
+    File batch_pcs
     File population_pc_projections
     String lab_batch
     Int group_n
@@ -158,7 +169,7 @@ task PlotPCA {
     library(purrr)
     library(ggplot2)
 
-    target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows)
+    target_pcs <- read_tsv("~{batch_pcs}")
     population_pcs <- read_tsv("~{population_pc_projections}")
 
     ggplot(population_pcs, aes(x=PC1, y=PC2, color="~{population_name}")) +
@@ -191,7 +202,7 @@ task BuildHTMLReport {
     File batch_summarised_results
     File batch_pivoted_results
     File high_risk_thresholds
-    Array[File] target_pc_projections
+    File batch_pcs
     File population_pc_projections
     String population_name
     String lab_batch
@@ -295,23 +306,30 @@ task BuildHTMLReport {
     \`\`\`{r score distributions, echo=FALSE, message=FALSE, warning=FALSE, results="asis", fig.align='center'}
     normal_dist <- tibble(x=seq(-5,5,0.01)) %>% mutate(y=dnorm(x)) # needed because plotly doesn't work with geom_function
     conditions_with_more_than_4_samples <- batch_pivoted_results %>% group_by(condition) %>% filter(!is.na(adjusted)) %>% count() %>% filter(n>4) %>% pull(condition)
-    p_dist <- ggplot(batch_pivoted_results %>% filter(condition %in% conditions_with_more_than_4_samples), aes(x=adjusted)) +
-      stat_density(aes(color=condition, text=condition), geom="line", position = "identity") +
-      xlim(-5,5) + theme_bw() + xlab("z-score") + geom_line(data=normal_dist, aes(x=x, y=y), color="black") +
-      geom_point(data = batch_pivoted_results %>% filter(!(condition %in% conditions_with_more_than_4_samples)), aes(color=condition, x = adjusted, text=condition), y=0) +
-      ylab("density")
+    n_density <- batch_pivoted_results %>% filter(condition %in% conditions_with_more_than_4_samples) %>% nrow()
+    n_point <- batch_pivoted_results %>% filter(!(condition %in% conditions_with_more_than_4_samples)) %>% nrow()
+    p_dist <- ggplot()
+    if (n_density > 0) {
+      p_dist <- p_dist + stat_density(data = batch_pivoted_results %>% filter(condition %in% conditions_with_more_than_4_samples),
+      aes(color=condition, text=condition, x = adjusted), geom="line", position = "identity")
+    }
+    if (n_point > 0) {
+      p_dist <- p_dist + geom_point(data = batch_pivoted_results %>% filter(!(condition %in% conditions_with_more_than_4_samples)), aes(color=condition, x = adjusted, text=condition), y=0)
+    }
+    p_dist <- p_dist + xlim(-5,5) + theme_bw() + geom_line(data=normal_dist, aes(x=x, y=y), color="black") + xlab("z-score") + ylab("density")
+
     ggplotly(p_dist, tooltip="text")
     \`\`\`
 
     ## PCA
     #### Hover for sample ID
     \`\`\`{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis", fig.align='center'}
-    target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows)
+    target_pcs <- read_tsv("~{batch_pcs}")
     population_pcs <- read_tsv("~{population_pc_projections}")
 
     p <- ggplot(population_pcs, aes(x=PC1, y=PC2, color="~{population_name}")) +
       geom_point() +
-      geom_point(data=target_pcs, aes(color="~{lab_batch}", text=paste0("Sample ID: ", IID))) +
+      geom_point(data=target_pcs, aes(color="~{lab_batch}", text=paste0("Sample ID: ", sample_id))) +
       theme_bw()
     ggplotly(p, tooltip="text")
     \`\`\`
