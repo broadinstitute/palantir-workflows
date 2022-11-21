@@ -1,6 +1,6 @@
 version 1.0
 
-import "../BenchmarkVCFs/BenchmarkVCFs.wdl" as BenchmarkVCFs
+import "../BenchmarkVCFs/SimpleBenchmark.wdl" as SimpleBenchmark
 import "subworkflows/FEEvaluation.wdl" as FEEvaluation
 import "subworkflows/F1Evaluation.wdl" as F1Evaluation
 import "subworkflows/PlotROC.wdl" as PlotROC
@@ -45,7 +45,7 @@ workflow FunctionalEquivalence {
         
     scatter (i in range(length(sample_id))) {
         if (truth_vcf[i] != "null") {
-            call BenchmarkVCFs.Benchmark as EvalVsTruthTool1 {
+            call SimpleBenchmark.SimpleBenchmark as EvalVsTruthTool1 {
                 input:
                     confidenceInterval = confidence_intervals[i],
                     truthLabel = "truth",
@@ -71,7 +71,7 @@ workflow FunctionalEquivalence {
                     enableRefOverlap = true
             }
 
-            call BenchmarkVCFs.Benchmark as EvalVsTruthTool2 {
+            call SimpleBenchmark.SimpleBenchmark as EvalVsTruthTool2 {
                 input:
                     confidenceInterval = confidence_intervals[i],
                     truthLabel = "truth",
@@ -117,7 +117,7 @@ workflow FunctionalEquivalence {
             Array[File] roc_plots_1 = ROCPlot.plots
         } # if truth_vcf[i] != "null"
 
-        call BenchmarkVCFs.Benchmark as VcfEval_Inter {
+        call SimpleBenchmark.SimpleBenchmark as VcfEval_Inter {
             input:
                 evalLabel = "tool1." + dataset[i] + "." + i,
                 truthLabel = "tool2." + dataset[i] + "." + i,
@@ -158,7 +158,7 @@ workflow FunctionalEquivalence {
             Int j = j_minus_i_minus_1 + i + 1
 
             if (dataset[i] == dataset[j]) {
-                call BenchmarkVCFs.Benchmark as VcfEval_IntraTool1 {
+                call SimpleBenchmark.SimpleBenchmark as VcfEval_IntraTool1 {
                     input:
                         evalLabel = "tool1." + dataset[i] + "." + i,
                         truthLabel = "tool1." + dataset[i] + "." + j,
@@ -191,7 +191,7 @@ workflow FunctionalEquivalence {
                         preemptible = preemptible
                 }
 
-                call BenchmarkVCFs.Benchmark as VcfEval_IntraTool2 {
+                call SimpleBenchmark.SimpleBenchmark as VcfEval_IntraTool2 {
                     input:
                         evalLabel = "tool2." + dataset[i] + "." + i,
                         truthLabel = "tool2." + dataset[j] + "." + j,
