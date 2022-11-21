@@ -80,7 +80,7 @@ task AggregateResults {
     results <- c("~{sep='","' results}") %>% map(read_csv, col_types=cols(is_control_sample='l', .default='c')) %>% reduce(bind_rows)
     target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows) %>% select(-FID) %>% rename(sample_id = IID)
 
-    results <- inner_join(results, target_pcs)
+    results <- inner_join(results, target_pcs) %>% rename(tolower, starts_with("PC"))
 
     lab_batch <- results %>% pull(lab_batch) %>% unique()
 
