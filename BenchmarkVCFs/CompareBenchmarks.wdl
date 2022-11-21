@@ -9,6 +9,7 @@ workflow CompareBenchmarks {
         Array[String]? stratifiers
 
         Boolean include_counts = false
+        Boolean create_gc_plots = false
 
         Array[String]? order_of_samples
         Array[String]? order_of_configurations
@@ -31,22 +32,24 @@ workflow CompareBenchmarks {
             mem_gb = mem_gb,
             preemptible = preemptible
     }
-
-    call CreateGCPlotsTask {
-        input:
-            sample_ids = sample_ids,
-            configurations = configurations,
-            benchmark_summaries = benchmark_summaries,
-            order_of_samples = order_of_samples,
-            order_of_configurations = order_of_configurations,
-            mem_gb = mem_gb,
-            preemptible = preemptible
+    
+    if (create_gc_plots) {
+        call CreateGCPlotsTask {
+            input:
+                sample_ids = sample_ids,
+                configurations = configurations,
+                benchmark_summaries = benchmark_summaries,
+                order_of_samples = order_of_samples,
+                order_of_configurations = order_of_configurations,
+                mem_gb = mem_gb,
+                preemptible = preemptible
+        }
     }
 
     output {
         File comparison_csv = CompareBenchmarksTask.comparison_csv
         File raw_data = CompareBenchmarksTask.raw_data
-        Array[File] gc_plots = CreateGCPlotsTask.gc_plots
+        Array[File]? gc_plots = CreateGCPlotsTask.gc_plots
     }
 }
 
@@ -63,18 +66,12 @@ task CreateGCPlotsTask {
         Int preemptible = 0
     }
 
-    String order_of_samples_arg = if !defined(order_of_samples) then "" else "--order-of-samples"
-    Array[String] order_of_samples_or_empty = select_first([order_of_samples, []])
-    String order_of_configurations_arg = if !defined(order_of_configurations) then "" else "--order-of-configurations"
-    Array[String] order_of_configurations_or_empty = select_first([order_of_configurations, []])
-
     command <<<
         set -xeuo pipefail
         
         source activate compare_benchmarks
         
-        cat <<'EOF' > script.py
-import argparse
+        python <<'EOF'
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -85,7 +82,7 @@ matplotlib.rcParams['mathtext.default'] = 'regular'
 matplotlib.rcParams['font.family'] = 'serif'
 
 def get_value_from_table(data, sample_id, configuration, stratifier, var_type, column):
-    return data.loc[(data['sample_id'] == sample_id) & (data['configuration'] == configuration) & (data['Stratifier'] == stratifier) & (data['Type'] == var_type)].iloc[0][column]
+    return data.query('sample_id == @sample_id and configuration == @configuration and Stratifier == @stratifier and Type == @var_type').iloc[0][column]
 
 def calculate_metrics(data, unique_sample_ids, unique_configurations, stratifiers):
     recalculated_data = pd.DataFrame(columns=['sample_id', 'configuration', 'Stratifier', 'Type', 'TP', 'FP', 'FN', 'Precision', 'Sensitivity', 'F-Measure'])
@@ -166,27 +163,18 @@ def main(sample_ids, configurations, summaries, order_of_samples, order_of_confi
     else:
         unique_configurations = order_of_configurations
 
-    stratifiers = data['Stratifier'].unique().astype(str)
-    stratifiers.sort()
+    gc_stratifiers = data['Stratifier'].unique().astype(str)
+    gc_stratifiers.sort()
 
-    data = calculate_metrics(data, unique_sample_ids, unique_configurations, stratifiers)
+    data = calculate_metrics(data, unique_sample_ids, unique_configurations, gc_stratifiers)
 
     for i_sample_id, sample_id in enumerate(unique_sample_ids):
-        plot_sample(data, i_sample_id, sample_id, unique_configurations, stratifiers)
+        plot_sample(data, i_sample_id, sample_id, unique_configurations, gc_stratifiers)
     
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Create a table to compare output of BenchmarkVCFs.')
-    parser.add_argument('--order-of-samples', type=str, nargs='+', help='Order of samples. If not specified, the order will be the same as the supplied inputs.')
-    parser.add_argument('--order-of-configurations', type=str, nargs='+', help='Order of configurations. If not specified, the order will be the same as the supplied inputs.')
-    required_named = parser.add_argument_group('Required named arguments')
-    required_named.add_argument('--sample-ids', required=True, type=str, nargs='+')
-    required_named.add_argument('--configurations', required=True, type=str, nargs='+')
-    required_named.add_argument('--summaries', required=True, type=str, nargs='+')
-    args = parser.parse_args()
-    main(args.sample_ids, args.configurations, args.summaries, args.order_of_samples, args.order_of_configurations)
+    main(['~{sep="', '" sample_ids}'], ['~{sep="', '" configurations}'], ['~{sep="', '" benchmark_summaries}'], ['~{sep="', '" order_of_samples}'], ['~{sep="', '" order_of_configurations}'])
 EOF
-        python script.py --sample-ids ~{sep=' ' sample_ids} --configurations ~{sep=' ' configurations} --summaries ~{sep=' ' benchmark_summaries} ~{order_of_samples_arg} ~{sep=' ' order_of_samples_or_empty} ~{order_of_configurations_arg} ~{sep=' ' order_of_configurations_or_empty}
     >>>
 
     runtime {
@@ -220,27 +208,21 @@ task CompareBenchmarksTask {
         Int preemptible = 0
     }
 
-    String stratifiers_arg = if !defined(stratifiers) then "" else "--stratifiers"
-    Array[String] stratifiers_or_empty = select_first([stratifiers, []])
-
-    String order_of_samples_arg = if !defined(order_of_samples) then "" else "--order-of-samples"
-    Array[String] order_of_samples_or_empty = select_first([order_of_samples, []])
-    String order_of_configurations_arg = if !defined(order_of_configurations) then "" else "--order-of-configurations"
-    Array[String] order_of_configurations_or_empty = select_first([order_of_configurations, []])
-
-    String deltas_arg = if !defined(deltas) then "" else "--deltas"
-    Array[Int] deltas_or_empty = select_first([deltas, []])
-
     command <<<
         set -xeuo pipefail
         
         source activate compare_benchmarks
         
-        cat <<'EOF' > script.py
-import argparse
+        python <<'EOF'
 import numpy as np
 import pandas as pd
 
+# The purpose of this class is to significantly simplify writing a TSV (or otherwise separated) table.
+# For example, when passing an array of strings to cells(arr), the elements will be written separated
+# by the separator sep, which is equivalent to file.write(sep.join(arr)). However, the methods of this class allow
+# for chaining of these write commands to easily concatenate multiple calls, which can be helpful for writing
+# custom-formatted tables, e.g. output.cells(arr1).sep().cells(arr2).new_line() instead of having to issue multiple
+# file.write() calls.
 class ChainableOutput:
     def __init__(self, file, sep:str):
         self.file = file
@@ -257,6 +239,13 @@ class ChainableOutput:
         return self
 
 def write_header(output:ChainableOutput, unique_sample_ids, unique_configurations, deltas, include_counts):
+    # This function will write the header for the comparison table. In general, the layout looks like this:
+    # | | | |               Precision               |              Sensitivity              | ...
+    # | | | |      sample1      |      sample2      |      sample1      |      sample2      | ...
+    # | | | | config1 | config2 | config1 | config2 | config1 | config2 | config1 | config2 | ...
+
+    # If include_counts is True then TP, FP and FN will be written before Precision, Sensitivity and F-Measure
+
     # Line 1
     output.cells([''] * 4).sep()
     if include_counts:
@@ -291,7 +280,7 @@ def write_header(output:ChainableOutput, unique_sample_ids, unique_configuration
     output.sep().cells([''] * 2).new_line()
 
 def get_value_from_table(data, sample_id, configuration, stratifier, var_type, column):
-    return data.loc[(data['sample_id'] == sample_id) & (data['configuration'] == configuration) & (data['Stratifier'] == stratifier) & (data['Type'] == var_type)].iloc[0][column]
+    return data.query('sample_id == @sample_id and configuration == @configuration and Stratifier == @stratifier and Type == @var_type').iloc[0][column]
 
 def write_stratifier(output:ChainableOutput, stratifier:str, data:pd.DataFrame, unique_sample_ids:list, unique_configurations:list, deltas:list, include_counts):
     for var_type in ['SNP', 'INDEL', 'all']:
@@ -398,20 +387,8 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
     
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Create a table to compare output of BenchmarkVCFs.')
-    parser.add_argument('--stratifiers', type=str, nargs='*', help='Explicitly specify the stratifiers that have to be present in all samples. "all" will automatically be added. If not specified, the stratifiers will be inferred. If specified, this argument also defines the order of the stratifiers.')
-    parser.add_argument('--order-of-samples', type=str, nargs='+', help='Order of samples. If not specified, the order will be the same as the supplied inputs.')
-    parser.add_argument('--order-of-configurations', type=str, nargs='+', help='Order of configurations. If not specified, the order will be the same as the supplied inputs.')
-    parser.add_argument('--deltas', type=str, nargs='+', help='A list of configuration (zero-based) indices to compare. E.g. for comparing configurations 0 to 1 and 0 to 2, pass the values 0 1 0 2.')
-    parser.add_argument('--include-counts', action='store_true', help='If set, include the TP/FP/FN counts in the output table.')
-    required_named = parser.add_argument_group('Required named arguments')
-    required_named.add_argument('--sample-ids', required=True, type=str, nargs='+')
-    required_named.add_argument('--configurations', required=True, type=str, nargs='+')
-    required_named.add_argument('--summaries', required=True, type=str, nargs='+')
-    args = parser.parse_args()
-    main(args.sample_ids, args.configurations, args.summaries, args.stratifiers, args.order_of_samples, args.order_of_configurations, args.deltas, args.include_counts)
+    main(['~{sep="', '" sample_ids}'], ['~{sep="', '" configurations}'], ['~{sep="', '" benchmark_summaries}'], ['~{sep="', '" stratifiers}'], ['~{sep="', '" order_of_samples}'], ['~{sep="', '" order_of_configurations}'], ['~{sep="', '" deltas}'], ~{include_counts})
 EOF
-        python script.py --sample-ids ~{sep=' ' sample_ids} --configurations ~{sep=' ' configurations} --summaries ~{sep=' ' benchmark_summaries} ~{stratifiers_arg} ~{sep=' ' stratifiers_or_empty} ~{order_of_samples_arg} ~{sep=' ' order_of_samples_or_empty} ~{order_of_configurations_arg} ~{sep=' ' order_of_configurations_or_empty} ~{deltas_arg} ~{sep=' ' deltas_or_empty} ~{true="--include-counts" false="" include_counts}
     >>>
 
     runtime {

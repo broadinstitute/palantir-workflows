@@ -34,12 +34,8 @@ workflow testCompareBenchmarks {
             expected_csv = expected_csv,
             expected_gc_plots = expected_gc_plots,
             observed_csv = CompareBenchmarks.comparison_csv,
-            observed_gc_plots = CompareBenchmarks.gc_plots
+            observed_gc_plots = select_first([CompareBenchmarks.gc_plots, []])
 
-    }
-
-    output {
-        File assert_stdout = AssertPassed.stdout
     }
 }
 
@@ -76,9 +72,5 @@ task AssertPassed {
 
     runtime {
         docker: "ubuntu@sha256:134c7fe821b9d359490cd009ce7ca322453f4f2d018623f849e580a89a685e5d"
-    }
-
-    output {
-        File stdout = stdout()
     }
 }

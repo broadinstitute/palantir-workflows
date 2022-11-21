@@ -33,14 +33,7 @@ validate-with-json: $(all-validations-with-json)
 .PHONY: %.json.test
 %.json.test:
 	mkdir -p logs
-	$(TEST) $(subst _json/,.wdl, $(dir $(basename $@))) -i $(basename $@) -o test_options.json 2>&1 | tee logs/$(notdir $(subst _json/,.wdl, $(dir $(basename $@))))_with_$(notdir $(basename $@)).log ; \
-	test_result=$${PIPESTATUS[0]} ; \
-	if [ $${test_result} -ne 0 ] ; then \
-	    echo "=================================== FAILURE ===================================" ; \
-	    echo "Test failed for $(notdir $(subst _json/,.wdl, $(dir $(basename $@)))) with $(notdir $(basename $@)). Check the output logs (uploaded as artifacts) for more information." ; \
-	    echo "=================================== FAILURE ===================================" ; \
-	fi ; \
-	exit $${test_result}
+	$(TEST) $(subst _json/,.wdl, $(dir $(basename $@))) -i $(basename $@) -o test_options.json 2>&1 | tee logs/$(notdir $(subst _json/,.wdl, $(dir $(basename $@))))_with_$(notdir $(basename $@)).log
 
 .PHONY: %.json.validate
 %.json.validate:
