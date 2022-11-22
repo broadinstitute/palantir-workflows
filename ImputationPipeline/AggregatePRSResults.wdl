@@ -80,7 +80,7 @@ task AggregateResults {
     results <- c("~{sep='","' results}") %>% map(read_csv, col_types=cols(is_control_sample='l', .default='c')) %>% reduce(bind_rows)
     target_pcs <- c("~{sep='","' target_pc_projections}") %>% map(read_tsv) %>% reduce(bind_rows) %>% select(-FID) %>% rename(sample_id = IID)
 
-    results <- inner_join(results, target_pcs)
+    results <- inner_join(results, target_pcs) %>% rename_with(tolower, starts_with("PC"))
 
     lab_batch <- results %>% pull(lab_batch) %>% unique()
 
@@ -103,7 +103,7 @@ task AggregateResults {
 
     write_tsv(results %>% filter(is_control_sample), "~{output_prefix}_control_results.tsv")
 
-    results_pivoted <- results %>% select(-starts_with("PC")) %>% filter(!is_control_sample) %>% pivot_longer(!c(sample_id, lab_batch, is_control_sample), names_to=c("condition",".value"), names_pattern="(.+)(?<!not)(?<!reason)_(.+)$")
+    results_pivoted <- results %>% select(-starts_with("pc")) %>% filter(!is_control_sample) %>% pivot_longer(!c(sample_id, lab_batch, is_control_sample), names_to=c("condition",".value"), names_pattern="(.+)(?<!not)(?<!reason)_(.+)$")
     results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
                                                                           raw = as.numeric(raw),
                                                                           percentile = as.numeric(percentile)) %T>% {options(warn=0)}
