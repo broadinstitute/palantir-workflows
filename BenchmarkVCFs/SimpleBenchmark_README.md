@@ -88,17 +88,18 @@ different than using a `strat_interval` because `vcfeval` will process variants 
 **This must be a bed file!**
 * `score_fields` - (default = `["GQ"]`) an optional list of fields to use for stratifying ROC data. For each entry, the 
 `vcfeval` will be run to produce the proper ROC data with the given string input to `--vcf-score-field`. Example values 
-include `"GQ"`, `INFO.<NAME>`, and `FORMAT.<NAME>`. **WARNING**: Some values might not make sense to stratify when 
+include `"GQ"`, `INFO.<NAME>`, and `FORMAT.<NAME>`. See the `vcfeval` documentation for more information 
+**WARNING**: Some values might not make sense to stratify when 
 interested in *both* precision and recall statistics. For example, with the value `FORMAT.DP` it might make sense to 
 evaluate precision of calls made by depth in the callset, but often the baseline/truth doesn't have any intrinsic DP 
 associated with each variant, and so any present in the baseline may lead to misleading recall statistics. See the 
 section on [Interpreting Output Data](#interpreting-output-data) below for details.
 
-* `experiment_label` - an optional string to populate "Experiment" column in final output tables. Useful for incorporating 
+* `experiment_value` - an optional string to populate "Experiment" column in final output tables. Useful for incorporating 
 Terra table information about experimental groups to do grouped analyses downstream, or for easier integration into provided 
 visualizer tools.
-* `extra_column` - an optional string title for an additional column to add to final output tables, for downstream analysis.
-* `extra_column_label` - values to populate in the optional `extra_column`, if specified. To make downstream analysis easier 
+* `extra_column_name` - an optional string title for an additional column to add to final output tables, for downstream analysis.
+* `extra_column_value` - values to populate in the optional `extra_column`, if specified. To make downstream analysis easier 
 by incorporating Terra table information, e.g. `MEAN_COVERAGE`.
 
 * `NULL_FILE` - do NOT overwrite. This input exists for technical reasons due to WDL lacking good handling for null File 

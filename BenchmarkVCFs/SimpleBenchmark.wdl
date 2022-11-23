@@ -55,9 +55,9 @@ workflow SimpleBenchmark {
         Array[String] score_fields = ["GQ"]
 
         # Columns to add to output files
-        String? experiment_label
-        String? extra_column
-        String? extra_column_label
+        String? experiment_value
+        String? extra_column_name
+        String? extra_column_value
 
         # Toggle for more tries on preemptible machines for potentially cheaper runs at the risk of longer runtime
         Int preemptible = 3
@@ -159,9 +159,9 @@ workflow SimpleBenchmark {
             SN_summaries=flatten(BCFToolsStats.full_sn),
             IDD_summaries=flatten(BCFToolsStats.full_idd),
             ST_summaries=flatten(BCFToolsStats.full_st),
-            experiment_label=experiment_label,
-            extra_column=extra_column,
-            extra_column_label=extra_column_label
+            experiment_value=experiment_value,
+            extra_column_name=extra_column_name,
+            extra_column_value=extra_column_value
 
     }
 
@@ -258,6 +258,7 @@ task VCFEval {
         Int disk_size = ceil(size(call_vcf, "GB") + size(base_vcf, "GB") + size(reference.fasta, "GB")) + 25
         Int cpu = 8
         Int memory = 16
+        String rtg_docker_version = "v1.0"
     }
 
     command <<<
@@ -310,7 +311,7 @@ task VCFEval {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/rtg:v1.0"
+        docker: "us.gcr.io/broad-dsde-methods/rtg:" + rtg_docker_version
         preemptible: select_first([preemptible, 0])
         disks: "local-disk " + disk_size + " HDD"
         cpu: cpu
@@ -475,9 +476,9 @@ task CombineSummaries {
         Array[File] IDD_summaries
         Array[File] ST_summaries
 
-        String? experiment_label
-        String? extra_column
-        String? extra_column_label
+        String? experiment_value
+        String? extra_column_name
+        String? extra_column_value
 
         Int disk_size = 50
         Int cpu = 2
@@ -496,11 +497,11 @@ task CombineSummaries {
             df = pd.read_csv(file, sep='\t')
             full_ROC = pd.concat([full_ROC, df])
 
-        if "~{experiment_label}" != "":
-            full_ROC['Experiment'] = "~{experiment_label}"
+        if "~{experiment_value}" != "":
+            full_ROC['Experiment'] = "~{experiment_value}"
 
-        if ("~{extra_column}" != "") & ("~{extra_column_label}" != ""):
-            full_ROC["~{extra_column}"] = "~{extra_column_label}"
+        if ("~{extra_column_name}" != "") and ("~{extra_column_value}" != ""):
+            full_ROC["~{extra_column_name}"] = "~{extra_column_value}"
 
         full_ROC.to_csv('Full_ROC.tsv', sep='\t', index=False)
 
@@ -552,16 +553,16 @@ task CombineSummaries {
 
         # Add optional labels
         for df in [full_SN, full_IDD, full_ST, simple_summary]:
-            if "~{experiment_label}" != "":
-                df['Experiment'] = "~{experiment_label}"
+            if "~{experiment_value}" != "":
+                df['Experiment'] = "~{experiment_value}"
 
-            if ("~{extra_column}" != "") & ("~{extra_column_label}" != ""):
-                df["~{extra_column}"] = "~{extra_column_label}"
+            if ("~{extra_column_name}" != "") and ("~{extra_column_value}" != ""):
+                df["~{extra_column_name}"] = "~{extra_column_value}"
 
         # Reorder columns
         metadata_cols = ['Call_Name', 'Base_Name', 'Stratifier', 'Type']
-        metadata_cols = metadata_cols + ["~{extra_column}"] if "~{extra_column}" != "" else metadata_cols
-        metadata_cols = ['Experiment'] + metadata_cols if "~{experiment_label}" != "" else metadata_cols
+        metadata_cols = metadata_cols + ["~{extra_column_name}"] if "~{extra_column_name}" != "" else metadata_cols
+        metadata_cols = ['Experiment'] + metadata_cols if "~{experiment_value}" != "" else metadata_cols
         stat_cols = ['TP_Call', 'TP_Base', 'FP', 'FN', 'Precision', 'Recall', 'F1_Score']
 
         full_IDD = full_IDD[metadata_cols + ['INDEL_Type', 'INDEL_Length'] + stat_cols]
