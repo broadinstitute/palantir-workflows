@@ -387,7 +387,7 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
     
 
 if __name__ == '__main__':
-    main(['~{sep="', '" sample_ids}'], ['~{sep="', '" configurations}'], ['~{sep="', '" benchmark_summaries}'], ['~{sep="', '" stratifiers}'], ['~{sep="', '" order_of_samples}'], ['~{sep="', '" order_of_configurations}'], ['~{sep="', '" deltas}'], ~{include_counts})
+    main(['~{sep="', '" sample_ids}'], ['~{sep="', '" configurations}'], ['~{sep="', '" benchmark_summaries}'], ['~{sep="', '" stratifiers}'], ['~{sep="', '" order_of_samples}'], ['~{sep="', '" order_of_configurations}'], ['~{sep="', '" deltas}'], '~{include_counts}' == 'true')
 EOF
     >>>
 
