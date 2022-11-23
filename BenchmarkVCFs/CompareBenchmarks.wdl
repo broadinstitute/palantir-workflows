@@ -280,7 +280,10 @@ def write_header(output:ChainableOutput, unique_sample_ids, unique_configuration
     output.sep().cells([''] * 2).new_line()
 
 def get_value_from_table(data, sample_id, configuration, stratifier, var_type, column):
-    return data.query('sample_id == @sample_id and configuration == @configuration and Stratifier == @stratifier and Type == @var_type').iloc[0][column]
+    try:
+        return data.query('sample_id == @sample_id and configuration == @configuration and Stratifier == @stratifier and Type == @var_type').iloc[0][column]
+    except IndexError as e:
+        raise RuntimeError(f'Failed querying table for sample_id: {sample_id}, configuration: {configuration}, stratifier: {stratifier}, var_type: {var_type}, column: {column}. Make sure that the set of stratifiers and samples in the order_of_ arguments exactly matches the set of stratifiers and samples used for BenchmarkVCFs.')
 
 def write_stratifier(output:ChainableOutput, stratifier:str, data:pd.DataFrame, unique_sample_ids:list, unique_configurations:list, deltas:list, include_counts):
     for var_type in ['SNP', 'INDEL', 'all']:
