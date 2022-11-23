@@ -378,35 +378,35 @@ task BCFToolsStats {
             with open(file_path, 'r') as file:
                 bcf_file = file.readlines()
 
-                # sample-specific stats
-                sn_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'SN\t' in x])), sep='\t')
-                final_sn_df = sn_df.drop(columns=['# SN', '[2]id']).rename(columns={'[3]key': 'Category', '[4]value': 'Count'})[3:]
-                final_sn_df['Category'] = final_sn_df['Category'].apply(lambda x: x.replace('number of ', '').replace(':', ''))
-                idd_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'IDD\t' in x])), sep='\t')
-                final_idd_df = idd_df.drop(columns=['# IDD', '[2]id', '[5]number of genotypes', '[6]mean VAF']).rename(columns={
-                    '[3]length (deletions negative)': 'INDEL_Length', '[4]number of sites': 'Count'
-                })
-                st_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'ST\t' in x])), sep='\t')
-                final_st_df = st_df.drop(columns=['# ST', '[2]id']).rename(columns={'[3]type': 'Substitution', '[4]count': 'Count'})
+            # sample-specific stats
+            sn_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'SN\t' in x])), sep='\t')
+            final_sn_df = sn_df.drop(columns=['# SN', '[2]id']).rename(columns={'[3]key': 'Category', '[4]value': 'Count'})[3:]
+            final_sn_df['Category'] = final_sn_df['Category'].apply(lambda x: x.replace('number of ', '').replace(':', ''))
+            idd_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'IDD\t' in x])), sep='\t')
+            final_idd_df = idd_df.drop(columns=['# IDD', '[2]id', '[5]number of genotypes', '[6]mean VAF']).rename(columns={
+                '[3]length (deletions negative)': 'INDEL_Length', '[4]number of sites': 'Count'
+            })
+            st_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'ST\t' in x])), sep='\t')
+            final_st_df = st_df.drop(columns=['# ST', '[2]id']).rename(columns={'[3]type': 'Substitution', '[4]count': 'Count'})
 
-                # run-specific stats
-                qual_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'QUAL\t' in x])), sep='\t')
-                final_qual_df = qual_df.drop(columns=['# QUAL', '[2]id']).rename(columns={
-                    '[3]Quality': 'QUAL', '[4]number of SNPs': 'SNP_Count', '[5]number of transitions (1st ALT)': 'Ti_Count',
-                    '[6]number of transversions (1st ALT)': 'Tv_Count', '[7]number of indels': 'INDEL_Count'
-                })
-                dp_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'DP\t' in x])), sep='\t')
-                final_dp_df = dp_df.drop(columns=['# DP', '[2]id', '[4]number of genotypes', '[5]fraction of genotypes (%)', '[7]fraction of sites (%)']).rename(columns={
-                    '[3]bin': 'DP', '[6]number of sites': 'Count'
-                })
+            # run-specific stats
+            qual_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'QUAL\t' in x])), sep='\t')
+            final_qual_df = qual_df.drop(columns=['# QUAL', '[2]id']).rename(columns={
+                '[3]Quality': 'QUAL', '[4]number of SNPs': 'SNP_Count', '[5]number of transitions (1st ALT)': 'Ti_Count',
+                '[6]number of transversions (1st ALT)': 'Tv_Count', '[7]number of indels': 'INDEL_Count'
+            })
+            dp_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'DP\t' in x])), sep='\t')
+            final_dp_df = dp_df.drop(columns=['# DP', '[2]id', '[4]number of genotypes', '[5]fraction of genotypes (%)', '[7]fraction of sites (%)']).rename(columns={
+                '[3]bin': 'DP', '[6]number of sites': 'Count'
+            })
 
-                return {
-                    'SN_df': final_sn_df,
-                    'IDD_df': final_idd_df,
-                    'ST_df': final_st_df,
-                    'QUAL_df': final_qual_df,
-                    'DP_df': final_dp_df
-                }
+            return {
+                'SN_df': final_sn_df,
+                'IDD_df': final_idd_df,
+                'ST_df': final_st_df,
+                'QUAL_df': final_qual_df,
+                'DP_df': final_dp_df
+            }
 
         df_dict = {
             "TP_Base" : make_dfs("tp_base_stats.tsv"),
