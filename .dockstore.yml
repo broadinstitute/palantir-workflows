@@ -57,4 +57,7 @@ workflows:
   - name: CombineSummaries
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/CombineSummaries.wdl
-    
+  - name: ExtractSingleSampleVCFFromCallset
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/ExtractSampleFromVCF.wdl
+  
