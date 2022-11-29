@@ -286,8 +286,8 @@ task VCFEval {
         roc_summary = pd.DataFrame()
         for Type in ['snp', 'mnp', 'indel']:
             file_path = f'output_dir/{Type}_roc.tsv.gz'
-            with gzip.open(file_path, 'r') as file:
-                roc = [line.decode('utf-8') for line in file.readlines()]
+            with gzip.open(file_path, 'rt') as file:
+                roc = [line for line in file.readlines()]
             header_names = [line.replace('#', '').replace('\n', '') for line in roc if '#' in line][-1].split('\t')
             df = pd.read_csv(file_path, sep='\t', comment='#', header=None, names=header_names)
 
