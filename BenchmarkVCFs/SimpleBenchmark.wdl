@@ -251,7 +251,7 @@ task VCFEval {
         # vcfeval Arguments
         Boolean passing_only = true
         Boolean require_matching_genotypes = true
-        Boolean enable_ref_overlap = false
+        Boolean enable_ref_overlap = true
 
         # Runtime params
         Int? preemptible
