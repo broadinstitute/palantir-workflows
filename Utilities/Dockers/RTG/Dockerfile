@@ -10,7 +10,7 @@ WORKDIR dist
 RUN unzip *.zip 
 
 # Install RTG
-WORKDIR rtg-tools-3.12.1-32d4c2d2
+WORKDIR rtg-tools-*
 RUN ln -s $(pwd)/rtg /bin/
 RUN yes no | rtg --help
 WORKDIR /root
