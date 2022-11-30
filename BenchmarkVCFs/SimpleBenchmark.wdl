@@ -286,9 +286,17 @@ task VCFEval {
         roc_summary = pd.DataFrame()
         for Type in ['snp', 'mnp', 'indel']:
             file_path = f'output_dir/{Type}_roc.tsv.gz'
+
+            header_lines = []
+            # Read through file lines until hitting one without leading '#'
             with gzip.open(file_path, 'rt') as file:
                 roc = [line for line in file.readlines()]
-            header_names = [line.replace('#', '').replace('\n', '') for line in roc if '#' in line][-1].split('\t')
+                for line in file:
+                    if line[0] == '#':
+                        header_lines += [line]
+                    else:
+                        break
+            header_names = header_lines[-1].replace('#', '').replace('\n', '').split('\t')
             df = pd.read_csv(file_path, sep='\t', comment='#', header=None, names=header_names)
 
             rename_columns = {'score': 'Score', 'true_positives_baseline': 'TP_Base',
@@ -354,8 +362,8 @@ task BCFToolsStats {
         File? evaluation_bed
 
         Int disk_size = ceil(size(tp_base_vcf, "GB") + size(tp_call_vcf, "GB") + size(fp_vcf, "GB") + size(fn_vcf, "GB")) + 20
-        Int cpu = 16
-        Int memory = 32
+        Int cpu = 8
+        Int memory = 16
     }
 
     # Handle parsing bcf_selector with surrounding quotes, with empty case handled separately
