@@ -65,13 +65,19 @@ task CreateGCPlotsTask {
         Int mem_gb = 4
         Int preemptible = 0
     }
+    
+    String order_of_samples_arg = if !defined(order_of_samples) then "" else "--order-of-samples"
+    Array[String] order_of_samples_or_empty = select_first([order_of_samples, []])
+    String order_of_configurations_arg = if !defined(order_of_configurations) then "" else "--order-of-configurations"
+    Array[String] order_of_configurations_or_empty = select_first([order_of_configurations, []])
 
     command <<<
         set -xeuo pipefail
         
         source activate compare_benchmarks
         
-        python <<'EOF'
+        cat <<'EOF' > script.py
+import argparse
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -173,8 +179,17 @@ def main(sample_ids, configurations, summaries, order_of_samples, order_of_confi
     
 
 if __name__ == '__main__':
-    main(['~{sep="', '" sample_ids}'], ['~{sep="', '" configurations}'], ['~{sep="', '" benchmark_summaries}'], ['~{sep="', '" order_of_samples}'], ['~{sep="', '" order_of_configurations}'])
+    parser = argparse.ArgumentParser(description='Create a table to compare output of BenchmarkVCFs.')
+    parser.add_argument('--order-of-samples', type=str, nargs='+', help='Order of samples. If not specified, the order will be the same as the supplied inputs.')
+    parser.add_argument('--order-of-configurations', type=str, nargs='+', help='Order of configurations. If not specified, the order will be the same as the supplied inputs.')
+    required_named = parser.add_argument_group('Required named arguments')
+    required_named.add_argument('--sample-ids', required=True, type=str, nargs='+')
+    required_named.add_argument('--configurations', required=True, type=str, nargs='+')
+    required_named.add_argument('--summaries', required=True, type=str, nargs='+')
+    args = parser.parse_args()
+    main(args.sample_ids, args.configurations, args.summaries, args.order_of_samples, args.order_of_configurations)
 EOF
+        python script.py --sample-ids ~{sep=' ' sample_ids} --configurations ~{sep=' ' configurations} --summaries ~{sep=' ' benchmark_summaries} ~{order_of_samples_arg} ~{sep=' ' order_of_samples_or_empty} ~{order_of_configurations_arg} ~{sep=' ' order_of_configurations_or_empty}
     >>>
 
     runtime {
@@ -208,12 +223,24 @@ task CompareBenchmarksTask {
         Int preemptible = 0
     }
 
+    String stratifiers_arg = if !defined(stratifiers) then "" else "--stratifiers"
+    Array[String] stratifiers_or_empty = select_first([stratifiers, []])
+
+    String order_of_samples_arg = if !defined(order_of_samples) then "" else "--order-of-samples"
+    Array[String] order_of_samples_or_empty = select_first([order_of_samples, []])
+    String order_of_configurations_arg = if !defined(order_of_configurations) then "" else "--order-of-configurations"
+    Array[String] order_of_configurations_or_empty = select_first([order_of_configurations, []])
+
+    String deltas_arg = if !defined(deltas) then "" else "--deltas"
+    Array[Int] deltas_or_empty = select_first([deltas, []])
+
     command <<<
         set -xeuo pipefail
         
         source activate compare_benchmarks
         
-        python <<'EOF'
+        cat <<'EOF' > script.py
+import argparse
 import numpy as np
 import pandas as pd
 
@@ -283,7 +310,7 @@ def get_value_from_table(data, sample_id, configuration, stratifier, var_type, c
     try:
         return data.query('sample_id == @sample_id and configuration == @configuration and Stratifier == @stratifier and Type == @var_type').iloc[0][column]
     except IndexError as e:
-        raise RuntimeError(f'Failed querying table for sample_id: {sample_id}, configuration: {configuration}, stratifier: {stratifier}, var_type: {var_type}, column: {column}. Make sure that the set of stratifiers and samples in the order_of_ arguments exactly matches the set of stratifiers and samples used for BenchmarkVCFs.')
+        raise RuntimeError(f'Failed querying table for sample_id: {sample_id}, configuration: {configuration}, stratifier {stratifier}, var_type: {var_type}, column: {column}. Make sure that the set of stratifiers and samples in the order_of_ arguments exactly matches the set of stratifiers and samples used for BenchmarkVCFs.')
 
 def write_stratifier(output:ChainableOutput, stratifier:str, data:pd.DataFrame, unique_sample_ids:list, unique_configurations:list, deltas:list, include_counts):
     for var_type in ['SNP', 'INDEL', 'all']:
@@ -390,8 +417,20 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
     
 
 if __name__ == '__main__':
-    main(['~{sep="', '" sample_ids}'], ['~{sep="', '" configurations}'], ['~{sep="', '" benchmark_summaries}'], ['~{sep="', '" stratifiers}'], ['~{sep="', '" order_of_samples}'], ['~{sep="', '" order_of_configurations}'], ['~{sep="', '" deltas}'], '~{include_counts}' == 'true')
+    parser = argparse.ArgumentParser(description='Create a table to compare output of BenchmarkVCFs.')
+    parser.add_argument('--stratifiers', type=str, nargs='*', help='Explicitly specify the stratifiers that have to be present in all samples. "all" will automatically be added. If not specified, the stratifiers will be inferred. If specified, this argument also defines the order of the stratifiers.')
+    parser.add_argument('--order-of-samples', type=str, nargs='+', help='Order of samples. If not specified, the order will be the same as the supplied inputs.')
+    parser.add_argument('--order-of-configurations', type=str, nargs='+', help='Order of configurations. If not specified, the order will be the same as the supplied inputs.')
+    parser.add_argument('--deltas', type=str, nargs='+', help='A list of configuration (zero-based) indices to compare. E.g. for comparing configurations 0 to 1 and 0 to 2, pass the values 0 1 0 2.')
+    parser.add_argument('--include-counts', action='store_true', help='If set, include the TP/FP/FN counts in the output table.')
+    required_named = parser.add_argument_group('Required named arguments')
+    required_named.add_argument('--sample-ids', required=True, type=str, nargs='+')
+    required_named.add_argument('--configurations', required=True, type=str, nargs='+')
+    required_named.add_argument('--summaries', required=True, type=str, nargs='+')
+    args = parser.parse_args()
+    main(args.sample_ids, args.configurations, args.summaries, args.stratifiers, args.order_of_samples, args.order_of_configurations, args.deltas, args.include_counts)
 EOF
+        python script.py --sample-ids ~{sep=' ' sample_ids} --configurations ~{sep=' ' configurations} --summaries ~{sep=' ' benchmark_summaries} ~{stratifiers_arg} ~{sep=' ' stratifiers_or_empty} ~{order_of_samples_arg} ~{sep=' ' order_of_samples_or_empty} ~{order_of_configurations_arg} ~{sep=' ' order_of_configurations_or_empty} ~{deltas_arg} ~{sep=' ' deltas_or_empty} ~{true="--include-counts" false="" include_counts}
     >>>
 
     runtime {
