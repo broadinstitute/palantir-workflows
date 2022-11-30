@@ -9,7 +9,7 @@ workflow CompareBenchmarks {
         Array[String]? stratifiers
 
         Boolean include_counts = false
-        Boolean create_gc_plots = false
+        Boolean generate_gc_plots = false
 
         Array[String]? order_of_samples
         Array[String]? order_of_configurations
@@ -33,7 +33,7 @@ workflow CompareBenchmarks {
             preemptible = preemptible
     }
     
-    if (create_gc_plots) {
+    if (generate_gc_plots) {
         call CreateGCPlotsTask {
             input:
                 sample_ids = sample_ids,
