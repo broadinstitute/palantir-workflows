@@ -13,6 +13,8 @@ workflow testCompareBenchmarks {
         Array[String] order_of_configurations
         Array[Int] deltas
 
+        Boolean generate_gc_plots
+
         File expected_csv
         Array[File] expected_gc_plots
     }
@@ -24,6 +26,7 @@ workflow testCompareBenchmarks {
             benchmark_summaries = benchmark_summaries,
             stratifiers = stratifiers,
             include_counts = true,
+            generate_gc_plots = generate_gc_plots,
             order_of_samples = order_of_samples,
             order_of_configurations = order_of_configurations,
             deltas = deltas,
