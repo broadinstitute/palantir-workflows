@@ -290,7 +290,6 @@ task VCFEval {
             header_lines = []
             # Read through file lines until hitting one without leading '#'
             with gzip.open(file_path, 'rt') as file:
-                roc = [line for line in file.readlines()]
                 for line in file:
                     if line[0] == '#':
                         header_lines += [line]
