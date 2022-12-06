@@ -112,7 +112,6 @@ workflow CompareSamplesWithoutTruth {
 
   output {
     File without_truth_summary = CombineSummariesWithoutTruth.summaryOut
-    File with_truth_summary = BenchmarkFullTruthVcfs.benchmark_vcf_summary
   }
 }
 
