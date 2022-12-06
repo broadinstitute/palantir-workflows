@@ -10,10 +10,6 @@ workflow CompareSamplesWithoutTruth {
     File input_callset
     Array[File] NYGenomes_vcf
     Array[File] NYGenomes_vcf_idx
-    Array[String] truth_labels
-    Array[File] ground_truth_files
-    Array[File] ground_truth_indexes
-    Array[File] ground_truth_intervals
     File wgs_evaluation_regions = "gs://gcp-public-data--broad-references/hg38/v0/wgs_evaluation_regions.hg38.interval_list"
 
     File gatkJarForAnnotation
@@ -41,32 +37,6 @@ workflow CompareSamplesWithoutTruth {
   }
 
   Int VCF_disk_size = ceil(size(input_callset, "GiB") / length(sample_names_to_compare)) + 10
-
-  # Compare samples that have truth data
-  call FindSamplesAndBenchmark.FindSamplesAndBenchmark as BenchmarkFullTruthVcfs {
-    input:
-      input_callset = [input_callset],
-      ground_truth_files = ground_truth_files,
-      ground_truth_indexes = ground_truth_indexes,
-      ground_truth_intervals = ground_truth_intervals,
-      truth_labels = truth_labels,
-      gatkJarForAnnotation = gatkJarForAnnotation,
-      annotationName = annotationName,
-      ref_fasta = ref_fasta,
-      ref_fasta_index = ref_fasta_index,
-      ref_fasta_dict = ref_fasta_dict,
-      ref_fasta_sdf = ref_fasta_sdf,
-      haplotype_database = haplotype_database,
-      picard_cloud_jar = picard_cloud_jar,
-      docker = docker,
-      analysis_region = analysis_region,
-      stratIntervals = strat_intervals,
-      stratLabels = strat_labels,
-      jexlVariantSelectors = jexl_variant_selectors,
-      variantSelectorLabels = variant_selector_labels,
-      monitoring_script = monitoring_script,
-      preemptible = preemptible
-  }
 
   scatter(i in range(length(NYGenomes_vcf))) {
     call SplitMultiSampleVcf as ExtractFromTruth {
