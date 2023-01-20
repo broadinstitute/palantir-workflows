@@ -31,8 +31,8 @@ with the libraries `pandas`, `numpy`, `scipy`, `firecloud`, `fsspec` (a `fireclo
   [CollectBenchmarkSucceeded](../WDLs/CollectBenchmarkSucceeded.wdl)
 * Usage: `python <<CODE [CODE HERE] CODE`
 * Version Notes: 
-    * 1.0: Versions are `python3` 3.9.9, `pandas` 1.3.4, `numpy` 1.21.4, `scipy` 1.7.2, `firecloud` 0.16.32, 
-    `fsspec` 2022.7.1, `gcsfs` 2022.7.1.
+  * 1.0: Versions are `python3` 3.9.9, `pandas` 1.3.4, `numpy` 1.21.4, `scipy` 1.7.2, `firecloud` 0.16.32, 
+  `fsspec` 2022.7.1, `gcsfs` 2022.7.1.
 
 ## python-data-slim-plots
 
@@ -40,8 +40,8 @@ with the libraries `pandas`, `numpy`, `scipy`, `firecloud`, `fsspec` (a `fireclo
 * Description: Based on `python-data-slim`, this image supports plotting with [matplotlib](https://matplotlib.org/) and [Plotly](https://plotly.com/)
 * Location: `us.gcr.io/broad-dsde-methods/python-data-slim-plots`
 * Used By: [FunctionalEquivalence](../../FunctionalEquivalence/FunctionalEquivalence.wdl)
-* Version Notes: 
-    * 1.0: Versions are `matplotlib` 3.5.3, `plotly` 5.10.0.
+* Version Notes:
+  * 1.0: Versions are `matplotlib` 3.5.3, `plotly` 5.10.0.
     
 ## rtg
 
