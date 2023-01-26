@@ -307,8 +307,8 @@ task BuildHTMLReport {
 
     # Conditions Scored per Sample
     \`\`\`{r conditions scored per sample, echo = FALSE, results = "asis", warning = FALSE}
-    observed_condition_groups <- observed_condition_groups %>% mutate(across(everything(), ~kableExtra::cell_spec(.x, color=ifelse(group=="not allowed", "red", "white"))))
-    kable(observed_condition_groups, escape = FALSE, fromat = "pandoc")
+    observed_condition_groups <- observed_condition_groups %>% mutate(across(everything(), ~kableExtra::cell_spec(.x, color=ifelse(group=="not allowed", "red", "black"))))
+    kable(observed_condition_groups, escape = FALSE, format = "pandoc")
     \`\`\`
 
     ## Samples High Risk for Multiple Conditions
