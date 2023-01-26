@@ -306,7 +306,7 @@ task BuildHTMLReport {
     \`\`\`
 
     # Conditions Scored per Sample
-    \`\`\`
+    \`\`\`{r conditions scored per sample, echo = FALSE, results = "asis", warning = FALSE}
     observed_condition_groups <- observed_condition_groups %>% mutate(across(everything(), ~kableExtra::cel_spec(.x, color=ifelse(group=="not allowed", "red", "white"))))
     kable(observed_condition_groups, escape = FALSE, fromat = "pandoc")
     \`\`\`
