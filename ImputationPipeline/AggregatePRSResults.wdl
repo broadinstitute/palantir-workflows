@@ -9,6 +9,7 @@ workflow AggregatePRSResults {
     File population_pc_projections
     String population_name = "Reference Population"
     File expected_control_results
+    File allowed_condition_groups
     String lab_batch
     Int group_n
   }
@@ -43,7 +44,8 @@ workflow AggregatePRSResults {
       batch_pcs = AggregateResults.batch_pcs,
       population_pc_projections = population_pc_projections,
       population_name = population_name,
-      high_risk_thresholds = high_risk_thresholds
+      high_risk_thresholds = high_risk_thresholds,
+      allowed_condition_groups = allowed_condition_groups
   }
 
   output {
@@ -204,6 +206,7 @@ task BuildHTMLReport {
     File high_risk_thresholds
     File batch_pcs
     File population_pc_projections
+    File allowed_condition_groups
     String population_name
     String lab_batch
     Int group_n
@@ -242,6 +245,13 @@ task BuildHTMLReport {
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
     condition_thresholds <- read_tsv("~{high_risk_thresholds}")
+    allowed_condition_groups <- read_tsv("~{allowed_condition_groups}") %>% group_by(group) %>% summarise(conditions = paste0(sort(condition), collapse=","))
+
+    observed_condition_groups <- batch_pivoted_results %>% filter(risk == "HIGH" | risk == "NOT_HIGH") %>% group_by(sample_id) %>%
+      summarise(conditions = paste0(sort(condition), collapse=",")) %>% left_join(allowed_condition_groups) %>% mutate(group=replace_na(group, "not allowed")) %>%
+      group_by(conditions) %>% summarise(group=group[[1]], n=n(), samples = ifelse(group=="not allowed",
+      paste0(sample_id, collapse=", "),""))
+
     get_probs_n_high_per_sample_distribution <- function(thresholds_list) {
       probs_n_high <- tibble(n_high = seq(0,length(thresholds_list)), prob=c(1,rep(0,length(thresholds_list - 1))))
         for (threshold in thresholds_list) {
@@ -293,6 +303,12 @@ task BuildHTMLReport {
     ## Batch Summary
     \`\`\`{r summary table, echo = FALSE, results = "asis" }
     kable(batch_summary, digits = 2, escape = FALSE, format = "pandoc")
+    \`\`\`
+
+    # Conditions Scored per Sample
+    \`\`\`
+    observed_condition_groups <- observed_condition_groups %>% mutate(across(everything(), ~kableExtra::cel_spec(.x, color=ifelse(group=="not allowed", "red", "white"))))
+    kable(observed_condition_groups, escape = FALSE, fromat = "pandoc")
     \`\`\`
 
     ## Samples High Risk for Multiple Conditions
