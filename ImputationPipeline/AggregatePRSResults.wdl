@@ -277,6 +277,8 @@ task BuildHTMLReport {
       summarise(\`high risk conditions\` = paste(condition, collapse = ","), n=n()) %>%
       filter(n>1) %>% inner_join(threshold_set_per_sample) %>% group_by(sample_id, \`high risk conditions\`, n, thresholds) %>% filter(n_high >= n) %>%
       summarise(significance=paste0(signif(qnorm(1-sum(prob)),2), "\\U03C3")) %>% select(-n,-thresholds)
+
+    samples_high_risk <- batch_pivoted_results %>% filter(risk == "HIGH") %>% pull(sample_id) %>% unique()
     \`\`\`
 
     \`\`\`{css, echo=FALSE}
@@ -345,8 +347,10 @@ task BuildHTMLReport {
 
     p <- ggplot(population_pcs, aes(x=PC1, y=PC2, color="~{population_name}")) +
       geom_point() +
-      geom_point(data=target_pcs, aes(color="~{lab_batch}", text=paste0("Sample ID: ", sample_id))) +
-      theme_bw()
+      geom_point(data=target_pcs %>% filter(!(sample_id %in% samples_high_risk)), aes(color="~{lab_batch} Not High Risk", text=paste0("Sample ID: ", sample_id))) +
+      geom_point(data=target_pcs %>% filter(sample_id %in% samples_high_risk), aes(color="~{lab_batch} High Risk", text=paste0("Sample ID: ", sample_id))) +
+    scale_color_manual(values=c("~{population_name}"="grey", "~{lab_batch} Not High Risk"="#619CFF", "~{lab_batch}High Risk"="#F8766D")) +
+    theme_bw()
     ggplotly(p, tooltip="text")
     \`\`\`
 
