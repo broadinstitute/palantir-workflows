@@ -349,7 +349,7 @@ task BuildHTMLReport {
       geom_point() +
       geom_point(data=target_pcs %>% filter(!(sample_id %in% samples_high_risk)), aes(color="~{lab_batch} Not High Risk", text=paste0("Sample ID: ", sample_id))) +
       geom_point(data=target_pcs %>% filter(sample_id %in% samples_high_risk), aes(color="~{lab_batch} High Risk", text=paste0("Sample ID: ", sample_id))) +
-    scale_color_manual(values=c("~{population_name}"="grey", "~{lab_batch} Not High Risk"="#619CFF", "~{lab_batch}High Risk"="#F8766D")) +
+    scale_color_manual(values=c("~{population_name}"="grey", "~{lab_batch} Not High Risk"="#619CFF", "~{lab_batch} High Risk"="#F8766D")) +
     theme_bw()
     ggplotly(p, tooltip="text")
     \`\`\`
