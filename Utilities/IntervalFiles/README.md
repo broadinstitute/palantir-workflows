@@ -44,7 +44,7 @@ These are interval files which are intrinsic to fixed reference genome sequences
 the file name references adding 50 bases of padding on either side of the window using 
 [bedtools](https://bedtools.readthedocs.io/en/latest/content/tools/slop.html), so the list is the union of 200-length
 intervals with interior 100bps having high GC content. Note other thresholds than 85% are available from NIST.
-* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_gc85_slop50.bed.gz`
+* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_gc85_slop50.bed.gz`
 * Original File: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/GCcontent/GRCh38_gc85_slop50.bed.gz)
 * Original Documentation: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/GCcontent/GRCh38-GCcontent-README.md)
 * Percent of Genome: 0.01%
@@ -53,7 +53,7 @@ intervals with interior 100bps having high GC content. Note other thresholds tha
 
 #### LowGC
 * Summary: Same as HighGC, but with inner windows containing less than 15% GC bases.
-* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_gc15_slop50.bed.gz`
+* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_gc15_slop50.bed.gz`
 * Original File: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/GCcontent/GRCh38_gc15_slop50.bed.gz)
 * Original Documentation: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/GCcontent/GRCh38-GCcontent-README.md)
 * Percent of Genome: 0.2%
@@ -61,10 +61,12 @@ intervals with interior 100bps having high GC content. Note other thresholds tha
   * % of LowGC in LowComplexityRegion: 60% (Jaccard = 4.5%)
 
 #### LowMappability
-* Summary: Contains regions in reference which are homologous to other regions of length <= 250 exact matches
-  (high stringency), or <= 100 with up to 2 mismatch/1 indel (low stringency). Refinements to either subset is available
-  from NIST.
-* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_lowmappabilityall.bed.gz`
+* Summary: Contains regions in reference which are homologous to other regions. This is achieved using two sets of 
+"stringency" parameters: windows of length >= 100 with multiple alignments having up to 2 mismatch/1 indel < 15 bp 
+(low stringency), and regions of length >= 250 with exact alignment matches (high stringency). Note that while 
+conceptually one might expect the latter to be a subset of regions in the former, the latter list has a few more sites
+than seen in the former (0.03% of high stringency not seen in low). Refinements to either subset is available from NIST. 
+* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_lowmappabilityall.bed.gz`
 * Original File: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/mappability/GRCh38_lowmappabilityall.bed.gz)
 * Original Documentation: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/mappability/GRCh38-mappability-README.md)
 * Percent of Genome: 8%
@@ -77,7 +79,7 @@ intervals with interior 100bps having high GC content. Note other thresholds tha
 #### Homopolymers
 * Summary: Contains regions in reference which are homopolymers (repeated base) of length >= 6 and imperfect homopolymers
   (homopolymers interrupted by 1 different base) of length >= 10, with 5 bases added on both sides for padding.
-* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_AllHomopolymers_gt6bp_imperfectgt10bp_slop5.bed.gz`
+* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_AllHomopolymers_gt6bp_imperfectgt10bp_slop5.bed.gz`
 * Original File: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/LowComplexity/GRCh38_AllHomopolymers_gt6bp_imperfectgt10bp_slop5.bed.gz)
 * Original Documentation: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/LowComplexity/GRCh38-LowComplexity-README.md)
 * Percent of Genome: 2.7%
@@ -89,7 +91,7 @@ intervals with interior 100bps having high GC content. Note other thresholds tha
 
 #### LowComplexityRegion
 * Summary: Contains regions of "low complexity", using the symmetric DUST algorithm. 
-* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/LCRFromHengHg38.bed`
+* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/LCRFromHengHg38.bed`
 * Original File: [here](https://github.com/broadinstitute/hydro.gen/blob/main/Data/LCRFromHengHg38.bed) 
 * Original Documentation: [here](https://github.com/broadinstitute/hydro.gen/tree/main/Data)
 * Percent of Genome: 2%
@@ -100,7 +102,7 @@ intervals with interior 100bps having high GC content. Note other thresholds tha
 
 #### SegDup
 * Summary: Contains regions of segmental duplications, i.e. regions where the reference aligns to itself. 
-* Bucket Mirror:  `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_segdups.bed.gz`
+* Bucket Mirror:  `gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_segdups.bed.gz`
 * Original File: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/SegmentalDuplications/GRCh38_segdups.bed.gz)
 * Original Documentation: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/SegmentalDuplications/GRCh38-SegDups-README.md)
 * Percent of Genome: 5.4%
@@ -112,7 +114,7 @@ intervals with interior 100bps having high GC content. Note other thresholds tha
 #### AllDifficult
 * Summary: Contains regions pooled from various "difficult" regions, including all tandem repeats, homopolymers of length >= 6,
 segmental duplications, and more. Note this includes a few "function specific" interval lists like BadPromoters.
-* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_alldifficultregions.bed.gz`
+* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_alldifficultregions.bed.gz`
 * Original File: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/Union/GRCh38_alldifficultregions.bed.gz)
 * Original Documentation: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/Union/GRCh38-Union-README.md)
 * Percent of Genome: 21%
@@ -142,7 +144,7 @@ These are interval files which are related to inferred biological functioning of
 #### CodingRegions
 * Summary: Contains regions strictly formed from coding regions, as identified by RefSeq. In essence, this is conceptually 
 a stricter exome interval file, though there is not a strict containment.
-* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_refseq_cds.bed.gz`
+* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_refseq_cds.bed.gz`
 * Original File: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/FunctionalRegions/GRCh38_refseq_cds.bed.gz)
 * Original Documentation: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/FunctionalRegions/GRCh38-FunctionalRegions-README.md)
 * Percent of Genome: 1.10%
@@ -151,7 +153,7 @@ a stricter exome interval file, though there is not a strict containment.
 
 #### BadPromoters
 * Summary: Contains regions where transcription site or first exons have systematically low coverage.
-* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_BadPromoters.bed.gz`
+* Bucket Mirror: `gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_BadPromoters.bed.gz`
 * Original File: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/FunctionalTechnicallyDifficultRegions/GRCh38_BadPromoters.bed.gz)
 * Original Documentation: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.1/GRCh38/FunctionalTechnicallyDifficultRegions/GRCh38-FunctionalTechnicallyDifficult-README.md)
 * Percent of Genome: 0.006%
@@ -189,16 +191,16 @@ use any subset of them when running a benchmarking tool on Terra.
 
 ```
 strat_intervals = [
-"gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_gc85_slop50.bed.gz",
-"gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_gc15_slop50.bed.gz",
-"gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_lowmappabilityall.bed.gz",
-"gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_AllHomopolymers_gt6bp_imperfectgt10bp_slop5.bed.gz"
-"gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/LCRFromHengHg38.bed",
-"gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_segdups.bed.gz",
-"gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_alldifficultregions.bed.gz",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_gc85_slop50.bed.gz",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_gc15_slop50.bed.gz",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_lowmappabilityall.bed.gz",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_AllHomopolymers_gt6bp_imperfectgt10bp_slop5.bed.gz"
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/LCRFromHengHg38.bed",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_segdups.bed.gz",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_alldifficultregions.bed.gz",
 "gs://gcp-public-data--broad-references/hg38/v0/exome_evaluation_regions.v1.interval_list",
-"gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_refseq_cds.bed.gz",
-"gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/IntervalFiles/GRCh38_BadPromoters.bed.gz",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_refseq_cds.bed.gz",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_BadPromoters.bed.gz",
 "gs://gcp-public-data--broad-references/hg38/v0/ultima_genomics/interval_lists/ug_hcr.bed",
 ]
 
@@ -228,9 +230,11 @@ measuring what percentage of A lies in B. This is the special case of the Jaccar
 the percent of genome covered can be computed using a Jaccard index of your bed file A with a "full" bed file covering
 all contigs of your genome. A script to make a "full" bed from a reference dict is included in the `create_full_bed.sh`
 file. In the above calculations, a "full" bed was created from hg38 for just the autosomes and X/Y to compute what 
-percent of the genome a given interval file spanned.
+percent of the genome a given interval file spanned. Note that this includes bases labeled as `N` in the reference.
+To get a percent of the non-`N` bases, you can subset hg38 to exclude them (and then run the same `overlap_stats.sh`
+script described below).
 
-A script to compute all three of these (the usual Jaccard index, percent of A in B, and percent of B in A) for two 
+The script to compute all three of these (the usual Jaccard index, percent of A in B, and percent of B in A) for two 
 input bed files A and B is provided in the `overlap_stats.sh` file for reproducibility of the above code and extension 
 beyond the provided cases. You must have the `hg38-noalt.genome` or similar file for your reference in the same directory 
 when running this script for it to function properly, which is an ordered list of contigs with sequence length. Overlap
