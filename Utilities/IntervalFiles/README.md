@@ -194,7 +194,7 @@ strat_intervals = [
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_gc85_slop50.bed.gz",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_gc15_slop50.bed.gz",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_lowmappabilityall.bed.gz",
-"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_AllHomopolymers_gt6bp_imperfectgt10bp_slop5.bed.gz"
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_AllHomopolymers_gt6bp_imperfectgt10bp_slop5.bed.gz",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/LCRFromHengHg38.bed",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_segdups.bed.gz",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_alldifficultregions.bed.gz",
