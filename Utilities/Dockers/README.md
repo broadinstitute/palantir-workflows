@@ -18,7 +18,18 @@ Also includes some minimal Python tools (pandas) for data processing.
 * Used By: [SimpleBenchmark](../../BenchmarkVCFs/SimpleBenchmark.wdl)
 * Usage: `bcftools [COMMAND]`
 * Version Notes:
-  * 1.0: Versions are `bcftools` 1.16
+  * 1.0: Versions are `bcftools` 1.16.
+
+## samtools
+
+* Directory: Samtools
+* Description: A docker image containing an installation of [samtools](https://github.com/samtools/samtools). Also
+includes some minimal Python tools (pandas) for data processing.
+* Location: `us.gcr.io/broad-dsde-methods/samtools:v1`
+* Used By: [ComputeIntervalBamStats](../IntervalFiles/ComputeIntervalBamStats.wdl)
+* Usage: `samtools [COMMAND]`
+* Version Notes:
+  * 1.0: Versions are `samtools` 1.16.1.
 
 ## python-data-slim
 
