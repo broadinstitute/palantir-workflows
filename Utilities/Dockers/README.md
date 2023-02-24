@@ -1,6 +1,6 @@
 # Docker Files
 
-This directory contains `dockerimage` files and descriptions of what each is intended for. Here is a description of how
+This directory contains `Dockerfile` files and descriptions of what each is intended for. Here is a description of how
 the fields are populated:
 * Directory: where to find the Dockerfile, under `palantir-workflows/Utilities/Dockers/`.
 * Description: description of the packages installed on the docker.
@@ -30,6 +30,16 @@ includes some minimal Python tools (pandas) for data processing.
 * Usage: `samtools [COMMAND]`
 * Version Notes:
   * 1.0: Versions are `samtools` 1.16.1.
+
+## pysam
+
+* Directory: Pysam
+* Description: A docker image containing Python with the [Pysam](https://pysam.readthedocs.io/en/latest/api.html) package.
+* Location: `us.gcr.io/broad-dsde-methods/pysam:v1`
+* Used By: ...
+* Usage: `python <<CODE [CODE HERE] CODE`
+* Version Notes:
+  * 1.0: Versions are `python3` 3.11.2, `pysam` 0.20.0.
 
 ## python-data-slim
 
