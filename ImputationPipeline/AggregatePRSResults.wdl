@@ -343,14 +343,14 @@ task BuildHTMLReport {
     #### Hover for sample ID
     \`\`\`{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis", fig.align='center'}
     target_pcs <- read_tsv("~{batch_pcs}")
+    target_pcs <- target_pcs %>% mutate(text = paste0("Sample ID: ", sample_id), color=factor(ifelse(sample_id %in% samples_high_risk, "~{lab_batch} High Risk", "~{lab_batch} Not High Risk"), levels=c("~{lab_batch} Not High Risk", "~{lab_batch} High Risk")))
     population_pcs <- read_tsv("~{population_pc_projections}")
 
     p <- ggplot(population_pcs, aes(x=PC1, y=PC2, color="~{population_name}")) +
       geom_point() +
-      geom_point(data=target_pcs %>% filter(!(sample_id %in% samples_high_risk)), aes(color="~{lab_batch} Not High Risk", text=paste0("Sample ID: ", sample_id))) +
-      geom_point(data=target_pcs %>% filter(sample_id %in% samples_high_risk), aes(color="~{lab_batch} High Risk", text=paste0("Sample ID: ", sample_id))) +
-    scale_color_manual(values=c("~{population_name}"="grey", "~{lab_batch} Not High Risk"="#619CFF", "~{lab_batch} High Risk"="#F8766D")) +
-    theme_bw()
+      geom_point(data=target_pcs, aes( color = color, text=text)) +
+      scale_color_manual(values=c("~{population_name}"="grey", "~{lab_batch} Not High Risk"="#619CFF", "~{lab_batch} High Risk"="#F8766D")) +
+      theme_bw()
     ggplotly(p, tooltip="text")
     \`\`\`
 
