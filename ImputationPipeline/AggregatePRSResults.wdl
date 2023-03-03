@@ -9,8 +9,10 @@ workflow AggregatePRSResults {
     File population_pc_projections
     String population_name = "Reference Population"
     File expected_control_results
+    File allowed_condition_groups
     String lab_batch
     Int group_n
+    Float control_sample_diff_threshold
   }
 
   call AggregateResults {
@@ -43,7 +45,9 @@ workflow AggregatePRSResults {
       batch_pcs = AggregateResults.batch_pcs,
       population_pc_projections = population_pc_projections,
       population_name = population_name,
-      high_risk_thresholds = high_risk_thresholds
+      high_risk_thresholds = high_risk_thresholds,
+      allowed_condition_groups = allowed_condition_groups,
+      control_sample_diff_threshold = control_sample_diff_threshold
   }
 
   output {
@@ -204,9 +208,12 @@ task BuildHTMLReport {
     File high_risk_thresholds
     File batch_pcs
     File population_pc_projections
+    File allowed_condition_groups
     String population_name
     String lab_batch
     Int group_n
+
+    Float control_sample_diff_threshold
   }
 
   String output_prefix = lab_batch + if group_n > 1 then  "_group_" + group_n else ""
@@ -242,6 +249,13 @@ task BuildHTMLReport {
     batch_summary <- read_tsv("~{batch_summarised_results}")
     batch_summary <- batch_summary %>% rename_with(.cols = -condition, ~ str_to_title(gsub("_"," ", .x)))
     condition_thresholds <- read_tsv("~{high_risk_thresholds}")
+    allowed_condition_groups <- read_tsv("~{allowed_condition_groups}") %>% group_by(group) %>% summarise(conditions = paste0(sort(condition), collapse=","))
+
+    observed_condition_groups <- batch_pivoted_results %>% filter(risk == "HIGH" | risk == "NOT_HIGH") %>% group_by(sample_id) %>%
+      summarise(conditions = paste0(sort(condition), collapse=",")) %>% left_join(allowed_condition_groups) %>% mutate(group=replace_na(group, "not allowed")) %>%
+      group_by(conditions) %>% summarise(group=group[[1]], n=n(), samples = ifelse(group=="not allowed",
+      paste0(sample_id, collapse=", "),""))
+
     get_probs_n_high_per_sample_distribution <- function(thresholds_list) {
       probs_n_high <- tibble(n_high = seq(0,length(thresholds_list)), prob=c(1,rep(0,length(thresholds_list - 1))))
         for (threshold in thresholds_list) {
@@ -267,6 +281,8 @@ task BuildHTMLReport {
       summarise(\`high risk conditions\` = paste(condition, collapse = ","), n=n()) %>%
       filter(n>1) %>% inner_join(threshold_set_per_sample) %>% group_by(sample_id, \`high risk conditions\`, n, thresholds) %>% filter(n_high >= n) %>%
       summarise(significance=paste0(signif(qnorm(1-sum(prob)),2), "\\U03C3")) %>% select(-n,-thresholds)
+
+    samples_high_risk <- batch_pivoted_results %>% filter(risk == "HIGH") %>% pull(sample_id) %>% unique()
     \`\`\`
 
     \`\`\`{css, echo=FALSE}
@@ -284,7 +300,7 @@ task BuildHTMLReport {
     ## Control Sample
     \`\`\`{r control, echo = FALSE, results = "asis", warning = FALSE}
     control_and_expected <- bind_rows(list(batch_control_results, expected_control_results)) %>% select(ends_with('_adjusted'))
-    delta_frame_colored <- (control_and_expected[-1,] - control_and_expected[-nrow(control_and_expected),]) %>% mutate(across(everything(), ~ round(.x, digits=2))) %>% mutate(across(everything(), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x) || abs(.x) > 0.12, "red", "green"))))
+    delta_frame_colored <- (control_and_expected[-1,] - control_and_expected[-nrow(control_and_expected),]) %>% mutate(across(everything(), ~ round(.x, digits=2))) %>% mutate(across(everything(), ~ kableExtra::cell_spec(.x, color=ifelse(is.na(.x) || abs(.x) > ~{control_sample_diff_threshold}, "red", "green"))))
     control_and_expected_char <- control_and_expected %>% mutate(across(everything(), ~ format(round(.x, digits=2), nsmall=2)))
     control_table <- bind_rows(list(control_and_expected_char, delta_frame_colored)) %>% select(order(colnames(.)))
     kable(control_table %>% add_column(sample=c('batch_control', 'expected_control', 'delta'), .before=1), escape = FALSE, digits = 2, format = "pandoc")
@@ -293,6 +309,12 @@ task BuildHTMLReport {
     ## Batch Summary
     \`\`\`{r summary table, echo = FALSE, results = "asis" }
     kable(batch_summary, digits = 2, escape = FALSE, format = "pandoc")
+    \`\`\`
+
+    # Conditions Scored per Sample
+    \`\`\`{r conditions scored per sample, echo = FALSE, results = "asis", warning = FALSE}
+    observed_condition_groups <- observed_condition_groups %>% mutate(across(everything(), ~kableExtra::cell_spec(.x, color=ifelse(group=="not allowed", "red", "black"))))
+    kable(observed_condition_groups, escape = FALSE, format = "pandoc")
     \`\`\`
 
     ## Samples High Risk for Multiple Conditions
@@ -325,11 +347,13 @@ task BuildHTMLReport {
     #### Hover for sample ID
     \`\`\`{r pca plot, echo=FALSE, message=FALSE, warning=FALSE, results="asis", fig.align='center'}
     target_pcs <- read_tsv("~{batch_pcs}")
+    target_pcs <- target_pcs %>% mutate(text = paste0("Sample ID: ", sample_id), color=factor(ifelse(sample_id %in% samples_high_risk, "~{lab_batch} High Risk", "~{lab_batch} Not High Risk"), levels=c("~{lab_batch} Not High Risk", "~{lab_batch} High Risk")))
     population_pcs <- read_tsv("~{population_pc_projections}")
 
     p <- ggplot(population_pcs, aes(x=PC1, y=PC2, color="~{population_name}")) +
       geom_point() +
-      geom_point(data=target_pcs, aes(color="~{lab_batch}", text=paste0("Sample ID: ", sample_id))) +
+      geom_point(data=target_pcs, aes( color = color, text=text)) +
+      scale_color_manual(values=c("~{population_name}"="grey", "~{lab_batch} Not High Risk"="#619CFF", "~{lab_batch} High Risk"="#F8766D")) +
       theme_bw()
     ggplotly(p, tooltip="text")
     \`\`\`
