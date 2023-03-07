@@ -60,15 +60,15 @@ task WhatsHapPhase {
         set -xueo pipefail
 
         whatshap phase \
-        --reference=~{reference_fasta} \
-        -o phased.vcf.gz \
-        --tag=~{tag} \
-        ~{"--ped" + pedigree} \
-        ~{true="--ignore-read-groups" false="" ignore_read_groups} \
-        ~{true="--distrust-genotypes" false="" distrust_genotypes} \
-        ~{"--recombrate" + recombrate} \
-        ~{input_vcf} \
-        ~{input_bam}
+            --reference=~{reference_fasta} \
+            -o phased.vcf.gz \
+            --tag=~{tag} \
+            ~{"--ped" + pedigree} \
+            ~{true="--ignore-read-groups" false="" ignore_read_groups} \
+            ~{true="--distrust-genotypes" false="" distrust_genotypes} \
+            ~{"--recombrate" + recombrate} \
+            ~{input_vcf} \
+            ~{input_bam}
 
         tabix phased.vcf.gz
         whatshap stats --tsv="phase_stats.tsv" phased.vcf.gz
