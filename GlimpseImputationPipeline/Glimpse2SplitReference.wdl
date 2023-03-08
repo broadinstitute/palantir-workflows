@@ -56,7 +56,7 @@ workflow Glimpse2SplitReference {
     }
 
     output {
-        Array[File] chunks = flatten(GlimpseSplitReferenceTask.chunks)
+        Array[File] chunks = GlimpseSplitReferenceTask.chunks
         Array[File] reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks)
         Array[File?] split_reference_monitoring = GlimpseSplitReferenceTask.monitoring
     }
@@ -127,7 +127,7 @@ task GlimpseSplitReferenceTask {
         # The chunks array should always be of size 1, since there is only one one chunks.txt file generated. However, we don't know the exact
         # filename, since we want to add leading zeros to the contigindex. Since WDL doesn't have a built-in way to do that, we have to rely
         # on the command section to do that. However, we don't have access to that bash variable in the output section, so we have to use glob here.
-        Array[File] chunks = glob("chunks_contigindex_*.txt")
+        File chunks = glob("chunks_contigindex_*.txt")[0]
 
         File? monitoring = "monitoring.log"
     }
