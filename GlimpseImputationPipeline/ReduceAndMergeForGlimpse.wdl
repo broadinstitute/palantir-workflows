@@ -4,7 +4,12 @@ workflow ReduceAndMergeForGlimpse {
     input {
         Array[File] vcfs
         Array[File] vcf_indices
+
+        File? reference_panel_sites_vcf
+        File? reference_panel_sites_vcf_index
+
         String output_basename_for_merged_vcf
+
         Int preemptible = 1
     }
 
@@ -13,6 +18,8 @@ workflow ReduceAndMergeForGlimpse {
             input:
                 vcf = vcf_and_index.left,
                 vcf_index = vcf_and_index.right,
+                reference_panel_sites_vcf = reference_panel_sites_vcf,
+                reference_panel_sites_vcf_index = reference_panel_sites_vcf_index,
                 preemptible = preemptible
         }
     }
@@ -36,6 +43,9 @@ task ReduceAnnotations {
         File vcf
         File vcf_index
 
+        File? reference_panel_sites_vcf
+        File? reference_panel_sites_vcf_index
+
         String bcftools_docker = "us.gcr.io/broad-gotc-prod/imputation-bcf-vcf:1.0.7-1.10.2-0.1.16-1669908889"
         Int mem_gb = 8
         Int preemptible = 1
@@ -50,6 +60,8 @@ task ReduceAnnotations {
 
         bcftools annotate -x INFO,^FORMAT/GT,FORMAT/PL -O z -o ~{basename}.input_for_glimpse.vcf.gz --threads 4 ~{vcf}
         bcftools index -t ~{basename}.input_for_glimpse.vcf.gz
+        # This line will only be executed if reference_panel_sites_vcf is defined
+        ~{"bcftools isec -p isec_output -n =2 -w 1 -O z " + basename + ".input_for_glimpse.vcf.gz " + reference_panel_sites_vcf + " && mv isec_output/0000.vcf.gz " + basename + ".input_for_glimpse.vcf.gz && mv isec_output/0000.vcf.gz.tbi " + basename + ".input_for_glimpse.vcf.gz.tbi"}
     >>>
 
     runtime {

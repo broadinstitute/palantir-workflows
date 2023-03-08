@@ -124,9 +124,9 @@ task GlimpseSplitReferenceTask {
     output {
         Array[File] split_reference_chunks = glob(reference_output_dir + "/*.bin")
 
-        # The chunks array should always be of size 1, since there is only one one chunks.txt file generated. However, we don't know the exact
-        # filename, since we want to add leading zeros to the contigindex. Since WDL doesn't have a built-in way to do that, we have to rely
-        # on the command section to do that. However, we don't have access to that bash variable in the output section, so we have to use glob here.
+        # We don't know the exact filename of the chunks.txt file since we need to add leading zeros to the contigindex. Since WDL doesn't
+        # have a built-in way to do that, we have to rely on the command section to do that. However, we don't have access to that bash
+        # variable in the output section, so we have to use glob here and return the first (and only) result.
         File chunks = glob("chunks_contigindex_*.txt")[0]
 
         File? monitoring = "monitoring.log"
