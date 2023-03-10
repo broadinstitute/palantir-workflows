@@ -74,7 +74,7 @@ task GlimpsePhase {
         disks: "local-disk " + disk_size_gb + " HDD"
         memory: mem_gb + " GiB"
         cpu: cpu
-        preemptible: preemptible,
+        preemptible: preemptible
         maxRetries: max_retries
     }
 
@@ -118,7 +118,7 @@ task GlimpseLigate {
         disks: "local-disk " + disk_size_gb + " HDD"
         memory: mem_gb + " GiB"
         cpu: cpu
-        preemptible: preemptible,
+        preemptible: preemptible
         maxRetries: max_retries
     }
 
