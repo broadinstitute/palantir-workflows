@@ -58,15 +58,19 @@ task ReduceAnnotations {
     command <<<
         set -e -o pipefail
 
+        # Remove all annotations except GT and PL
         bcftools annotate -x INFO,^FORMAT/GT,FORMAT/PL -O z -o ~{basename}.input_for_glimpse.vcf.gz --threads 4 ~{vcf}
         bcftools index -t ~{basename}.input_for_glimpse.vcf.gz
-        # This line will only be executed if reference_panel_sites_vcf is defined
-        ~{"bcftools isec -p isec_output -n =2 -w 1 -O z " + basename + ".input_for_glimpse.vcf.gz " + reference_panel_sites_vcf + " && mv isec_output/0000.vcf.gz " + basename + ".input_for_glimpse.vcf.gz && mv isec_output/0000.vcf.gz.tbi " + basename + ".input_for_glimpse.vcf.gz.tbi"}
+        
+        # Intersect the output above with the reference panel sites to exclude any sites that are not in the panel
+        bcftools isec -p isec_output -n =2 -w 1 -O z --threads 4 ~{basename}.input_for_glimpse.vcf.gz ~{reference_panel_sites_vcf}
+        mv isec_output/0000.vcf.gz ~{basename}.input_for_glimpse.vcf.gz
+        mv isec_output/0000.vcf.gz.tbi ~{basename}.input_for_glimpse.vcf.gz.tbi
     >>>
 
     runtime {
         docker: bcftools_docker
-        cpu: 1
+        cpu: 4
         memory: "~{mem_gb} GiB"
         disks: "local-disk ${disk_size_gb} HDD"
         preemptible: preemptible

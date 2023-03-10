@@ -56,6 +56,7 @@ task GlimpsePhase {
         Int cpu = 4
         Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + size(reference_chunk, "GiB") + 100)
         Int preemptible = 1
+        Int max_retries = 3
         String docker
         File? monitoring_script
     }
@@ -73,7 +74,8 @@ task GlimpsePhase {
         disks: "local-disk " + disk_size_gb + " HDD"
         memory: mem_gb + " GiB"
         cpu: cpu
-        preemptible: preemptible
+        preemptible: preemptible,
+        maxRetries: max_retries
     }
 
     output {
@@ -94,6 +96,7 @@ task GlimpseLigate {
         Int cpu = 4
         Int disk_size_gb = ceil(2.2 * size(imputed_chunks, "GiB") + 100)
         Int preemptible = 1
+        Int max_retries = 3
         String docker
         File? monitoring_script
     }
@@ -115,7 +118,8 @@ task GlimpseLigate {
         disks: "local-disk " + disk_size_gb + " HDD"
         memory: mem_gb + " GiB"
         cpu: cpu
-        preemptible: preemptible
+        preemptible: preemptible,
+        maxRetries: max_retries
     }
 
     output {
