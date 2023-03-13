@@ -89,12 +89,12 @@ task GlimpseSplitReferenceTask {
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
         NPROC=$(nproc)
-        echo "nproc reported ${NPROC} CPUs, using that number as the argument for GLIMPSE."
+        echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
 
         # Print chunk index to variable
         CONTIGINDEX=$(printf "%04d" ~{i_contig})
 
-        /GLIMPSE/GLIMPSE2_chunk --input ~{reference_panel} --region ~{contig} --map ~{genetic_map} --sequential --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt ~{"--seed "+seed} ~{"--window-cm "+min_window_cm} 
+        /GLIMPSE/GLIMPSE2_chunk --input ~{reference_panel} --region ~{contig} --map ~{genetic_map} --sequential --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt ~{"--seed "+seed} ~{"--window-cm "+min_window_cm}
 
         mkdir -p ~{reference_output_dir}
 

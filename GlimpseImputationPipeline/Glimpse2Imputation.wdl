@@ -67,7 +67,7 @@ task GlimpsePhase {
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
         NPROC=$(nproc)
-        echo "nproc reported ${NPROC} CPUs, using that number as the argument for GLIMPSE."
+        echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
 
         /GLIMPSE/GLIMPSE2_phase --input-gl ~{input_vcf} --reference ~{reference_chunk} --output phase_output.bcf --threads ${NPROC}
     >>>
@@ -110,7 +110,7 @@ task GlimpseLigate {
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
         NPROC=$(nproc)
-        echo "nproc reported ${NPROC} CPUs, using that number as the argument for GLIMPSE."
+        echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
         
         /GLIMPSE/GLIMPSE2_ligate --input ~{write_lines(imputed_chunks)} --output ligated.vcf.gz --threads ${NPROC}
 
