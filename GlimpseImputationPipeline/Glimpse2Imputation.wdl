@@ -66,7 +66,10 @@ task GlimpsePhase {
 
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
-        /GLIMPSE/GLIMPSE2_phase --input-gl ~{input_vcf} --reference ~{reference_chunk} --output phase_output.bcf --threads ~{cpu}
+        NPROC=$(nproc)
+        echo "nproc reported ${NPROC} CPUs, using that number as the argument for GLIMPSE."
+
+        /GLIMPSE/GLIMPSE2_phase --input-gl ~{input_vcf} --reference ~{reference_chunk} --output phase_output.bcf --threads ${NPROC}
     >>>
 
     runtime {
@@ -105,8 +108,11 @@ task GlimpseLigate {
         set -xeuo pipefail
 
         ~{"bash " + monitoring_script + " > monitoring.log &"}
+
+        NPROC=$(nproc)
+        echo "nproc reported ${NPROC} CPUs, using that number as the argument for GLIMPSE."
         
-        /GLIMPSE/GLIMPSE2_ligate --input ~{write_lines(imputed_chunks)} --output ligated.vcf.gz --threads ~{cpu}
+        /GLIMPSE/GLIMPSE2_ligate --input ~{write_lines(imputed_chunks)} --output ligated.vcf.gz --threads ${NPROC}
 
         # Set correct reference dictionary
         java -jar /picard.jar UpdateVcfSequenceDictionary -I ligated.vcf.gz --SD ~{ref_dict} -O ~{output_basename}.imputed.vcf.gz
