@@ -3,7 +3,7 @@ version 1.0
 workflow CollectBGEImputationMetrics {
     input {
         Array[String] ancestries
-        String? intervals
+        Boolean collect_af_0_1_single_number = false
 
         Array[String] sample_ids1
 		Array[File] eval_vcfs1
@@ -12,6 +12,7 @@ workflow CollectBGEImputationMetrics {
         String configuration_label1
 		File annotation_vcf1
         Map[String, String] ancestry_to_af_annotation_map1
+        String? intervals1
 
         Array[String]? sample_ids2
 		Array[File]? eval_vcfs2
@@ -20,6 +21,7 @@ workflow CollectBGEImputationMetrics {
         String? configuration_label2
 		File? annotation_vcf2
         Map[String, String] ancestry_to_af_annotation_map2
+        String? intervals2
 
         Array[String]? sample_ids3
 		Array[File]? eval_vcfs3
@@ -28,6 +30,7 @@ workflow CollectBGEImputationMetrics {
         String? configuration_label3
 		File? annotation_vcf3
         Map[String, String] ancestry_to_af_annotation_map3
+        String? intervals3
 	}
 
     scatter(ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id in zip(ancestries, zip(zip(truth_vcfs1, truth_sample_ids1), zip(eval_vcfs1, sample_ids1)))) {
@@ -43,25 +46,27 @@ workflow CollectBGEImputationMetrics {
                 af_resource = annotation_vcf1,
                 af_expression = ancestry_to_af_annotation_map1[ancestry1],
                 truthVcf = truth_vcf1,
-                intervals = intervals,
+                intervals = intervals1,
                 output_basename = eval_sample_id1,
                 eval_sample_id = eval_sample_id1,
                 truth_sample_id = truth_sample_id1,
         }
 
-        call PearsonCorrelationByAF as PearsonByAF01 {
-            input:
-                evalVcf = eval_vcf1,
-                af_resource = annotation_vcf1,
-                af_expression = ancestry_to_af_annotation_map1[ancestry1],
-                truthVcf = truth_vcf1,
-                min_af_for_accuracy_metrics = 0.1,
-                n_bins = 2,
-                right_edge_first_bin = 0.1,
-                intervals = intervals,
-                output_basename = eval_sample_id1,
-                eval_sample_id = eval_sample_id1,
-                truth_sample_id = truth_sample_id1
+        if (collect_af_0_1_single_number) {
+            call PearsonCorrelationByAF as PearsonByAF01 {
+                input:
+                    evalVcf = eval_vcf1,
+                    af_resource = annotation_vcf1,
+                    af_expression = ancestry_to_af_annotation_map1[ancestry1],
+                    truthVcf = truth_vcf1,
+                    min_af_for_accuracy_metrics = 0.1,
+                    n_bins = 2,
+                    right_edge_first_bin = 0.1,
+                    intervals = intervals1,
+                    output_basename = eval_sample_id1,
+                    eval_sample_id = eval_sample_id1,
+                    truth_sample_id = truth_sample_id1
+            }
         }
     }
 
@@ -79,25 +84,27 @@ workflow CollectBGEImputationMetrics {
                     af_resource = select_first([annotation_vcf2, []]),
                     af_expression = ancestry_to_af_annotation_map2[ancestry2],
                     truthVcf = truth_vcf2,
-                    intervals = intervals,
+                    intervals = intervals2,
                     output_basename = eval_sample_id2,
                     eval_sample_id = eval_sample_id2,
                     truth_sample_id = truth_sample_id2,
             }
 
-            call PearsonCorrelationByAF as PearsonByAF01_2 {
-                input:
-                    evalVcf = eval_vcf2,
-                    af_resource = select_first([annotation_vcf2, []]),
-                    af_expression = ancestry_to_af_annotation_map2[ancestry2],
-                    truthVcf = truth_vcf2,
-                    min_af_for_accuracy_metrics = 0.1,
-                    n_bins = 2,
-                    right_edge_first_bin = 0.1,
-                    intervals = intervals,
-                    output_basename = eval_sample_id2,
-                    eval_sample_id = eval_sample_id2,
-                    truth_sample_id = truth_sample_id2
+            if (collect_af_0_1_single_number) {
+                call PearsonCorrelationByAF as PearsonByAF01_2 {
+                    input:
+                        evalVcf = eval_vcf2,
+                        af_resource = select_first([annotation_vcf2, []]),
+                        af_expression = ancestry_to_af_annotation_map2[ancestry2],
+                        truthVcf = truth_vcf2,
+                        min_af_for_accuracy_metrics = 0.1,
+                        n_bins = 2,
+                        right_edge_first_bin = 0.1,
+                        intervals = intervals2,
+                        output_basename = eval_sample_id2,
+                        eval_sample_id = eval_sample_id2,
+                        truth_sample_id = truth_sample_id2
+                }
             }
         }
     }
@@ -116,25 +123,27 @@ workflow CollectBGEImputationMetrics {
                     af_resource = select_first([annotation_vcf3, []]),
                     af_expression = ancestry_to_af_annotation_map3[ancestry3],
                     truthVcf = truth_vcf3,
-                    intervals = intervals,
+                    intervals = intervals3,
                     output_basename = eval_sample_id3,
                     eval_sample_id = eval_sample_id3,
                     truth_sample_id = truth_sample_id3,
             }
 
-            call PearsonCorrelationByAF as PearsonByAF01_3 {
-                input:
-                    evalVcf = eval_vcf3,
-                    af_resource = select_first([annotation_vcf3, []]),
-                    af_expression = ancestry_to_af_annotation_map3[ancestry3],
-                    truthVcf = truth_vcf3,
-                    min_af_for_accuracy_metrics = 0.1,
-                    n_bins = 2,
-                    right_edge_first_bin = 0.1,
-                    intervals = intervals,
-                    output_basename = eval_sample_id3,
-                    eval_sample_id = eval_sample_id3,
-                    truth_sample_id = truth_sample_id3
+            if (collect_af_0_1_single_number) {
+                call PearsonCorrelationByAF as PearsonByAF01_3 {
+                    input:
+                        evalVcf = eval_vcf3,
+                        af_resource = select_first([annotation_vcf3, []]),
+                        af_expression = ancestry_to_af_annotation_map3[ancestry3],
+                        truthVcf = truth_vcf3,
+                        min_af_for_accuracy_metrics = 0.1,
+                        n_bins = 2,
+                        right_edge_first_bin = 0.1,
+                        intervals = intervals3,
+                        output_basename = eval_sample_id3,
+                        eval_sample_id = eval_sample_id3,
+                        truth_sample_id = truth_sample_id3
+                }
             }
         }
     }
@@ -152,9 +161,9 @@ workflow CollectBGEImputationMetrics {
 
     output {
         File correlation_plot = GenerateCorrelationPlots.correlation_plot
-        Array[File] correlation_files1_0_1 = PearsonByAF01.correlations
-        Array[File]? correlation_files2_0_1 = PearsonByAF01_2.correlations
-        Array[File]? correlation_files3_0_1 = PearsonByAF01_3.correlations
+        Array[File?] correlation_files1_0_1 = PearsonByAF01.correlations
+        Array[File?]? correlation_files2_0_1 = PearsonByAF01_2.correlations
+        Array[File?]? correlation_files3_0_1 = PearsonByAF01_3.correlations
     }
 }
 
