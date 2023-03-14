@@ -101,6 +101,7 @@ task GlimpseLigate {
         Int preemptible = 1
         Int max_retries = 3
         String docker
+        File picard_jar = "gs://broad-dsde-methods-mgatzen/picard.jar"
         File? monitoring_script
     }
 
@@ -115,7 +116,7 @@ task GlimpseLigate {
         /GLIMPSE/GLIMPSE2_ligate --input ~{write_lines(imputed_chunks)} --output ligated.vcf.gz --threads ${NPROC}
 
         # Set correct reference dictionary
-        java -jar /picard.jar UpdateVcfSequenceDictionary -I ligated.vcf.gz --SD ~{ref_dict} -O ~{output_basename}.imputed.vcf.gz
+        java -jar ~{picard_jar} UpdateVcfSequenceDictionary -I ligated.vcf.gz --SD ~{ref_dict} -O ~{output_basename}.imputed.vcf.gz
         tabix ~{output_basename}.imputed.vcf.gz
     >>>
 
