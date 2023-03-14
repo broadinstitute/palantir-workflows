@@ -66,10 +66,10 @@ task GlimpsePhase {
 
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
-        NPROC=$(nproc)
-        echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
+        #NPROC=$(nproc)
+        #echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
 
-        /GLIMPSE/GLIMPSE2_phase --input-gl ~{input_vcf} --reference ~{reference_chunk} --output phase_output.bcf --threads ${NPROC}
+        /GLIMPSE/GLIMPSE2_phase --input-gl ~{input_vcf} --reference ~{reference_chunk} --output phase_output.bcf --threads ~{cpu} #${NPROC}
     >>>
 
     runtime {
@@ -101,7 +101,7 @@ task GlimpseLigate {
         Int preemptible = 1
         Int max_retries = 3
         String docker
-        File picard_jar = "gs://broad-dsde-methods-mgatzen/picard.jar"
+        File? picard_jar_override
         File? monitoring_script
     }
 
@@ -116,7 +116,8 @@ task GlimpseLigate {
         /GLIMPSE/GLIMPSE2_ligate --input ~{write_lines(imputed_chunks)} --output ligated.vcf.gz --threads ${NPROC}
 
         # Set correct reference dictionary
-        java -jar ~{picard_jar} UpdateVcfSequenceDictionary -I ligated.vcf.gz --SD ~{ref_dict} -O ~{output_basename}.imputed.vcf.gz
+        ~{"mv " + picard_jar_override + " /picard.jar"}
+        java -jar /picard.jar UpdateVcfSequenceDictionary -I ligated.vcf.gz --SD ~{ref_dict} -O ~{output_basename}.imputed.vcf.gz
         tabix ~{output_basename}.imputed.vcf.gz
     >>>
 

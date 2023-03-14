@@ -47,6 +47,7 @@ rm -r GLIMPSE
 
 # Install java and download picard (for updating sequence dictionary)
 RUN apt-get install -y openjdk-8-jre-headless
-RUN wget https://github.com/broadinstitute/picard/releases/download/2.26.11/picard.jar
+RUN wget https://github.com/broadinstitute/picard/releases/download/2.26.11/picard.jar && \
+mv picard.jar /
 
 WORKDIR /
