@@ -31,6 +31,24 @@ workflow CollectBGEImputationMetrics {
 		File? annotation_vcf3
         Map[String, String] ancestry_to_af_annotation_map3
         String? intervals3
+
+        Array[String]? sample_ids4
+		Array[File]? eval_vcfs4
+        Array[String]? truth_sample_ids4
+		Array[File]? truth_vcfs4
+        String? configuration_label4
+		File? annotation_vcf4
+        Map[String, String] ancestry_to_af_annotation_map4
+        String? intervals4
+
+        Array[String]? sample_ids5
+		Array[File]? eval_vcfs5
+        Array[String]? truth_sample_ids5
+		Array[File]? truth_vcfs5
+        String? configuration_label5
+		File? annotation_vcf5
+        Map[String, String] ancestry_to_af_annotation_map5
+        String? intervals5
 	}
 
     scatter(ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id in zip(ancestries, zip(zip(truth_vcfs1, truth_sample_ids1), zip(eval_vcfs1, sample_ids1)))) {
@@ -148,15 +166,97 @@ workflow CollectBGEImputationMetrics {
         }
     }
 
+    if (defined(eval_vcfs4)) {
+        scatter(ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id in zip(ancestries, zip(zip(select_first([truth_vcfs4, []]), select_first([truth_sample_ids4, []])), zip(select_first([eval_vcfs4, []]), select_first([sample_ids4, []]))))) {
+            String ancestry4 = ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id.left
+            File eval_vcf4 = ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id.right.right.left
+            String eval_sample_id4 = ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id.right.right.right
+            File truth_vcf4 = ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id.right.left.left
+            String truth_sample_id4 = ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id.right.left.right
+
+            call PearsonCorrelationByAF as PearsonByAF_4 {
+                input:
+                    evalVcf = eval_vcf4,
+                    af_resource = select_first([annotation_vcf4, []]),
+                    af_expression = ancestry_to_af_annotation_map4[ancestry4],
+                    truthVcf = truth_vcf4,
+                    intervals = intervals4,
+                    output_basename = eval_sample_id4,
+                    eval_sample_id = eval_sample_id4,
+                    truth_sample_id = truth_sample_id4,
+            }
+
+            if (collect_af_0_1_single_number) {
+                call PearsonCorrelationByAF as PearsonByAF01_4 {
+                    input:
+                        evalVcf = eval_vcf4,
+                        af_resource = select_first([annotation_vcf4, []]),
+                        af_expression = ancestry_to_af_annotation_map4[ancestry4],
+                        truthVcf = truth_vcf4,
+                        min_af_for_accuracy_metrics = 0.1,
+                        n_bins = 2,
+                        right_edge_first_bin = 0.1,
+                        intervals = intervals4,
+                        output_basename = eval_sample_id4,
+                        eval_sample_id = eval_sample_id4,
+                        truth_sample_id = truth_sample_id4
+                }
+            }
+        }
+    }
+
+    if (defined(eval_vcfs5)) {
+        scatter(ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id in zip(ancestries, zip(zip(select_first([truth_vcfs5, []]), select_first([truth_sample_ids5, []])), zip(select_first([eval_vcfs5, []]), select_first([sample_ids5, []]))))) {
+            String ancestry5 = ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id.left
+            File eval_vcf5 = ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id.right.right.left
+            String eval_sample_id5 = ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id.right.right.right
+            File truth_vcf5 = ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id.right.left.left
+            String truth_sample_id5 = ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id.right.left.right
+
+            call PearsonCorrelationByAF as PearsonByAF_5 {
+                input:
+                    evalVcf = eval_vcf5,
+                    af_resource = select_first([annotation_vcf5, []]),
+                    af_expression = ancestry_to_af_annotation_map5[ancestry5],
+                    truthVcf = truth_vcf5,
+                    intervals = intervals5,
+                    output_basename = eval_sample_id5,
+                    eval_sample_id = eval_sample_id5,
+                    truth_sample_id = truth_sample_id5,
+            }
+
+            if (collect_af_0_1_single_number) {
+                call PearsonCorrelationByAF as PearsonByAF01_5 {
+                    input:
+                        evalVcf = eval_vcf5,
+                        af_resource = select_first([annotation_vcf5, []]),
+                        af_expression = ancestry_to_af_annotation_map5[ancestry5],
+                        truthVcf = truth_vcf5,
+                        min_af_for_accuracy_metrics = 0.1,
+                        n_bins = 2,
+                        right_edge_first_bin = 0.1,
+                        intervals = intervals5,
+                        output_basename = eval_sample_id5,
+                        eval_sample_id = eval_sample_id5,
+                        truth_sample_id = truth_sample_id5
+                }
+            }
+        }
+    }
+
     call GenerateCorrelationPlots {
         input:
             correlation_files1 = PearsonByAF.correlations,
             correlation_files2 = PearsonByAF_2.correlations,
             correlation_files3 = PearsonByAF_3.correlations,
+            correlation_files4 = PearsonByAF_4.correlations,
+            correlation_files5 = PearsonByAF_5.correlations,
             ancestries = ancestries,
             configuration_label1 = configuration_label1,
             configuration_label2 = configuration_label2,
-            configuration_label3 = configuration_label3
+            configuration_label3 = configuration_label3,
+            configuration_label4 = configuration_label4,
+            configuration_label5 = configuration_label5
     }
 
     output {
@@ -164,6 +264,8 @@ workflow CollectBGEImputationMetrics {
         Array[File?] correlation_files1_0_1 = PearsonByAF01.correlations
         Array[File?]? correlation_files2_0_1 = PearsonByAF01_2.correlations
         Array[File?]? correlation_files3_0_1 = PearsonByAF01_3.correlations
+        Array[File?]? correlation_files4_0_1 = PearsonByAF01_4.correlations
+        Array[File?]? correlation_files5_0_1 = PearsonByAF01_5.correlations
     }
 }
 
@@ -174,10 +276,14 @@ task GenerateCorrelationPlots {
         Array[File] correlation_files1
         Array[File]? correlation_files2
         Array[File]? correlation_files3
+        Array[File]? correlation_files4
+        Array[File]? correlation_files5
         Array[String] ancestries
         String configuration_label1
         String? configuration_label2
         String? configuration_label3
+        String? configuration_label4
+        String? configuration_label5
 
         Int mem_gb = 2
         Int preemptible = 1
@@ -242,6 +348,42 @@ if ~{if defined(correlation_files3) then "True" else "False"}:
 
     correlation_data3 = pd.concat(correlation_dfs)
     correlation_data = pd.concat([correlation_data, correlation_data3])
+
+if ~{if defined(correlation_files4) then "True" else "False"}:
+    correlation_filenames4 = ['~{sep="', '" correlation_files4}']
+    for i in range(len(correlation_filenames4)):
+        filename = correlation_filenames4[i]
+        ancestry = ancestries[i]
+        if ancestry not in {'AFR', 'EAS', 'NFE', 'SAS'}:
+            continue
+        df = pd.read_csv(filename, sep="\t", comment='#')
+        if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
+            print(f'{filename} has no sites in it.')
+            continue
+        df['ancestry'] = ancestry
+        df['configuration'] = '~{configuration_label4}'
+        correlation_dfs.append(df)
+
+    correlation_data4 = pd.concat(correlation_dfs)
+    correlation_data = pd.concat([correlation_data, correlation_data4])
+
+if ~{if defined(correlation_files5) then "True" else "False"}:
+    correlation_filenames5 = ['~{sep="', '" correlation_files5}']
+    for i in range(len(correlation_filenames5)):
+        filename = correlation_filenames5[i]
+        ancestry = ancestries[i]
+        if ancestry not in {'AFR', 'EAS', 'NFE', 'SAS'}:
+            continue
+        df = pd.read_csv(filename, sep="\t", comment='#')
+        if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
+            print(f'{filename} has no sites in it.')
+            continue
+        df['ancestry'] = ancestry
+        df['configuration'] = '~{configuration_label5}'
+        correlation_dfs.append(df)
+
+    correlation_data5 = pd.concat(correlation_dfs)
+    correlation_data = pd.concat([correlation_data, correlation_data5])
 
 correlation_data.to_csv('correlation_data.tsv', sep='\t')
 EOF
