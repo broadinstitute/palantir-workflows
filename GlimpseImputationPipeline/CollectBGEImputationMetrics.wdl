@@ -20,7 +20,7 @@ workflow CollectBGEImputationMetrics {
 		Array[File]? truth_vcfs2
         String? configuration_label2
 		File? annotation_vcf2
-        Map[String, String]? ancestry_to_af_annotation_map2
+        Map[String, String] ancestry_to_af_annotation_map2
         String? intervals2
 
         Array[String]? sample_ids3
@@ -29,7 +29,7 @@ workflow CollectBGEImputationMetrics {
 		Array[File]? truth_vcfs3
         String? configuration_label3
 		File? annotation_vcf3
-        Map[String, String]? ancestry_to_af_annotation_map3
+        Map[String, String] ancestry_to_af_annotation_map3
         String? intervals3
 
         Array[String]? sample_ids4
@@ -38,7 +38,7 @@ workflow CollectBGEImputationMetrics {
 		Array[File]? truth_vcfs4
         String? configuration_label4
 		File? annotation_vcf4
-        Map[String, String]? ancestry_to_af_annotation_map4
+        Map[String, String] ancestry_to_af_annotation_map4
         String? intervals4
 
         Array[String]? sample_ids5
@@ -47,7 +47,7 @@ workflow CollectBGEImputationMetrics {
 		Array[File]? truth_vcfs5
         String? configuration_label5
 		File? annotation_vcf5
-        Map[String, String]? ancestry_to_af_annotation_map5
+        Map[String, String] ancestry_to_af_annotation_map5
         String? intervals5
 	}
 
@@ -100,7 +100,7 @@ workflow CollectBGEImputationMetrics {
                 input:
                     evalVcf = eval_vcf2,
                     af_resource = select_first([annotation_vcf2, []]),
-                    af_expression = select_first([ancestry_to_af_annotation_map2, {}])[ancestry2],
+                    af_expression = ancestry_to_af_annotation_map2[ancestry2],
                     truthVcf = truth_vcf2,
                     intervals = intervals2,
                     output_basename = eval_sample_id2,
@@ -113,7 +113,7 @@ workflow CollectBGEImputationMetrics {
                     input:
                         evalVcf = eval_vcf2,
                         af_resource = select_first([annotation_vcf2, []]),
-                        af_expression = select_first([ancestry_to_af_annotation_map2, {}])[ancestry2],
+                        af_expression = ancestry_to_af_annotation_map2[ancestry2],
                         truthVcf = truth_vcf2,
                         min_af_for_accuracy_metrics = 0.1,
                         n_bins = 2,
@@ -139,7 +139,7 @@ workflow CollectBGEImputationMetrics {
                 input:
                     evalVcf = eval_vcf3,
                     af_resource = select_first([annotation_vcf3, []]),
-                    af_expression = select_first([ancestry_to_af_annotation_map3, {}])[ancestry3],
+                    af_expression = ancestry_to_af_annotation_map3[ancestry3],
                     truthVcf = truth_vcf3,
                     intervals = intervals3,
                     output_basename = eval_sample_id3,
@@ -152,7 +152,7 @@ workflow CollectBGEImputationMetrics {
                     input:
                         evalVcf = eval_vcf3,
                         af_resource = select_first([annotation_vcf3, []]),
-                        af_expression = select_first([ancestry_to_af_annotation_map3, {}])[ancestry3],
+                        af_expression = ancestry_to_af_annotation_map3[ancestry3],
                         truthVcf = truth_vcf3,
                         min_af_for_accuracy_metrics = 0.1,
                         n_bins = 2,
@@ -178,7 +178,7 @@ workflow CollectBGEImputationMetrics {
                 input:
                     evalVcf = eval_vcf4,
                     af_resource = select_first([annotation_vcf4, []]),
-                    af_expression = select_first([ancestry_to_af_annotation_map4, {}])[ancestry4],
+                    af_expression = ancestry_to_af_annotation_map4[ancestry4],
                     truthVcf = truth_vcf4,
                     intervals = intervals4,
                     output_basename = eval_sample_id4,
@@ -191,7 +191,7 @@ workflow CollectBGEImputationMetrics {
                     input:
                         evalVcf = eval_vcf4,
                         af_resource = select_first([annotation_vcf4, []]),
-                        af_expression = select_first([ancestry_to_af_annotation_map4, {}])[ancestry4],
+                        af_expression = ancestry_to_af_annotation_map4[ancestry4],
                         truthVcf = truth_vcf4,
                         min_af_for_accuracy_metrics = 0.1,
                         n_bins = 2,
@@ -217,7 +217,7 @@ workflow CollectBGEImputationMetrics {
                 input:
                     evalVcf = eval_vcf5,
                     af_resource = select_first([annotation_vcf5, []]),
-                    af_expression = select_first([ancestry_to_af_annotation_map5, {}])[ancestry5],
+                    af_expression = ancestry_to_af_annotation_map5[ancestry5],
                     truthVcf = truth_vcf5,
                     intervals = intervals5,
                     output_basename = eval_sample_id5,
@@ -230,7 +230,7 @@ workflow CollectBGEImputationMetrics {
                     input:
                         evalVcf = eval_vcf5,
                         af_resource = select_first([annotation_vcf5, []]),
-                        af_expression = select_first([ancestry_to_af_annotation_map5, {}])[ancestry5],
+                        af_expression = ancestry_to_af_annotation_map5[ancestry5],
                         truthVcf = truth_vcf5,
                         min_af_for_accuracy_metrics = 0.1,
                         n_bins = 2,
