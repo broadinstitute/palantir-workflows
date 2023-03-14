@@ -49,6 +49,8 @@ workflow CollectBGEImputationMetrics {
 		File? annotation_vcf5
         Map[String, String] ancestry_to_af_annotation_map5
         String? intervals5
+
+        Int preemptible = 1
 	}
 
     scatter(ancestry___and___truth_vcf_and_truth_sample_id__and__eval_vcf_and_eval_sample_id in zip(ancestries, zip(zip(truth_vcfs1, truth_sample_ids1), zip(eval_vcfs1, sample_ids1)))) {
@@ -68,6 +70,7 @@ workflow CollectBGEImputationMetrics {
                 output_basename = eval_sample_id1,
                 eval_sample_id = eval_sample_id1,
                 truth_sample_id = truth_sample_id1,
+                preemptible = preemptible
         }
 
         if (collect_af_0_1_single_number) {
@@ -83,7 +86,8 @@ workflow CollectBGEImputationMetrics {
                     intervals = intervals1,
                     output_basename = eval_sample_id1,
                     eval_sample_id = eval_sample_id1,
-                    truth_sample_id = truth_sample_id1
+                    truth_sample_id = truth_sample_id1,
+                    preemptible = preemptible
             }
         }
     }
@@ -106,6 +110,7 @@ workflow CollectBGEImputationMetrics {
                     output_basename = eval_sample_id2,
                     eval_sample_id = eval_sample_id2,
                     truth_sample_id = truth_sample_id2,
+                    preemptible = preemptible
             }
 
             if (collect_af_0_1_single_number) {
@@ -121,7 +126,8 @@ workflow CollectBGEImputationMetrics {
                         intervals = intervals2,
                         output_basename = eval_sample_id2,
                         eval_sample_id = eval_sample_id2,
-                        truth_sample_id = truth_sample_id2
+                        truth_sample_id = truth_sample_id2,
+                        preemptible = preemptible
                 }
             }
         }
@@ -145,6 +151,7 @@ workflow CollectBGEImputationMetrics {
                     output_basename = eval_sample_id3,
                     eval_sample_id = eval_sample_id3,
                     truth_sample_id = truth_sample_id3,
+                    preemptible = preemptible
             }
 
             if (collect_af_0_1_single_number) {
@@ -160,7 +167,8 @@ workflow CollectBGEImputationMetrics {
                         intervals = intervals3,
                         output_basename = eval_sample_id3,
                         eval_sample_id = eval_sample_id3,
-                        truth_sample_id = truth_sample_id3
+                        truth_sample_id = truth_sample_id3,
+                        preemptible = preemptible
                 }
             }
         }
@@ -184,6 +192,7 @@ workflow CollectBGEImputationMetrics {
                     output_basename = eval_sample_id4,
                     eval_sample_id = eval_sample_id4,
                     truth_sample_id = truth_sample_id4,
+                    preemptible = preemptible
             }
 
             if (collect_af_0_1_single_number) {
@@ -199,7 +208,8 @@ workflow CollectBGEImputationMetrics {
                         intervals = intervals4,
                         output_basename = eval_sample_id4,
                         eval_sample_id = eval_sample_id4,
-                        truth_sample_id = truth_sample_id4
+                        truth_sample_id = truth_sample_id4,
+                        preemptible = preemptible
                 }
             }
         }
@@ -223,6 +233,7 @@ workflow CollectBGEImputationMetrics {
                     output_basename = eval_sample_id5,
                     eval_sample_id = eval_sample_id5,
                     truth_sample_id = truth_sample_id5,
+                    preemptible = preemptible
             }
 
             if (collect_af_0_1_single_number) {
@@ -238,7 +249,8 @@ workflow CollectBGEImputationMetrics {
                         intervals = intervals5,
                         output_basename = eval_sample_id5,
                         eval_sample_id = eval_sample_id5,
-                        truth_sample_id = truth_sample_id5
+                        truth_sample_id = truth_sample_id5,
+                        preemptible = preemptible
                 }
             }
         }
@@ -256,7 +268,8 @@ workflow CollectBGEImputationMetrics {
             configuration_label2 = configuration_label2,
             configuration_label3 = configuration_label3,
             configuration_label4 = configuration_label4,
-            configuration_label5 = configuration_label5
+            configuration_label5 = configuration_label5,
+            preemptible = preemptible
     }
 
     output {
@@ -443,7 +456,8 @@ task PearsonCorrelationByAF {
 		Int? n_bins
 		Float? right_edge_first_bin
 		Float? min_af_for_accuracy_metrics
-		Int mem = 16
+		Int mem_gb = 16
+        Int preemptible = 1
 	}
     
     Array[String] sample_map_strings = [eval_sample_id+":"+truth_sample_id]
@@ -465,7 +479,7 @@ task PearsonCorrelationByAF {
 
 		echo "~{truth_sample_id}:~{af_expression}" > af_expressions.list
 
-		gatk --java-options "-Xmx~{mem - 2}G" EvaluateGenotypingPerformance -eval ~{evalVcf} -truth ~{truthVcf} --af-annotations af_expressions.list --resource ~{af_resource} \
+		gatk --java-options "-Xmx~{mem_gb - 2}G" EvaluateGenotypingPerformance -eval ~{evalVcf} -truth ~{truthVcf} --af-annotations af_expressions.list --resource ~{af_resource} \
 		~{"--ids " + sites} ~{"-L " + intervals} --sample-map ~{sep=" --sample-map " sample_map_strings} ~{"--dosage-field " + dosage_field} -O ~{output_basename}.correlations.tsv \
 		-OA ~{output_basename}.accuracy.tsv ~{"-nbins " + n_bins} ~{"-first-bin-right-edge " + right_edge_first_bin} ~{"--min-af-for-accuracy-metrics " + min_af_for_accuracy_metrics} --allow-differing-ploidies
 	>>>
@@ -473,7 +487,8 @@ task PearsonCorrelationByAF {
 	runtime {
 		docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-array-correlation@sha256:5910defbc137d43145e6cf1f9c3539ae418b6e465250d55465e19e77773445c4"
 		disks: "local-disk 100 HDD"
-		memory: mem + " GB"
+		memory: mem_gb + " GB"
+        preemptible: preemptible
 	}
 
 	output {
