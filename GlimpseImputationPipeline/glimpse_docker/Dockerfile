@@ -37,7 +37,7 @@ cd .. && \
 rm -r htslib-1.16
 
 # Download and build GLIMPSE
-RUN git clone --depth 1 --branch v2.0.0_fixed_makefiles_for_docker https://github.com/michaelgatzen/GLIMPSE.git && \
+RUN git clone --depth 1 --branch mg_fix_makefile https://github.com/michaelgatzen/GLIMPSE.git && \
 cd GLIMPSE && \
 make && \
 cd .. && \
