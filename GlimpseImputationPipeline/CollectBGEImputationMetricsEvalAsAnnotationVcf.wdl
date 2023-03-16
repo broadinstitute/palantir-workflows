@@ -458,9 +458,6 @@ task PearsonCorrelationByAF {
 		truthVcf : {
 			localization_optional : true
 		}
-		af_resource : {
-			localization_optional : true
-		}
 	}
 
 	command <<<
