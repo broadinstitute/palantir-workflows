@@ -442,7 +442,7 @@ ancestries = ['~{sep="', '" ancestries}']
 # Write sample-map (eval to truth mapping)
 with open('sample_map.list', 'w') as sample_map_file:
     for i in range(len(eval_sample_ids)):
-        af_expressions_file.write(f'{eval_sample_ids[i]}:{truth_sample_ids[i]}\n')
+        sample_map_file.write(f'{eval_sample_ids[i]}:{truth_sample_ids[i]}\n')
 
 # Write af_expressions (truth to ancestry-specific af annotation mapping)
 ancestry_to_af_annotation_dict = dict()
