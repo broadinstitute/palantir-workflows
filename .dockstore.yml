@@ -69,6 +69,6 @@ workflows:
   - name: CollectBGEImputationMetrics
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/CollectBGEImputationMetrics.wdl
-  - name: CollectBGEImputationMetricsEvalAsAnnotationVcf
+  - name: CollectBGEImputationMetricsCohort
     subclass: WDL
-    primaryDescriptorPath: /GlimpseImputationPipeline/CollectBGEImputationMetricsEvalAsAnnotationVcf.wdl
+    primaryDescriptorPath: /GlimpseImputationPipeline/CollectBGEImputationMetricsCohort.wdl
