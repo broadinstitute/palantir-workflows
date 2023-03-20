@@ -446,7 +446,7 @@ with open('sample_map.list', 'w') as sample_map_file:
 
 # Write af_expressions (truth to ancestry-specific af annotation mapping)
 ancestry_to_af_annotation_dict = dict()
-with open(~{write_map(ancestry_to_af_annotation_map)}) as map_file:
+with open('~{write_map(ancestry_to_af_annotation_map)}') as map_file:
     for line in map_file:
         ancestry, af_annotation = line.strip().split('\t')
         ancestry_to_af_annotation_dict[ancestry] = af_annotation
