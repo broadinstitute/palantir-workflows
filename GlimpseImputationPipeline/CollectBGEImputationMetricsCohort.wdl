@@ -51,6 +51,8 @@ workflow CollectBGEImputationMetricsCohort {
         String? intervals5
 
         String output_basename = "cohort"
+        Int plot_width = 14
+        Int plot_height = 5
 
         Int preemptible = 1
     }
@@ -246,6 +248,8 @@ workflow CollectBGEImputationMetricsCohort {
             configuration_label3 = configuration_label3,
             configuration_label4 = configuration_label4,
             configuration_label5 = configuration_label5,
+            plot_width = plot_width,
+            plot_height = plot_height,
             preemptible = preemptible
     }
 
@@ -280,8 +284,8 @@ task GenerateCorrelationPlots {
         String? configuration_label4
         String? configuration_label5
 
-        Int plot_width = 14
-        Int plot_height = 5
+        Int plot_width
+        Int plot_height
 
         Int mem_gb = 2
         Int preemptible = 1
