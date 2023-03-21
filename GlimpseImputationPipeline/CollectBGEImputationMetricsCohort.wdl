@@ -280,6 +280,9 @@ task GenerateCorrelationPlots {
         String? configuration_label4
         String? configuration_label5
 
+        Int plot_width = 14
+        Int plot_height = 5
+
         Int mem_gb = 2
         Int preemptible = 1
     }
@@ -380,7 +383,7 @@ ggplot(corr_gathered %>% filter(!is.na(correlation)), aes(x=BIN_CENTER, y=correl
   facet_grid(variant_type ~ ancestry) + scale_x_log10() + theme_bw() +
   xlab("Minor Allele Frequency") + ylab(bquote(R^2))
 
-ggsave(filename="correlation_plot.svg", width=7, height=5)
+ggsave(filename="correlation_plot.svg", width=~{plot_width}, height=~{plot_height})
 EOF
         Rscript script.R
     >>>
