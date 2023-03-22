@@ -57,3 +57,6 @@ workflows:
   - name: TrainAncestryAdjustmentModel
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/TrainAncestryAdjustmentModel.wdl
+  - name: LongReadRNABenchmark
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/LongReadRNABenchmark.wdl
