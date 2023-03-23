@@ -3,7 +3,9 @@ version 1.0
 task IsoQuant {
     input {
         File inputBAM
+        File inputBAMIndex
         File referenceGenome
+        File referenceGenomeIndex
         File referenceAnnotation
         String datasetName
         String dataType

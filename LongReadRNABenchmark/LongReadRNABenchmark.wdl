@@ -5,7 +5,9 @@ import "LongReadRNABenchmarkTasks.wdl" as LongReadRNABenchmarkTasks
 workflow LongReadRNABenchmark {
     input {
         File inputBAM
+        File inputBAMIndex
         File referenceGenome
+        File referenceGenomeIndex
         File referenceAnnotation
         String datasetName
         String dataType
@@ -15,7 +17,9 @@ workflow LongReadRNABenchmark {
     call LongReadRNABenchmarkTasks.IsoQuant as IsoQuant {
         input:
             inputBAM = inputBAM,
+            inputBAMIndex = inputBAMIndex,
             referenceGenome = referenceGenome,
+            referenceGenomeIndex = referenceGenomeIndex,
             referenceAnnotation = referenceAnnotation,
             datasetName = datasetName,
             dataType = dataType,
