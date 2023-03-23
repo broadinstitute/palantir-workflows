@@ -6,7 +6,7 @@ workflow LongReadRNABenchmark {
     input {
         File inputBAM
         File referenceGenome
-        File reducedAnnotation
+        File referenceAnnotation
         String datasetName
         String dataType
         Int numThreads
@@ -16,12 +16,22 @@ workflow LongReadRNABenchmark {
         input:
             inputBAM = inputBAM,
             referenceGenome = referenceGenome,
-            reducedAnnotation = reducedAnnotation,
+            referenceAnnotation = referenceAnnotation,
+            datasetName = datasetName,
             dataType = dataType,
             numThreads = numThreads
     }
 
+    #call LongReadRNABenchmarkTasks.StringTie as StringTie {
+    #    input:
+    #        inputBAM = inputBAM,
+    #        referenceAnnotation = referenceAnnotation,
+    #        datasetName = datasetName,
+    #        numThreads = numThreads
+    #}
+
     output {
         File isoQuantGTF = IsoQuant.isoQuantGTF
+        #File stringTieGTF = StringTie.stringTieGTF
     }
 }
