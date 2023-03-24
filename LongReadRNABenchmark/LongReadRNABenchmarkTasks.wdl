@@ -13,9 +13,9 @@ task IsoQuant {
     }
 
     String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant:latest"
-    Int cpu = 8
-    Int memory = 64
-    Int diskSizeGB = 300
+    Int cpu = 16
+    Int memory = 256
+    Int diskSizeGB = 500
     File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
     command <<<
@@ -54,9 +54,9 @@ task StringTie {
     }
 
     String docker = "us.gcr.io/broad-dsde-methods/kockan/stringtie:latest"
-    Int cpu = 8
-    Int memory = 64
-    Int diskSizeGB = 250
+    Int cpu = 16
+    Int memory = 256
+    Int diskSizeGB = 500
 
     command <<<
         /usr/local/src/stringtie \
