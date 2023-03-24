@@ -26,18 +26,19 @@ workflow LongReadRNABenchmark {
             numThreads = numThreads
     }
 
-    #call LongReadRNABenchmarkTasks.StringTie as StringTie {
-    #    input:
-    #        inputBAM = inputBAM,
-    #        referenceAnnotation = referenceAnnotation,
-    #        datasetName = datasetName,
-    #        numThreads = numThreads
-    #}
+    call LongReadRNABenchmarkTasks.StringTie as StringTie {
+        input:
+            inputBAM = inputBAM,
+            referenceAnnotation = referenceAnnotation,
+            datasetName = datasetName,
+            numThreads = numThreads
+    }
 
     output {
         File isoQuantGTF = IsoQuant.isoQuantGTF
         File isoQuantDB = IsoQuant.isoQuantDB
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
-        #File stringTieGTF = StringTie.stringTieGTF
+        File stringTieGTF = StringTie.stringTieGTF
+        File stringTieMonitoringLog = StringTie.monitoringLog
     }
 }
