@@ -18,6 +18,8 @@ task IsoQuant {
     Int diskSizeGB = 500
     File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
+    String referenceAnnotationBasename = basename(referenceAnnotation, ".reduced.gtf")
+
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
@@ -34,6 +36,7 @@ task IsoQuant {
 
     output {
         File isoQuantGTF = "IsoQuant_out_~{datasetName}/~{datasetName}/~{datasetName}.transcript_models.gtf"
+        File isoQuantDB = "IsoQuant_out_~{datasetName}/~{referenceAnnotationBasename}.reduced.db"
         File monitoringLog = "monitoring.log"
     }
 

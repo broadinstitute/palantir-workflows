@@ -36,6 +36,8 @@ workflow LongReadRNABenchmark {
 
     output {
         File isoQuantGTF = IsoQuant.isoQuantGTF
+        File isoQuantDB = IsoQuant.isoQuantDB
+        File isoQuantMonitoringLog = IsoQuant.monitoringLog
         #File stringTieGTF = StringTie.stringTieGTF
     }
 }
