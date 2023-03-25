@@ -4,6 +4,7 @@ workflow ReduceAndMergeForGlimpse {
     input {
         Array[File] vcfs
         Array[File] vcf_indices
+        File ref_fasta
 
         File? reference_panel_sites_vcf
         File? reference_panel_sites_vcf_index
@@ -28,6 +29,7 @@ workflow ReduceAndMergeForGlimpse {
         input:
             input_vcfs = ReduceAnnotations.reduced_vcf,
             input_vcf_indices = ReduceAnnotations.reduced_vcf_index,
+            ref_fasta = ref_fasta,
             output_basename = output_basename_for_merged_vcf,
             preemptible = preemptible
     }
@@ -86,6 +88,7 @@ task Merge {
     input {
         Array[File] input_vcfs
         Array[File] input_vcf_indices
+        File ref_fasta
         String output_basename
         String bcftools_docker = "us.gcr.io/broad-gotc-prod/imputation-bcf-vcf:1.0.7-1.10.2-0.1.16-1669908889"
         Int mem_gb = 8
@@ -96,7 +99,9 @@ task Merge {
 
     command {
         set -e
-        bcftools merge -o ~{output_basename}.vcf.gz -O z --threads 4 ~{sep=' ' input_vcfs}
+        bcftools merge -o ~{output_basename}.unnormed.vcf.gz -O z --threads 4 ~{sep=' ' input_vcfs}
+        bcftools index -t ~{output_basename}.unnormed.vcf.gz
+        bcftools norm -O z -o ~{output_basename}.vcf.gz -f ~{ref_fasta} -m - ~{output_basename}.unnormed.vcf.gz
         bcftools index -t ~{output_basename}.vcf.gz
     }
 

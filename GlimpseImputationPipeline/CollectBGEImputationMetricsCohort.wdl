@@ -50,6 +50,24 @@ workflow CollectBGEImputationMetricsCohort {
         Map[String, String] ancestry_to_af_annotation_map5
         String? intervals5
 
+        Array[String]? sample_ids6
+        File? eval_vcf6
+        Array[String]? truth_sample_ids6
+        File? truth_vcf6
+        String? configuration_label6
+        File? annotation_vcf6
+        Map[String, String] ancestry_to_af_annotation_map6
+        String? intervals6
+
+        Array[String]? sample_ids7
+        File? eval_vcf7
+        Array[String]? truth_sample_ids7
+        File? truth_vcf7
+        String? configuration_label7
+        File? annotation_vcf7
+        Map[String, String] ancestry_to_af_annotation_map7
+        String? intervals7
+
         String output_basename = "cohort"
         Int plot_width = 14
         Int plot_height = 5
@@ -230,6 +248,76 @@ workflow CollectBGEImputationMetricsCohort {
         }
     }
 
+    if (defined(eval_vcf6)) {
+        call PearsonCorrelationByAF as PearsonByAF_6 {
+            input:
+                evalVcf = select_first([eval_vcf6]),
+                af_resource = select_first([annotation_vcf6]),
+                ancestries = ancestries,
+                ancestry_to_af_annotation_map = ancestry_to_af_annotation_map6,
+                truthVcf = select_first([truth_vcf6]),
+                intervals = intervals6,
+                output_basename = output_basename,
+                eval_sample_ids = select_first([sample_ids6]),
+                truth_sample_ids = select_first([truth_sample_ids6]),
+                preemptible = preemptible
+        }
+
+        if (collect_af_0_1_single_number) {
+            call PearsonCorrelationByAF as PearsonByAF01_6 {
+                input:
+                    evalVcf = select_first([eval_vcf3]),
+                    af_resource = select_first([annotation_vcf6]),
+                    ancestries = ancestries,
+                    ancestry_to_af_annotation_map = ancestry_to_af_annotation_map6,
+                    truthVcf = select_first([truth_vcf6]),
+                    min_af_for_accuracy_metrics = 0.1,
+                    n_bins = 2,
+                    right_edge_first_bin = 0.1,
+                    intervals = intervals6,
+                    output_basename = output_basename,
+                    eval_sample_ids = select_first([sample_ids6]),
+                    truth_sample_ids = select_first([truth_sample_ids6]),
+                    preemptible = preemptible
+            }
+        }
+    }
+
+    if (defined(eval_vcf7)) {
+        call PearsonCorrelationByAF as PearsonByAF_7 {
+            input:
+                evalVcf = select_first([eval_vcf7]),
+                af_resource = select_first([annotation_vcf7]),
+                ancestries = ancestries,
+                ancestry_to_af_annotation_map = ancestry_to_af_annotation_map7,
+                truthVcf = select_first([truth_vcf7]),
+                intervals = intervals7,
+                output_basename = output_basename,
+                eval_sample_ids = select_first([sample_ids7]),
+                truth_sample_ids = select_first([truth_sample_ids7]),
+                preemptible = preemptible
+        }
+
+        if (collect_af_0_1_single_number) {
+            call PearsonCorrelationByAF as PearsonByAF01_7 {
+                input:
+                    evalVcf = select_first([eval_vcf3]),
+                    af_resource = select_first([annotation_vcf7]),
+                    ancestries = ancestries,
+                    ancestry_to_af_annotation_map = ancestry_to_af_annotation_map7,
+                    truthVcf = select_first([truth_vcf7]),
+                    min_af_for_accuracy_metrics = 0.1,
+                    n_bins = 2,
+                    right_edge_first_bin = 0.1,
+                    intervals = intervals7,
+                    output_basename = output_basename,
+                    eval_sample_ids = select_first([sample_ids7]),
+                    truth_sample_ids = select_first([truth_sample_ids7]),
+                    preemptible = preemptible
+            }
+        }
+    }
+
     call GenerateCorrelationPlots {
         input:
             correlation_file1 = PearsonByAF.correlations,
@@ -237,17 +325,23 @@ workflow CollectBGEImputationMetricsCohort {
             correlation_file3 = PearsonByAF_3.correlations,
             correlation_file4 = PearsonByAF_4.correlations,
             correlation_file5 = PearsonByAF_5.correlations,
+            correlation_file6 = PearsonByAF_6.correlations,
+            correlation_file7 = PearsonByAF_7.correlations,
             ancestries = ancestries,
             eval_sample_ids1 = sample_ids1,
             eval_sample_ids2 = sample_ids2,
             eval_sample_ids3 = sample_ids3,
             eval_sample_ids4 = sample_ids4,
             eval_sample_ids5 = sample_ids5,
+            eval_sample_ids6 = sample_ids6,
+            eval_sample_ids7 = sample_ids7,
             configuration_label1 = configuration_label1,
             configuration_label2 = configuration_label2,
             configuration_label3 = configuration_label3,
             configuration_label4 = configuration_label4,
             configuration_label5 = configuration_label5,
+            configuration_label6 = configuration_label6,
+            configuration_label7 = configuration_label7,
             plot_width = plot_width,
             plot_height = plot_height,
             preemptible = preemptible
@@ -260,6 +354,8 @@ workflow CollectBGEImputationMetricsCohort {
         File? correlation_file3_0_1 = PearsonByAF01_3.correlations
         File? correlation_file4_0_1 = PearsonByAF01_4.correlations
         File? correlation_file5_0_1 = PearsonByAF01_5.correlations
+        File? correlation_file6_0_1 = PearsonByAF01_6.correlations
+        File? correlation_file7_0_1 = PearsonByAF01_7.correlations
     }
 }
 
@@ -272,17 +368,23 @@ task GenerateCorrelationPlots {
         File? correlation_file3
         File? correlation_file4
         File? correlation_file5
+        File? correlation_file6
+        File? correlation_file7
         Array[String] ancestries
         Array[String] eval_sample_ids1
         Array[String]? eval_sample_ids2
         Array[String]? eval_sample_ids3
         Array[String]? eval_sample_ids4
         Array[String]? eval_sample_ids5
+        Array[String]? eval_sample_ids6
+        Array[String]? eval_sample_ids7
         String configuration_label1
         String? configuration_label2
         String? configuration_label3
         String? configuration_label4
         String? configuration_label5
+        String? configuration_label6
+        String? configuration_label7
 
         Int plot_width
         Int plot_height
@@ -361,6 +463,32 @@ if ~{if defined(correlation_file5) then "True" else "False"}:
         raise RuntimeError(f'~{correlation_file5} has no sites in it.')
     df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
     df['configuration'] = '~{configuration_label5}'
+    correlation_dfs.append(df)
+
+if ~{if defined(correlation_file6) then "True" else "False"}:
+    eval_sample_ids6 = ['~{sep="', '" eval_sample_ids6}']
+    ancestry_dict = dict()
+    for i in range(len(eval_sample_ids6)):
+        ancestry_dict[eval_sample_ids6[i]] = ancestries[i]
+
+    df = pd.read_csv('~{correlation_file6}', sep="\t", comment='#')
+    if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
+        raise RuntimeError(f'~{correlation_file6} has no sites in it.')
+    df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
+    df['configuration'] = '~{configuration_label6}'
+    correlation_dfs.append(df)
+
+if ~{if defined(correlation_file7) then "True" else "False"}:
+    eval_sample_ids7 = ['~{sep="', '" eval_sample_ids7}']
+    ancestry_dict = dict()
+    for i in range(len(eval_sample_ids7)):
+        ancestry_dict[eval_sample_ids7[i]] = ancestries[i]
+
+    df = pd.read_csv('~{correlation_file7}', sep="\t", comment='#')
+    if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
+        raise RuntimeError(f'~{correlation_file7} has no sites in it.')
+    df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
+    df['configuration'] = '~{configuration_label7}'
     correlation_dfs.append(df)
 
 pd.concat(correlation_dfs).to_csv('correlation_data.tsv', sep='\t')
