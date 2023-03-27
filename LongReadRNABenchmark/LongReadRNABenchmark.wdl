@@ -10,6 +10,8 @@ workflow LongReadRNABenchmark {
         File referenceGenomeIndex
         File referenceAnnotation
         File expressedGTF
+        File expressedKeptGTF
+        File excludedGTF
         String datasetName
         String dataType
         Int numThreads
