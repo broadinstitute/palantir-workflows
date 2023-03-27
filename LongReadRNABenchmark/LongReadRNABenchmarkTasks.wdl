@@ -32,10 +32,6 @@ task IsoQuant {
         --threads ~{numThreads} \
         --labels ~{datasetName} \
         --output "IsoQuant_out_~{datasetName}"
-
-        ls -lha "IsoQuant_out_~{datasetName}/"
-
-        ls -lha "IsoQuant_out_~{datasetName}/~{datasetName}/"
     >>>
 
     output {
@@ -69,7 +65,6 @@ task IsoQuantReferenceFree {
     Int diskSizeGB = 500
     File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
-
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
@@ -80,10 +75,6 @@ task IsoQuantReferenceFree {
         --threads ~{numThreads} \
         --labels ~{datasetName} \
         --output "IsoQuant_denovo_out_~{datasetName}"
-
-        ls -lha "IsoQuant_denovo_out_~{datasetName}/"
-
-        ls -lha "IsoQuant_denovo_out_~{datasetName}/~{datasetName}/"
     >>>
 
     output {
@@ -122,8 +113,6 @@ task StringTie {
         -p ~{numThreads} \
         -L \
         ~{inputBAM}
-
-        ls -lha
     >>>
 
     output {
@@ -160,8 +149,6 @@ task StringTieReferenceFree {
         -p ~{numThreads} \
         -L \
         ~{inputBAM}
-
-        ls -lha
     >>>
 
     output {
@@ -305,16 +292,6 @@ task Talon {
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        /usr/local/src/IsoQuant-3.1.1/isoquant.py \
-        --reference ~{referenceGenome} \
-        --complete_genedb \
-        --genedb ~{referenceAnnotation} \
-        --bam ~{inputBAM} \
-        --data_type ~{dataType} \
-        --threads ~{numThreads} \
-        --labels ~{datasetName} \
-        --output "IsoQuant_out_~{datasetName}"
-
         TALON_PREFIX="Talon_out_~{datasetName}
         TALON_GTF=$TALON_PREFIX".gtf"
         TALON_PATH"talon_label_reads" --f ~{inputBAM} --t=~{numThreads} --o=$TALON_PREFIX --g ~{referenceGenome}
@@ -364,15 +341,15 @@ task ReducedAnnotationGFFCompare {
         --tool "isoquant" \
         --output "~{datasetName}_isoquant_reduced_db"
 
+        ls -lha
+
         /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
         --genedb ~{reducedAnnotationPrefix} \
         --gtf ~{stringTieGTF} \
         --tool "stringtie" \
         --output "~{datasetName}_stringtie_reduced_db"
 
-        ls -lha "~{datasetName}_isoquant_reduced_db/"
-
-        ls -lha "~{datasetName}_stringtie_reduced_db/"
+        ls -lha
     >>>
 
     output {
@@ -413,7 +390,7 @@ task DenovoAnnotationGFFCompare {
         --gtf_list gtfs.list \
         --output "~{datasetName}_denovo_stats"
 
-        ls -lha "~{datasetName}_denovo_stats"
+        ls -lha
     >>>
 
     output {
@@ -449,13 +426,13 @@ task ReferenceFreeGFFCompare {
         -r ~{expressedGTF} \
         -o "~{datasetName}_isoquant_gffcompare" ~{isoQuantDenovoGTF}
 
+        ls -lha
+
         gffcompare \
         -r ~{expressedGTF} \
         -o "~{datasetName}_stringtie_gffcompare" ~{stringTieDenovoGTF}
 
-        ls -lha "~{datasetName}_isoquant_gffcompare/"
-
-        ls -lha "~{datasetName}_stringtie_gffcompare/"
+        ls -lha
     >>>
 
     output {
