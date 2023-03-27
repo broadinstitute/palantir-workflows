@@ -319,6 +319,9 @@ task Talon {
 task ReducedAnnotationGFFCompare {
     input {
         File reducedAnnotationDB
+        File expressedGTF
+        File expressedKeptGTF
+        File excludedGTF
         File isoQuantGTF
         File stringTieGTF
         String datasetName
@@ -341,7 +344,7 @@ task ReducedAnnotationGFFCompare {
         --tool "isoquant" \
         --output "~{datasetName}_isoquant_reduced_db"
 
-        ls -lha
+        ls -lha "~{datasetName}_isoquant_reduced_db"
 
         /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
         --genedb ~{reducedAnnotationPrefix} \
@@ -349,7 +352,7 @@ task ReducedAnnotationGFFCompare {
         --tool "stringtie" \
         --output "~{datasetName}_stringtie_reduced_db"
 
-        ls -lha
+        ls -lha "~{datasetName}_stringtie_reduced_db"
     >>>
 
     output {
