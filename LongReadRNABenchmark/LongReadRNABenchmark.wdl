@@ -26,6 +26,17 @@ workflow LongReadRNABenchmark {
             numThreads = numThreads
     }
 
+    call LongReadRNABenchmarkTasks.IsoQuantReferenceFree as IsoQuantReferenceFree {
+        input:
+            inputBAM = inputBAM,
+            inputBAMIndex = inputBAMIndex,
+            referenceGenome = referenceGenome,
+            referenceGenomeIndex = referenceGenomeIndex,
+            datasetName = datasetName,
+            dataType = dataType,
+            numThreads = numThreads
+    }
+
     call LongReadRNABenchmarkTasks.StringTie as StringTie {
         input:
             inputBAM = inputBAM,
@@ -34,11 +45,22 @@ workflow LongReadRNABenchmark {
             numThreads = numThreads
     }
 
+    call LongReadRNABenchmarkTasks.StringTieReferenceFree as StringTieReferenceFree {
+        input:
+            inputBAM = inputBAM,
+            datasetName = datasetName,
+            numThreads = numThreads
+    }
+
     output {
-        File isoQuantGTF = IsoQuant.isoQuantGTF
         File isoQuantDB = IsoQuant.isoQuantDB
-        File isoQuantMonitoringLog = IsoQuant.monitoringLog
+        File isoQuantGTF = IsoQuant.isoQuantGTF
+        File isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF
         File stringTieGTF = StringTie.stringTieGTF
+        File stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF
+        File isoQuantMonitoringLog = IsoQuant.monitoringLog
+        File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
         File stringTieMonitoringLog = StringTie.monitoringLog
+        File stringTieReferenceFreeMonitoringLog = StringTieReferenceFree.monitoringLog
     }
 }
