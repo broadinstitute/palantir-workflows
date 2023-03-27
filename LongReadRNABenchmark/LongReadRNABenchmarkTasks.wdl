@@ -338,6 +338,11 @@ task ReducedAnnotationGFFCompare {
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
+        mv ~{reducedAnnotationDB} .
+        mv ~{excludedGTF} .
+        mv ~{expressedGTF} .
+        mv ~{expressedKeptGTF} .
+
         /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
         --genedb ~{reducedAnnotationPrefix} \
         --gtf ~{isoQuantGTF} \
