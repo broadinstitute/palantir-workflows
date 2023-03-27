@@ -304,7 +304,7 @@ task Talon {
     >>>
 
     output {
-        File talonGTF = "Talon_out_~datasetName}.gtf"
+        File talonGTF = "Talon_out_~{datasetName}.gtf"
         File monitoringLog = "monitoring.log"
     }
 
@@ -426,13 +426,9 @@ task ReferenceFreeGFFCompare {
         -r ~{expressedGTF} \
         -o "~{datasetName}_isoquant_gffcompare" ~{isoQuantDenovoGTF}
 
-        ls -lha
-
         gffcompare \
         -r ~{expressedGTF} \
         -o "~{datasetName}_stringtie_gffcompare" ~{stringTieDenovoGTF}
-
-        ls -lha
     >>>
 
     output {
