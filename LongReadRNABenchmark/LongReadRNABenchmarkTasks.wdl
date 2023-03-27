@@ -370,9 +370,9 @@ task ReducedAnnotationGFFCompare {
         --tool "stringtie" \
         --output "~{datasetName}_stringtie_reduced_db"
 
-        ls -lha ~{datasetName}_isoquant_reduced_db
+        ls -lha "~{datasetName}_isoquant_reduced_db/"
 
-        ls -lha ~{datasetName}_stringtie_reduced_db
+        ls -lha "~{datasetName}_stringtie_reduced_db/"
     >>>
 
     output {
@@ -391,9 +391,9 @@ task DenovoAnnotationGFFCompare {
     input {
         File isoQuantGTF
         File stringTieGTF
-        File bambuGTF
-        File flairGTF
-        File talonGTF
+        #File bambuGTF
+        #File flairGTF
+        #File talonGTF
         String datasetName
     }
 
@@ -408,13 +408,12 @@ task DenovoAnnotationGFFCompare {
 
         echo ~{isoQuantGTF} > gtfs.list
         echo ~{stringTieGTF} >> gtfs.list
-        echo ~{bambuGTF} >> gtfs.list
-        echo ~{flairGTF} >> gtfs.list
-        echo ~{talonGTF} >> gtfs.list
 
         /usr/local/src/IsoQuant-3.1.1/misc/denovo_model_stats.py \
         --gtf_list gtfs.list \
         --output "~{datasetName}_denovo_stats"
+
+        ls -lha "~{datasetName}_denovo_stats"
     >>>
 
     output {
@@ -454,9 +453,9 @@ task ReferenceFreeGFFCompare {
         -r ~{expressedGTF} \
         -o "~{datasetName}_stringtie_gffcompare" ~{stringTieDenovoGTF}
 
-        ls -lha ~{datasetName}_isoquant_gffcompare
+        ls -lha "~{datasetName}_isoquant_gffcompare/"
 
-        ls -lha ~{datasetName}_stringtie_gffcompare
+        ls -lha "~{datasetName}_stringtie_gffcompare/"
     >>>
 
     output {

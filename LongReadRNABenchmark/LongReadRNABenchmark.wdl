@@ -9,6 +9,7 @@ workflow LongReadRNABenchmark {
         File referenceGenome
         File referenceGenomeIndex
         File referenceAnnotation
+        File expressedGTF
         String datasetName
         String dataType
         Int numThreads
@@ -57,6 +58,21 @@ workflow LongReadRNABenchmark {
             reducedAnnotationDB = IsoQuant.isoQuantDB,
             isoQuantGTF = IsoQuant.isoQuantGTF,
             stringTieGTF = StringTie.stringTieGTF,
+            datasetName = datasetName
+    }
+
+    call LongReadRNABenchmarkTasks.DenovoAnnotationGFFCompare as DenovoAnnotationGFFCompare {
+        input:
+            isoQuantGTF = IsoQuant.isoQuantGTF,
+            stringTieGTF = StringTie.stringTieGTF,
+            datasetName = datasetName
+    }
+
+    call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompare {
+        input:
+            isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF,
+            stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF,
+            expressedGTF = expressedGTF,
             datasetName = datasetName
     }
 
