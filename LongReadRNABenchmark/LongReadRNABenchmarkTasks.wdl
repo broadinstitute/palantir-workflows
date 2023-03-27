@@ -32,6 +32,10 @@ task IsoQuant {
         --threads ~{numThreads} \
         --labels ~{datasetName} \
         --output "IsoQuant_out_~{datasetName}"
+
+        ls -lha "IsoQuant_out_~{datasetName}/"
+
+        ls -lha "IsoQuant_out_~{datasetName}/~{datasetName}/"
     >>>
 
     output {
@@ -76,6 +80,10 @@ task IsoQuantReferenceFree {
         --threads ~{numThreads} \
         --labels ~{datasetName} \
         --output "IsoQuant_denovo_out_~{datasetName}"
+
+        ls -lha "IsoQuant_denovo_out_~{datasetName}/"
+
+        ls -lha "IsoQuant_denovo_out_~{datasetName}/~{datasetName}/"
     >>>
 
     output {
@@ -108,12 +116,14 @@ task StringTie {
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        /usr/local/src/stringtie \
+        stringtie \
         -o "StringTie_out_~{datasetName}.gtf" \
         -G ~{referenceAnnotation} \
         -p ~{numThreads} \
         -L \
-        ~{inputBAM} \
+        ~{inputBAM}
+
+        ls -lha
     >>>
 
     output {
@@ -145,11 +155,13 @@ task StringTieReferenceFree {
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        /usr/local/src/stringtie \
+        stringtie \
         -o "StringTie_denovo_out_~{datasetName}.gtf" \
         -p ~{numThreads} \
         -L \
-        ~{inputBAM} \
+        ~{inputBAM}
+
+        ls -lha
     >>>
 
     output {
@@ -335,7 +347,6 @@ task ReducedAnnotationGFFCompare {
         String datasetName
     }
 
-    # TODO: Need to add gffcompare to the docker images
     String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
     Int cpu = 8
     Int memory = 64
@@ -358,6 +369,10 @@ task ReducedAnnotationGFFCompare {
         --gtf ~{stringTieGTF} \
         --tool "stringtie" \
         --output "~{datasetName}_stringtie_reduced_db"
+
+        ls -lha ~{datasetName}_isoquant_reduced_db
+
+        ls -lha ~{datasetName}_stringtie_reduced_db
     >>>
 
     output {
@@ -382,7 +397,6 @@ task DenovoAnnotationGFFCompare {
         String datasetName
     }
 
-    # TODO: Need to add gffcompare to the docker images
     String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
     Int cpu = 8
     Int memory = 64
@@ -423,7 +437,6 @@ task ReferenceFreeGFFCompare {
         String datasetName
     }
 
-    # TODO: Need to add gffcompare to the docker images
     String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
     Int cpu = 8
     Int memory = 64
@@ -440,6 +453,10 @@ task ReferenceFreeGFFCompare {
         gffcompare \
         -r ~{expressedGTF} \
         -o "~{datasetName}_stringtie_gffcompare" ~{stringTieDenovoGTF}
+
+        ls -lha ~{datasetName}_isoquant_gffcompare
+
+        ls -lha ~{datasetName}_stringtie_gffcompare
     >>>
 
     output {

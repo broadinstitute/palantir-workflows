@@ -52,6 +52,14 @@ workflow LongReadRNABenchmark {
             numThreads = numThreads
     }
 
+    call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompare {
+        input:
+            reducedAnnotationDB = IsoQuant.isoQuantDB,
+            isoQuantGTF = IsoQuant.isoQuantGTF,
+            stringTieGTF = StringTie.stringTieGTF,
+            datasetName = datasetName
+    }
+
     output {
         File isoQuantDB = IsoQuant.isoQuantDB
         File isoQuantGTF = IsoQuant.isoQuantGTF
