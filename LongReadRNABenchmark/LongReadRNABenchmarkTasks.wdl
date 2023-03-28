@@ -220,40 +220,49 @@ task Bambu {
 task Flair {
     input {
         File inputBAM
-        File inputReads
         File referenceGenome
         File referenceAnnotation
         String datasetName
         Int numThreads
     }
 
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/flair:latest"
+    String docker = "brookslab/flair:latest"
     Int cpu = 16
     Int memory = 256
     Int diskSizeGB = 500
     File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
+    String flairPrefix = "Flair_out_~{datasetName}"
+
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        FLAIR_PREFIX="Flair_out_~{datasetName}
-        FLAIR_GTF=$FLAIR_PREFIX".gtf"
-        $FLAIR_PATH"bin/bam2Bed12.py -i ~{inputBAM} > $FLAIR_PREFIX".bed"
+        samtools fastq ~{inputBAM} > "~{flairPrefix}_temp.fastq"
 
-        $FLAIR_PATH"flair.py" correct \
-        -q $FLAIR_PREFIX".bed" \
+        ls -lha
+
+        bam2Bed12 -i ~{inputBAM} > "~{flairPrefix}.bed"
+
+        ls -lha
+        
+        flair correct \
+        -q "~{flairPrefix}.bed" \
         -g ~{referenceGenome} \
         -f ~{referenceAnnotation} \
-        -o $FLAIR_PREFIX \
+        -o ~{flairPrefix} \
         -t ~{numThreads}
 
-        $FLAIR_PATH"flair.py" collapse \
+        ls -lha
+
+        flair collapse \
         -g ~{referenceGenome} \
         -f ~{referenceAnnotation} \
-        -r ~{inputReads} \
-        -q $FLAIR_PREFIX"_all_corrected.bed" \
-        -o $FLAIR_PREFIX \
+        -r "~{flairPrefix}_temp.fastq" \
+        -q "~{flairPrefix}_all_corrected.bed" \
+        -o ~{flairPrefix} \
         -t ~{numThreads}
+
+        ls -lha
     >>>
 
     output {
@@ -287,20 +296,38 @@ task Talon {
     Int diskSizeGB = 500
     File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
-    # TALON requires config file: dataset name, sample description, platform, sam file (comma-delimited)
+    String talonPrefix = "Talon_out_~{datasetName}"
 
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        TALON_PREFIX="Talon_out_~{datasetName}
-        TALON_GTF=$TALON_PREFIX".gtf"
-        TALON_PATH"talon_label_reads" --f ~{inputBAM} --t=~{numThreads} --o=$TALON_PREFIX --g ~{referenceGenome}
-        samtools calmd -@ ~{numThreads} --reference ~{referenceGenome} $TALON_PREFIX"_labeled.sam" > $TALON_PREFIX"_labeled.md.sam"
-        $TALON_PATH"talon_initialize_database" --f ~{referenceAnnotation} --g ~{datasetName} --a ~{datasetName} --o ~{datasetName}
-        echo ~{datasetName},~{datasetName},ONT,"$TALON_PREFIX"_labeled.md.sam" > $TALON_PREFIX".csv"
-        $TALON_PATH"talon" --build ~{datasetName} --db "~{datasetName}.db" --o $TALON_PREFIX"_raw" --f $TALON_PREFIX".csv"
-        $TALON_PATH"talon_filter_transcripts" --db "~{datasetName}.db" -a ~{datasetName} --datasets ~{datasetName} --o $TALON_PREFIX"_filter" --f $TALON_CSV
-        $TALON_PATH"talon_create_GTF" -- build ~{datasetName} --db "~{datasetName}.db" -a ~{datasetName} --o $TALON_PREFIX --whitelist=$TALON_PREFIX"_filter"
+        talon_label_reads --f ~{inputBAM} --t ~{numThreads} --o ~{talonPrefix} --g ~{referenceGenome}
+
+        ls -lha
+
+        samtools calmd -@ ~{numThreads} --reference ~{referenceGenome} "~{talonPrefix}_labeled.sam" > "~{talonPrefix}_labeled.md.sam"
+
+        ls -lha
+
+        talon_initialize_database --f ~{referenceAnnotation} --g ~{datasetName} --a ~{datasetName} --o ~{datasetName}
+
+        ls -lha
+
+        echo ~{datasetName},~{datasetName},~{dataType},"~{talonPrefix}_labeled.md.sam" > "~{talonPrefix}.csv"
+
+        ls -lha
+
+        talon --build ~{datasetName} --db "~{datasetName}.db" --o "~{talonPrefix}_raw" --f "~{talonPrefix}.csv"
+
+        ls -lha
+
+        talon_filter_transcripts --db "~{datasetName}.db" -a ~{datasetName} --datasets ~{datasetName} --o "~{talonPrefix}_filter" --f "~{talonPrefix}.csv"
+
+        ls -lha
+
+        talon_create_GTF --build ~{datasetName} --db "~{datasetName}.db" -a ~{datasetName} --o ~{talonPrefix} --whitelist "~{talonPrefix}_filter"
+
+        ls -lha
     >>>
 
     output {
@@ -401,7 +428,7 @@ task DenovoAnnotationGFFCompare {
         echo ~{stringTieBasename} >> gtfs.list
 
         cat gtfs.list
-        
+
         /usr/local/src/IsoQuant-3.1.1/misc/denovo_model_stats.py \
         --gtf_list gtfs.list \
         --output "~{datasetName}_denovo_stats"
