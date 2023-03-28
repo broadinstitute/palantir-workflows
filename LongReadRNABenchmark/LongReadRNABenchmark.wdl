@@ -55,6 +55,28 @@ workflow LongReadRNABenchmark {
             numThreads = numThreads
     }
 
+    call LongReadRNABenchmarkTasks.Flair as Flair {
+        input:
+            inputBAM = inputBAM,
+            inputBAMIndex = inputBAMIndex,
+            referenceGenome = referenceGenome,
+            referenceGenomeIndex = referenceGenomeIndex,
+            referenceAnnotation = referenceAnnotation,
+            datasetName = datasetName,
+            numThreads = numThreads
+    }
+
+    call LongReadRNABenchmarkTasks.Talon as Talon {
+        input:
+            inputBAM = inputBAM,
+            inputBAMIndex = inputBAMIndex,
+            referenceGenome = referenceGenome,
+            referenceGenomeIndex = referenceGenomeIndex,
+            referenceAnnotation = referenceAnnotation,
+            datasetName = datasetName,
+            numThreads = numThreads
+    }
+
     call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompare {
         input:
             reducedAnnotationDB = IsoQuant.isoQuantDB,
@@ -87,9 +109,13 @@ workflow LongReadRNABenchmark {
         File isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF
         File stringTieGTF = StringTie.stringTieGTF
         File stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF
+        File flairGTF = Flair.flairGTF
+        File talonGTF = Talon.talonGTF
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
         File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
         File stringTieMonitoringLog = StringTie.monitoringLog
         File stringTieReferenceFreeMonitoringLog = StringTieReferenceFree.monitoringLog
+        File flairMonitoringLog = Flair.monitoringLog
+        File talonMonitoringLog = Talon.monitoringLog
     }
 }

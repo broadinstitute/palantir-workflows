@@ -220,7 +220,9 @@ task Bambu {
 task Flair {
     input {
         File inputBAM
+        File inputBAMIndex
         File referenceGenome
+        File referenceGenomeIndex
         File referenceAnnotation
         String datasetName
         Int numThreads
@@ -244,7 +246,7 @@ task Flair {
         bam2Bed12 -i ~{inputBAM} > "~{flairPrefix}.bed"
 
         ls -lha
-        
+
         flair correct \
         -q "~{flairPrefix}.bed" \
         -g ~{referenceGenome} \
