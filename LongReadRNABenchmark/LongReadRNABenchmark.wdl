@@ -55,6 +55,18 @@ workflow LongReadRNABenchmark {
             numThreads = numThreads
     }
 
+    call LongReadRNABenchmarkTasks.Bambu as Bambu {
+        input:
+            inputBAM = inputBAM,
+            inputBAMIndex = inputBAMIndex,
+            referenceGenome = referenceGenome,
+            referenceGenomeIndex = referenceGenomeIndex,
+            referenceAnnotation = referenceAnnotation,
+            datasetName = datasetName,
+            dataType = dataType,
+            numThreads = numThreads
+    }
+
     call LongReadRNABenchmarkTasks.Flair as Flair {
         input:
             inputBAM = inputBAM,
@@ -70,6 +82,8 @@ workflow LongReadRNABenchmark {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
+            # Talon does not like reference genomes with the ">chr13 13" format.
+            # For now, input a different, processed version unlike the other tools
             #referenceGenome = referenceGenome,
             #referenceGenomeIndex = referenceGenomeIndex,
             referenceAnnotation = referenceAnnotation,
@@ -110,12 +124,14 @@ workflow LongReadRNABenchmark {
         File isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF
         File stringTieGTF = StringTie.stringTieGTF
         File stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF
+        File bambuGTF = Bambu.bambuGTF
         File flairGTF = Flair.flairGTF
         File talonGTF = Talon.talonGTF
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
         File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
         File stringTieMonitoringLog = StringTie.monitoringLog
         File stringTieReferenceFreeMonitoringLog = StringTieReferenceFree.monitoringLog
+        File bambuMonitoringLog = Bambu.monitoringLog
         File flairMonitoringLog = Flair.monitoringLog
         File talonMonitoringLog = Talon.monitoringLog
     }

@@ -183,25 +183,32 @@ task Bambu {
     File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
     String referenceAnnotationBasename = basename(referenceAnnotation, ".reduced.gtf")
+    String bambuOutDir = "Bambu_out"
+    String bambuGTFPath = "Bambu_out/Bambu_out_~{datasetName}.gtf"
 
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        BAMBU_OUT_DIR="Bambu_out"
         echo "library(bambu)" > bambu.R
-        echo "fa.file<-~{referenceGenome}" >> bambu.R
-        echo "gtf.file<-~{referenceAnnotation}" >> bambu.R
-        echo "bambuAnnotations <- prepareAnnotations(gtf.file)"
-        echo "ont.bam<-~{inputBAM}" >> bambu.R
-        echo "ont.se <- bambu(reads = ont.bam, rcOutDir = \"$BAMBU_OUT_DIR\", annotations = bambuAnnotations, genome = fa.file, ncore = ~{numThreads}" >> bambu.R
-        echo "writeBambuOutput(ont.se, path = \"$BAMBU_OUT_DIR\")" >> bambu.R
+        echo "fa.file <- ~{referenceGenome}" >> bambu.R
+        echo "gtf.file <- ~{referenceAnnotation}" >> bambu.R
+        echo "bambuAnnotations <- prepareAnnotations(gtf.file)" >> bambu.R
+        echo "lr.bam <- ~{inputBAM}" >> bambu.R
+        echo "lr.se <- bambu(reads = lr.bam, rcOutDir = ~{bambuOutDir}, annotations = bambuAnnotations, genome = fa.file, ncore = ~{numThreads})" >> bambu.R
+        echo "writeBambuOutput(lr.se, path = ~{bambuOutDir})" >> bambu.R
+
+        cat bambu.R
+
         R < bambu.R --no-save
 
-        BAMBU_GTF = $BAMBU_OUT_DIR/"Bambu_out_"$DATASET_NAME".gtf"
-        awk ' $3 >= 1 ' $BAMBU_OUT_DIR/counts_transcript.txt | sort -k3,3n > $BAMBU_OUT_DIR/expressed_annotations.gtf.counts
-        cut -f1 $BAMBU_OUT_DIR/expressed_annotations.gtf.counts > $BAMBU_OUT_DIR/expressed_transcripts.txt
-        grep -Ff $BAMBU_OUT_DIR/expressed_transcripts.txt $BAMBU_OUT_DIR/extended_annotations.gtf > $BAMBU_GTF
-        cp $BAMBU_OUT_DIR/expressed_annotations.gtf.counts $BAMBU_GTF".counts"
+        ls -lha
+
+        awk ' $3 >= 1 ' ~{bambuOutDir}/counts_transcript.txt | sort -k3,3n > ~{bambuOutDir}/expressed_annotations.gtf.counts
+        cut -f1 ~{bambuOutDir}/expressed_annotations.gtf.counts > ~{bambuOutDir}/expressed_transcripts.txt
+        grep -Ff ~{bambuOutDir}/expressed_transcripts.txt ~{bambuOutDir}/extended_annotations.gtf > ~{bambuGTFPath}
+        cp ~{bambuOutDir}/expressed_annotations.gtf.counts "~{bambuGTFPath}.counts"
+
+        ls -lha
     >>>
 
     output {
