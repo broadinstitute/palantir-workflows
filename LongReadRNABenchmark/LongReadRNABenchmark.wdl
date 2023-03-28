@@ -74,6 +74,7 @@ workflow LongReadRNABenchmark {
             referenceGenomeIndex = referenceGenomeIndex,
             referenceAnnotation = referenceAnnotation,
             datasetName = datasetName,
+            dataType = dataType,
             numThreads = numThreads
     }
 
