@@ -107,6 +107,9 @@ workflow LongReadRNABenchmark {
         input:
             isoQuantGTF = IsoQuant.isoQuantGTF,
             stringTieGTF = StringTie.stringTieGTF,
+            bambuGTF = Bambu.bambuGTF,
+            flairGTF = Flair.flairGTF,
+            talonGTF = Talon.talonGTF,
             datasetName = datasetName
     }
 

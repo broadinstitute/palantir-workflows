@@ -404,9 +404,9 @@ task DenovoAnnotationGFFCompare {
     input {
         File isoQuantGTF
         File stringTieGTF
-        #File bambuGTF
-        #File flairGTF
-        #File talonGTF
+        File bambuGTF
+        File flairGTF
+        File talonGTF
         String datasetName
     }
 
@@ -418,15 +418,26 @@ task DenovoAnnotationGFFCompare {
 
     String isoQuantBasename = basename(isoQuantGTF)
     String stringTieBasename = basename(stringTieGTF)
+    String bambuBasename = basename(bambuGTF)
+    String flairBasename = basename(flairGTF)
+    String talonBasename = basename(talonGTF)
 
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
         mv ~{isoQuantGTF} .
         mv ~{stringTieGTF} .
+        mv ~{bambuGTF} .
+        mv ~{flairGTF} .
+        mv ~{talonGTF} .
 
         echo ~{isoQuantBasename} > gtfs.list
         echo ~{stringTieBasename} >> gtfs.list
+        echo ~{bambuBasename} >> gtfs.list
+        echo ~{flairBasename} >> gtfs.list
+        echo ~{talonBasename} >> gtfs.list
+
+        ls -lha
 
         cat gtfs.list
 
