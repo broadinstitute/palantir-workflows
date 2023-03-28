@@ -349,6 +349,7 @@ workflow CollectBGEImputationMetricsCohort {
 
     output {
         File correlation_plot = GenerateCorrelationPlots.correlation_plot
+        File correlation_data = GenerateCorrelationPlots.correlation_data
         File? correlation_file1_0_1 = PearsonByAF01.correlations
         File? correlation_file2_0_1 = PearsonByAF01_2.correlations
         File? correlation_file3_0_1 = PearsonByAF01_3.correlations
@@ -522,6 +523,7 @@ EOF
 
     output {
         File correlation_plot = "correlation_plot.svg"
+        File correlation_data = "correlation_data.tsv"
     }
 
     runtime {
