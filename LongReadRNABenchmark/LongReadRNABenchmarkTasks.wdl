@@ -322,7 +322,7 @@ task Talon {
 
         ls -lha
 
-        talon_filter_transcripts --db "~{datasetName}.db" -a ~{datasetName} --datasets ~{datasetName} --o "~{talonPrefix}_filter" --f "~{talonPrefix}.csv"
+        talon_filter_transcripts --db "~{datasetName}.db" -a ~{datasetName} --datasets ~{datasetName} --o "~{talonPrefix}_filter"
 
         ls -lha
 
