@@ -241,11 +241,7 @@ task Flair {
 
         samtools fastq ~{inputBAM} > "~{flairPrefix}_temp.fastq"
 
-        ls -lha
-
         bam2Bed12 -i ~{inputBAM} > "~{flairPrefix}.bed"
-
-        ls -lha
 
         flair correct \
         -q "~{flairPrefix}.bed" \
@@ -254,8 +250,6 @@ task Flair {
         -o ~{flairPrefix} \
         -t ~{numThreads}
 
-        ls -lha
-
         flair collapse \
         -g ~{referenceGenome} \
         -f ~{referenceAnnotation} \
@@ -263,12 +257,10 @@ task Flair {
         -q "~{flairPrefix}_all_corrected.bed" \
         -o ~{flairPrefix} \
         -t ~{numThreads}
-
-        ls -lha
     >>>
 
     output {
-        File flairGTF = "Flair_out_~{datasetName}.gtf"
+        File flairGTF = "Flair_out_~{datasetName}.isoforms.gtf"
         File monitoringLog = "monitoring.log"
     }
 

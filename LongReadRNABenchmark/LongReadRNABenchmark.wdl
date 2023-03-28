@@ -70,8 +70,8 @@ workflow LongReadRNABenchmark {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
-            referenceGenome = referenceGenome,
-            referenceGenomeIndex = referenceGenomeIndex,
+            #referenceGenome = referenceGenome,
+            #referenceGenomeIndex = referenceGenomeIndex,
             referenceAnnotation = referenceAnnotation,
             datasetName = datasetName,
             dataType = dataType,
