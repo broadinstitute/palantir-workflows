@@ -388,12 +388,20 @@ task DenovoAnnotationGFFCompare {
     Int diskSizeGB = 300
     File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
+    String isoQuantBasename = basename(isoQuantGTF)
+    String stringTieBasename = basename(stringTieGTF)
+
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        echo ~{isoQuantGTF} > gtfs.list
-        echo ~{stringTieGTF} >> gtfs.list
+        mv ~{isoQuantGTF} .
+        mv ~{stringTieGTF} .
 
+        echo ~{isoQuantBasename} > gtfs.list
+        echo ~{stringTieBasename} >> gtfs.list
+
+        cat gtfs.list
+        
         /usr/local/src/IsoQuant-3.1.1/misc/denovo_model_stats.py \
         --gtf_list gtfs.list \
         --output "~{datasetName}_denovo_stats"
