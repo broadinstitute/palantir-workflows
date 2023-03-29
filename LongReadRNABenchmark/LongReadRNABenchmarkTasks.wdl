@@ -189,6 +189,8 @@ task Bambu {
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
+        mkdir ~{bambuOutDir}
+        
         echo "library(bambu)" > bambu.R
         echo "fa.file <- \"~{referenceGenome}\"" >> bambu.R
         echo "gtf.file <- \"~{referenceAnnotation}\"" >> bambu.R
