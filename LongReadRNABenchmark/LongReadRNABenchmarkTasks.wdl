@@ -32,10 +32,14 @@ task IsoQuant {
         --threads ~{numThreads} \
         --labels ~{datasetName} \
         --output "IsoQuant_out_~{datasetName}"
+
+        mv \
+        IsoQuant_out_~{datasetName}/~{datasetName}/~{datasetName}.transcript_models.gtf \
+        IsoQuant_out_~{datasetName}.gtf
     >>>
 
     output {
-        File isoQuantGTF = "IsoQuant_out_~{datasetName}/~{datasetName}/~{datasetName}.transcript_models.gtf"
+        File isoQuantGTF = "IsoQuant_out_~{datasetName}.gtf"
         File isoQuantDB = "IsoQuant_out_~{datasetName}/~{referenceAnnotationBasename}.reduced.db"
         File monitoringLog = "monitoring.log"
     }
@@ -75,10 +79,14 @@ task IsoQuantReferenceFree {
         --threads ~{numThreads} \
         --labels ~{datasetName} \
         --output "IsoQuant_denovo_out_~{datasetName}"
+
+        mv \
+        IsoQuant_denovo_out_~{datasetName}/~{datasetName}/~{datasetName}.transcript_models.gtf \
+        IsoQuant_denovo_out_~{datasetName}.gtf
     >>>
 
     output {
-        File isoQuantDenovoGTF = "IsoQuant_denovo_out_~{datasetName}/~{datasetName}/~{datasetName}.transcript_models.gtf"
+        File isoQuantDenovoGTF = "IsoQuant_denovo_out_~{datasetName}.gtf"
         File monitoringLog = "monitoring.log"
     }
 
@@ -190,7 +198,7 @@ task Bambu {
         bash ~{monitoringScript} > monitoring.log &
 
         mkdir ~{bambuOutDir}
-        
+
         echo "library(bambu)" > bambu.R
         echo "fa.file <- \"~{referenceGenome}\"" >> bambu.R
         echo "gtf.file <- \"~{referenceAnnotation}\"" >> bambu.R
@@ -199,18 +207,12 @@ task Bambu {
         echo "lr.se <- bambu(reads = lr.bam, rcOutDir =\"~{bambuOutDir}\", annotations = bambuAnnotations, genome = fa.file, ncore = ~{numThreads})" >> bambu.R
         echo "writeBambuOutput(lr.se, path = \"~{bambuOutDir}\")" >> bambu.R
 
-        cat bambu.R
-
         R < bambu.R --no-save
-
-        ls -lha
 
         awk ' $3 >= 1 ' ~{bambuOutDir}/counts_transcript.txt | sort -k3,3n > ~{bambuOutDir}/expressed_annotations.gtf.counts
         cut -f1 ~{bambuOutDir}/expressed_annotations.gtf.counts > ~{bambuOutDir}/expressed_transcripts.txt
         grep -Ff ~{bambuOutDir}/expressed_transcripts.txt ~{bambuOutDir}/extended_annotations.gtf > ~{bambuGTFPath}
         cp ~{bambuOutDir}/expressed_annotations.gtf.counts "~{bambuGTFPath}.counts"
-
-        ls -lha
     >>>
 
     output {
@@ -305,32 +307,14 @@ task Talon {
         bash ~{monitoringScript} > monitoring.log &
 
         talon_label_reads --f ~{inputBAM} --t ~{numThreads} --o ~{talonPrefix} --g ~{referenceGenome}
-
-        ls -lha
-
         samtools calmd -@ ~{numThreads} --reference ~{referenceGenome} "~{talonPrefix}_labeled.sam" > "~{talonPrefix}_labeled.md.sam"
-
-        ls -lha
-
         talon_initialize_database --f ~{referenceAnnotation} --g ~{datasetName} --a ~{datasetName} --o ~{datasetName}
-
-        ls -lha
-
         echo ~{datasetName},~{datasetName},~{dataType},"~{talonPrefix}_labeled.md.sam" > "~{talonPrefix}.csv"
-
-        ls -lha
-
         talon --build ~{datasetName} --db "~{datasetName}.db" --o "~{talonPrefix}_raw" --f "~{talonPrefix}.csv" --threads ~{numThreads}
-
-        ls -lha
-
         talon_filter_transcripts --db "~{datasetName}.db" -a ~{datasetName} --datasets ~{datasetName} --o "~{talonPrefix}_filter"
-
-        ls -lha
-
         talon_create_GTF --build ~{datasetName} --db "~{datasetName}.db" -a ~{datasetName} --o ~{talonPrefix} --whitelist "~{talonPrefix}_filter"
 
-        ls -lha
+        mv Talon_out_~{datasetName}_talon.gtf Talon_out_~{datasetName}.gtf
     >>>
 
     output {
@@ -379,15 +363,11 @@ task ReducedAnnotationGFFCompare {
         --tool "isoquant" \
         --output "~{datasetName}_isoquant_reduced_db"
 
-        ls -lha "~{datasetName}_isoquant_reduced_db"
-
         /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
         --genedb ~{reducedAnnotationPrefix} \
         --gtf ~{stringTieGTF} \
         --tool "stringtie" \
         --output "~{datasetName}_stringtie_reduced_db"
-
-        ls -lha "~{datasetName}_stringtie_reduced_db"
     >>>
 
     output {
@@ -433,11 +413,11 @@ task DenovoAnnotationGFFCompare {
         mv ~{flairGTF} .
         mv ~{talonGTF} .
 
-        echo ~{isoQuantBasename} > gtfs.list
-        echo ~{stringTieBasename} >> gtfs.list
-        echo ~{bambuBasename} >> gtfs.list
-        echo ~{flairBasename} >> gtfs.list
-        echo ~{talonBasename} >> gtfs.list
+        echo "~{isoQuantBasename} isoquant" > gtfs.list
+        echo "~{stringTieBasename} stringtie" >> gtfs.list
+        echo "~{bambuBasename} bambu" >> gtfs.list
+        echo "~{flairBasename} flair" >> gtfs.list
+        echo "~{talonBasename} talon" >> gtfs.list
 
         ls -lha
 
