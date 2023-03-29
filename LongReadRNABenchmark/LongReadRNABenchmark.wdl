@@ -103,7 +103,7 @@ workflow LongReadRNABenchmark {
             bambuGTF = Bambu.bambuGTF,
             bambuGTFCounts = Bambu.bambuGTFCounts,
             flairGTF = Flair.flairGTF,
-            talonGTF = Talon.talon.GTF,
+            talonGTF = Talon.talonGTF,
             datasetName = datasetName
     }
 
