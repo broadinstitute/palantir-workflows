@@ -190,12 +190,12 @@ task Bambu {
         bash ~{monitoringScript} > monitoring.log &
 
         echo "library(bambu)" > bambu.R
-        echo "fa.file <- ~{referenceGenome}" >> bambu.R
-        echo "gtf.file <- ~{referenceAnnotation}" >> bambu.R
+        echo "fa.file <- \"~{referenceGenome}\"" >> bambu.R
+        echo "gtf.file <- \"~{referenceAnnotation}\"" >> bambu.R
         echo "bambuAnnotations <- prepareAnnotations(gtf.file)" >> bambu.R
-        echo "lr.bam <- ~{inputBAM}" >> bambu.R
-        echo "lr.se <- bambu(reads = lr.bam, rcOutDir = ~{bambuOutDir}, annotations = bambuAnnotations, genome = fa.file, ncore = ~{numThreads})" >> bambu.R
-        echo "writeBambuOutput(lr.se, path = ~{bambuOutDir})" >> bambu.R
+        echo "lr.bam <- \"~{inputBAM}\"" >> bambu.R
+        echo "lr.se <- bambu(reads = lr.bam, rcOutDir =\"~{bambuOutDir}\", annotations = bambuAnnotations, genome = fa.file, ncore = ~{numThreads})" >> bambu.R
+        echo "writeBambuOutput(lr.se, path = \"~{bambuOutDir}\")" >> bambu.R
 
         cat bambu.R
 
