@@ -219,6 +219,7 @@ task Bambu {
 
     output {
         File bambuGTF = "Bambu_out/Bambu_out_~{datasetName}.gtf"
+        File bambuGTFCounts = "Bambu_out/Bambu_out_~{datasetName}.gtf.counts"
         File monitoringLog = "monitoring.log"
     }
 
@@ -270,10 +271,12 @@ task Flair {
         -q "~{flairPrefix}_all_corrected.bed" \
         -o ~{flairPrefix} \
         -t ~{numThreads}
+
+        mv Flair_out_~{datasetName}.isoforms.gtf Flair_out_~{datasetName}.gtf
     >>>
 
     output {
-        File flairGTF = "Flair_out_~{datasetName}.isoforms.gtf"
+        File flairGTF = "Flair_out_~{datasetName}.gtf"
         File monitoringLog = "monitoring.log"
     }
 
@@ -340,6 +343,10 @@ task ReducedAnnotationGFFCompare {
         File excludedGTF
         File isoQuantGTF
         File stringTieGTF
+        File bambuGTF
+        File bambuGTFCounts
+        File flairGTF
+        File talonGTF
         String datasetName
     }
 
@@ -359,6 +366,8 @@ task ReducedAnnotationGFFCompare {
         mv ~{expressedGTF} .
         mv ~{expressedKeptGTF} .
 
+        cp ~{bambuGTFCounts} .
+
         /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
         --genedb ~{reducedAnnotationPrefix} \
         --gtf ~{isoQuantGTF} \
@@ -370,6 +379,24 @@ task ReducedAnnotationGFFCompare {
         --gtf ~{stringTieGTF} \
         --tool "stringtie" \
         --output "~{datasetName}_stringtie_reduced_db"
+
+        /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
+        --genedb ~{reducedAnnotationPrefix} \
+        --gtf ~{bambuGTF} \
+        --tool "bambu" \
+        --output "~{datasetName}_bambu_reduced_db"
+
+        /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
+        --genedb ~{reducedAnnotationPrefix} \
+        --gtf ~{flairGTF} \
+        --tool "flair" \
+        --output "~{datasetName}_flair_reduced_db"
+
+        /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
+        --genedb ~{reducedAnnotationPrefix} \
+        --gtf ~{talonGTF} \
+        --tool "talon" \
+        --output "~{datasetName}_talon_reduced_db"
     >>>
 
     output {
@@ -389,6 +416,7 @@ task DenovoAnnotationGFFCompare {
         File isoQuantGTF
         File stringTieGTF
         File bambuGTF
+        File bambuGTFCounts
         File flairGTF
         File talonGTF
         String datasetName
@@ -412,6 +440,7 @@ task DenovoAnnotationGFFCompare {
         mv ~{isoQuantGTF} .
         mv ~{stringTieGTF} .
         mv ~{bambuGTF} .
+        mv ~{bambuGTFCounts} .
         mv ~{flairGTF} .
         mv ~{talonGTF} .
 

@@ -100,6 +100,10 @@ workflow LongReadRNABenchmark {
             excludedGTF = excludedGTF,
             isoQuantGTF = IsoQuant.isoQuantGTF,
             stringTieGTF = StringTie.stringTieGTF,
+            bambuGTF = Bambu.bambuGTF,
+            bambuGTFCounts = Bambu.bambuGTFCounts,
+            flairGTF = Flair.flairGTF,
+            talonGTF = Talon.talon.GTF,
             datasetName = datasetName
     }
 
@@ -108,6 +112,7 @@ workflow LongReadRNABenchmark {
             isoQuantGTF = IsoQuant.isoQuantGTF,
             stringTieGTF = StringTie.stringTieGTF,
             bambuGTF = Bambu.bambuGTF,
+            bambuGTFCounts = Bambu.bambuGTFCounts,
             flairGTF = Flair.flairGTF,
             talonGTF = Talon.talonGTF,
             datasetName = datasetName
@@ -128,6 +133,7 @@ workflow LongReadRNABenchmark {
         File stringTieGTF = StringTie.stringTieGTF
         File stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF
         File bambuGTF = Bambu.bambuGTF
+        File bambuGTFCounts = Bambu.bambuGTFCounts
         File flairGTF = Flair.flairGTF
         File talonGTF = Talon.talonGTF
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
