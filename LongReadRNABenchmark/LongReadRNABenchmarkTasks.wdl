@@ -213,6 +213,8 @@ task Bambu {
         cut -f1 ~{bambuOutDir}/expressed_annotations.gtf.counts > ~{bambuOutDir}/expressed_transcripts.txt
         grep -Ff ~{bambuOutDir}/expressed_transcripts.txt ~{bambuOutDir}/extended_annotations.gtf > ~{bambuGTFPath}
         cp ~{bambuOutDir}/expressed_annotations.gtf.counts "~{bambuGTFPath}.counts"
+
+        ls -lha ~{bambuOutDir}
     >>>
 
     output {
