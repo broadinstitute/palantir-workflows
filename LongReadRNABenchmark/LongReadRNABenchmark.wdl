@@ -129,13 +129,23 @@ workflow LongReadRNABenchmark {
     output {
         File isoQuantDB = IsoQuant.isoQuantDB
         File isoQuantGTF = IsoQuant.isoQuantGTF
+        File isoQuantOut = IsoQuant.isoQuantOut
         File isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF
+        File isoQuantDenovoOut = IsoQuantReferenceFree.isoQuantDenovoOut
         File stringTieGTF = StringTie.stringTieGTF
         File stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF
         File bambuGTF = Bambu.bambuGTF
         File bambuGTFCounts = Bambu.bambuGTFCounts
+        File bambuOut = Bambu.bambuOut
         File flairGTF = Flair.flairGTF
         File talonGTF = Talon.talonGTF
+        File denovoAnnotationGFFCompareOut = DenovoAnnotationGFFCompare.gffCompareOutput
+        File reducedGffCompareOutIsoQuant = ReducedAnnotationGFFCompare.gffCompareOutputIsoQuant
+        File reducedGffCompareOutStringTie = ReducedAnnotationGFFCompare.gffCompareOutputStringTie
+        File reducedGffCompareOutBambu = ReducedAnnotationGFFCompare.gffCompareOutputBambu
+        File reducedGffCompareOutFlair = ReducedAnnotationGFFCompare.gffCompareOutputFlair
+        File reducedGffCompareOutTalon = ReducedAnnotationGFFCompare.gffCompareOutputTalon
+        File referenceFreeGFFCompareOut = ReferenceFreeGFFCompare.gffCompareOutput
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
         File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
         File stringTieMonitoringLog = StringTie.monitoringLog
@@ -143,5 +153,8 @@ workflow LongReadRNABenchmark {
         File bambuMonitoringLog = Bambu.monitoringLog
         File flairMonitoringLog = Flair.monitoringLog
         File talonMonitoringLog = Talon.monitoringLog
+        File reducedAnnotationGFFCompareMonitoringLog = ReducedAnnotationGFFCompare.monitoringLog
+        File denovoAnnotationGFFCompareMonitoringLog = DenovoAnnotationGFFCompare.monitoringLog
+        File referenceFreeGFFCompareMonitoringLog = ReferenceFreeGFFCompare.monitoringLog
     }
 }

@@ -36,11 +36,14 @@ task IsoQuant {
         mv \
         IsoQuant_out_~{datasetName}/~{datasetName}/~{datasetName}.transcript_models.gtf \
         IsoQuant_out_~{datasetName}.gtf
+
+        tar -zcvf IsoQuant_out_~{datasetName}.tar.gz IsoQuant_out_~{datasetName}/~{datasetName}
     >>>
 
     output {
         File isoQuantGTF = "IsoQuant_out_~{datasetName}.gtf"
         File isoQuantDB = "IsoQuant_out_~{datasetName}/~{referenceAnnotationBasename}.reduced.db"
+        File isoQuantOut = "IsoQuant_out_~{datasetName}.tar.gz"
         File monitoringLog = "monitoring.log"
     }
 
@@ -83,10 +86,13 @@ task IsoQuantReferenceFree {
         mv \
         IsoQuant_denovo_out_~{datasetName}/~{datasetName}/~{datasetName}.transcript_models.gtf \
         IsoQuant_denovo_out_~{datasetName}.gtf
+
+        tar -zcvf IsoQuant_denovo_out_~{datasetName}.tar.gz IsoQuant_denovo_out_~{datasetName}/~{datasetName}
     >>>
 
     output {
         File isoQuantDenovoGTF = "IsoQuant_denovo_out_~{datasetName}.gtf"
+        File isoQuantDenovoOut = "IsoQuant_denovo_out_~{datasetName}.tar.gz"
         File monitoringLog = "monitoring.log"
     }
 
@@ -214,12 +220,13 @@ task Bambu {
         grep -Ff ~{bambuOutDir}/expressed_transcripts.txt ~{bambuOutDir}/extended_annotations.gtf > ~{bambuGTFPath}
         cp ~{bambuOutDir}/expressed_annotations.gtf.counts "~{bambuGTFPath}.counts"
 
-        ls -lha ~{bambuOutDir}
+        tar -zcvf ~{bambuOutDir}_~{datasetName}.tar.gz ~{bambuOutDir}
     >>>
 
     output {
         File bambuGTF = "Bambu_out/Bambu_out_~{datasetName}.gtf"
         File bambuGTFCounts = "Bambu_out/Bambu_out_~{datasetName}.gtf.counts"
+        File bambuOut = "~{bambuOutDir}_~{datasetName}.tar.gz"
         File monitoringLog = "monitoring.log"
     }
 
@@ -397,9 +404,20 @@ task ReducedAnnotationGFFCompare {
         --gtf ~{talonGTF} \
         --tool "talon" \
         --output "~{datasetName}_talon_reduced_db"
+
+        tar -zcvf ~{datasetName}_isoquant_reduced_db.tar.gz ~{datasetName}_isoquant_reduced_db
+        tar -zcvf ~{datasetName}_stringtie_reduced_db.tar.gz ~{datasetName}_stringtie_reduced_db
+        tar -zcvf ~{datasetName}_bambu_reduced_db.tar.gz ~{datasetName}_bambu_reduced_db
+        tar -zcvf ~{datasetName}_flair_reduced_db.tar.gz ~{datasetName}_flair_reduced_db
+        tar -zcvf ~{datasetName}_talon_reduced_db.tar.gz ~{datasetName}_talon_reduced_db
     >>>
 
     output {
+        File gffCompareOutputIsoQuant = "~{datasetName}_isoquant_reduced_db.tar.gz"
+        File gffCompareOutputStringTie = "~{datasetName}_stringtie_reduced_db.tar.gz"
+        File gffCompareOutputBambu = "~{datasetName}_bambu_reduced_db.tar.gz"
+        File gffCompareOutputFlair = "~{datasetName}_flair_reduced_db.tar.gz"
+        File gffCompareOutputTalon = "~{datasetName}_talon_reduced_db.tar.gz"
         File monitoringLog = "monitoring.log"
     }
 
@@ -450,18 +468,15 @@ task DenovoAnnotationGFFCompare {
         echo "~{flairBasename} flair" >> gtfs.list
         echo "~{talonBasename} talon" >> gtfs.list
 
-        ls -lha
-
-        cat gtfs.list
-
         /usr/local/src/IsoQuant-3.1.1/misc/denovo_model_stats.py \
         --gtf_list gtfs.list \
         --output "~{datasetName}_denovo_stats"
 
-        ls -lha
+        tar -zcvf ~{datasetName}_denovo_stats.tar.gz ~{datasetName}_denovo_stats
     >>>
 
     output {
+        File gffCompareOutput = "~{datasetName}_denovo_stats.tar.gz"
         File monitoringLog = "monitoring.log"
     }
 
@@ -490,6 +505,8 @@ task ReferenceFreeGFFCompare {
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
+        mkdir ~{datasetName}_reference_free_stats
+
         gffcompare \
         -r ~{expressedGTF} \
         -o "~{datasetName}_isoquant_gffcompare" ~{isoQuantDenovoGTF}
@@ -497,9 +514,14 @@ task ReferenceFreeGFFCompare {
         gffcompare \
         -r ~{expressedGTF} \
         -o "~{datasetName}_stringtie_gffcompare" ~{stringTieDenovoGTF}
+
+        mv ~{datasetName}* ~{datasetName}_reference_free_stats
+
+        tar -zcvf ~{datasetName}_reference_free_stats.tar.gz ~{datasetName}_reference_free_stats
     >>>
 
     output {
+        File gffCompareOutput = "~{datasetName}_reference_free_stats.tar.gz"
         File monitoringLog = "monitoring.log"
     }
 
