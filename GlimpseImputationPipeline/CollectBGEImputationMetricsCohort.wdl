@@ -320,28 +320,28 @@ workflow CollectBGEImputationMetricsCohort {
 
     call GenerateCorrelationPlots {
         input:
-            correlation_file1 = PearsonByAF.correlations,
-            correlation_file2 = PearsonByAF_2.correlations,
-            correlation_file3 = PearsonByAF_3.correlations,
-            correlation_file4 = PearsonByAF_4.correlations,
-            correlation_file5 = PearsonByAF_5.correlations,
-            correlation_file6 = PearsonByAF_6.correlations,
-            correlation_file7 = PearsonByAF_7.correlations,
+            correlation_files = select_all([PearsonByAF.correlations,
+                PearsonByAF_2.correlations,
+                PearsonByAF_3.correlations,
+                PearsonByAF_4.correlations,
+                PearsonByAF_5.correlations,
+                PearsonByAF_6.correlations,
+                PearsonByAF_7.correlations]),
             ancestries = ancestries,
-            eval_sample_ids1 = sample_ids1,
-            eval_sample_ids2 = sample_ids2,
-            eval_sample_ids3 = sample_ids3,
-            eval_sample_ids4 = sample_ids4,
-            eval_sample_ids5 = sample_ids5,
-            eval_sample_ids6 = sample_ids6,
-            eval_sample_ids7 = sample_ids7,
-            configuration_label1 = configuration_label1,
-            configuration_label2 = configuration_label2,
-            configuration_label3 = configuration_label3,
-            configuration_label4 = configuration_label4,
-            configuration_label5 = configuration_label5,
-            configuration_label6 = configuration_label6,
-            configuration_label7 = configuration_label7,
+            eval_sample_ids = select_all([sample_ids1,
+                sample_ids2,
+                sample_ids3,
+                sample_ids4,
+                sample_ids5,
+                sample_ids6,
+                sample_ids7]),
+            configuration_labels = select_all([configuration_label1,
+                configuration_label2,
+                configuration_label3,
+                configuration_label4,
+                configuration_label5,
+                configuration_label6,
+                configuration_label7]),
             plot_width = plot_width,
             plot_height = plot_height,
             preemptible = preemptible
@@ -364,28 +364,10 @@ workflow CollectBGEImputationMetricsCohort {
 
 task GenerateCorrelationPlots {
     input {
-        File correlation_file1
-        File? correlation_file2
-        File? correlation_file3
-        File? correlation_file4
-        File? correlation_file5
-        File? correlation_file6
-        File? correlation_file7
+        Array[File] correlation_files
         Array[String] ancestries
-        Array[String] eval_sample_ids1
-        Array[String]? eval_sample_ids2
-        Array[String]? eval_sample_ids3
-        Array[String]? eval_sample_ids4
-        Array[String]? eval_sample_ids5
-        Array[String]? eval_sample_ids6
-        Array[String]? eval_sample_ids7
-        String configuration_label1
-        String? configuration_label2
-        String? configuration_label3
-        String? configuration_label4
-        String? configuration_label5
-        String? configuration_label6
-        String? configuration_label7
+        Array[Array[String]] eval_sample_ids
+        Array[String] configuration_labels
 
         Int plot_width
         Int plot_height
@@ -402,94 +384,21 @@ import pandas as pd
 correlation_dfs = []
 
 ancestries = ['~{sep="', '" ancestries}']
-eval_sample_ids1 = ['~{sep="', '" eval_sample_ids1}']
-ancestry_dict = dict()
-for i in range(len(eval_sample_ids1)):
-    ancestry_dict[eval_sample_ids1[i]] = ancestries[i]
+correlation_files = ['~{sep="', '" correlation_files}']
+configuration_labels = ['~{sep="', '" configuration_labels}']
+all_sample_ids = [~{sep=", " eval_sample_ids}]
 
-df = pd.read_csv('~{correlation_file1}', sep="\t", comment='#')
-if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
-    raise RuntimeError(f'~{correlation_file1} has no sites in it.')
-df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
-df['configuration'] = '~{configuration_label1}'
-correlation_dfs.append(df)
-
-if ~{if defined(correlation_file2) then "True" else "False"}:
-    eval_sample_ids2 = ['~{sep="', '" eval_sample_ids2}']
+for i in range(len(all_sample_ids)):
+    eval_sample_ids = all_sample_ids[i]
     ancestry_dict = dict()
-    for i in range(len(eval_sample_ids2)):
-        ancestry_dict[eval_sample_ids2[i]] = ancestries[i]
+    for i in range(len(eval_sample_ids)):
+        ancestry_dict[eval_sample_ids[i]] = ancestries[i]
 
-    df = pd.read_csv('~{correlation_file2}', sep="\t", comment='#')
+    df = pd.read_csv(correlation_files[i], sep="\t", comment='#')
     if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
-        raise RuntimeError(f'~{correlation_file2} has no sites in it.')
+        raise RuntimeError(f'{correlation_files[i]} has no sites in it.')
     df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
-    df['configuration'] = '~{configuration_label2}'
-    correlation_dfs.append(df)
-
-if ~{if defined(correlation_file3) then "True" else "False"}:
-    eval_sample_ids3 = ['~{sep="', '" eval_sample_ids3}']
-    ancestry_dict = dict()
-    for i in range(len(eval_sample_ids3)):
-        ancestry_dict[eval_sample_ids3[i]] = ancestries[i]
-
-    df = pd.read_csv('~{correlation_file3}', sep="\t", comment='#')
-    if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
-        raise RuntimeError(f'~{correlation_file3} has no sites in it.')
-    df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
-    df['configuration'] = '~{configuration_label3}'
-    correlation_dfs.append(df)
-
-if ~{if defined(correlation_file4) then "True" else "False"}:
-    eval_sample_ids4 = ['~{sep="', '" eval_sample_ids4}']
-    ancestry_dict = dict()
-    for i in range(len(eval_sample_ids4)):
-        ancestry_dict[eval_sample_ids4[i]] = ancestries[i]
-
-    df = pd.read_csv('~{correlation_file4}', sep="\t", comment='#')
-    if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
-        raise RuntimeError(f'~{correlation_file4} has no sites in it.')
-    df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
-    df['configuration'] = '~{configuration_label4}'
-    correlation_dfs.append(df)
-
-if ~{if defined(correlation_file5) then "True" else "False"}:
-    eval_sample_ids5 = ['~{sep="', '" eval_sample_ids5}']
-    ancestry_dict = dict()
-    for i in range(len(eval_sample_ids5)):
-        ancestry_dict[eval_sample_ids5[i]] = ancestries[i]
-
-    df = pd.read_csv('~{correlation_file5}', sep="\t", comment='#')
-    if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
-        raise RuntimeError(f'~{correlation_file5} has no sites in it.')
-    df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
-    df['configuration'] = '~{configuration_label5}'
-    correlation_dfs.append(df)
-
-if ~{if defined(correlation_file6) then "True" else "False"}:
-    eval_sample_ids6 = ['~{sep="', '" eval_sample_ids6}']
-    ancestry_dict = dict()
-    for i in range(len(eval_sample_ids6)):
-        ancestry_dict[eval_sample_ids6[i]] = ancestries[i]
-
-    df = pd.read_csv('~{correlation_file6}', sep="\t", comment='#')
-    if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
-        raise RuntimeError(f'~{correlation_file6} has no sites in it.')
-    df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
-    df['configuration'] = '~{configuration_label6}'
-    correlation_dfs.append(df)
-
-if ~{if defined(correlation_file7) then "True" else "False"}:
-    eval_sample_ids7 = ['~{sep="', '" eval_sample_ids7}']
-    ancestry_dict = dict()
-    for i in range(len(eval_sample_ids7)):
-        ancestry_dict[eval_sample_ids7[i]] = ancestries[i]
-
-    df = pd.read_csv('~{correlation_file7}', sep="\t", comment='#')
-    if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
-        raise RuntimeError(f'~{correlation_file7} has no sites in it.')
-    df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
-    df['configuration'] = '~{configuration_label7}'
+    df['configuration'] = configuration_labels[i]
     correlation_dfs.append(df)
 
 pd.concat(correlation_dfs).to_csv('correlation_data.tsv', sep='\t')
