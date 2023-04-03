@@ -66,7 +66,7 @@ task BcftoolsTask {
     String output_basename = basename(input_vcf, ".vcf.gz")
 
     command <<<
-        bcftools view -R ~{subset_intervals_bed} -O z -o ~{output_basename}.subset.vcf.gz
+        bcftools view -R ~{subset_intervals_bed} -O z -o ~{output_basename}.subset.vcf.gz ~{input_vcf}
         bcftools index -t ~{output_basename}.subset.vcf.gz
     >>>
 
