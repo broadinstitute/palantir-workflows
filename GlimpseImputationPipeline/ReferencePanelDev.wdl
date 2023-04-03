@@ -39,7 +39,7 @@ workflow ReferencePanelDev {
 
     call Glimpse2ImputationImport.Glimpse2Imputation as Imputation {
         input:
-            reference_chunks = write_lines(GlimpseSplitReferenceTask.split_reference_chunks),
+            reference_chunks = GlimpseSplitReferenceTask.split_reference_chunks_file,
             input_vcf = input_vcf,
             input_vcf_index = input_vcf_index,
             docker = glimpse_docker,
@@ -148,6 +148,7 @@ task GlimpseSplitReferenceTask {
 
     output {
         Array[File] split_reference_chunks = glob(reference_output_dir + "/*.bin")
+        File split_reference_chunks_file = write_lines(glob(reference_output_dir + "/*.bin"))
 
         # We don't know the exact filename of the chunks.txt file since we need to add leading zeros to the contigindex. Since WDL doesn't
         # have a built-in way to do that, we have to rely on the command section to do that. However, we don't have access to that bash
