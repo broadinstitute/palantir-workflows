@@ -62,4 +62,4 @@ workflows:
     primaryDescriptorPath: /LongReadRNABenchmark/LongReadRNABenchmark.wdl
   - name: RNAMetrics
     subclass: WDL
-    primaryDescriptorPath: /Utilities/RNAMetrics.wdl
+    primaryDescriptorPath: /Utilities/WDLs/RNAMetrics.wdl
