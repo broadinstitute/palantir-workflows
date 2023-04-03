@@ -13,14 +13,14 @@ workflow RNAMetrics {
         File ribosomalIntervals
     }
 
-    call RNAMetrics.RNASeQC2 as RNASeQC2 {
+    call RNAMetricsTasks.RNASeQC2 as RNASeQC2 {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
             referenceAnnotation = referenceAnnotation
     }
 
-    call RNAMetrics.CollectRNASeqMetrics as CollectRNASeqMetrics {
+    call RNAMetricsTasks.CollectRNASeqMetrics as CollectRNASeqMetrics {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
