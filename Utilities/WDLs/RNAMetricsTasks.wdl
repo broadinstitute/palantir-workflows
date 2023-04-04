@@ -62,11 +62,12 @@ task CollectRNASeqMetrics {
         bash ~{monitoringScript} > monitoring.log &
 
         java -Xms~{javaMemorySize}m -Xmx~{maxHeap}m -jar /usr/picard/picard.jar CollectRnaSeqMetrics \
-        REF_FLAT=~{refFlat} \
-        RIBOSOMAL_INTERVALS=~{ribosomalIntervals} \
-        STRAND_SPECIFICITY=SECOND_READ_TRANSCRIPTION_STRAND \
-        INPUT=~{inputBAM} \
-        OUTPUT=~{outputPrefix}.rna_metrics
+            REF_FLAT=~{refFlat} \
+            RIBOSOMAL_INTERVALS=~{ribosomalIntervals} \
+            STRAND_SPECIFICITY=SECOND_READ_TRANSCRIPTION_STRAND \
+            INPUT=~{inputBAM} \
+            VALIDATION_STRINGENCY=LENIENT \
+            OUTPUT=~{outputPrefix}.rna_metrics
     >>>
 
     runtime {
