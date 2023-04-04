@@ -18,7 +18,7 @@ task RNASeQC2 {
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        rnaseqc ~{referenceAnnotation} ~{inputBAM} . --sample ~{sampleId} --mapping_quality 40 --verbose
+        rnaseqc ~{referenceAnnotation} ~{inputBAM} . --sample=~{sampleId} --mapping_quality=40 --verbose
     >>>
 
     output {
