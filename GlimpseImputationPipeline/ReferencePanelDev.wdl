@@ -43,7 +43,9 @@ workflow ReferencePanelDev {
             input_vcf = input_vcf,
             input_vcf_index = input_vcf_index,
             docker = glimpse_docker,
-            ref_dict = ref_dict
+            ref_dict = ref_dict,
+            cpu_phase = 4,
+            mem_gb_phase = 64
     }
 
     output {

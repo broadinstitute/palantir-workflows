@@ -12,6 +12,10 @@ workflow Glimpse2Imputation {
         
         Int preemptible = 1
         String docker = "us.gcr.io/broad-dsde-methods/glimpse:2.0.0"
+        Int cpu_phase = 4
+        Int mem_gb_phase = 64
+        Int cpu_ligate = 4
+        Int mem_gb_ligate = 4
         File? monitoring_script
     }
 
@@ -23,6 +27,8 @@ workflow Glimpse2Imputation {
                 input_vcf_index = input_vcf_index,
                 preemptible = preemptible,
                 docker = docker,
+                cpu = cpu_phase,
+                mem_gb = mem_gb_phase,
                 monitoring_script = monitoring_script
         }
     }
@@ -35,6 +41,8 @@ workflow Glimpse2Imputation {
             ref_dict = ref_dict,
             preemptible = preemptible,
             docker = docker,
+            cpu = cpu_ligate,
+            mem_gb = mem_gb_ligate,
             monitoring_script = monitoring_script
     }
 
