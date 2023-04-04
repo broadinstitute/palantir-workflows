@@ -48,7 +48,7 @@ task CollectRNASeqMetrics {
         File ribosomalIntervals
     }
 
-    String docker =  "us.gcr.io/broad-gotc-prod/picard-cloud:latest"
+    String docker =  "us.gcr.io/broad-gotc-prod/picard-cloud:2.27.5"
     Int cpu = 1
     Int memoryMB = 8000
     Int diskSizeGB = ceil(size(inputBAM, "GiB") + size(referenceGenome, "GiB") + size(referenceGenomeIndex, "GiB")) + 100
