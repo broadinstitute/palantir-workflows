@@ -66,7 +66,7 @@ task CollectRNASeqMetrics {
             RIBOSOMAL_INTERVALS=~{ribosomalIntervals} \
             STRAND_SPECIFICITY=SECOND_READ_TRANSCRIPTION_STRAND \
             INPUT=~{inputBAM} \
-            VALIDATION_STRINGENCY=LENIENT \
+            VALIDATION_STRINGENCY=SILENT \
             OUTPUT=~{outputPrefix}.rna_metrics
     >>>
 
