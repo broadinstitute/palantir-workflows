@@ -95,8 +95,8 @@ task MultiQC {
     Int diskSizeGB = 50
 
     command <<<
-        mv ~{collectRNASeqMetricsOutput} .
-        mv ~{rnaSeQCOutput} .
+        cp ~{collectRNASeqMetricsOutput} .
+        cp ~{rnaSeQCOutput} .
 
         multiqc .
 
