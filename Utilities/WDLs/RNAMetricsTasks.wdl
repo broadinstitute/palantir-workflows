@@ -82,36 +82,3 @@ task CollectRNASeqMetrics {
         File monitoringLog = "monitoring.log"
     }
 }
-
-task MultiQC {
-    input {
-        File collectRNASeqMetricsOutput
-        File rnaSeQCOutput
-    }
-
-    String docker = "ewels/multiqc:latest"
-    Int cpu = 1
-    Int memoryGB = 16
-    Int diskSizeGB = 50
-
-    command <<<
-        cp ~{collectRNASeqMetricsOutput} .
-        cp ~{rnaSeQCOutput} .
-
-        multiqc .
-
-        tar -zcvf multiqc_data.tar.gz multiqc_data
-    >>>
-
-    runtime {
-        docker: docker
-        cpu: cpu
-        memory: "~{memoryGB} GiB"
-        disks: "local-disk ~{diskSizeGB} HDD"
-    }
-
-    output {
-        File multiQCReport = "multiqc_report.html"
-        File multiQCData = "multiqc_data.tar.gz"
-    }
-}
