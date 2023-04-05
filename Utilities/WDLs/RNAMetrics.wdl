@@ -30,6 +30,12 @@ workflow RNAMetrics {
             ribosomalIntervals = ribosomalIntervals
     }
 
+    call RNAMetricsTasks.MultiQC as MultiQC {
+        input:
+            collectRNASeqMetricsOutput = CollectRNASeqMetrics.rnaMetrics,
+            rnaSeQCOutput = RNASeQC2.metrics
+    }
+
     output {
         File exonCV = RNASeQC2.exonCV
         File exonReads = RNASeQC2.exonReads
@@ -40,5 +46,7 @@ workflow RNAMetrics {
         File rnaseqcMonitoringLog = RNASeQC2.monitoringLog
         File rnaMetrics = CollectRNASeqMetrics.rnaMetrics
         File collectRNASeqMetricsMonitoringLog = CollectRNASeqMetrics.monitoringLog
+        File multiQCReport = MultiQC.multiQCReport
+        File multiQCData = MultiQC.multiQCData
     }
 }
