@@ -106,7 +106,7 @@ task MultiQC {
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memoryMB} MiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 
