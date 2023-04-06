@@ -532,3 +532,50 @@ task ReferenceFreeGFFCompare {
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }
+
+task ReducedAnalysisSummarize {
+    input {
+        File reducedGffCompareOutIsoQuant
+        File reducedGffCompareOutStringTie
+        File reducedGffCompareOutBambu
+        File reducedGffCompareOutFlair
+        File reducedGffCompareOutTalon
+        String datasetName
+    }
+
+    String docker = "us.gcr.io/broad-dsde-methods/kockan/kockan-reduced-analysis-summarize:latest"
+    Int cpu = 1
+    Int memory = 32
+    Int diskSizeGB = 50
+
+    command <<<
+        cp ~{reducedGffCompareOutIsoQuant} .
+        cp ~{reducedGffCompareOutStringTie} .
+        cp ~{reducedGffCompareOutBambu} .
+        cp ~{reducedGffCompareOutFlair} .
+        cp ~{reducedGffCompareOutTalon} .
+
+        tar -xzvf ~{datasetName}_isoquant_reduced_db.tar.gz
+        tar -xzvf ~{datasetName}_stringtie_reduced_db.tar.gz
+        tar -xzvf ~{datasetName}_bambu_reduced_db.tar.gz
+        tar -xzvf ~{datasetName}_flair_reduced_db.tar.gz
+        tar -xzvf ~{datasetName}_talon_reduced_db.tar.gz
+
+        python3 /usr/local/src/plot_isoquant_results.py \
+            ~{datasetName}_talon_reduced_db/talon.novel.stats,~{datasetName}_flair_reduced_db/flair.novel.stats,~{datasetName}_bambu_reduced_db/bambu.novel.stats,~{datasetName}_stringtie_reduced_db/stringtie.novel.stats,~{datasetName}_isoquant_reduced_db/isoquant.novel.stats \
+            talon,flair,bambu,stringtie,isoquant \
+            ~{datasetName}
+    >>>
+
+    output {
+        File reducedAnalysisSummary = "~{datasetName}_reduced_analysis_summary.tsv"
+        File reducedAnalysisAccuracyPlots = "~{datasetName}_reduced_analysis_summary.png"
+    }
+
+    runtime {
+        docker: docker
+        cpu: cpu
+        memory: "~{memory} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+    }
+}

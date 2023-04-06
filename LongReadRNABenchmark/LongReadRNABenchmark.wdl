@@ -126,6 +126,16 @@ workflow LongReadRNABenchmark {
             datasetName = datasetName
     }
 
+    call LongReadRNABenchmarkTasks.ReducedAnalysisSummarize as ReducedAnalysisSummarize {
+        input:
+            reducedGffCompareOutIsoQuant = ReducedAnnotationGFFCompare.gffCompareOutputIsoQuant,
+            reducedGffCompareOutStringTie = ReducedAnnotationGFFCompare.gffCompareOutputStringTie,
+            reducedGffCompareOutBambu = ReducedAnnotationGFFCompare.gffCompareOutputBambu,
+            reducedGffCompareOutFlair = ReducedAnnotationGFFCompare.gffCompareOutputFlair,
+            reducedGffCompareOutTalon = ReducedAnnotationGFFCompare.gffCompareOutputTalon,
+            datasetName = datasetName
+    }
+
     output {
         File isoQuantDB = IsoQuant.isoQuantDB
         File isoQuantGTF = IsoQuant.isoQuantGTF
@@ -156,5 +166,7 @@ workflow LongReadRNABenchmark {
         File reducedAnnotationGFFCompareMonitoringLog = ReducedAnnotationGFFCompare.monitoringLog
         File denovoAnnotationGFFCompareMonitoringLog = DenovoAnnotationGFFCompare.monitoringLog
         File referenceFreeGFFCompareMonitoringLog = ReferenceFreeGFFCompare.monitoringLog
+        File reducedAnalysisSummary = ReducedAnalysisSummarize.reducedAnalysisSummary
+        File reducedAnalysisAccuracyPlots = ReducedAnalysisSummarize.reducedAnalysisAccuracyPlots
     }
 }
