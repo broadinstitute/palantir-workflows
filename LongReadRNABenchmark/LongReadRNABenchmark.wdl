@@ -82,10 +82,8 @@ workflow LongReadRNABenchmark {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
-            # Talon does not like reference genomes with the ">chr13 13" format.
-            # For now, input a different, processed version unlike the other tools
-            #referenceGenome = referenceGenome,
-            #referenceGenomeIndex = referenceGenomeIndex,
+            referenceGenome = referenceGenome,
+            referenceGenomeIndex = referenceGenomeIndex,
             referenceAnnotation = referenceAnnotation,
             datasetName = datasetName,
             dataType = dataType,
