@@ -401,7 +401,7 @@ task Tama {
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        python /usr/local/stc/tama/tama_collapse.py -b BAM -s ~{inputBAM} -f ~{referenceGenome} -p ~{outputPrefix} -x capped
+        python2 /usr/local/stc/tama/tama_collapse.py -b BAM -s ~{inputBAM} -f ~{referenceGenome} -p ~{outputPrefix} -x capped
     >>>
 
     output {
