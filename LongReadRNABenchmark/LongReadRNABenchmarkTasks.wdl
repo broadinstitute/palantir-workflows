@@ -381,6 +381,42 @@ task IsoSeq {
     }
 }
 
+task Tama {
+    input {
+        File inputBAM
+        File inputBAMIndex
+        File referenceGenome
+        File referenceGenomeIndex
+        String datasetName
+    }
+
+    String docker = "us.gcr.io/broad-dsde-methods/kockan/tama:latest"
+    Int cpu = 16
+    Int memory = 256
+    Int diskSizeGB = 500
+    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+
+    String outputPrefix = "TAMA_out_~{datasetName}"
+
+    command <<<
+        bash ~{monitoringScript} > monitoring.log &
+
+        python tama_collapse.py -b BAM -s ~{inputBAM} -f ~{referenceGenome} -p ~{outputPrefix} -x capped
+    >>>
+
+    output {
+        File tamaBED = "~{outputPrefix}.bed"
+        File monitoringLog = "monitoring.log"
+    }
+
+    runtime {
+        docker: docker
+        cpu: cpu
+        memory: "~{memory} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+    }
+}
+
 task ReducedAnnotationGFFCompare {
     input {
         File reducedAnnotationDB

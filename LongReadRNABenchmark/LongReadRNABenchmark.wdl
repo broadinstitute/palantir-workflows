@@ -100,6 +100,15 @@ workflow LongReadRNABenchmark {
             numThreads = numThreads
     }
 
+    call LongReadRNABenchmarkTasks.Tama as Tama {
+        input:
+            inputBAM = inputBAM,
+            inputBAMIndex = inputBAMIndex,
+            referenceGenome = referenceGenome,
+            referenceGenomeIndex = referenceGenomeIndex,
+            datasetName = datasetName
+    }
+
     call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompare {
         input:
             reducedAnnotationDB = IsoQuant.isoQuantDB,
@@ -158,6 +167,7 @@ workflow LongReadRNABenchmark {
         File flairGTF = Flair.flairGTF
         File talonGTF = Talon.talonGTF
         File isoSeqGFF = IsoSeq.isoSeqGFF
+        File tamaBED = Tama.tamaBED
         File denovoAnnotationGFFCompareOut = DenovoAnnotationGFFCompare.gffCompareOutput
         File reducedGffCompareOutIsoQuant = ReducedAnnotationGFFCompare.gffCompareOutputIsoQuant
         File reducedGffCompareOutStringTie = ReducedAnnotationGFFCompare.gffCompareOutputStringTie
@@ -173,6 +183,7 @@ workflow LongReadRNABenchmark {
         File flairMonitoringLog = Flair.monitoringLog
         File talonMonitoringLog = Talon.monitoringLog
         File isoSeqMonitoringLog = IsoSeq.monitoringLog
+        File tamaMonitoringLog = Tama.monitoringLog
         File reducedAnnotationGFFCompareMonitoringLog = ReducedAnnotationGFFCompare.monitoringLog
         File denovoAnnotationGFFCompareMonitoringLog = DenovoAnnotationGFFCompare.monitoringLog
         File referenceFreeGFFCompareMonitoringLog = ReferenceFreeGFFCompare.monitoringLog
