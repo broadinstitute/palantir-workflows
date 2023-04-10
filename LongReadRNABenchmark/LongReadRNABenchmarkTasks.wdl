@@ -417,6 +417,47 @@ task Tama {
     }
 }
 
+task Flames {
+    input {
+        File inputBAM
+        File inputBAMIndex
+        File referenceGenome
+        File referenceGenomeIndex
+        File referenceAnnotation
+        String datasetName
+    }
+
+    String docker = "us.gcr.io/broad-dsde-methods/kockan/flames:latest"
+    Int cpu = 16
+    Int memory = 256
+    Int diskSizeGB = 500
+    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+
+    command <<<
+        bash ~{monitoringScript} > monitoring.log &
+
+        /usr/local/src/FLAMES/python/bulk_long_pipeline.py \
+        --gff3 ~{referenceAnnotation} \
+        --genomefa ~{referenceGenome} \
+        --outdir . \
+        --inbam ~{inputBAM}
+
+        mv isoform_annotated.gff3 FLAMES_out_~{datasetName}.gff
+    >>>
+
+    output {
+        File flamesGFF = "FLAMES_out_~{datasetName}.gff"
+        File monitoringLog = "monitoring.log"
+    }
+
+    runtime {
+        docker: docker
+        cpu: cpu
+        memory: "~{memory} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+    }
+}
+
 task ReducedAnnotationGFFCompare {
     input {
         File reducedAnnotationDB
