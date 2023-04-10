@@ -361,7 +361,9 @@ task IsoSeq {
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        pbmm2 align --num-threads ~{numThreads} --preset ISOSEQ --sort ~{referenceGenome} ~{inputBAM}  pbmm_realigned.bam
+        samtools fastq ~{inputBAM} > temp.fastq
+
+        pbmm2 align --num-threads ~{numThreads} --preset ISOSEQ --sort ~{referenceGenome} temp.fastq  pbmm_realigned.bam
 
         isoseq3 collapse pbmm_realigned.bam "IsoSeq_out_~{datasetName}.gff"
     >>>
