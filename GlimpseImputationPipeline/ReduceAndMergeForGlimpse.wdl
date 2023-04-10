@@ -7,6 +7,8 @@ workflow ReduceAndMergeForGlimpse {
         File ref_fasta
         File ref_fasta_fai
 
+        Boolean intersect_with_panel
+
         File? reference_panel_sites_vcf
         File? reference_panel_sites_vcf_index
 
@@ -20,6 +22,7 @@ workflow ReduceAndMergeForGlimpse {
             input:
                 vcf = vcf_and_index.left,
                 vcf_index = vcf_and_index.right,
+                intersect_with_panel = intersect_with_panel,
                 reference_panel_sites_vcf = reference_panel_sites_vcf,
                 reference_panel_sites_vcf_index = reference_panel_sites_vcf_index,
                 preemptible = preemptible
@@ -47,6 +50,8 @@ task ReduceAnnotations {
         File vcf
         File vcf_index
 
+        Boolean intersect_with_panel
+
         File? reference_panel_sites_vcf
         File? reference_panel_sites_vcf_index
 
@@ -67,9 +72,11 @@ task ReduceAnnotations {
         bcftools index -t ~{basename}.input_for_glimpse.vcf.gz
         
         # Intersect the output above with the reference panel sites to exclude any sites that are not in the panel
-        bcftools isec -p isec_output -n =2 -w 1 -O z --threads 4 ~{basename}.input_for_glimpse.vcf.gz ~{reference_panel_sites_vcf}
-        mv isec_output/0000.vcf.gz ~{basename}.input_for_glimpse.vcf.gz
-        mv isec_output/0000.vcf.gz.tbi ~{basename}.input_for_glimpse.vcf.gz.tbi
+        if [ "~{if intersect_with_panel then "True" else "False"}" = "True" ]; then
+            bcftools isec -p isec_output -n =2 -w 1 -O z --threads 4 ~{basename}.input_for_glimpse.vcf.gz ~{reference_panel_sites_vcf}
+            mv isec_output/0000.vcf.gz ~{basename}.input_for_glimpse.vcf.gz
+            mv isec_output/0000.vcf.gz.tbi ~{basename}.input_for_glimpse.vcf.gz.tbi
+        fi
     >>>
 
     runtime {
