@@ -346,6 +346,8 @@ task IsoSeq {
     input {
         File inputBAM
         File inputBAMIndex
+        File referenceGenome
+        File referenceGenomeIndex
         String datasetName
         Int numThreads
     }
@@ -356,13 +358,14 @@ task IsoSeq {
     Int diskSizeGB = 500
     File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
+    File pbmmBAM = "pbmm_realigned.bam"
+
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        isoseq3 \
-        collapse \
-        ~{inputBAM} \
-        "IsoSeq_out_~{datasetName}.gff"
+        pbmm2 align --numThreads ~{numThreads} --preset ISOSEQ --sort ~{inputBAM} ~{referenceGenome} ~{pbmmBAM}
+
+        isoseq3 collapse ~{pbmmBAM} "IsoSeq_out_~{datasetName}.gff"
     >>>
 
     output {

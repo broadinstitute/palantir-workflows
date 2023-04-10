@@ -94,6 +94,8 @@ workflow LongReadRNABenchmark {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
+            referenceGenome = referenceGenome,
+            referenceGenomeIndex = referenceGenomeIndex,
             datasetName = datasetName,
             numThreads = numThreads
     }
