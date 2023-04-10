@@ -155,7 +155,7 @@ workflow LongReadRNABenchmark {
         File bambuOut = Bambu.bambuOut
         File flairGTF = Flair.flairGTF
         File talonGTF = Talon.talonGTF
-        File isoSeqGTF = IsoSeq.isoSeqGTF
+        File isoSeqGFF = IsoSeq.isoSeqGFF
         File denovoAnnotationGFFCompareOut = DenovoAnnotationGFFCompare.gffCompareOutput
         File reducedGffCompareOutIsoQuant = ReducedAnnotationGFFCompare.gffCompareOutputIsoQuant
         File reducedGffCompareOutStringTie = ReducedAnnotationGFFCompare.gffCompareOutputStringTie

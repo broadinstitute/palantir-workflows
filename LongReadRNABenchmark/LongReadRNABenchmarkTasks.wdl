@@ -362,11 +362,11 @@ task IsoSeq {
         isoseq3 \
         collapse \
         ~{inputBAM} \
-        "IsoSeq_out_~{datasetName}.gtf"
+        "IsoSeq_out_~{datasetName}.gff"
     >>>
 
     output {
-        File isoSeqGTF = "IsoSeq_out_~{datasetName}.gtf"
+        File isoSeqGFF = "IsoSeq_out_~{datasetName}.gff"
         File monitoringLog = "monitoring.log"
     }
 
