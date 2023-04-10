@@ -66,6 +66,9 @@ workflows:
   - name: ReduceAndMergeForGlimpse
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/ReduceAndMergeForGlimpse.wdl
+  - name: ReduceAndMergeForGlimpseByInterval
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/ReduceAndMergeForGlimpseByInterval.wdl
   - name: CollectBGEImputationMetrics
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/CollectBGEImputationMetrics.wdl
