@@ -119,6 +119,13 @@ workflow LongReadRNABenchmark {
             datasetName = datasetName
     }
 
+    call LongReadRNABenchmarkTasks.Cupcake as Cupcake {
+        input:
+            inputBAM = inputBAM,
+            inputBAMIndex = inputBAMIndex,
+            datasetName = datasetName
+    }
+
     call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompare {
         input:
             reducedAnnotationDB = IsoQuant.isoQuantDB,
@@ -179,6 +186,7 @@ workflow LongReadRNABenchmark {
         File isoSeqGFF = IsoSeq.isoSeqGFF
         File tamaBED = Tama.tamaBED
         File flamesGFF = Flames.flamesGFF
+        File cupcakeGFF = Cupcake.cupcakeGFF
         File denovoAnnotationGFFCompareOut = DenovoAnnotationGFFCompare.gffCompareOutput
         File reducedGffCompareOutIsoQuant = ReducedAnnotationGFFCompare.gffCompareOutputIsoQuant
         File reducedGffCompareOutStringTie = ReducedAnnotationGFFCompare.gffCompareOutputStringTie
@@ -196,6 +204,7 @@ workflow LongReadRNABenchmark {
         File isoSeqMonitoringLog = IsoSeq.monitoringLog
         File tamaMonitoringLog = Tama.monitoringLog
         File flamesMonitoringLog = Flames.monitoringLog
+        File cupcakeMonitoringLog = Cupcake.monitoringLog
         File reducedAnnotationGFFCompareMonitoringLog = ReducedAnnotationGFFCompare.monitoringLog
         File denovoAnnotationGFFCompareMonitoringLog = DenovoAnnotationGFFCompare.monitoringLog
         File referenceFreeGFFCompareMonitoringLog = ReferenceFreeGFFCompare.monitoringLog

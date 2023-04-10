@@ -458,6 +458,48 @@ task Flames {
     }
 }
 
+task Cupcake {
+    input {
+        File inputBAM
+        File inputBAMIndex
+        String datasetName
+    }
+
+    String docker = "us.gcr.io/broad-dsde-methods/kockan/cdna-cupcake:latest"
+    Int cpu = 16
+    Int memory = 256
+    Int diskSizeGB = 500
+    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+
+    String outputPrefix = "Cupcake_out_~{datasetName}"
+
+    command <<<
+        bash ~{monitoringScript} > monitoring.log &
+
+        samtools fastq ~{inputBAM} > temp.fastq
+
+        python3 cDNA_Cupcake/cupcake/tofu/collapse_isoforms_by_sam.py \
+        --input temp.fastq --fq \
+        --bam ~{inputBAM} \
+        --prefix ~{outputPrefix} \
+        --cpus ~{cpu}
+
+        mv ~{outputPrefix}.collapsed.gff ~{outputPrefix}.gff
+    >>>
+
+    output {
+        File cupcakeGFF = "~{outputPrefix}.gff"
+        File monitoringLog = "monitoring.log"
+    }
+
+    runtime {
+        docker: docker
+        cpu: cpu
+        memory: "~{memory} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+    }
+}
+
 task ReducedAnnotationGFFCompare {
     input {
         File reducedAnnotationDB
