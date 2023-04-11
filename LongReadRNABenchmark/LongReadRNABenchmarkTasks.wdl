@@ -438,14 +438,18 @@ task Flames {
 
         mkdir fq
 
-        samtools fastq ~{inputBAM} > usr/local/src/fq/temp.fastq
+        samtools fastq ~{inputBAM} > ./fq/temp.fastq
+
+        ls -lha
+
+        ls -lha ./fq
 
         python3 /usr/local/src/FLAMES/python/bulk_long_pipeline.py \
         --gff3 ~{referenceAnnotation} \
         --genomefa ~{referenceGenome} \
-        --outdir /usr/local/src/ \
-        --fqdir /usr/local/src/fq \
-        --inbam ~{inputBAM}
+        --fqdir ./fq \
+        --inbam ~{inputBAM} \
+        --outdir .
 
         ls -lha
 
