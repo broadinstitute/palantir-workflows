@@ -447,7 +447,7 @@ task Flames {
         python3 /usr/local/src/FLAMES/python/bulk_long_pipeline.py \
         --gff3 ~{referenceAnnotation} \
         --genomefa ~{referenceGenome} \
-        --fqdir ./fq \
+        --fq_dir ./fq \
         --inbam ~{inputBAM} \
         --outdir .
 
