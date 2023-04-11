@@ -436,10 +436,15 @@ task Flames {
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
+        mkdir fq
+
+        samtools fastq ~{inputBAM} > usr/local/src/fq/temp.fastq
+
         python3 /usr/local/src/FLAMES/python/bulk_long_pipeline.py \
         --gff3 ~{referenceAnnotation} \
         --genomefa ~{referenceGenome} \
         --outdir /usr/local/src/ \
+        --fqdir /usr/local/src/fq \
         --inbam ~{inputBAM}
 
         ls -lha
