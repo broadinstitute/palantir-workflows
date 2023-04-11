@@ -401,7 +401,7 @@ task Tama {
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        python2 /usr/local/stc/tama/tama_collapse.py -b BAM -s ~{inputBAM} -f ~{referenceGenome} -p ~{outputPrefix} -x capped
+        python2 /usr/local/src/tama/tama_collapse.py -b BAM -s ~{inputBAM} -f ~{referenceGenome} -p ~{outputPrefix} -x capped
     >>>
 
     output {
@@ -442,6 +442,8 @@ task Flames {
         --outdir . \
         --inbam ~{inputBAM}
 
+        ls -lha
+
         mv isoform_annotated.gff3 FLAMES_out_~{datasetName}.gff
     >>>
 
@@ -478,12 +480,14 @@ task Cupcake {
 
         samtools fastq ~{inputBAM} > temp.fastq
 
-        python3 cDNA_Cupcake/cupcake/tofu/collapse_isoforms_by_sam.py \
+        python3 /usr/local/src/cDNA_Cupcake/cupcake/tofu/collapse_isoforms_by_sam.py \
         --input temp.fastq --fq \
         --bam ~{inputBAM} \
         --prefix ~{outputPrefix} \
         --cpus ~{cpu}
 
+        ls -lha
+        
         mv ~{outputPrefix}.collapsed.gff ~{outputPrefix}.gff
     >>>
 
