@@ -446,7 +446,7 @@ task Flames {
         --fq_dir ./fq \
         --inbam ~{inputBAM} \
         --outdir .
-        
+
         mv isoform_annotated.gff3 FLAMES_out_~{datasetName}.gff
     >>>
 
@@ -489,7 +489,7 @@ task Cupcake {
         --input out.fastq --fq \
         --bam ~{inputBAM} \
         --prefix ~{outputPrefix} \
-        --cpus ~{cpu}
+        --cpus 1
 
         mv ~{outputPrefix}.collapsed.gff ~{outputPrefix}.gff
     >>>
