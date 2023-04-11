@@ -117,7 +117,7 @@ workflow CollectBGEImputationMetricsCohortScattered {
                 configuration_label4 = configuration_label4,
                 annotation_vcf4 = annotation_vcf4,
                 ancestry_to_af_annotation_map4 = ancestry_to_af_annotation_map4,
-                intervals4 = contig.right,
+                intervals4 = contig.left,
 
                 sample_ids5 = sample_ids5,
                 eval_vcf5 = eval_vcf5,
