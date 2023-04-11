@@ -439,7 +439,7 @@ task Flames {
         python3 /usr/local/src/FLAMES/python/bulk_long_pipeline.py \
         --gff3 ~{referenceAnnotation} \
         --genomefa ~{referenceGenome} \
-        --outdir . \
+        --outdir /usr/local/src/ \
         --inbam ~{inputBAM}
 
         ls -lha
@@ -487,7 +487,7 @@ task Cupcake {
         --cpus ~{cpu}
 
         ls -lha
-        
+
         mv ~{outputPrefix}.collapsed.gff ~{outputPrefix}.gff
     >>>
 
