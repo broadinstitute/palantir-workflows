@@ -330,7 +330,11 @@ workflow LongReadRNABenchmark {
             reducedGffCompareOutIsoSeq = ReducedAnnotationGFFCompareIsoSeq.gffCompareOutput,
             reducedGffCompareOutFlames = ReducedAnnotationGFFCompareFlames.gffCompareOutput,
             reducedGffCompareOutCupcake = ReducedAnnotationGFFCompareCupcake.gffCompareOutput,
-            datasetName = datasetName
+            datasetName = datasetName,
+            cpu = 1,
+            memoryGB = 32,
+            diskSizeGB = 100,
+            docker = "us.gcr.io/broad-dsde-methods/kockan/kockan-reduced-analysis-summarize:latest"
     }
 
     output {

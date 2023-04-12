@@ -581,13 +581,15 @@ task ReducedAnalysisSummarize {
         File reducedGffCompareOutBambu
         File reducedGffCompareOutFlair
         File reducedGffCompareOutTalon
+        File reducedGffCompareOutIsoSeq
+        File reducedGffCompareOutFlames
+        File reducedGffCompareOutCupcake
         String datasetName
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/kockan-reduced-analysis-summarize:latest"
     }
-
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/kockan-reduced-analysis-summarize:latest"
-    Int cpu = 1
-    Int memory = 32
-    Int diskSizeGB = 50
 
     command <<<
         cp ~{reducedGffCompareOutIsoQuant} .
@@ -595,16 +597,29 @@ task ReducedAnalysisSummarize {
         cp ~{reducedGffCompareOutBambu} .
         cp ~{reducedGffCompareOutFlair} .
         cp ~{reducedGffCompareOutTalon} .
+        cp ~{reducedGffCompareOutIsoSeq} .
+        cp ~{reducedGffCompareOutFlames} .
+        cp ~{reducedGffCompareOutCupcake} .
 
         tar -xzvf ~{datasetName}_isoquant_reduced_db.tar.gz
         tar -xzvf ~{datasetName}_stringtie_reduced_db.tar.gz
         tar -xzvf ~{datasetName}_bambu_reduced_db.tar.gz
         tar -xzvf ~{datasetName}_flair_reduced_db.tar.gz
         tar -xzvf ~{datasetName}_talon_reduced_db.tar.gz
+        tar -xzvf ~{datasetName}_isoseq_reduced_db.tar.gz
+        tar -xzvf ~{datasetName}_flames_reduced_db.tar.gz
+        tar -xzvf ~{datasetName}_cupcake_reduced_db.tar.gz
 
         python3 /usr/local/src/plot_isoquant_results.py \
-            ~{datasetName}_talon_reduced_db/talon.novel.stats,~{datasetName}_flair_reduced_db/flair.novel.stats,~{datasetName}_bambu_reduced_db/bambu.novel.stats,~{datasetName}_stringtie_reduced_db/stringtie.novel.stats,~{datasetName}_isoquant_reduced_db/isoquant.novel.stats \
-            talon,flair,bambu,stringtie,isoquant \
+            ~{datasetName}_talon_reduced_db/talon.novel.stats,\
+            ~{datasetName}_flair_reduced_db/flair.novel.stats,\
+            ~{datasetName}_bambu_reduced_db/bambu.novel.stats,\
+            ~{datasetName}_stringtie_reduced_db/stringtie.novel.stats,\
+            ~{datasetName}_isoquant_reduced_db/isoquant.novel.stats,\
+            ~{datasetName}_isoseq_reduced_db/isoseq.novel.stats,\
+            ~{datasetName}_flames_reduced_db/flames.novel.stats,\
+            ~{datasetName}_cupcake_reduced_db/cupcake.novel.stats \
+            talon,flair,bambu,stringtie,isoquant,isoseq,flames,cupcake \
             ~{datasetName}
     >>>
 
@@ -616,7 +631,7 @@ task ReducedAnalysisSummarize {
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memory} GiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }
