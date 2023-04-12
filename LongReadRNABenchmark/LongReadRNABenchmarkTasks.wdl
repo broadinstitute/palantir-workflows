@@ -125,8 +125,7 @@ task StringTie {
         -o "StringTie_out_~{datasetName}.gtf" \
         -G ~{referenceAnnotation} \
         -p ~{numThreads} \
-        -L \
-        ~{inputBAM}
+        -L ~{inputBAM}
     >>>
 
     output {
@@ -161,8 +160,7 @@ task StringTieReferenceFree {
         stringtie \
         -o "StringTie_denovo_out_~{datasetName}.gtf" \
         -p ~{numThreads} \
-        -L \
-        ~{inputBAM}
+        -L ~{inputBAM}
     >>>
 
     output {
