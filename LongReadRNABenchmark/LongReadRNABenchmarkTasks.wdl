@@ -24,8 +24,6 @@ task IsoQuant {
 command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        touch ~{outputPrefix}/~{referenceAnnotationBasename}.reduced.db
-
         /usr/local/src/IsoQuant-3.1.1/isoquant.py \
         --reference ~{referenceGenome} \
         ~{completeGeneDBOption} \
@@ -39,6 +37,8 @@ command <<<
         mv ~{outputPrefix}/~{datasetName}/~{datasetName}.transcript_models.gtf ~{outputPrefix}.gtf
 
         tar -zcvf ~{outputPrefix}.tar.gz ~{outputPrefix}/~{datasetName}
+
+        touch ~{outputPrefix}/~{referenceAnnotationBasename}.reduced.db
     >>>
 
     output {
