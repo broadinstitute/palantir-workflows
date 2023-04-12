@@ -75,14 +75,14 @@ task StringTie {
     }
 
     #String referenceAnnotationOption = if defined(referenceAnnotation) then "-G ~{referenceAnnotation}" else ""
-    String referenceAnnotationOption = "-G ~{referenceAnnotation}"
+    #String referenceAnnotationOption = "-G ~{referenceAnnotation}"
 
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
         stringtie \
         -o "StringTie_out_~{datasetName}.gtf" \
-        ~{referenceAnnotationOption} \
+        -G ~{referenceAnnotation} \
         -p ~{numThreads} \
         -L ~{inputBAM}
     >>>
