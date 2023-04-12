@@ -19,7 +19,7 @@ task IsoQuant {
 
     String outputPrefix = if defined(referenceAnnotation) then "IsoQuant_out_~{datasetName}" else "IsoQuant_denovo_out_~{datasetName}"
     String completeGeneDBOption = if defined(referenceAnnotation) then "--complete_genedb" else ""
-    String referenceAnnotationBasename = if defined(referenceAnnotation) then basename(referenceAnnotation, ".reduced.gtf") else ""
+    String referenceAnnotationBasename = basename(referenceAnnotation, ".reduced.gtf")
 
     command <<<
         bash ~{monitoringScript} > monitoring.log &
