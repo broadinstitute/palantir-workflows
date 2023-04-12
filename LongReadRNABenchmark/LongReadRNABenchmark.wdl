@@ -33,21 +33,21 @@ workflow LongReadRNABenchmark {
             monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
-#    call LongReadRNABenchmarkTasks.IsoQuant as IsoQuantReferenceFree {
-#        input:
-#            inputBAM = inputBAM,
-#            inputBAMIndex = inputBAMIndex,
-#            referenceGenome = referenceGenome,
-#            referenceGenomeIndex = referenceGenomeIndex,
-#            datasetName = datasetName,
-#            dataType = dataType,
-#            cpu = 16,
-#            numThreads = 32,
-#            memoryGB = 256,
-#            diskSizeGB = 500,
-#            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant:latest",
-#            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
-#    }
+    call LongReadRNABenchmarkTasks.IsoQuant as IsoQuantReferenceFree {
+        input:
+            inputBAM = inputBAM,
+            inputBAMIndex = inputBAMIndex,
+            referenceGenome = referenceGenome,
+            referenceGenomeIndex = referenceGenomeIndex,
+            datasetName = datasetName,
+            dataType = dataType,
+            cpu = 16,
+            numThreads = 32,
+            memoryGB = 256,
+            diskSizeGB = 500,
+            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant:latest",
+            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+    }
 
     call LongReadRNABenchmarkTasks.StringTie as StringTie {
         input:
@@ -62,17 +62,17 @@ workflow LongReadRNABenchmark {
             monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
-#    call LongReadRNABenchmarkTasks.StringTie as StringTieReferenceFree {
-#        input:
-#            inputBAM = inputBAM,
-#            datasetName = datasetName,
-#            cpu = 16,
-#            numThreads = 32,
-#            memoryGB = 64,
-#            diskSizeGB = 500,
-#            docker = "us.gcr.io/broad-dsde-methods/kockan/stringtie:latest",
-#            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
-#    }
+    call LongReadRNABenchmarkTasks.StringTie as StringTieReferenceFree {
+        input:
+            inputBAM = inputBAM,
+            datasetName = datasetName,
+            cpu = 16,
+            numThreads = 32,
+            memoryGB = 64,
+            diskSizeGB = 500,
+            docker = "us.gcr.io/broad-dsde-methods/kockan/stringtie:latest",
+            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+    }
 
     call LongReadRNABenchmarkTasks.Bambu as Bambu {
         input:
@@ -312,13 +312,13 @@ workflow LongReadRNABenchmark {
 #            datasetName = datasetName
 #    }
 
-#    call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompare {
-#        input:
-#            isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF,
-#            stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF,
-#            expressedGTF = expressedGTF,
-#            datasetName = datasetName
-#    }
+    call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompare {
+        input:
+            isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF,
+            stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF,
+            expressedGTF = expressedGTF,
+            datasetName = datasetName
+    }
 
     call LongReadRNABenchmarkTasks.ReducedAnalysisSummarize as ReducedAnalysisSummarize {
         input:
@@ -341,8 +341,8 @@ workflow LongReadRNABenchmark {
         File isoQuantDB = IsoQuant.isoQuantDB
         File isoQuantGTF = IsoQuant.isoQuantGTF
         File isoQuantOut = IsoQuant.isoQuantOut
-        #File isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF
-        #File isoQuantDenovoOut = IsoQuantReferenceFree.isoQuantDenovoOut
+        File isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF
+        File isoQuantDenovoOut = IsoQuantReferenceFree.isoQuantDenovoOut
         File stringTieGTF = StringTie.stringTieGTF
         #File stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF
         File bambuGTF = Bambu.bambuGTF
@@ -363,7 +363,7 @@ workflow LongReadRNABenchmark {
 #        File reducedGffCompareOutIsoSeq = ReducedAnnotationGFFCompareIsoSeq.gffCompareOutput
         File reducedGffCompareOutFlames = ReducedAnnotationGFFCompareFlames.gffCompareOutput
 #        File reducedGffCompareOutCupcake = ReducedAnnotationGFFCompareCupcake.gffCompareOutput
-        #File? referenceFreeGFFCompareOut = ReferenceFreeGFFCompare.gffCompareOutput
+        File referenceFreeGFFCompareOut = ReferenceFreeGFFCompare.gffCompareOutput
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
         #File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
         File stringTieMonitoringLog = StringTie.monitoringLog
