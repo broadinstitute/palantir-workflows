@@ -301,23 +301,31 @@ workflow LongReadRNABenchmark {
 #            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
 #    }
 
-#    call LongReadRNABenchmarkTasks.DenovoAnnotationGFFCompare as DenovoAnnotationGFFCompare {
-#        input:
-#            isoQuantGTF = IsoQuant.isoQuantGTF,
-#            stringTieGTF = StringTie.stringTieGTF,
-#            bambuGTF = Bambu.bambuGTF,
-#            bambuGTFCounts = Bambu.bambuGTFCounts,
-#            flairGTF = Flair.flairGTF,
-#            talonGTF = Talon.talonGTF,
-#            datasetName = datasetName
-#    }
+    call LongReadRNABenchmarkTasks.DenovoAnnotationGFFCompare as DenovoAnnotationGFFCompare {
+        input:
+            isoQuantGTF = IsoQuant.isoQuantGTF,
+            stringTieGTF = StringTie.stringTieGTF,
+            bambuGTF = Bambu.bambuGTF,
+            bambuGTFCounts = Bambu.bambuGTFCounts,
+            flairGTF = Flair.flairGTF,
+            talonGTF = Talon.talonGTF,
+            datasetName = datasetName,
+            cpu = 8,
+            memoryGB = 64,
+            diskSizeGB = 300,
+            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+    }
 
     call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompare {
         input:
             isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantGTF,
             stringTieDenovoGTF = StringTieReferenceFree.stringTieGTF,
             expressedGTF = expressedGTF,
-            datasetName = datasetName
+            datasetName = datasetName,
+            cpu = 8,
+            memoryGB = 64,
+            diskSizeGB = 300,
+            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
     }
 
     call LongReadRNABenchmarkTasks.ReducedAnalysisSummarize as ReducedAnalysisSummarize {
@@ -354,7 +362,7 @@ workflow LongReadRNABenchmark {
         File tamaBED = Tama.tamaBED
         File flamesGFF = Flames.flamesGFF
         File cupcakeGFF = Cupcake.cupcakeGFF
-        #File? denovoAnnotationGFFCompareOut = DenovoAnnotationGFFCompare.gffCompareOutput
+        File denovoAnnotationGFFCompareOut = DenovoAnnotationGFFCompare.gffCompareOutput
         File reducedGffCompareOutIsoQuant = ReducedAnnotationGFFCompareIsoQuant.gffCompareOutput
         File reducedGffCompareOutStringTie = ReducedAnnotationGFFCompareStringTie.gffCompareOutput
         File reducedGffCompareOutBambu = ReducedAnnotationGFFCompareBambu.gffCompareOutput
@@ -375,7 +383,6 @@ workflow LongReadRNABenchmark {
         File tamaMonitoringLog = Tama.monitoringLog
         File flamesMonitoringLog = Flames.monitoringLog
         File cupcakeMonitoringLog = Cupcake.monitoringLog
-        #File denovoAnnotationGFFCompareMonitoringLog = DenovoAnnotationGFFCompare.monitoringLog
         File reducedAnalysisSummary = ReducedAnalysisSummarize.reducedAnalysisSummary
         File reducedAnalysisAccuracyPlots = ReducedAnalysisSummarize.reducedAnalysisAccuracyPlots
     }

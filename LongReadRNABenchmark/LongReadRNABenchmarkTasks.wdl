@@ -76,7 +76,7 @@ task StringTie {
 
         stringtie \
         -o "StringTie_out_~{datasetName}.gtf" \
-~       ~{"-G " + referenceAnnotation} \
+        ~{"-G " + referenceAnnotation} \
         -p ~{numThreads} \
         -L ~{inputBAM}
     >>>
@@ -472,13 +472,11 @@ task DenovoAnnotationGFFCompare {
         File flairGTF
         File talonGTF
         String datasetName
+        Int cpu
+        Int memoryGB
+        Int diskSizeGB
+        String docker
     }
-
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
-    Int cpu = 8
-    Int memory = 64
-    Int diskSizeGB = 300
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
     String isoQuantBasename = basename(isoQuantGTF)
     String stringTieBasename = basename(stringTieGTF)
@@ -487,8 +485,6 @@ task DenovoAnnotationGFFCompare {
     String talonBasename = basename(talonGTF)
 
     command <<<
-        bash ~{monitoringScript} > monitoring.log &
-
         mv ~{isoQuantGTF} .
         mv ~{stringTieGTF} .
         mv ~{bambuGTF} .
@@ -511,13 +507,12 @@ task DenovoAnnotationGFFCompare {
 
     output {
         File gffCompareOutput = "~{datasetName}_denovo_stats.tar.gz"
-        File monitoringLog = "monitoring.log"
     }
 
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memory} GiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }
@@ -528,12 +523,11 @@ task ReferenceFreeGFFCompare {
         File stringTieDenovoGTF
         File expressedGTF
         String datasetName
+        Int cpu = 8
+        Int memoryGB = 64
+        Int diskSizeGB = 300
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
     }
-
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
-    Int cpu = 8
-    Int memory = 64
-    Int diskSizeGB = 300
 
     command <<<
         mkdir ~{datasetName}_reference_free_stats
@@ -558,7 +552,7 @@ task ReferenceFreeGFFCompare {
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memory} GiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }
