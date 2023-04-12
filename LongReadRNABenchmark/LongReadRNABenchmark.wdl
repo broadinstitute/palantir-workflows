@@ -256,6 +256,51 @@ workflow LongReadRNABenchmark {
             docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
     }
 
+    call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareIsoSeq {
+        input:
+            reducedAnnotationDB = IsoQuant.isoQuantDB,
+            expressedGTF = expressedGTF,
+            expressedKeptGTF = expressedKeptGTF,
+            excludedGTF = excludedGTF,
+            inputGTF = IsoSeq.isoSeqGFF,
+            toolName = "isoseq",
+            datasetName = datasetName,
+            cpu = 8,
+            memoryGB = 64,
+            diskSizeGB = 300,
+            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+    }
+
+    call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareFlames {
+        input:
+            reducedAnnotationDB = IsoQuant.isoQuantDB,
+            expressedGTF = expressedGTF,
+            expressedKeptGTF = expressedKeptGTF,
+            excludedGTF = excludedGTF,
+            inputGTF = Flames.flamesGFF,
+            toolName = "flames",
+            datasetName = datasetName,
+            cpu = 8,
+            memoryGB = 64,
+            diskSizeGB = 300,
+            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+    }
+
+    call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareCupcake {
+        input:
+            reducedAnnotationDB = IsoQuant.isoQuantDB,
+            expressedGTF = expressedGTF,
+            expressedKeptGTF = expressedKeptGTF,
+            excludedGTF = excludedGTF,
+            inputGTF = Cupcake.cupcakeGFF,
+            toolName = "cupcake",
+            datasetName = datasetName,
+            cpu = 8,
+            memoryGB = 64,
+            diskSizeGB = 300,
+            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+    }
+
 #    call LongReadRNABenchmarkTasks.DenovoAnnotationGFFCompare as DenovoAnnotationGFFCompare {
 #        input:
 #            isoQuantGTF = IsoQuant.isoQuantGTF,
@@ -282,6 +327,9 @@ workflow LongReadRNABenchmark {
             reducedGffCompareOutBambu = ReducedAnnotationGFFCompareBambu.gffCompareOutput,
             reducedGffCompareOutFlair = ReducedAnnotationGFFCompareFlair.gffCompareOutput,
             reducedGffCompareOutTalon = ReducedAnnotationGFFCompareTalon.gffCompareOutput,
+            reducedGffCompareOutIsoSeq = ReducedAnnotationGFFCompareIsoSeq.gffCompareOutput,
+            reducedGffCompareOutFlames = ReducedAnnotationGFFCompareFlames.gffCompareOutput,
+            reducedGffCompareOutCupcake = ReducedAnnotationGFFCompareCupcake.gffCompareOutput,
             datasetName = datasetName
     }
 
@@ -308,6 +356,9 @@ workflow LongReadRNABenchmark {
         File reducedGffCompareOutBambu = ReducedAnnotationGFFCompareBambu.gffCompareOutput
         File reducedGffCompareOutFlair = ReducedAnnotationGFFCompareFlair.gffCompareOutput
         File reducedGffCompareOutTalon = ReducedAnnotationGFFCompareTalon.gffCompareOutput
+        File reducedGffCompareOutIsoSeq = ReducedAnnotationGFFCompareIsoSeq.gffCompareOutput
+        File reducedGffCompareOutFlames = ReducedAnnotationGFFCompareFlames.gffCompareOutput
+        File reducedGffCompareOutCupcake = ReducedAnnotationGFFCompareCupcake.gffCompareOutput
         #File? referenceFreeGFFCompareOut = ReferenceFreeGFFCompare.gffCompareOutput
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
         #File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
