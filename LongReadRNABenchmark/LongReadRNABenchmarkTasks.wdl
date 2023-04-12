@@ -6,7 +6,6 @@ task IsoQuant {
         File inputBAMIndex
         File referenceGenome
         File referenceGenomeIndex
-        #File referenceAnnotation
         File? referenceAnnotation
         String datasetName
         String dataType
@@ -21,12 +20,11 @@ task IsoQuant {
     String outputPrefix = if defined(referenceAnnotation) then "IsoQuant_out_~{datasetName}" else "IsoQuant_denovo_out_~{datasetName}"
     String completeGeneDBOption = if defined(referenceAnnotation) then "--complete_genedb" else ""
     String referenceAnnotationBasename = if defined(referenceAnnotation) then basename(select_first([referenceAnnotation]), ".reduced.gtf") else ""
-    #String outputPrefix = "IsoQuant_out_~{datasetName}"
-    #String completeGeneDBOption = "--complete_genedb"
-    #String referenceAnnotationBasename = basename(referenceAnnotation, ".reduced.gtf")
 
 command <<<
         bash ~{monitoringScript} > monitoring.log &
+
+        touch IsoQuant_out_~{datasetName}/~{referenceAnnotationBasename}.reduced.db
 
         /usr/local/src/IsoQuant-3.1.1/isoquant.py \
         --reference ~{referenceGenome} \
@@ -44,11 +42,9 @@ command <<<
     >>>
 
     output {
-        File? isoQuantGTF = "IsoQuant_out_~{datasetName}.gtf"
-        File? isoQuantOut = "IsoQuant_out_~{datasetName}.tar.gz"
-        File? isoQuantDB = "IsoQuant_out_~{datasetName}/~{referenceAnnotationBasename}.reduced.db"
-        File? isoQuantDenovoGTF = "IsoQuant_denovo_out_~{datasetName}.gtf"
-        File? isoQuantDenovoOut = "IsoQuant_denovo_out_~{datasetName}.tar.gz"
+        File isoQuantGTF = "~{outputPrefix}.gtf"
+        File isoQuantOut = "~{outputPrefix}.tar.gz"
+        File isoQuantDB = "IsoQuant_out_~{datasetName}/~{referenceAnnotationBasename}.reduced.db"
         File monitoringLog = "monitoring.log"
     }
 
@@ -63,8 +59,7 @@ command <<<
 task StringTie {
     input {
         File inputBAM
-        File referenceAnnotation
-        #File? referenceAnnotation
+        File? referenceAnnotation
         String datasetName
         Int cpu
         Int numThreads
@@ -74,8 +69,7 @@ task StringTie {
         File monitoringScript
     }
 
-    String referenceAnnotationOption = if defined(referenceAnnotation) then "-G ~{referenceAnnotation}" else ""
-    #String referenceAnnotationOption = "-G ~{referenceAnnotation}"
+    String outputPrefix = if defined(referenceAnnotation) then "StringTie_out_~{datasetName}" else "StringTie_denovo_out_~{datasetName}"
 
     command <<<
         bash ~{monitoringScript} > monitoring.log &
@@ -88,8 +82,7 @@ task StringTie {
     >>>
 
     output {
-        File? stringTieGTF = "StringTie_out_~{datasetName}.gtf"
-        File? stringTieDenovoGTF = "StringTie_denovo_out_~{datasetName}.gtf"
+        File stringTieGTF = "~{outputPrefix}.gtf"
         File monitoringLog = "monitoring.log"
     }
 
@@ -541,11 +534,8 @@ task ReferenceFreeGFFCompare {
     Int cpu = 8
     Int memory = 64
     Int diskSizeGB = 300
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
     command <<<
-        bash ~{monitoringScript} > monitoring.log &
-
         mkdir ~{datasetName}_reference_free_stats
 
         gffcompare \
@@ -563,7 +553,6 @@ task ReferenceFreeGFFCompare {
 
     output {
         File gffCompareOutput = "~{datasetName}_reference_free_stats.tar.gz"
-        File monitoringLog = "monitoring.log"
     }
 
     runtime {
@@ -607,12 +596,7 @@ task ReducedAnalysisSummarize {
         tar -xzvf ~{datasetName}_flames_reduced_db.tar.gz
 
         python3 /usr/local/src/plot_isoquant_results.py \
-            ~{datasetName}_talon_reduced_db/talon.novel.stats,\
-            ~{datasetName}_flair_reduced_db/flair.novel.stats,\
-            ~{datasetName}_bambu_reduced_db/bambu.novel.stats,\
-            ~{datasetName}_stringtie_reduced_db/stringtie.novel.stats,\
-            ~{datasetName}_isoquant_reduced_db/isoquant.novel.stats,\
-            ~{datasetName}_flames_reduced_db/flames.novel.stats \
+            ~{datasetName}_talon_reduced_db/talon.novel.stats,~{datasetName}_flair_reduced_db/flair.novel.stats,~{datasetName}_bambu_reduced_db/bambu.novel.stats,~{datasetName}_stringtie_reduced_db/stringtie.novel.stats,~{datasetName}_isoquant_reduced_db/isoquant.novel.stats,~{datasetName}_flames_reduced_db/flames.novel.stats \
             talon,flair,bambu,stringtie,isoquant,flames \
             ~{datasetName}
     >>>

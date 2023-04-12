@@ -341,10 +341,10 @@ workflow LongReadRNABenchmark {
         File isoQuantDB = IsoQuant.isoQuantDB
         File isoQuantGTF = IsoQuant.isoQuantGTF
         File isoQuantOut = IsoQuant.isoQuantOut
-        File isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF
-        File isoQuantDenovoOut = IsoQuantReferenceFree.isoQuantDenovoOut
+        File isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantGTF
+        File isoQuantDenovoOut = IsoQuantReferenceFree.isoQuantOut
         File stringTieGTF = StringTie.stringTieGTF
-        #File stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF
+        File stringTieDenovoGTF = StringTieReferenceFree.stringTieGTF
         File bambuGTF = Bambu.bambuGTF
         File bambuGTFCounts = Bambu.bambuGTFCounts
         File bambuOut = Bambu.bambuOut
@@ -365,9 +365,9 @@ workflow LongReadRNABenchmark {
 #        File reducedGffCompareOutCupcake = ReducedAnnotationGFFCompareCupcake.gffCompareOutput
         File referenceFreeGFFCompareOut = ReferenceFreeGFFCompare.gffCompareOutput
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
-        #File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
+        File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
         File stringTieMonitoringLog = StringTie.monitoringLog
-        #File stringTieReferenceFreeMonitoringLog = StringTieReferenceFree.monitoringLog
+        File stringTieReferenceFreeMonitoringLog = StringTieReferenceFree.monitoringLog
         File bambuMonitoringLog = Bambu.monitoringLog
         File flairMonitoringLog = Flair.monitoringLog
         File talonMonitoringLog = Talon.monitoringLog
@@ -376,7 +376,6 @@ workflow LongReadRNABenchmark {
         File flamesMonitoringLog = Flames.monitoringLog
         File cupcakeMonitoringLog = Cupcake.monitoringLog
         #File denovoAnnotationGFFCompareMonitoringLog = DenovoAnnotationGFFCompare.monitoringLog
-        #File referenceFreeGFFCompareMonitoringLog = ReferenceFreeGFFCompare.monitoringLog
         File reducedAnalysisSummary = ReducedAnalysisSummarize.reducedAnalysisSummary
         File reducedAnalysisAccuracyPlots = ReducedAnalysisSummarize.reducedAnalysisAccuracyPlots
     }
