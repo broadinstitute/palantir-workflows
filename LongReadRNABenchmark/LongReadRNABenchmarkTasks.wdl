@@ -6,100 +6,52 @@ task IsoQuant {
         File inputBAMIndex
         File referenceGenome
         File referenceGenomeIndex
-        File referenceAnnotation
+        File? referenceAnnotation
         String datasetName
         String dataType
+        Int cpu
         Int numThreads
+        Int memoryGB
+        Int diskSizeGB
+        String docker
+        File monitoringScript
     }
 
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant:latest"
-    Int cpu = 16
-    Int memory = 256
-    Int diskSizeGB = 500
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
-
-    String referenceAnnotationBasename = basename(referenceAnnotation, ".reduced.gtf")
+    String outputPrefix = if defined(referenceAnnotation) then "IsoQuant_out_~{datasetName}" else "IsoQuant_denovo_out_~{datasetName}"
+    String completeGeneDBOption = if defined(referenceAnnotation) then "--complete_genedb" else ""
+    String referenceAnnotationBasename = if defined(referenceAnnotation) then basename(referenceAnnotation, ".reduced.gtf") else ""
 
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
         /usr/local/src/IsoQuant-3.1.1/isoquant.py \
         --reference ~{referenceGenome} \
-        --complete_genedb \
-        --genedb ~{referenceAnnotation} \
+        ~{completeGeneDBOption} \
+        ~{"--genedb " + referenceAnnotation} \
         --bam ~{inputBAM} \
         --data_type ~{dataType} \
         --threads ~{numThreads} \
         --labels ~{datasetName} \
-        --output "IsoQuant_out_~{datasetName}"
+        --output ~{outputPrefix}
 
-        mv \
-        IsoQuant_out_~{datasetName}/~{datasetName}/~{datasetName}.transcript_models.gtf \
-        IsoQuant_out_~{datasetName}.gtf
+        mv ~{outputPrefix}/~{datasetName}/~{datasetName}.transcript_models.gtf ~{outputPrefix}.gtf
 
-        tar -zcvf IsoQuant_out_~{datasetName}.tar.gz IsoQuant_out_~{datasetName}/~{datasetName}
+        tar -zcvf ~{outputPrefix}.tar.gz ~{outputPrefix}/~{datasetName}
     >>>
 
     output {
-        File isoQuantGTF = "IsoQuant_out_~{datasetName}.gtf"
-        File isoQuantDB = "IsoQuant_out_~{datasetName}/~{referenceAnnotationBasename}.reduced.db"
-        File isoQuantOut = "IsoQuant_out_~{datasetName}.tar.gz"
+        File? isoQuantGTF = "IsoQuant_out_~{datasetName}.gtf"
+        File? isoQuantOut = "IsoQuant_out_~{datasetName}.tar.gz"
+        File? isoQuantDB = "IsoQuant_out_~{datasetName}/~{referenceAnnotationBasename}.reduced.db"
+        File? isoQuantDenovoGTF = "IsoQuant_denovo_out_~{datasetName}.gtf"
+        File? isoQuantDenovoOut = "IsoQuant_denovo_out_~{datasetName}.tar.gz"
         File monitoringLog = "monitoring.log"
     }
 
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memory} GiB"
-        disks: "local-disk ~{diskSizeGB} HDD"
-    }
-}
-
-task IsoQuantReferenceFree {
-    input {
-        File inputBAM
-        File inputBAMIndex
-        File referenceGenome
-        File referenceGenomeIndex
-        String datasetName
-        String dataType
-        Int numThreads
-    }
-
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant:latest"
-    Int cpu = 16
-    Int memory = 256
-    Int diskSizeGB = 500
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
-
-    command <<<
-        bash ~{monitoringScript} > monitoring.log &
-
-        /usr/local/src/IsoQuant-3.1.1/isoquant.py \
-        --reference ~{referenceGenome} \
-        --bam ~{inputBAM} \
-        --data_type ~{dataType} \
-        --threads ~{numThreads} \
-        --labels ~{datasetName} \
-        --output "IsoQuant_denovo_out_~{datasetName}"
-
-        mv \
-        IsoQuant_denovo_out_~{datasetName}/~{datasetName}/~{datasetName}.transcript_models.gtf \
-        IsoQuant_denovo_out_~{datasetName}.gtf
-
-        tar -zcvf IsoQuant_denovo_out_~{datasetName}.tar.gz IsoQuant_denovo_out_~{datasetName}/~{datasetName}
-    >>>
-
-    output {
-        File isoQuantDenovoGTF = "IsoQuant_denovo_out_~{datasetName}.gtf"
-        File isoQuantDenovoOut = "IsoQuant_denovo_out_~{datasetName}.tar.gz"
-        File monitoringLog = "monitoring.log"
-    }
-
-    runtime {
-        docker: docker
-        cpu: cpu
-        memory: "~{memory} GiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }
@@ -107,71 +59,38 @@ task IsoQuantReferenceFree {
 task StringTie {
     input {
         File inputBAM
-        File referenceAnnotation
+        File? referenceAnnotation
         String datasetName
+        Int cpu
         Int numThreads
+        Int memoryGB
+        Int diskSizeGB
+        String docker
+        File monitoringScript
     }
 
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/stringtie:latest"
-    Int cpu = 16
-    Int memory = 256
-    Int diskSizeGB = 500
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+    String referenceAnnotationOption = if defined(referenceAnnotation) then "-G ~{referenceAnnotation}" else ""
 
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
         stringtie \
         -o "StringTie_out_~{datasetName}.gtf" \
-        -G ~{referenceAnnotation} \
+        ~{referenceAnnotationOption} \
         -p ~{numThreads} \
         -L ~{inputBAM}
     >>>
 
     output {
-        File stringTieGTF = "StringTie_out_~{datasetName}.gtf"
+        File? stringTieGTF = "StringTie_out_~{datasetName}.gtf"
+        File? stringTieDenovoGTF = "StringTie_denovo_out_~{datasetName}.gtf"
         File monitoringLog = "monitoring.log"
     }
 
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memory} GiB"
-        disks: "local-disk ~{diskSizeGB} HDD"
-    }
-}
-
-task StringTieReferenceFree {
-    input {
-        File inputBAM
-        String datasetName
-        Int numThreads
-    }
-
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/stringtie:latest"
-    Int cpu = 16
-    Int memory = 256
-    Int diskSizeGB = 500
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
-
-    command <<<
-        bash ~{monitoringScript} > monitoring.log &
-
-        stringtie \
-        -o "StringTie_denovo_out_~{datasetName}.gtf" \
-        -p ~{numThreads} \
-        -L ~{inputBAM}
-    >>>
-
-    output {
-        File stringTieDenovoGTF = "StringTie_denovo_out_~{datasetName}.gtf"
-        File monitoringLog = "monitoring.log"
-    }
-
-    runtime {
-        docker: docker
-        cpu: cpu
-        memory: "~{memory} GiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }
@@ -185,14 +104,13 @@ task Bambu {
         File referenceAnnotation
         String datasetName
         String dataType
+        Int cpu
         Int numThreads
+        Int memoryGB
+        Int diskSizeGB
+        String docker
+        File monitoringScript
     }
-
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/bambu:latest"
-    Int cpu = 16
-    Int memory = 256
-    Int diskSizeGB = 500
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
     String referenceAnnotationBasename = basename(referenceAnnotation, ".reduced.gtf")
     String bambuOutDir = "Bambu_out"
@@ -231,7 +149,7 @@ task Bambu {
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memory} GiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }
@@ -244,14 +162,13 @@ task Flair {
         File referenceGenomeIndex
         File referenceAnnotation
         String datasetName
+        Int cpu
         Int numThreads
+        Int memoryGB
+        Int diskSizeGB
+        String docker
+        File monitoringScript
     }
-
-    String docker = "brookslab/flair:latest"
-    Int cpu = 16
-    Int memory = 256
-    Int diskSizeGB = 500
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
     String flairPrefix = "Flair_out_~{datasetName}"
 
@@ -288,7 +205,7 @@ task Flair {
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memory} GiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }
@@ -302,14 +219,13 @@ task Talon {
         File referenceAnnotation
         String datasetName
         String dataType
+        Int cpu
         Int numThreads
+        Int memoryGB
+        Int diskSizeGB
+        String docker
+        File monitoringScript
     }
-
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/talon:latest"
-    Int cpu = 16
-    Int memory = 256
-    Int diskSizeGB = 500
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
     String talonPrefix = "Talon_out_~{datasetName}"
 
@@ -335,7 +251,7 @@ task Talon {
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memory} GiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }
@@ -347,14 +263,13 @@ task IsoSeq {
         File referenceGenome
         File referenceGenomeIndex
         String datasetName
+        Int cpu
         Int numThreads
+        Int memoryGB
+        Int diskSizeGB
+        String docker
+        File monitoringScript
     }
-
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/isoseq3:latest"
-    Int cpu = 16
-    Int memory = 256
-    Int diskSizeGB = 500
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
     command <<<
         bash ~{monitoringScript} > monitoring.log &
@@ -374,7 +289,7 @@ task IsoSeq {
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memory} GiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }
@@ -386,13 +301,12 @@ task Tama {
         File referenceGenome
         File referenceGenomeIndex
         String datasetName
+        Int cpu
+        Int memoryGB
+        Int diskSizeGB
+        String docker
+        File monitoringScript
     }
-
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/tama:latest"
-    Int cpu = 16
-    Int memory = 256
-    Int diskSizeGB = 500
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
     String outputPrefix = "TAMA_out_~{datasetName}"
 
@@ -410,7 +324,7 @@ task Tama {
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memory} GiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }
@@ -423,13 +337,12 @@ task Flames {
         File referenceGenomeIndex
         File referenceAnnotation
         String datasetName
+        Int cpu = 16
+        Int memoryGB = 256
+        Int diskSizeGB = 500
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/flames:latest"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
-
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/flames:latest"
-    Int cpu = 16
-    Int memory = 256
-    Int diskSizeGB = 500
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
     command <<<
         bash ~{monitoringScript} > monitoring.log &
@@ -456,7 +369,7 @@ task Flames {
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memory} GiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }
@@ -466,13 +379,12 @@ task Cupcake {
         File inputBAM
         File inputBAMIndex
         String datasetName
+        Int cpu
+        Int memoryGB
+        Int diskSizeGB
+        String docker
+        File monitoringScript
     }
-
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/cdna-cupcake:latest"
-    Int cpu = 16
-    Int memory = 256
-    Int diskSizeGB = 500
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
 
     String outputPrefix = "Cupcake_out_~{datasetName}"
 
@@ -500,30 +412,25 @@ task Cupcake {
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memory} GiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }
 
 task ReducedAnnotationGFFCompare {
     input {
-        # Database/truth/test files
         File reducedAnnotationDB
         File expressedGTF
         File expressedKeptGTF
         File excludedGTF
-
-        # Tool/dataset inputs; some tools such as Bambu also require a counts file
         File inputGTF
         File? counts
         String toolName
         String datasetName
-
-        # Resource defaults
-        Int cpu = 8
-        Int memoryGB = 64
-        Int diskSizeGB = 300
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+        Int cpu
+        Int memoryGB
+        Int diskSizeGB
+        String docker
     }
 
     String reducedAnnotationPrefix = basename(reducedAnnotationDB, ".reduced.db")
