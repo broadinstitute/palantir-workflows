@@ -203,15 +203,15 @@ task Bambu {
 
         mkdir ~{bambuOutDir}
 
-        echo "library(bambu)" > bambu.R
-        echo "fa.file <- \"~{referenceGenome}\"" >> bambu.R
-        echo "gtf.file <- \"~{referenceAnnotation}\"" >> bambu.R
-        echo "bambuAnnotations <- prepareAnnotations(gtf.file)" >> bambu.R
-        echo "lr.bam <- \"~{inputBAM}\"" >> bambu.R
-        echo "lr.se <- bambu(reads = lr.bam, rcOutDir =\"~{bambuOutDir}\", annotations = bambuAnnotations, genome = fa.file, ncore = ~{numThreads})" >> bambu.R
-        echo "writeBambuOutput(lr.se, path = \"~{bambuOutDir}\")" >> bambu.R
-
-        R < bambu.R --no-save
+        Rscript -<< "EOF"
+        library(bambu)
+        fa.file <- "~{referenceGenome}"
+        gtf.file <- "~{referenceAnnotation}"
+        bambuAnnotations <- prepareAnnotations(gtf.file)
+        lr.bam <- "~{inputBAM}"
+        lr.se <- bambu(reads = lr.bam, rcOutDir = "~{bambuOutDir}", annotations = bambuAnnotations, genome = fa.file, ncore = ~{numThreads})
+        writeBambuOutput(lr.se, path = "~{bambuOutDir}")
+        EOF
 
         awk ' $3 >= 1 ' ~{bambuOutDir}/counts_transcript.txt | sort -k3,3n > ~{bambuOutDir}/expressed_annotations.gtf.counts
         cut -f1 ~{bambuOutDir}/expressed_annotations.gtf.counts > ~{bambuOutDir}/expressed_transcripts.txt
