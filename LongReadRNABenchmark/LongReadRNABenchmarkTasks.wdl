@@ -24,7 +24,7 @@ task IsoQuant {
 command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        touch IsoQuant_out_~{datasetName}/~{referenceAnnotationBasename}.reduced.db
+        touch ~{outputPrefix}/~{referenceAnnotationBasename}.reduced.db
 
         /usr/local/src/IsoQuant-3.1.1/isoquant.py \
         --reference ~{referenceGenome} \
@@ -44,7 +44,7 @@ command <<<
     output {
         File isoQuantGTF = "~{outputPrefix}.gtf"
         File isoQuantOut = "~{outputPrefix}.tar.gz"
-        File isoQuantDB = "IsoQuant_out_~{datasetName}/~{referenceAnnotationBasename}.reduced.db"
+        File isoQuantDB = "~{outputPrefix}/~{referenceAnnotationBasename}.reduced.db"
         File monitoringLog = "monitoring.log"
     }
 
@@ -75,7 +75,7 @@ task StringTie {
         bash ~{monitoringScript} > monitoring.log &
 
         stringtie \
-        -o "StringTie_out_~{datasetName}.gtf" \
+        -o "~{outputPrefix}.gtf" \
         ~{"-G " + referenceAnnotation} \
         -p ~{numThreads} \
         -L ~{inputBAM}
