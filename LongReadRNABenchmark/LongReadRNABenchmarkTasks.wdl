@@ -507,87 +507,52 @@ task Cupcake {
 
 task ReducedAnnotationGFFCompare {
     input {
+        # Database/truth/test files
         File reducedAnnotationDB
         File expressedGTF
         File expressedKeptGTF
         File excludedGTF
-        File isoQuantGTF
-        File stringTieGTF
-        File bambuGTF
-        File bambuGTFCounts
-        File flairGTF
-        File talonGTF
-        String datasetName
-    }
 
-    String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
-    Int cpu = 8
-    Int memory = 64
-    Int diskSizeGB = 300
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+        # Tool/dataset inputs; some tools such as Bambu also require a counts file
+        File inputGTF
+        File? counts
+        String toolName
+        String datasetName
+
+        # Resource defaults
+        Int cpu = 8
+        Int memoryGB = 64
+        Int diskSizeGB = 300
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+    }
 
     String reducedAnnotationPrefix = basename(reducedAnnotationDB, ".reduced.db")
 
     command <<<
-        bash ~{monitoringScript} > monitoring.log &
-
         mv ~{reducedAnnotationDB} .
         mv ~{excludedGTF} .
         mv ~{expressedGTF} .
         mv ~{expressedKeptGTF} .
 
-        cp ~{bambuGTFCounts} .
+        cp ~{counts} .
 
         /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
         --genedb ~{reducedAnnotationPrefix} \
-        --gtf ~{isoQuantGTF} \
-        --tool "isoquant" \
-        --output "~{datasetName}_isoquant_reduced_db"
+        --gtf ~{inputGTF} \
+        --tool ~{toolName} \
+        --output "~{datasetName}_~{toolName}_reduced_db"
 
-        /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
-        --genedb ~{reducedAnnotationPrefix} \
-        --gtf ~{stringTieGTF} \
-        --tool "stringtie" \
-        --output "~{datasetName}_stringtie_reduced_db"
-
-        /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
-        --genedb ~{reducedAnnotationPrefix} \
-        --gtf ~{bambuGTF} \
-        --tool "bambu" \
-        --output "~{datasetName}_bambu_reduced_db"
-
-        /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
-        --genedb ~{reducedAnnotationPrefix} \
-        --gtf ~{flairGTF} \
-        --tool "flair" \
-        --output "~{datasetName}_flair_reduced_db"
-
-        /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
-        --genedb ~{reducedAnnotationPrefix} \
-        --gtf ~{talonGTF} \
-        --tool "talon" \
-        --output "~{datasetName}_talon_reduced_db"
-
-        tar -zcvf ~{datasetName}_isoquant_reduced_db.tar.gz ~{datasetName}_isoquant_reduced_db
-        tar -zcvf ~{datasetName}_stringtie_reduced_db.tar.gz ~{datasetName}_stringtie_reduced_db
-        tar -zcvf ~{datasetName}_bambu_reduced_db.tar.gz ~{datasetName}_bambu_reduced_db
-        tar -zcvf ~{datasetName}_flair_reduced_db.tar.gz ~{datasetName}_flair_reduced_db
-        tar -zcvf ~{datasetName}_talon_reduced_db.tar.gz ~{datasetName}_talon_reduced_db
+        tar -zcvf ~{datasetName}_~{toolName}_reduced_db.tar.gz ~{datasetName}_~{toolName}_reduced_db
     >>>
 
     output {
-        File gffCompareOutputIsoQuant = "~{datasetName}_isoquant_reduced_db.tar.gz"
-        File gffCompareOutputStringTie = "~{datasetName}_stringtie_reduced_db.tar.gz"
-        File gffCompareOutputBambu = "~{datasetName}_bambu_reduced_db.tar.gz"
-        File gffCompareOutputFlair = "~{datasetName}_flair_reduced_db.tar.gz"
-        File gffCompareOutputTalon = "~{datasetName}_talon_reduced_db.tar.gz"
-        File monitoringLog = "monitoring.log"
+        File gffCompareOutput = "~{datasetName}_~{toolName}_reduced_db.tar.gz"
     }
 
     runtime {
         docker: docker
         cpu: cpu
-        memory: "~{memory} GiB"
+        memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
     }
 }

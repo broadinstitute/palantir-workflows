@@ -126,18 +126,59 @@ workflow LongReadRNABenchmark {
             datasetName = datasetName
     }
 
-    call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompare {
+    call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareIsoQuant {
         input:
             reducedAnnotationDB = IsoQuant.isoQuantDB,
             expressedGTF = expressedGTF,
             expressedKeptGTF = expressedKeptGTF,
             excludedGTF = excludedGTF,
-            isoQuantGTF = IsoQuant.isoQuantGTF,
-            stringTieGTF = StringTie.stringTieGTF,
-            bambuGTF = Bambu.bambuGTF,
-            bambuGTFCounts = Bambu.bambuGTFCounts,
-            flairGTF = Flair.flairGTF,
-            talonGTF = Talon.talonGTF,
+            inputGTF = IsoQuant.isoQuantGTF,
+            toolName = "isoquant",
+            datasetName = datasetName
+    }
+
+    call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareStringTie {
+        input:
+            reducedAnnotationDB = IsoQuant.isoQuantDB,
+            expressedGTF = expressedGTF,
+            expressedKeptGTF = expressedKeptGTF,
+            excludedGTF = excludedGTF,
+            inputGTF = StringTie.stringTieGTF,
+            toolName = "stringtie",
+            datasetName = datasetName
+    }
+
+    call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareBambu {
+        input:
+            reducedAnnotationDB = IsoQuant.isoQuantDB,
+            expressedGTF = expressedGTF,
+            expressedKeptGTF = expressedKeptGTF,
+            excludedGTF = excludedGTF,
+            counts = Bambu.bambuGTFCounts,
+            inputGTF = Bambu.bambuGTF,
+            toolName = "bambu",
+            datasetName = datasetName
+    }
+
+    call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareFlair {
+        input:
+            reducedAnnotationDB = IsoQuant.isoQuantDB,
+            expressedGTF = expressedGTF,
+            expressedKeptGTF = expressedKeptGTF,
+            excludedGTF = excludedGTF,
+            inputGTF = Flair.flairGTF,
+            toolName = "flair",
+            datasetName = datasetName
+    }
+
+    call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareTalon {
+        input:
+            reducedAnnotationDB = IsoQuant.isoQuantDB,
+            expressedGTF = expressedGTF,
+            expressedKeptGTF = expressedKeptGTF,
+            excludedGTF = excludedGTF,
+            inputGTF = Talon.talonGTF,
+            toolName = "talon",
             datasetName = datasetName
     }
 
@@ -162,11 +203,11 @@ workflow LongReadRNABenchmark {
 
     call LongReadRNABenchmarkTasks.ReducedAnalysisSummarize as ReducedAnalysisSummarize {
         input:
-            reducedGffCompareOutIsoQuant = ReducedAnnotationGFFCompare.gffCompareOutputIsoQuant,
-            reducedGffCompareOutStringTie = ReducedAnnotationGFFCompare.gffCompareOutputStringTie,
-            reducedGffCompareOutBambu = ReducedAnnotationGFFCompare.gffCompareOutputBambu,
-            reducedGffCompareOutFlair = ReducedAnnotationGFFCompare.gffCompareOutputFlair,
-            reducedGffCompareOutTalon = ReducedAnnotationGFFCompare.gffCompareOutputTalon,
+            reducedGffCompareOutIsoQuant = ReducedAnnotationGFFCompareIsoQuant.gffCompareOutput,
+            reducedGffCompareOutStringTie = ReducedAnnotationGFFCompareStringTie.gffCompareOutput,
+            reducedGffCompareOutBambu = ReducedAnnotationGFFCompareBambu.gffCompareOutput,
+            reducedGffCompareOutFlair = ReducedAnnotationGFFCompareFlair.gffCompareOutput,
+            reducedGffCompareOutTalon = ReducedAnnotationGFFCompareTalon.gffCompareOutput,
             datasetName = datasetName
     }
 
@@ -188,11 +229,11 @@ workflow LongReadRNABenchmark {
         File flamesGFF = Flames.flamesGFF
         File cupcakeGFF = Cupcake.cupcakeGFF
         File denovoAnnotationGFFCompareOut = DenovoAnnotationGFFCompare.gffCompareOutput
-        File reducedGffCompareOutIsoQuant = ReducedAnnotationGFFCompare.gffCompareOutputIsoQuant
-        File reducedGffCompareOutStringTie = ReducedAnnotationGFFCompare.gffCompareOutputStringTie
-        File reducedGffCompareOutBambu = ReducedAnnotationGFFCompare.gffCompareOutputBambu
-        File reducedGffCompareOutFlair = ReducedAnnotationGFFCompare.gffCompareOutputFlair
-        File reducedGffCompareOutTalon = ReducedAnnotationGFFCompare.gffCompareOutputTalon
+        File reducedGffCompareOutIsoQuant = ReducedAnnotationGFFCompareIsoQuant.gffCompareOutput
+        File reducedGffCompareOutStringTie = ReducedAnnotationGFFCompareStringTie.gffCompareOutput
+        File reducedGffCompareOutBambu = ReducedAnnotationGFFCompareBambu.gffCompareOutput
+        File reducedGffCompareOutFlair = ReducedAnnotationGFFCompareFlair.gffCompareOutput
+        File reducedGffCompareOutTalon = ReducedAnnotationGFFCompareTalon.gffCompareOutput
         File referenceFreeGFFCompareOut = ReferenceFreeGFFCompare.gffCompareOutput
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
         File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
@@ -205,7 +246,6 @@ workflow LongReadRNABenchmark {
         File tamaMonitoringLog = Tama.monitoringLog
         File flamesMonitoringLog = Flames.monitoringLog
         File cupcakeMonitoringLog = Cupcake.monitoringLog
-        File reducedAnnotationGFFCompareMonitoringLog = ReducedAnnotationGFFCompare.monitoringLog
         File denovoAnnotationGFFCompareMonitoringLog = DenovoAnnotationGFFCompare.monitoringLog
         File referenceFreeGFFCompareMonitoringLog = ReferenceFreeGFFCompare.monitoringLog
         File reducedAnalysisSummary = ReducedAnalysisSummarize.reducedAnalysisSummary
