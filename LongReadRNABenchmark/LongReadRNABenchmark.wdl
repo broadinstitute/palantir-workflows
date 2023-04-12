@@ -314,8 +314,8 @@ workflow LongReadRNABenchmark {
 
     call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompare {
         input:
-            isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF,
-            stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF,
+            isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantGTF,
+            stringTieDenovoGTF = StringTieReferenceFree.stringTieGTF,
             expressedGTF = expressedGTF,
             datasetName = datasetName
     }
