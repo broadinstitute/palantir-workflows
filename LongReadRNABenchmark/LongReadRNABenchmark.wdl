@@ -308,7 +308,7 @@ workflow LongReadRNABenchmark {
         File reducedGffCompareOutBambu = ReducedAnnotationGFFCompareBambu.gffCompareOutput
         File reducedGffCompareOutFlair = ReducedAnnotationGFFCompareFlair.gffCompareOutput
         File reducedGffCompareOutTalon = ReducedAnnotationGFFCompareTalon.gffCompareOutput
-        File referenceFreeGFFCompareOut = ReferenceFreeGFFCompare.gffCompareOutput
+        File? referenceFreeGFFCompareOut = ReferenceFreeGFFCompare.gffCompareOutput
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
         File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
         File stringTieMonitoringLog = StringTie.monitoringLog
