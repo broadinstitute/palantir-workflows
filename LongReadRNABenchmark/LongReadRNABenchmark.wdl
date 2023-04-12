@@ -286,13 +286,13 @@ workflow LongReadRNABenchmark {
     }
 
     output {
-        File isoQuantDB = IsoQuant.isoQuantDB
-        File isoQuantGTF = IsoQuant.isoQuantGTF
-        File isoQuantOut = IsoQuant.isoQuantOut
-        File isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF
-        File isoQuantDenovoOut = IsoQuantReferenceFree.isoQuantDenovoOut
-        File stringTieGTF = StringTie.stringTieGTF
-        File stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF
+        File? isoQuantDB = IsoQuant.isoQuantDB
+        File? isoQuantGTF = IsoQuant.isoQuantGTF
+        File? isoQuantOut = IsoQuant.isoQuantOut
+        File? isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF
+        File? isoQuantDenovoOut = IsoQuantReferenceFree.isoQuantDenovoOut
+        File? stringTieGTF = StringTie.stringTieGTF
+        File? stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF
         File bambuGTF = Bambu.bambuGTF
         File bambuGTFCounts = Bambu.bambuGTFCounts
         File bambuOut = Bambu.bambuOut
