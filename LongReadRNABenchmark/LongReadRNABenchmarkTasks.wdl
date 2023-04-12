@@ -6,7 +6,8 @@ task IsoQuant {
         File inputBAMIndex
         File referenceGenome
         File referenceGenomeIndex
-        File? referenceAnnotation
+        File referenceAnnotation
+        #File? referenceAnnotation
         String datasetName
         String dataType
         Int cpu
@@ -17,11 +18,14 @@ task IsoQuant {
         File monitoringScript
     }
 
-    String outputPrefix = if defined(referenceAnnotation) then "IsoQuant_out_~{datasetName}" else "IsoQuant_denovo_out_~{datasetName}"
-    String completeGeneDBOption = if defined(referenceAnnotation) then "--complete_genedb" else ""
-    String referenceAnnotationBasename = if defined(referenceAnnotation) then basename(select_first([referenceAnnotation]), ".reduced.gtf") else ""
+    #String outputPrefix = if defined(referenceAnnotation) then "IsoQuant_out_~{datasetName}" else "IsoQuant_denovo_out_~{datasetName}"
+    #String completeGeneDBOption = if defined(referenceAnnotation) then "--complete_genedb" else ""
+    #String referenceAnnotationBasename = if defined(referenceAnnotation) then basename(select_first([referenceAnnotation]), ".reduced.gtf") else ""
+    String outputPrefix = "IsoQuant_out_~{datasetName}"
+    String completeGeneDBOption = "--complete_genedb"
+    String referenceAnnotationBasename = basename(referenceAnnotation, ".reduced.gtf")
 
-    command <<<
+command <<<
         bash ~{monitoringScript} > monitoring.log &
 
         /usr/local/src/IsoQuant-3.1.1/isoquant.py \
@@ -40,11 +44,11 @@ task IsoQuant {
     >>>
 
     output {
-        File? isoQuantGTF = "IsoQuant_out_~{datasetName}.gtf"
-        File? isoQuantOut = "IsoQuant_out_~{datasetName}.tar.gz"
-        File? isoQuantDB = "IsoQuant_out_~{datasetName}/~{referenceAnnotationBasename}.reduced.db"
-        File? isoQuantDenovoGTF = "IsoQuant_denovo_out_~{datasetName}.gtf"
-        File? isoQuantDenovoOut = "IsoQuant_denovo_out_~{datasetName}.tar.gz"
+        File isoQuantGTF = "IsoQuant_out_~{datasetName}.gtf"
+        File isoQuantOut = "IsoQuant_out_~{datasetName}.tar.gz"
+        File isoQuantDB = "IsoQuant_out_~{datasetName}/~{referenceAnnotationBasename}.reduced.db"
+        #File isoQuantDenovoGTF = "IsoQuant_denovo_out_~{datasetName}.gtf"
+        #File isoQuantDenovoOut = "IsoQuant_denovo_out_~{datasetName}.tar.gz"
         File monitoringLog = "monitoring.log"
     }
 
@@ -59,7 +63,8 @@ task IsoQuant {
 task StringTie {
     input {
         File inputBAM
-        File? referenceAnnotation
+        File referenceAnnotation
+        #File? referenceAnnotation
         String datasetName
         Int cpu
         Int numThreads
@@ -69,7 +74,8 @@ task StringTie {
         File monitoringScript
     }
 
-    String referenceAnnotationOption = if defined(referenceAnnotation) then "-G ~{referenceAnnotation}" else ""
+    #String referenceAnnotationOption = if defined(referenceAnnotation) then "-G ~{referenceAnnotation}" else ""
+    String referenceAnnotationOption = "-G ~{referenceAnnotation}"
 
     command <<<
         bash ~{monitoringScript} > monitoring.log &
@@ -82,8 +88,8 @@ task StringTie {
     >>>
 
     output {
-        File? stringTieGTF = "StringTie_out_~{datasetName}.gtf"
-        File? stringTieDenovoGTF = "StringTie_denovo_out_~{datasetName}.gtf"
+        File stringTieGTF = "StringTie_out_~{datasetName}.gtf"
+        #File stringTieDenovoGTF = "StringTie_denovo_out_~{datasetName}.gtf"
         File monitoringLog = "monitoring.log"
     }
 
@@ -337,11 +343,11 @@ task Flames {
         File referenceGenomeIndex
         File referenceAnnotation
         String datasetName
-        Int cpu = 16
-        Int memoryGB = 256
-        Int diskSizeGB = 500
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/flames:latest"
-        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+        Int cpu
+        Int memoryGB
+        Int diskSizeGB
+        String docker
+        File monitoringScript
     }
 
     command <<<

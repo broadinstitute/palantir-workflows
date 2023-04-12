@@ -33,21 +33,21 @@ workflow LongReadRNABenchmark {
             monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
-    call LongReadRNABenchmarkTasks.IsoQuant as IsoQuantReferenceFree {
-        input:
-            inputBAM = inputBAM,
-            inputBAMIndex = inputBAMIndex,
-            referenceGenome = referenceGenome,
-            referenceGenomeIndex = referenceGenomeIndex,
-            datasetName = datasetName,
-            dataType = dataType,
-            cpu = 16,
-            numThreads = 32,
-            memoryGB = 256,
-            diskSizeGB = 500,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant:latest",
-            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
-    }
+#    call LongReadRNABenchmarkTasks.IsoQuant as IsoQuantReferenceFree {
+#        input:
+#            inputBAM = inputBAM,
+#            inputBAMIndex = inputBAMIndex,
+#            referenceGenome = referenceGenome,
+#            referenceGenomeIndex = referenceGenomeIndex,
+#            datasetName = datasetName,
+#            dataType = dataType,
+#            cpu = 16,
+#            numThreads = 32,
+#            memoryGB = 256,
+#            diskSizeGB = 500,
+#            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant:latest",
+#            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+#    }
 
     call LongReadRNABenchmarkTasks.StringTie as StringTie {
         input:
@@ -62,17 +62,17 @@ workflow LongReadRNABenchmark {
             monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
-    call LongReadRNABenchmarkTasks.StringTie as StringTieReferenceFree {
-        input:
-            inputBAM = inputBAM,
-            datasetName = datasetName,
-            cpu = 16,
-            numThreads = 32,
-            memoryGB = 64,
-            diskSizeGB = 500,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/stringtie:latest",
-            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
-    }
+#    call LongReadRNABenchmarkTasks.StringTie as StringTieReferenceFree {
+#        input:
+#            inputBAM = inputBAM,
+#            datasetName = datasetName,
+#            cpu = 16,
+#            numThreads = 32,
+#            memoryGB = 64,
+#            diskSizeGB = 500,
+#            docker = "us.gcr.io/broad-dsde-methods/kockan/stringtie:latest",
+#            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+#    }
 
     call LongReadRNABenchmarkTasks.Bambu as Bambu {
         input:
@@ -256,24 +256,24 @@ workflow LongReadRNABenchmark {
             docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
     }
 
-    call LongReadRNABenchmarkTasks.DenovoAnnotationGFFCompare as DenovoAnnotationGFFCompare {
-        input:
-            isoQuantGTF = IsoQuant.isoQuantGTF,
-            stringTieGTF = StringTie.stringTieGTF,
-            bambuGTF = Bambu.bambuGTF,
-            bambuGTFCounts = Bambu.bambuGTFCounts,
-            flairGTF = Flair.flairGTF,
-            talonGTF = Talon.talonGTF,
-            datasetName = datasetName
-    }
+#    call LongReadRNABenchmarkTasks.DenovoAnnotationGFFCompare as DenovoAnnotationGFFCompare {
+#        input:
+#            isoQuantGTF = IsoQuant.isoQuantGTF,
+#            stringTieGTF = StringTie.stringTieGTF,
+#            bambuGTF = Bambu.bambuGTF,
+#            bambuGTFCounts = Bambu.bambuGTFCounts,
+#            flairGTF = Flair.flairGTF,
+#            talonGTF = Talon.talonGTF,
+#            datasetName = datasetName
+#    }
 
-    call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompare {
-        input:
-            isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF,
-            stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF,
-            expressedGTF = expressedGTF,
-            datasetName = datasetName
-    }
+#    call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompare {
+#        input:
+#            isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF,
+#            stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF,
+#            expressedGTF = expressedGTF,
+#            datasetName = datasetName
+#    }
 
     call LongReadRNABenchmarkTasks.ReducedAnalysisSummarize as ReducedAnalysisSummarize {
         input:
@@ -286,13 +286,13 @@ workflow LongReadRNABenchmark {
     }
 
     output {
-        File? isoQuantDB = IsoQuant.isoQuantDB
-        File? isoQuantGTF = IsoQuant.isoQuantGTF
-        File? isoQuantOut = IsoQuant.isoQuantOut
-        File? isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF
-        File? isoQuantDenovoOut = IsoQuantReferenceFree.isoQuantDenovoOut
-        File? stringTieGTF = StringTie.stringTieGTF
-        File? stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF
+        File isoQuantDB = IsoQuant.isoQuantDB
+        File isoQuantGTF = IsoQuant.isoQuantGTF
+        File isoQuantOut = IsoQuant.isoQuantOut
+        #File isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantDenovoGTF
+        #File isoQuantDenovoOut = IsoQuantReferenceFree.isoQuantDenovoOut
+        File stringTieGTF = StringTie.stringTieGTF
+        #File stringTieDenovoGTF = StringTieReferenceFree.stringTieDenovoGTF
         File bambuGTF = Bambu.bambuGTF
         File bambuGTFCounts = Bambu.bambuGTFCounts
         File bambuOut = Bambu.bambuOut
@@ -302,17 +302,17 @@ workflow LongReadRNABenchmark {
         File tamaBED = Tama.tamaBED
         File flamesGFF = Flames.flamesGFF
         File cupcakeGFF = Cupcake.cupcakeGFF
-        File denovoAnnotationGFFCompareOut = DenovoAnnotationGFFCompare.gffCompareOutput
+        #File? denovoAnnotationGFFCompareOut = DenovoAnnotationGFFCompare.gffCompareOutput
         File reducedGffCompareOutIsoQuant = ReducedAnnotationGFFCompareIsoQuant.gffCompareOutput
         File reducedGffCompareOutStringTie = ReducedAnnotationGFFCompareStringTie.gffCompareOutput
         File reducedGffCompareOutBambu = ReducedAnnotationGFFCompareBambu.gffCompareOutput
         File reducedGffCompareOutFlair = ReducedAnnotationGFFCompareFlair.gffCompareOutput
         File reducedGffCompareOutTalon = ReducedAnnotationGFFCompareTalon.gffCompareOutput
-        File? referenceFreeGFFCompareOut = ReferenceFreeGFFCompare.gffCompareOutput
+        #File? referenceFreeGFFCompareOut = ReferenceFreeGFFCompare.gffCompareOutput
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
-        File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
+        #File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
         File stringTieMonitoringLog = StringTie.monitoringLog
-        File stringTieReferenceFreeMonitoringLog = StringTieReferenceFree.monitoringLog
+        #File stringTieReferenceFreeMonitoringLog = StringTieReferenceFree.monitoringLog
         File bambuMonitoringLog = Bambu.monitoringLog
         File flairMonitoringLog = Flair.monitoringLog
         File talonMonitoringLog = Talon.monitoringLog
@@ -320,8 +320,8 @@ workflow LongReadRNABenchmark {
         File tamaMonitoringLog = Tama.monitoringLog
         File flamesMonitoringLog = Flames.monitoringLog
         File cupcakeMonitoringLog = Cupcake.monitoringLog
-        File denovoAnnotationGFFCompareMonitoringLog = DenovoAnnotationGFFCompare.monitoringLog
-        File referenceFreeGFFCompareMonitoringLog = ReferenceFreeGFFCompare.monitoringLog
+        #File denovoAnnotationGFFCompareMonitoringLog = DenovoAnnotationGFFCompare.monitoringLog
+        #File referenceFreeGFFCompareMonitoringLog = ReferenceFreeGFFCompare.monitoringLog
         File reducedAnalysisSummary = ReducedAnalysisSummarize.reducedAnalysisSummary
         File reducedAnalysisAccuracyPlots = ReducedAnalysisSummarize.reducedAnalysisAccuracyPlots
     }
