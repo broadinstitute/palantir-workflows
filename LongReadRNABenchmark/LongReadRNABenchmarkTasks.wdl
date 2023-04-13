@@ -61,12 +61,12 @@ task StringTie {
         File inputBAM
         File? referenceAnnotation
         String datasetName
-        Int cpu
-        Int numThreads
-        Int memoryGB
-        Int diskSizeGB
-        String docker
-        File monitoringScript
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 500
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/stringtie:latest"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
     String outputPrefix = if defined(referenceAnnotation) then "StringTie_out_~{datasetName}" else "StringTie_denovo_out_~{datasetName}"
@@ -103,12 +103,12 @@ task Bambu {
         File referenceAnnotation
         String datasetName
         String dataType
-        Int cpu
-        Int numThreads
-        Int memoryGB
-        Int diskSizeGB
-        String docker
-        File monitoringScript
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 500
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/bambu:latest"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
     String referenceAnnotationBasename = basename(referenceAnnotation, ".reduced.gtf")
@@ -161,12 +161,12 @@ task Flair {
         File referenceGenomeIndex
         File referenceAnnotation
         String datasetName
-        Int cpu
-        Int numThreads
-        Int memoryGB
-        Int diskSizeGB
-        String docker
-        File monitoringScript
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 500
+        String docker = "brookslab/flair:latest"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
     String flairPrefix = "Flair_out_~{datasetName}"
@@ -218,12 +218,12 @@ task Talon {
         File referenceAnnotation
         String datasetName
         String dataType
-        Int cpu
-        Int numThreads
-        Int memoryGB
-        Int diskSizeGB
-        String docker
-        File monitoringScript
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 256
+        Int diskSizeGB = 500
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/talon:latest"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
     String talonPrefix = "Talon_out_~{datasetName}"
@@ -262,12 +262,12 @@ task IsoSeq {
         File referenceGenome
         File referenceGenomeIndex
         String datasetName
-        Int cpu
-        Int numThreads
-        Int memoryGB
-        Int diskSizeGB
-        String docker
-        File monitoringScript
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 256
+        Int diskSizeGB = 500
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoseq3:latest"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
     command <<<
@@ -300,11 +300,11 @@ task Tama {
         File referenceGenome
         File referenceGenomeIndex
         String datasetName
-        Int cpu
-        Int memoryGB
-        Int diskSizeGB
-        String docker
-        File monitoringScript
+        Int cpu = 16
+        Int memoryGB = 256
+        Int diskSizeGB = 500
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/tama:latest"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
     String outputPrefix = "TAMA_out_~{datasetName}"
@@ -336,11 +336,11 @@ task Flames {
         File referenceGenomeIndex
         File referenceAnnotation
         String datasetName
-        Int cpu
-        Int memoryGB
-        Int diskSizeGB
-        String docker
-        File monitoringScript
+        Int cpu = 16
+        Int memoryGB = 256
+        Int diskSizeGB = 500
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/flames:latest"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
     command <<<
@@ -378,11 +378,11 @@ task Cupcake {
         File inputBAM
         File inputBAMIndex
         String datasetName
-        Int cpu
-        Int memoryGB
-        Int diskSizeGB
-        String docker
-        File monitoringScript
+        Int cpu = 16
+        Int memoryGB = 256
+        Int diskSizeGB = 500
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/cdna-cupcake:latest"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
     String outputPrefix = "Cupcake_out_~{datasetName}"
@@ -426,10 +426,10 @@ task ReducedAnnotationGFFCompare {
         File? counts
         String toolName
         String datasetName
-        Int cpu
-        Int memoryGB
-        Int diskSizeGB
-        String docker
+        Int cpu = 6
+        Int memoryGB = 64
+        Int diskSizeGB = 300
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
     }
 
     String reducedAnnotationPrefix = basename(reducedAnnotationDB, ".reduced.db")
@@ -472,10 +472,10 @@ task DenovoAnnotationGFFCompare {
         File flairGTF
         File talonGTF
         String datasetName
-        Int cpu
-        Int memoryGB
-        Int diskSizeGB
-        String docker
+        Int cpu = 8
+        Int memoryGB = 64
+        Int diskSizeGB = 300
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
     }
 
     String isoQuantBasename = basename(isoQuantGTF)

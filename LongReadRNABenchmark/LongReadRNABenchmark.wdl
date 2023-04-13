@@ -34,38 +34,20 @@ workflow LongReadRNABenchmark {
             referenceGenome = referenceGenome,
             referenceGenomeIndex = referenceGenomeIndex,
             datasetName = datasetName,
-            dataType = dataType,
-            cpu = 16,
-            numThreads = 32,
-            memoryGB = 256,
-            diskSizeGB = 500,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant:latest",
-            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+            dataType = dataType
     }
 
     call LongReadRNABenchmarkTasks.StringTie as StringTie {
         input:
             inputBAM = inputBAM,
             referenceAnnotation = referenceAnnotation,
-            datasetName = datasetName,
-            cpu = 16,
-            numThreads = 32,
-            memoryGB = 64,
-            diskSizeGB = 500,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/stringtie:latest",
-            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.StringTie as StringTieReferenceFree {
         input:
             inputBAM = inputBAM,
-            datasetName = datasetName,
-            cpu = 16,
-            numThreads = 32,
-            memoryGB = 64,
-            diskSizeGB = 500,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/stringtie:latest",
-            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.Bambu as Bambu {
@@ -76,13 +58,7 @@ workflow LongReadRNABenchmark {
             referenceGenomeIndex = referenceGenomeIndex,
             referenceAnnotation = referenceAnnotation,
             datasetName = datasetName,
-            dataType = dataType,
-            cpu = 16,
-            numThreads = 32,
-            memoryGB = 64,
-            diskSizeGB = 500,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/bambu:latest",
-            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+            dataType = dataType
     }
 
     call LongReadRNABenchmarkTasks.Flair as Flair {
@@ -92,13 +68,7 @@ workflow LongReadRNABenchmark {
             referenceGenome = referenceGenome,
             referenceGenomeIndex = referenceGenomeIndex,
             referenceAnnotation = referenceAnnotation,
-            datasetName = datasetName,
-            cpu = 16,
-            numThreads = 32,
-            memoryGB = 64,
-            diskSizeGB = 500,
-            docker = "brookslab/flair:latest",
-            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.Talon as Talon {
@@ -109,13 +79,7 @@ workflow LongReadRNABenchmark {
             referenceGenomeIndex = referenceGenomeIndex,
             referenceAnnotation = referenceAnnotation,
             datasetName = datasetName,
-            dataType = dataType,
-            cpu = 16,
-            numThreads = 32,
-            memoryGB = 256,
-            diskSizeGB = 500,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/talon:latest",
-            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+            dataType = dataType
     }
 
     call LongReadRNABenchmarkTasks.IsoSeq as IsoSeq {
@@ -124,13 +88,7 @@ workflow LongReadRNABenchmark {
             inputBAMIndex = inputBAMIndex,
             referenceGenome = referenceGenome,
             referenceGenomeIndex = referenceGenomeIndex,
-            datasetName = datasetName,
-            cpu = 16,
-            numThreads = 32,
-            memoryGB = 256,
-            diskSizeGB = 500,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/isoseq3:latest",
-            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.Tama as Tama {
@@ -139,12 +97,7 @@ workflow LongReadRNABenchmark {
             inputBAMIndex = inputBAMIndex,
             referenceGenome = referenceGenome,
             referenceGenomeIndex = referenceGenomeIndex,
-            datasetName = datasetName,
-            cpu = 16,
-            memoryGB = 256,
-            diskSizeGB = 500,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/tama:latest",
-            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.Flames as Flames {
@@ -154,24 +107,14 @@ workflow LongReadRNABenchmark {
             referenceGenome = referenceGenome,
             referenceGenomeIndex = referenceGenomeIndex,
             referenceAnnotation = referenceAnnotation,
-            datasetName = datasetName,
-            cpu = 16,
-            memoryGB = 256,
-            diskSizeGB = 500,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/flames:latest",
-            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.Cupcake as Cupcake {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
-            datasetName = datasetName,
-            cpu = 16,
-            memoryGB = 256,
-            diskSizeGB = 500,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/cdna-cupcake:latest",
-            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareIsoQuant {
@@ -182,11 +125,7 @@ workflow LongReadRNABenchmark {
             excludedGTF = excludedGTF,
             inputGTF = IsoQuant.isoQuantGTF,
             toolName = "isoquant",
-            datasetName = datasetName,
-            cpu = 8,
-            memoryGB = 64,
-            diskSizeGB = 300,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareStringTie {
@@ -197,11 +136,7 @@ workflow LongReadRNABenchmark {
             excludedGTF = excludedGTF,
             inputGTF = StringTie.stringTieGTF,
             toolName = "stringtie",
-            datasetName = datasetName,
-            cpu = 8,
-            memoryGB = 64,
-            diskSizeGB = 300,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareBambu {
@@ -213,11 +148,7 @@ workflow LongReadRNABenchmark {
             counts = Bambu.bambuGTFCounts,
             inputGTF = Bambu.bambuGTF,
             toolName = "bambu",
-            datasetName = datasetName,
-            cpu = 8,
-            memoryGB = 64,
-            diskSizeGB = 300,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareFlair {
@@ -228,11 +159,7 @@ workflow LongReadRNABenchmark {
             excludedGTF = excludedGTF,
             inputGTF = Flair.flairGTF,
             toolName = "flair",
-            datasetName = datasetName,
-            cpu = 8,
-            memoryGB = 64,
-            diskSizeGB = 300,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareTalon {
@@ -243,11 +170,7 @@ workflow LongReadRNABenchmark {
             excludedGTF = excludedGTF,
             inputGTF = Talon.talonGTF,
             toolName = "talon",
-            datasetName = datasetName,
-            cpu = 8,
-            memoryGB = 64,
-            diskSizeGB = 300,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.ReducedAnnotationGFFCompare as ReducedAnnotationGFFCompareFlames {
@@ -258,11 +181,7 @@ workflow LongReadRNABenchmark {
             excludedGTF = excludedGTF,
             inputGTF = Flames.flamesGFF,
             toolName = "flames",
-            datasetName = datasetName,
-            cpu = 8,
-            memoryGB = 64,
-            diskSizeGB = 300,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.DenovoAnnotationGFFCompare as DenovoAnnotationGFFCompare {
@@ -273,11 +192,7 @@ workflow LongReadRNABenchmark {
             bambuGTFCounts = Bambu.bambuGTFCounts,
             flairGTF = Flair.flairGTF,
             talonGTF = Talon.talonGTF,
-            datasetName = datasetName,
-            cpu = 8,
-            memoryGB = 64,
-            diskSizeGB = 300,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompare {
@@ -285,11 +200,7 @@ workflow LongReadRNABenchmark {
             isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantGTF,
             stringTieDenovoGTF = StringTieReferenceFree.stringTieGTF,
             expressedGTF = expressedGTF,
-            datasetName = datasetName,
-            cpu = 8,
-            memoryGB = 64,
-            diskSizeGB = 300,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+            datasetName = datasetName
     }
 
     call LongReadRNABenchmarkTasks.ReducedAnalysisSummarize as ReducedAnalysisSummarize {
@@ -300,11 +211,7 @@ workflow LongReadRNABenchmark {
             reducedGffCompareOutFlair = ReducedAnnotationGFFCompareFlair.gffCompareOutput,
             reducedGffCompareOutTalon = ReducedAnnotationGFFCompareTalon.gffCompareOutput,
             reducedGffCompareOutFlames = ReducedAnnotationGFFCompareFlames.gffCompareOutput,
-            datasetName = datasetName,
-            cpu = 1,
-            memoryGB = 32,
-            diskSizeGB = 100,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/kockan-reduced-analysis-summarize:latest"
+            datasetName = datasetName
     }
 
     output {
