@@ -471,6 +471,7 @@ task DenovoAnnotationGFFCompare {
         File bambuGTFCounts
         File flairGTF
         File talonGTF
+        File flamesGFF
         String datasetName
         Int cpu = 8
         Int memoryGB = 64
@@ -483,6 +484,7 @@ task DenovoAnnotationGFFCompare {
     String bambuBasename = basename(bambuGTF)
     String flairBasename = basename(flairGTF)
     String talonBasename = basename(talonGTF)
+    String flamesBasename = basename(flamesGFF)
 
     command <<<
         mv ~{isoQuantGTF} .
@@ -491,12 +493,14 @@ task DenovoAnnotationGFFCompare {
         mv ~{bambuGTFCounts} .
         mv ~{flairGTF} .
         mv ~{talonGTF} .
+        mv ~{flamesGFF} .
 
         echo "~{isoQuantBasename} isoquant" > gtfs.list
         echo "~{stringTieBasename} stringtie" >> gtfs.list
         echo "~{bambuBasename} bambu" >> gtfs.list
         echo "~{flairBasename} flair" >> gtfs.list
         echo "~{talonBasename} talon" >> gtfs.list
+        echo "~{flamesBasename} flames" >> gtfs.list
 
         /usr/local/src/IsoQuant-3.1.1/misc/denovo_model_stats.py \
         --gtf_list gtfs.list \

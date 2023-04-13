@@ -192,6 +192,7 @@ workflow LongReadRNABenchmark {
             bambuGTFCounts = Bambu.bambuGTFCounts,
             flairGTF = Flair.flairGTF,
             talonGTF = Talon.talonGTF,
+            flamesGFF = Flames.flamesGFF,
             datasetName = datasetName
     }
 
@@ -208,6 +209,22 @@ workflow LongReadRNABenchmark {
             inputGTF = StringTieReferenceFree.stringTieGTF,
             expressedGTF = expressedGTF,
             toolName = "stringtie",
+            datasetName = datasetName
+    }
+
+    call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompareIsoSeq {
+        input:
+            inputGTF = IsoSeq.isoSeqGFF,
+            expressedGTF = expressedGTF,
+            toolName = "isoseq",
+            datasetName = datasetName
+    }
+
+    call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompareCupcake {
+        input:
+            inputGTF = Cupcake.cupcakeGFF,
+            expressedGTF = expressedGTF,
+            toolName = "cupcake",
             datasetName = datasetName
     }
 
@@ -248,6 +265,8 @@ workflow LongReadRNABenchmark {
         File reducedGffCompareOutFlames = ReducedAnnotationGFFCompareFlames.gffCompareOutput
         File referenceFreeGFFCompareOutIsoQuant = ReferenceFreeGFFCompareIsoQuant.gffCompareOutput
         File referenceFreeGFFCompareOutStringTie = ReferenceFreeGFFCompareStringTie.gffCompareOutput
+        File referenceFreeGFFCompareOutIsoSeq = ReferenceFreeGFFCompareIsoSeq.gffCompareOutput
+        File referenceFreeGFFCompareOutCupcake = ReferenceFreeGFFCompareCupcake.gffCompareOutput
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
         File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
         File stringTieMonitoringLog = StringTie.monitoringLog
