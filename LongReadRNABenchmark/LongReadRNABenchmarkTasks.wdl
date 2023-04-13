@@ -564,9 +564,7 @@ task ReducedAnalysisSummarize {
         File reducedGffCompareOutBambu
         File reducedGffCompareOutFlair
         File reducedGffCompareOutTalon
-#        File reducedGffCompareOutIsoSeq
         File reducedGffCompareOutFlames
-#        File reducedGffCompareOutCupcake
         String datasetName
         Int cpu = 1
         Int memoryGB = 32
