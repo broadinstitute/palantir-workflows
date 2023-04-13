@@ -519,9 +519,9 @@ task DenovoAnnotationGFFCompare {
 
 task ReferenceFreeGFFCompare {
     input {
-        File isoQuantDenovoGTF
-        File stringTieDenovoGTF
+        File inputGTF
         File expressedGTF
+        String toolName
         String datasetName
         Int cpu = 8
         Int memoryGB = 64
@@ -530,23 +530,17 @@ task ReferenceFreeGFFCompare {
     }
 
     command <<<
-        mkdir ~{datasetName}_reference_free_stats
+        mkdir ~{datasetName}_~{toolName}_gffcompare_ref_free_stats
 
-        gffcompare \
-        -r ~{expressedGTF} \
-        -o "~{datasetName}_isoquant_gffcompare" ~{isoQuantDenovoGTF}
+        gffcompare -r ~{expressedGTF} -o "~{datasetName}_~{toolName}_gffcompare" ~{inputGTF}
 
-        gffcompare \
-        -r ~{expressedGTF} \
-        -o "~{datasetName}_stringtie_gffcompare" ~{stringTieDenovoGTF}
+        mv ~{datasetName}_~{toolName}_gffcompare* ~{datasetName}_~{toolName}_gffcompare_ref_free_stats
 
-        mv ~{datasetName}* ~{datasetName}_reference_free_stats
-
-        tar -zcvf ~{datasetName}_reference_free_stats.tar.gz ~{datasetName}_reference_free_stats
+        tar -zcvf ~{datasetName}_~{toolName}_gffcompare_ref_free_stats.tar.gz ~{datasetName}_~{toolName}_gffcompare_ref_free_stats
     >>>
 
     output {
-        File gffCompareOutput = "~{datasetName}_reference_free_stats.tar.gz"
+        File gffCompareOutput = "~{datasetName}_~{toolName}_gffcompare_ref_free_stats.tar.gz"
     }
 
     runtime {

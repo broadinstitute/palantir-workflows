@@ -195,11 +195,19 @@ workflow LongReadRNABenchmark {
             datasetName = datasetName
     }
 
-    call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompare {
+    call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompareIsoQuant {
         input:
-            isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantGTF,
-            stringTieDenovoGTF = StringTieReferenceFree.stringTieGTF,
+            inputGTF = IsoQuantReferenceFree.isoQuantGTF,
             expressedGTF = expressedGTF,
+            toolName = "isoquant",
+            datasetName = datasetName
+    }
+
+    call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompareStringTie {
+        input:
+            inputGTF = StringTieReferenceFree.stringTieGTF,
+            expressedGTF = expressedGTF,
+            toolName = "stringtie",
             datasetName = datasetName
     }
 
@@ -238,7 +246,8 @@ workflow LongReadRNABenchmark {
         File reducedGffCompareOutFlair = ReducedAnnotationGFFCompareFlair.gffCompareOutput
         File reducedGffCompareOutTalon = ReducedAnnotationGFFCompareTalon.gffCompareOutput
         File reducedGffCompareOutFlames = ReducedAnnotationGFFCompareFlames.gffCompareOutput
-        File referenceFreeGFFCompareOut = ReferenceFreeGFFCompare.gffCompareOutput
+        File referenceFreeGFFCompareOutIsoQuant = ReferenceFreeGFFCompareIsoQuant.gffCompareOutput
+        File referenceFreeGFFCompareOutStringTie = ReferenceFreeGFFCompareStringTie.gffCompareOutput
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
         File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
         File stringTieMonitoringLog = StringTie.monitoringLog
