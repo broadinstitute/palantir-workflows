@@ -24,13 +24,7 @@ workflow LongReadRNABenchmark {
             referenceGenomeIndex = referenceGenomeIndex,
             referenceAnnotation = referenceAnnotation,
             datasetName = datasetName,
-            dataType = dataType,
-            cpu = 16,
-            numThreads = 32,
-            memoryGB = 256,
-            diskSizeGB = 500,
-            docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant:latest",
-            monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+            dataType = dataType
     }
 
     call LongReadRNABenchmarkTasks.IsoQuant as IsoQuantReferenceFree {

@@ -9,12 +9,12 @@ task IsoQuant {
         File? referenceAnnotation
         String datasetName
         String dataType
-        Int cpu
-        Int numThreads
-        Int memoryGB
-        Int diskSizeGB
-        String docker
-        File monitoringScript
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 256
+        Int diskSizeGB = 500
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant:latest"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
     String outputPrefix = if defined(referenceAnnotation) then "IsoQuant_out_~{datasetName}" else "IsoQuant_denovo_out_~{datasetName}"
