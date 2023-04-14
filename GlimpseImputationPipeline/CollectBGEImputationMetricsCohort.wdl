@@ -588,7 +588,7 @@ EOF
 
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-array-correlation@sha256:5910defbc137d43145e6cf1f9c3539ae418b6e465250d55465e19e77773445c4"
-        disks: "local-disk 100 HDD"
+        disks: "local-disk 500 HDD"
         memory: mem_gb + " GB"
         preemptible: preemptible
     }
