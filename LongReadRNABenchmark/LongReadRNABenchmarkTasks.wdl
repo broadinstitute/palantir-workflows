@@ -702,6 +702,8 @@ task ReferenceFreeAnalysisSummarize {
         tar -xzvf ~{datasetName}_tama_reffree.tar.gz
         tar -xzvf ~{datasetName}_cupcake_reffree.tar.gz
 
+        ls -lha */*
+        
         python3 /usr/local/src/plot_reffree_results.py \
         ~{datasetName}_isoquant_reffree/~{datasetName}_isoquant_reffree.stats,~{datasetName}_stringtie_reffree/~{datasetName}_stringtie_reffree.stats,~{datasetName}_isoseq_reffree/~{datasetName}_isoseq_reffree.stats,~{datasetName}_tama_reffree/~{datasetName}_tama_reffree.stats,~{datasetName}_cupcake_reffree/~{datasetName}_cupcake_reffree.stats \
         isoquant,stringtie,isoseq,tama,cupcake \
