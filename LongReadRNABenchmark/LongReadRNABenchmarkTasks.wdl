@@ -607,6 +607,9 @@ task ReferenceFreeGFFCompare {
     command <<<
         mkdir ~{datasetName}_~{toolName}_reffree
 
+        mv ~{inputGTF} .
+        mv ~{expressedGTF} .
+        
         gffcompare -r ~{expressedGTF} -o "~{datasetName}_~{toolName}_reffree" ~{inputGTF}
 
         ls -lha
