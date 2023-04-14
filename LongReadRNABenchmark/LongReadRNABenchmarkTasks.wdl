@@ -315,7 +315,7 @@ task Tama {
         python2 /usr/local/src/tama/tama_collapse.py -b BAM -s ~{inputBAM} -f ~{referenceGenome} -p ~{outputPrefix} -x capped
 
         cat ~{outputPrefix}.bed | \
-        perl -<< "EOF"
+        perl -<< "EOF" > ~{outputPrefix}.gtf
         #!/usr/bin/perl
         use strict;
         #use warnings;
@@ -383,7 +383,7 @@ task Tama {
                 }
             }
         }
-        EOF > ~{outputPrefix}.gtf
+        EOF
     >>>
 
     output {
