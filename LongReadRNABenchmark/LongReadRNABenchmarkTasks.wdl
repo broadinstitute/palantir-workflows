@@ -314,76 +314,11 @@ task Tama {
 
         python2 /usr/local/src/tama/tama_collapse.py -b BAM -s ~{inputBAM} -f ~{referenceGenome} -p ~{outputPrefix} -x capped
 
-        cat ~{outputPrefix}.bed | \
-        perl << "EOF" > ~{outputPrefix}.gtf
-        #!/usr/bin/perl
-        use strict;
-        #use warnings;
+        ls -lha
 
-        # A script to convert BED12 into a GTF.
-        # Input: piped BED12 file.
-        # Example: cat clark.gtfs.lift_to_hg38/Clark_DataS3.NoncodingTranscriptsAll.lift_to_hg38.bed | perl /users/rg/rjohnson/science/scripts/bed12ToGTF/bed12ToGTF.1.pl
+        cat ~{outputPrefix}.bed | perl /usr/local/src/bed12ToGTF.1.pl > ~{outputPrefix}.gtf
 
-        my @line=();
-
-        my $trxchr;
-        my $trxstart;
-        my $trxend;
-        my $trxstrand;
-        my $trxid;
-        my $trxblank;
-        my @blocksizes;
-        my @blockstarts;
-
-        my $thisstart;
-        my $thisend;
-
-        my $exontotal;
-
-        while (<STDIN>) {
-            chomp $_;
-            @line=split("\t",$_);
-
-            ($trxchr, $trxstart, $trxend, $trxid, $trxblank,$trxstrand)=($line[0],$line[1],$line[2],$line[3],$line[4], $line[5]);
-
-            $trxstart+=1;   # Conversion from BED to GTF!!
-
-            my @trxtoks=split(";",$trxid);
-
-            # Print the Transcript Line
-            print "$trxchr\tblank\ttranscript\t$trxstart\t$trxend\t.\t$trxstrand\t.\ttranscript_id \"$trxtoks[0].$trxtoks[1]\"\;\n";
-
-            @blocksizes=split(",", $line[10]);
-            @blockstarts=split(",", $line[11]);
-            $exontotal=scalar(@blockstarts);
-
-            #print "\n @blocksizes hi @blockstarts";
-
-            my $exon_count=0;
-            my $rev_exon_count=$exontotal+1;
-
-            for (my $i=0; $i < $exontotal; $i++) {
-                $exon_count++;
-                $rev_exon_count--;
-
-                if ($trxstrand eq "+"){
-                    $thisstart=$trxstart+$blockstarts[$i];
-                    $thisend=$trxstart+$blockstarts[$i]+$blocksizes[$i]-1;    # The -1 added empirically after browser inspection
-                    #Print the Exon lines.
-                    print "$trxchr\tblank\texon\t$thisstart\t$thisend\t.\t$trxstrand\t.\ttranscript_id \"$trxtoks[0].$trxtoks[1]\"; exon_number $exon_count\;\n";
-                }
-
-                elsif ($trxstrand eq "-"){
-                    #$thisend=$trxend-$blockstarts[$i];
-                    #$thisstart=$thisend-$blocksizes[$i]+1;   # The +1 added empirically after browser inspection
-                    $thisstart=$trxstart+$blockstarts[$i];
-                    $thisend=$trxstart+$blockstarts[$i]+$blocksizes[$i]-1;    # The -1 added empirically after browser inspection
-                    #Print the Exon lines.
-                    print "$trxchr\tblank\texon\t$thisstart\t$thisend\t.\t$trxstrand\t.\ttranscript_id \"$trxtoks[0].$trxtoks[1]\"; exon_number $rev_exon_count\;\n";
-                }
-            }
-        }
-        EOF
+        ls -lha
     >>>
 
     output {
