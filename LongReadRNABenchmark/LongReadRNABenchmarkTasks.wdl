@@ -605,7 +605,7 @@ task ReferenceFreeGFFCompare {
     }
 
     command <<<
-        mkdir ~{datasetName}_~{toolName}_reffree
+        mkdir ~{datasetName}_~{toolName}_rf
 
         cp ~{inputGTF} .
         cp ~{expressedGTF} .
@@ -614,15 +614,15 @@ task ReferenceFreeGFFCompare {
 
         ls -lha
 
-        mv ~{datasetName}_~{toolName}_reffree* ~{datasetName}_~{toolName}_reffree
+        mv ~{datasetName}_~{toolName}_reffree* ~{datasetName}_~{toolName}_rf
 
         ls -lha */*
 
-        tar -zcvf ~{datasetName}_~{toolName}_reffree.tar.gz ~{datasetName}_~{toolName}_reffree
+        tar -zcvf ~{datasetName}_~{toolName}_rf.tar.gz ~{datasetName}_~{toolName}_rf
     >>>
 
     output {
-        File gffCompareOutput = "~{datasetName}_~{toolName}_reffree.tar.gz"
+        File gffCompareOutput = "~{datasetName}_~{toolName}_rf.tar.gz"
     }
 
     runtime {
@@ -703,16 +703,16 @@ task ReferenceFreeAnalysisSummarize {
         cp ~{referenceFreeGffCompareOutTama} .
         cp ~{referenceFreeGffCompareOutCupcake} .
 
-        tar -xzvf ~{datasetName}_isoquant_reffree.tar.gz
-        tar -xzvf ~{datasetName}_stringtie_reffree.tar.gz
-        tar -xzvf ~{datasetName}_isoseq_reffree.tar.gz
-        tar -xzvf ~{datasetName}_tama_reffree.tar.gz
-        tar -xzvf ~{datasetName}_cupcake_reffree.tar.gz
+        tar -xzvf ~{datasetName}_isoquant_rf.tar.gz
+        tar -xzvf ~{datasetName}_stringtie_rf.tar.gz
+        tar -xzvf ~{datasetName}_isoseq_rf.tar.gz
+        tar -xzvf ~{datasetName}_tama_rf.tar.gz
+        tar -xzvf ~{datasetName}_cupcake_rf.tar.gz
 
         ls -lha */*
 
         python3 /usr/local/src/plot_reffree_results.py \
-        ~{datasetName}_isoquant_reffree/~{datasetName}_isoquant_reffree.stats,~{datasetName}_stringtie_reffree/~{datasetName}_stringtie_reffree.stats,~{datasetName}_isoseq_reffree/~{datasetName}_isoseq_reffree.stats,~{datasetName}_tama_reffree/~{datasetName}_tama_reffree.stats,~{datasetName}_cupcake_reffree/~{datasetName}_cupcake_reffree.stats \
+        ~{datasetName}_isoquant_rf/~{datasetName}_isoquant_reffree.stats,~{datasetName}_stringtie_rf/~{datasetName}_stringtie_reffree.stats,~{datasetName}_isoseq_rf/~{datasetName}_isoseq_reffree.stats,~{datasetName}_tama_rf/~{datasetName}_tama_reffree.stats,~{datasetName}_cupcake_rf/~{datasetName}_cupcake_reffree.stats \
         isoquant,stringtie,isoseq,tama,cupcake \
         ~{datasetName}
     >>>
