@@ -21,7 +21,7 @@ task IsoQuant {
     String completeGeneDBOption = if defined(referenceAnnotation) then "--complete_genedb" else ""
     String referenceAnnotationBasename = if defined(referenceAnnotation) then basename(select_first([referenceAnnotation]), ".reduced.gtf") else ""
 
-command <<<
+    command <<<
         bash ~{monitoringScript} > monitoring.log &
 
         /usr/local/src/IsoQuant-3.1.1/isoquant.py \
