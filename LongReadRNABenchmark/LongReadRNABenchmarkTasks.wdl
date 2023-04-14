@@ -506,10 +506,10 @@ task ReducedAnnotationGFFCompare {
     String reducedAnnotationPrefix = basename(reducedAnnotationDB, ".reduced.db")
 
     command <<<
-        mv ~{reducedAnnotationDB} .
-        mv ~{excludedGTF} .
-        mv ~{expressedGTF} .
-        mv ~{expressedKeptGTF} .
+        cp ~{reducedAnnotationDB} .
+        cp ~{excludedGTF} .
+        cp ~{expressedGTF} .
+        cp ~{expressedKeptGTF} .
 
         cp ~{counts} .
 
@@ -558,13 +558,13 @@ task DenovoAnnotationGFFCompare {
     String flamesBasename = basename(flamesGFF)
 
     command <<<
-        mv ~{isoQuantGTF} .
-        mv ~{stringTieGTF} .
-        mv ~{bambuGTF} .
-        mv ~{bambuGTFCounts} .
-        mv ~{flairGTF} .
-        mv ~{talonGTF} .
-        mv ~{flamesGFF} .
+        cp ~{isoQuantGTF} .
+        cp ~{stringTieGTF} .
+        cp ~{bambuGTF} .
+        cp ~{bambuGTFCounts} .
+        cp ~{flairGTF} .
+        cp ~{talonGTF} .
+        cp ~{flamesGFF} .
 
         echo "~{isoQuantBasename} isoquant" > gtfs.list
         echo "~{stringTieBasename} stringtie" >> gtfs.list
@@ -607,9 +607,9 @@ task ReferenceFreeGFFCompare {
     command <<<
         mkdir ~{datasetName}_~{toolName}_reffree
 
-        mv ~{inputGTF} .
-        mv ~{expressedGTF} .
-        
+        cp ~{inputGTF} .
+        cp ~{expressedGTF} .
+
         gffcompare -r ~{expressedGTF} -o "~{datasetName}_~{toolName}_reffree" ~{inputGTF}
 
         ls -lha
