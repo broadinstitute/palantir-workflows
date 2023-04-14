@@ -609,7 +609,11 @@ task ReferenceFreeGFFCompare {
 
         gffcompare -r ~{expressedGTF} -o "~{datasetName}_~{toolName}_reffree" ~{inputGTF}
 
+        ls -lha
+
         mv ~{datasetName}_~{toolName}_reffree* ~{datasetName}_~{toolName}_reffree
+
+        ls -lha */*
 
         tar -zcvf ~{datasetName}_~{toolName}_reffree.tar.gz ~{datasetName}_~{toolName}_reffree
     >>>
@@ -703,7 +707,7 @@ task ReferenceFreeAnalysisSummarize {
         tar -xzvf ~{datasetName}_cupcake_reffree.tar.gz
 
         ls -lha */*
-        
+
         python3 /usr/local/src/plot_reffree_results.py \
         ~{datasetName}_isoquant_reffree/~{datasetName}_isoquant_reffree.stats,~{datasetName}_stringtie_reffree/~{datasetName}_stringtie_reffree.stats,~{datasetName}_isoseq_reffree/~{datasetName}_isoseq_reffree.stats,~{datasetName}_tama_reffree/~{datasetName}_tama_reffree.stats,~{datasetName}_cupcake_reffree/~{datasetName}_cupcake_reffree.stats \
         isoquant,stringtie,isoseq,tama,cupcake \
