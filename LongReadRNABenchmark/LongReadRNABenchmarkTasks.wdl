@@ -610,7 +610,7 @@ task ReferenceFreeGFFCompare {
         cp ~{inputGTF} .
         cp ~{expressedGTF} .
 
-        gffcompare -r ~{expressedGTF} -o "~{datasetName}_~{toolName}_reffree" ~{inputGTF}
+        gffcompare -r ~{expressedGTF} -o ~{datasetName}_~{toolName}_reffree ~{inputGTF}
 
         ls -lha
 
