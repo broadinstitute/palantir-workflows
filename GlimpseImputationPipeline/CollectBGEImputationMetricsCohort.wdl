@@ -556,18 +556,6 @@ task PearsonCorrelationByAF {
         Int preemptible = 1
     }
 
-    parameter_meta {
-        evalVcf : {
-            localization_optional : true
-        }
-        truthVcf : {
-            localization_optional : true
-        }
-        af_resource : {
-            localization_optional : true
-        }
-    }
-
     command <<<
         set -xeuo pipefail
 
