@@ -712,7 +712,7 @@ task ReferenceFreeAnalysisSummarize {
         ls -lha */*
 
         python3 /usr/local/src/plot_reffree_results.py \
-        ~{datasetName}_isoquant_rf/~{datasetName}_isoquant_reffree.stats,~{datasetName}_stringtie_rf/~{datasetName}_stringtie_reffree.stats,~{datasetName}_isoseq_rf/~{datasetName}_isoseq_reffree.stats,~{datasetName}_tama_rf/~{datasetName}_tama_reffree.stats,~{datasetName}_cupcake_rf/~{datasetName}_cupcake_reffree.stats \
+        ~{datasetName}_isoquant_rf/~{datasetName}_isoquant_reffree,~{datasetName}_stringtie_rf/~{datasetName}_stringtie_reffree,~{datasetName}_isoseq_rf/~{datasetName}_isoseq_reffree,~{datasetName}_tama_rf/~{datasetName}_tama_reffree,~{datasetName}_cupcake_rf/~{datasetName}_cupcake_reffree \
         isoquant,stringtie,isoseq,tama,cupcake \
         ~{datasetName}
     >>>
