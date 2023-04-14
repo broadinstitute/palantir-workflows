@@ -710,7 +710,7 @@ task ReferenceFreeAnalysisSummarize {
 
     output {
         File referenceFreeAnalysisSummary = "~{datasetName}_reffree_analysis_summary.tsv"
-        File referenceFreeAccuracyPlots = "~{datasetName}_reffree_analysis_summary.png"
+        File referenceFreeAnalysisAccuracyPlots = "~{datasetName}_reffree_analysis_summary.png"
     }
 
     runtime {
