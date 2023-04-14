@@ -313,10 +313,81 @@ task Tama {
         bash ~{monitoringScript} > monitoring.log &
 
         python2 /usr/local/src/tama/tama_collapse.py -b BAM -s ~{inputBAM} -f ~{referenceGenome} -p ~{outputPrefix} -x capped
+
+        cat ~{outputPrefix}.bed | \
+        perl -<< "EOF"
+        #!/usr/bin/perl
+        use strict;
+        #use warnings;
+
+        # A script to convert BED12 into a GTF.
+        # Input: piped BED12 file.
+        # Example: cat clark.gtfs.lift_to_hg38/Clark_DataS3.NoncodingTranscriptsAll.lift_to_hg38.bed | perl /users/rg/rjohnson/science/scripts/bed12ToGTF/bed12ToGTF.1.pl
+
+        my @line=();
+
+        my $trxchr;
+        my $trxstart;
+        my $trxend;
+        my $trxstrand;
+        my $trxid;
+        my $trxblank;
+        my @blocksizes;
+        my @blockstarts;
+
+        my $thisstart;
+        my $thisend;
+
+        my $exontotal;
+
+        while (<STDIN>) {
+            chomp $_;
+            @line=split("\t",$_);
+
+            ($trxchr, $trxstart, $trxend, $trxid, $trxblank,$trxstrand)=($line[0],$line[1],$line[2],$line[3],$line[4], $line[5]);
+
+            $trxstart+=1;   # Conversion from BED to GTF!!
+
+            my @trxtoks=split(";",$trxid);
+
+            # Print the Transcript Line
+            print "$trxchr\tblank\ttranscript\t$trxstart\t$trxend\t.\t$trxstrand\t.\ttranscript_id \"$trxtoks[0].$trxtoks[1]\"\;\n";
+
+            @blocksizes=split(",", $line[10]);
+            @blockstarts=split(",", $line[11]);
+            $exontotal=scalar(@blockstarts);
+
+            #print "\n @blocksizes hi @blockstarts";
+
+            my $exon_count=0;
+            my $rev_exon_count=$exontotal+1;
+
+            for (my $i=0; $i < $exontotal; $i++) {
+                $exon_count++;
+                $rev_exon_count--;
+
+                if ($trxstrand eq "+"){
+                    $thisstart=$trxstart+$blockstarts[$i];
+                    $thisend=$trxstart+$blockstarts[$i]+$blocksizes[$i]-1;    # The -1 added empirically after browser inspection
+                    #Print the Exon lines.
+                    print "$trxchr\tblank\texon\t$thisstart\t$thisend\t.\t$trxstrand\t.\ttranscript_id \"$trxtoks[0].$trxtoks[1]\"; exon_number $exon_count\;\n";
+                }
+
+                elsif ($trxstrand eq "-"){
+                    #$thisend=$trxend-$blockstarts[$i];
+                    #$thisstart=$thisend-$blocksizes[$i]+1;   # The +1 added empirically after browser inspection
+                    $thisstart=$trxstart+$blockstarts[$i];
+                    $thisend=$trxstart+$blockstarts[$i]+$blocksizes[$i]-1;    # The -1 added empirically after browser inspection
+                    #Print the Exon lines.
+                    print "$trxchr\tblank\texon\t$thisstart\t$thisend\t.\t$trxstrand\t.\ttranscript_id \"$trxtoks[0].$trxtoks[1]\"; exon_number $rev_exon_count\;\n";
+                }
+            }
+        }
+        EOF > ~{outputPrefix}.gtf
     >>>
 
     output {
-        File tamaBED = "~{outputPrefix}.bed"
+        File tamaGTF = "~{outputPrefix}.gtf"
         File monitoringLog = "monitoring.log"
     }
 
@@ -534,17 +605,17 @@ task ReferenceFreeGFFCompare {
     }
 
     command <<<
-        mkdir ~{datasetName}_~{toolName}_gffcompare_ref_free_stats
+        mkdir ~{datasetName}_~{toolName}_reffree
 
-        gffcompare -r ~{expressedGTF} -o "~{datasetName}_~{toolName}_gffcompare" ~{inputGTF}
+        gffcompare -r ~{expressedGTF} -o "~{datasetName}_~{toolName}_reffree" ~{inputGTF}
 
-        mv ~{datasetName}_~{toolName}_gffcompare* ~{datasetName}_~{toolName}_gffcompare_ref_free_stats
+        mv ~{datasetName}_~{toolName}_reffree* ~{datasetName}_~{toolName}_reffree
 
-        tar -zcvf ~{datasetName}_~{toolName}_gffcompare_ref_free_stats.tar.gz ~{datasetName}_~{toolName}_gffcompare_ref_free_stats
+        tar -zcvf ~{datasetName}_~{toolName}_reffree.tar.gz ~{datasetName}_~{toolName}_reffree
     >>>
 
     output {
-        File gffCompareOutput = "~{datasetName}_~{toolName}_gffcompare_ref_free_stats.tar.gz"
+        File gffCompareOutput = "~{datasetName}_~{toolName}_reffree.tar.gz"
     }
 
     runtime {
@@ -594,6 +665,52 @@ task ReducedAnalysisSummarize {
     output {
         File reducedAnalysisSummary = "~{datasetName}_reduced_analysis_summary.tsv"
         File reducedAnalysisAccuracyPlots = "~{datasetName}_reduced_analysis_summary.png"
+    }
+
+    runtime {
+        docker: docker
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+    }
+}
+
+task ReferenceFreeAnalysisSummarize {
+    input {
+        File referenceFreeGffCompareOutIsoQuant
+        File referenceFreeGffCompareOutStringTie
+        File referenceFreeGffCompareOutIsoSeq
+        File referenceFreeGffCompareOutTama
+        File referenceFreeGffCompareOutCupcake
+        String datasetName
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/kockan-reffree-analysis-summarize:latest"
+    }
+
+    command <<<
+        cp ~{referenceFreeGffCompareOutIsoQuant} .
+        cp ~{referenceFreeGffCompareOutStringTie} .
+        cp ~{referenceFreeGffCompareOutIsoSeq} .
+        cp ~{referenceFreeGffCompareOutTama} .
+        cp ~{referenceFreeGffCompareOutCupcake} .
+
+        tar -xzvf ~{datasetName}_isoquant_reffree.tar.gz
+        tar -xzvf ~{datasetName}_stringtie_reffree.tar.gz
+        tar -xzvf ~{datasetName}_isoseq_reffree.tar.gz
+        tar -xzvf ~{datasetName}_tama_reffree.tar.gz
+        tar -xzvf ~{datasetName}_cupcake_reffree.tar.gz
+
+        python3 /usr/local/src/plot_reffree_results.py \
+        ~{datasetName}_isoquant_reffree/isoquant_reffree.stats,~{datasetName}_stringtie_reffree/stringtie_reffree.stats,~{datasetName}_isoseq_reffree/isoseq_reffree.stats,~{datasetName}_tama_reffree/tama_reffree.stats,~{datasetName}_cupcake_reffree/cupcake_reffree.stats \
+        isoquant,stringtie,isoseq,tama,cupcake \
+        ~{datasetName}
+    >>>
+
+    output {
+        File referenceFreeAnalysisSummary = "~{datasetName}_reffree_analysis_summary.tsv"
+        File referenceFreeAccuracyPlots = "~{datasetName}_reffree_analysis_summary.png"
     }
 
     runtime {
