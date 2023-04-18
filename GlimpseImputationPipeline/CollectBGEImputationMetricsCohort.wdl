@@ -132,7 +132,7 @@ workflow CollectBGEImputationMetricsCohort {
                 preemptible = preemptible,
                 evalVcfIndex = eval_vcf1_index,
                 truthIndex = truth_vcf1_index,
-                af_resource_index = annotation_vcf1
+                af_resource_index = annotation_vcf1_index
         }
     }
 
@@ -151,7 +151,7 @@ workflow CollectBGEImputationMetricsCohort {
                 preemptible = preemptible,
                 evalVcfIndex = select_first([eval_vcf2_index]),
                 truthIndex = select_first([truth_vcf2_index]),
-                af_resource_index = select_first([annotation_vcf2])
+                af_resource_index = select_first([annotation_vcf2_index])
         }
 
         if (collect_af_0_1_single_number) {
@@ -172,7 +172,7 @@ workflow CollectBGEImputationMetricsCohort {
                     preemptible = preemptible,
                     evalVcfIndex = select_first([eval_vcf2_index]),
                     truthIndex = select_first([truth_vcf2_index]),
-                    af_resource_index = select_first([annotation_vcf2])
+                    af_resource_index = select_first([annotation_vcf2_index])
             }
         }
     }
@@ -192,7 +192,7 @@ workflow CollectBGEImputationMetricsCohort {
                 preemptible = preemptible,
                 evalVcfIndex = select_first([eval_vcf3_index]),
                 truthIndex = select_first([truth_vcf3_index]),
-                af_resource_index = select_first([annotation_vcf3])
+                af_resource_index = select_first([annotation_vcf3_index])
         }
 
         if (collect_af_0_1_single_number) {
@@ -213,7 +213,7 @@ workflow CollectBGEImputationMetricsCohort {
                     preemptible = preemptible,
                     evalVcfIndex = select_first([eval_vcf3_index]),
                     truthIndex = select_first([truth_vcf3_index]),
-                    af_resource_index = select_first([annotation_vcf3])
+                    af_resource_index = select_first([annotation_vcf3_index])
             }
         }
     }
@@ -233,7 +233,7 @@ workflow CollectBGEImputationMetricsCohort {
                 preemptible = preemptible,
                 evalVcfIndex = select_first([eval_vcf4_index]),
                 truthIndex = select_first([truth_vcf4_index]),
-                af_resource_index = select_first([annotation_vcf4])
+                af_resource_index = select_first([annotation_vcf4_index])
         }
 
         if (collect_af_0_1_single_number) {
@@ -254,7 +254,7 @@ workflow CollectBGEImputationMetricsCohort {
                     preemptible = preemptible,
                     evalVcfIndex = select_first([eval_vcf4_index]),
                     truthIndex = select_first([truth_vcf4_index]),
-                    af_resource_index = select_first([annotation_vcf4])
+                    af_resource_index = select_first([annotation_vcf4_index])
             }
         }
     }
@@ -274,7 +274,7 @@ workflow CollectBGEImputationMetricsCohort {
                 preemptible = preemptible,
                 evalVcfIndex = select_first([eval_vcf5_index]),
                 truthIndex = select_first([truth_vcf5_index]),
-                af_resource_index = select_first([annotation_vcf5])
+                af_resource_index = select_first([annotation_vcf5_index])
         }
 
         if (collect_af_0_1_single_number) {
@@ -295,7 +295,7 @@ workflow CollectBGEImputationMetricsCohort {
                     preemptible = preemptible,
                     evalVcfIndex = select_first([eval_vcf5_index]),
                     truthIndex = select_first([truth_vcf5_index]),
-                    af_resource_index = select_first([annotation_vcf5])
+                    af_resource_index = select_first([annotation_vcf5_index])
             }
         }
     }
@@ -315,7 +315,7 @@ workflow CollectBGEImputationMetricsCohort {
                 preemptible = preemptible,
                 evalVcfIndex = select_first([eval_vcf6_index]),
                 truthIndex = select_first([truth_vcf6_index]),
-                af_resource_index = select_first([annotation_vcf6])
+                af_resource_index = select_first([annotation_vcf6_index])
         }
 
         if (collect_af_0_1_single_number) {
@@ -336,7 +336,7 @@ workflow CollectBGEImputationMetricsCohort {
                     preemptible = preemptible,
                     evalVcfIndex = select_first([eval_vcf6_index]),
                     truthIndex = select_first([truth_vcf6_index]),
-                    af_resource_index = select_first([annotation_vcf6])
+                    af_resource_index = select_first([annotation_vcf6_index])
             }
         }
     }
@@ -356,7 +356,7 @@ workflow CollectBGEImputationMetricsCohort {
                 preemptible = preemptible,
                 evalVcfIndex = select_first([eval_vcf7_index]),
                 truthIndex = select_first([truth_vcf7_index]),
-                af_resource_index = select_first([annotation_vcf7])
+                af_resource_index = select_first([annotation_vcf7_index])
         }
 
         if (collect_af_0_1_single_number) {
@@ -377,7 +377,7 @@ workflow CollectBGEImputationMetricsCohort {
                     preemptible = preemptible,
                     evalVcfIndex = select_first([eval_vcf7_index]),
                     truthIndex = select_first([truth_vcf7_index]),
-                    af_resource_index = select_first([annotation_vcf7])
+                    af_resource_index = select_first([annotation_vcf7_index])
             }
         }
     }
