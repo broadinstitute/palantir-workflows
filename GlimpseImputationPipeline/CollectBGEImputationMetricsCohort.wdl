@@ -7,64 +7,86 @@ workflow CollectBGEImputationMetricsCohort {
 
         Array[String] sample_ids1
         File eval_vcf1
+        File eval_vcf1_index
         Array[String] truth_sample_ids1
         File truth_vcf1
+        File truth_vcf1_index
         String configuration_label1
         File annotation_vcf1
+        File annotation_vcf1_index
         Map[String, String] ancestry_to_af_annotation_map1
         String? intervals1
 
         Array[String]? sample_ids2
         File? eval_vcf2
+        File? eval_vcf2_index
         Array[String]? truth_sample_ids2
         File? truth_vcf2
+        File? truth_vcf2_index
+
         String? configuration_label2
         File? annotation_vcf2
+        File? annotation_vcf2_index
         Map[String, String] ancestry_to_af_annotation_map2
         String? intervals2
 
         Array[String]? sample_ids3
         File? eval_vcf3
+        File? eval_vcf3_index
         Array[String]? truth_sample_ids3
         File? truth_vcf3
+        File? truth_vcf3_index
         String? configuration_label3
         File? annotation_vcf3
+        File? annotation_vcf3_index
         Map[String, String] ancestry_to_af_annotation_map3
         String? intervals3
 
         Array[String]? sample_ids4
         File? eval_vcf4
+        File? eval_vcf4_index
         Array[String]? truth_sample_ids4
         File? truth_vcf4
+        File? truth_vcf4_index
         String? configuration_label4
         File? annotation_vcf4
+        File? annotation_vcf4_index
         Map[String, String] ancestry_to_af_annotation_map4
         String? intervals4
 
         Array[String]? sample_ids5
         File? eval_vcf5
+        File? eval_vcf5_index
         Array[String]? truth_sample_ids5
         File? truth_vcf5
+        File? truth_vcf5_index
         String? configuration_label5
         File? annotation_vcf5
+        File? annotation_vcf5_index
         Map[String, String] ancestry_to_af_annotation_map5
         String? intervals5
 
         Array[String]? sample_ids6
         File? eval_vcf6
+        File? eval_vcf6_index
         Array[String]? truth_sample_ids6
         File? truth_vcf6
+        File? truth_vcf6_index
         String? configuration_label6
         File? annotation_vcf6
+        File? annotation_vcf6_index
         Map[String, String] ancestry_to_af_annotation_map6
         String? intervals6
 
         Array[String]? sample_ids7
         File? eval_vcf7
+        File? eval_vcf7_index
         Array[String]? truth_sample_ids7
         File? truth_vcf7
+        File? truth_vcf7_index
         String? configuration_label7
         File? annotation_vcf7
+        File? annotation_vcf7_index
         Map[String, String] ancestry_to_af_annotation_map7
         String? intervals7
 
@@ -78,10 +100,13 @@ workflow CollectBGEImputationMetricsCohort {
     call PearsonCorrelationByAF as PearsonByAF {
         input:
             evalVcf = eval_vcf1,
+            evalVcfIndex = eval_vcf1_index,
             af_resource = annotation_vcf1,
+            af_resource_index = annotation_vcf1_index,
             ancestries = ancestries,
             ancestry_to_af_annotation_map = ancestry_to_af_annotation_map1,
             truthVcf = truth_vcf1,
+            truthIndex = truth_vcf1_index,
             intervals = intervals1,
             output_basename = output_basename,
             eval_sample_ids = sample_ids1,
@@ -104,7 +129,10 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = sample_ids1,
                 truth_sample_ids = truth_sample_ids1,
-                preemptible = preemptible
+                preemptible = preemptible,
+                evalVcfIndex = eval_vcf1_index,
+                truthIndex = truth_vcf1_index,
+                af_resource_index = annotation_vcf1
         }
     }
 
@@ -120,7 +148,10 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids2]),
                 truth_sample_ids = select_first([truth_sample_ids2]),
-                preemptible = preemptible
+                preemptible = preemptible,
+                evalVcfIndex = eval_vcf2_index,
+                truthIndex = truth_vcf2_index,
+                af_resource_index = annotation_vcf2
         }
 
         if (collect_af_0_1_single_number) {
@@ -138,7 +169,10 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids2]),
                     truth_sample_ids = select_first([truth_sample_ids2]),
-                    preemptible = preemptible
+                    preemptible = preemptible,
+                    evalVcfIndex = eval_vcf2_index,
+                    truthIndex = truth_vcf2_index,
+                    af_resource_index = annotation_vcf2
             }
         }
     }
@@ -155,7 +189,10 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids3]),
                 truth_sample_ids = select_first([truth_sample_ids3]),
-                preemptible = preemptible
+                preemptible = preemptible,
+                evalVcfIndex = eval_vcf3_index,
+                truthIndex = truth_vcf3_index,
+                af_resource_index = annotation_vcf3
         }
 
         if (collect_af_0_1_single_number) {
@@ -173,7 +210,10 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids3]),
                     truth_sample_ids = select_first([truth_sample_ids3]),
-                    preemptible = preemptible
+                    preemptible = preemptible,
+                    evalVcfIndex = eval_vcf3_index,
+                    truthIndex = truth_vcf3_index,
+                    af_resource_index = annotation_vcf3
             }
         }
     }
@@ -190,7 +230,10 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids4]),
                 truth_sample_ids = select_first([truth_sample_ids4]),
-                preemptible = preemptible
+                preemptible = preemptible,
+                evalVcfIndex = eval_vcf4_index,
+                truthIndex = truth_vcf4_index,
+                af_resource_index = annotation_vcf4
         }
 
         if (collect_af_0_1_single_number) {
@@ -208,7 +251,10 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids4]),
                     truth_sample_ids = select_first([truth_sample_ids4]),
-                    preemptible = preemptible
+                    preemptible = preemptible,
+                    evalVcfIndex = eval_vcf4_index,
+                    truthIndex = truth_vcf4_index,
+                    af_resource_index = annotation_vcf4
             }
         }
     }
@@ -225,7 +271,10 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids5]),
                 truth_sample_ids = select_first([truth_sample_ids5]),
-                preemptible = preemptible
+                preemptible = preemptible,
+                evalVcfIndex = eval_vcf5_index,
+                truthIndex = truth_vcf5_index,
+                af_resource_index = annotation_vcf5
         }
 
         if (collect_af_0_1_single_number) {
@@ -243,7 +292,10 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids5]),
                     truth_sample_ids = select_first([truth_sample_ids5]),
-                    preemptible = preemptible
+                    preemptible = preemptible,
+                    evalVcfIndex = eval_vcf5_index,
+                    truthIndex = truth_vcf5_index,
+                    af_resource_index = annotation_vcf5
             }
         }
     }
@@ -260,7 +312,10 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids6]),
                 truth_sample_ids = select_first([truth_sample_ids6]),
-                preemptible = preemptible
+                preemptible = preemptible,
+                evalVcfIndex = eval_vcf6_index,
+                truthIndex = truth_vcf6_index,
+                af_resource_index = annotation_vcf6
         }
 
         if (collect_af_0_1_single_number) {
@@ -278,7 +333,10 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids6]),
                     truth_sample_ids = select_first([truth_sample_ids6]),
-                    preemptible = preemptible
+                    preemptible = preemptible,
+                    evalVcfIndex = eval_vcf6_index,
+                    truthIndex = truth_vcf6_index,
+                    af_resource_index = annotation_vcf6
             }
         }
     }
@@ -295,7 +353,10 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids7]),
                 truth_sample_ids = select_first([truth_sample_ids7]),
-                preemptible = preemptible
+                preemptible = preemptible,
+                evalVcfIndex = eval_vcf7_index,
+                truthIndex = truth_vcf7_index,
+                af_resource_index = annotation_vcf7
         }
 
         if (collect_af_0_1_single_number) {
@@ -313,7 +374,10 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids7]),
                     truth_sample_ids = select_first([truth_sample_ids7]),
-                    preemptible = preemptible
+                    preemptible = preemptible,
+                    evalVcfIndex = eval_vcf7_index,
+                    truthIndex = truth_vcf7_index,
+                    af_resource_index = annotation_vcf7
             }
         }
     }
@@ -539,13 +603,16 @@ EOF
 task PearsonCorrelationByAF {
     input {
         File evalVcf
+        File evalVcfIndex
         File truthVcf
+        File truthIndex
         Array[String] eval_sample_ids
         Array[String] truth_sample_ids
         Map[String, String] ancestry_to_af_annotation_map
         String output_basename
         Array[String] ancestries
         File af_resource
+        File af_resource_index
         File? sites
         String? intervals
         String? dosage_field
