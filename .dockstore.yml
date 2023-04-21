@@ -81,6 +81,6 @@ workflows:
   - name: GlimpseReferencePanelDev
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/ReferencePanelDev.wdl
- - name: GlimpseConcordance
-   subclass: WDL
-   primaryDescriptorPath: /GlimpseImputationPipeline/GlimpseConcordance.wdl
+  - name: GlimpseConcordance
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/GlimpseConcordance.wdl
