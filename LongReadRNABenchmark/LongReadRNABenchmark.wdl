@@ -91,14 +91,14 @@ workflow LongReadRNABenchmark {
             datasetName = datasetName
     }
 
-    call LongReadRNABenchmarkTasks.Tama as Tama {
-        input:
-            inputBAM = inputBAM,
-            inputBAMIndex = inputBAMIndex,
-            referenceGenome = referenceGenome,
-            referenceGenomeIndex = referenceGenomeIndex,
-            datasetName = datasetName
-    }
+#    call LongReadRNABenchmarkTasks.Tama as Tama {
+#        input:
+#            inputBAM = inputBAM,
+#            inputBAMIndex = inputBAMIndex,
+#            referenceGenome = referenceGenome,
+#            referenceGenomeIndex = referenceGenomeIndex,
+#            datasetName = datasetName
+#    }
 
     call LongReadRNABenchmarkTasks.Flames as Flames {
         input:
@@ -228,13 +228,13 @@ workflow LongReadRNABenchmark {
             datasetName = datasetName
     }
 
-    call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompareTama {
-        input:
-            inputGTF = Tama.tamaGTF,
-            expressedGTF = expressedGTF,
-            toolName = "tama",
-            datasetName = datasetName
-    }
+#    call LongReadRNABenchmarkTasks.ReferenceFreeGFFCompare as ReferenceFreeGFFCompareTama {
+#        input:
+#            inputGTF = Tama.tamaGTF,
+#            expressedGTF = expressedGTF,
+#            toolName = "tama",
+#            datasetName = datasetName
+#    }
 
     call LongReadRNABenchmarkTasks.ReducedAnalysisSummarize as ReducedAnalysisSummarize {
         input:
@@ -252,8 +252,8 @@ workflow LongReadRNABenchmark {
             referenceFreeGffCompareOutIsoQuant = ReferenceFreeGFFCompareIsoQuant.gffCompareOutput,
             referenceFreeGffCompareOutStringTie = ReferenceFreeGFFCompareStringTie.gffCompareOutput,
             referenceFreeGffCompareOutIsoSeq = ReferenceFreeGFFCompareIsoSeq.gffCompareOutput,
-            referenceFreeGffCompareOutTama = ReferenceFreeGFFCompareCupcake.gffCompareOutput,
-            referenceFreeGffCompareOutCupcake = ReferenceFreeGFFCompareTama.gffCompareOutput,
+            #referenceFreeGffCompareOutTama = ReferenceFreeGFFCompareTama.gffCompareOutput,
+            referenceFreeGffCompareOutCupcake = ReferenceFreeGFFCompareCupcake.gffCompareOutput,
             datasetName = datasetName
     }
 
@@ -271,7 +271,7 @@ workflow LongReadRNABenchmark {
         File flairGTF = Flair.flairGTF
         File talonGTF = Talon.talonGTF
         File isoSeqGFF = IsoSeq.isoSeqGFF
-        File tamaGTF = Tama.tamaGTF
+        #File tamaGTF = Tama.tamaGTF
         File flamesGFF = Flames.flamesGFF
         File cupcakeGFF = Cupcake.cupcakeGFF
         File denovoAnnotationGFFCompareOut = DenovoAnnotationGFFCompare.gffCompareOutput
@@ -285,7 +285,7 @@ workflow LongReadRNABenchmark {
         File referenceFreeGFFCompareOutStringTie = ReferenceFreeGFFCompareStringTie.gffCompareOutput
         File referenceFreeGFFCompareOutIsoSeq = ReferenceFreeGFFCompareIsoSeq.gffCompareOutput
         File referenceFreeGFFCompareOutCupcake = ReferenceFreeGFFCompareCupcake.gffCompareOutput
-        File referenceFreeGFFCompareOutTama = ReferenceFreeGFFCompareTama.gffCompareOutput
+        #File referenceFreeGFFCompareOutTama = ReferenceFreeGFFCompareTama.gffCompareOutput
         File isoQuantMonitoringLog = IsoQuant.monitoringLog
         File isoQuantReferenceFreeMonitoringLog = IsoQuantReferenceFree.monitoringLog
         File stringTieMonitoringLog = StringTie.monitoringLog
@@ -294,7 +294,7 @@ workflow LongReadRNABenchmark {
         File flairMonitoringLog = Flair.monitoringLog
         File talonMonitoringLog = Talon.monitoringLog
         File isoSeqMonitoringLog = IsoSeq.monitoringLog
-        File tamaMonitoringLog = Tama.monitoringLog
+        #File tamaMonitoringLog = Tama.monitoringLog
         File flamesMonitoringLog = Flames.monitoringLog
         File cupcakeMonitoringLog = Cupcake.monitoringLog
         File reducedAnalysisSummary = ReducedAnalysisSummarize.reducedAnalysisSummary

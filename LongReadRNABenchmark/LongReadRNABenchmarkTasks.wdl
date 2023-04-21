@@ -622,7 +622,6 @@ task ReferenceFreeAnalysisSummarize {
         File referenceFreeGffCompareOutIsoQuant
         File referenceFreeGffCompareOutStringTie
         File referenceFreeGffCompareOutIsoSeq
-        File referenceFreeGffCompareOutTama
         File referenceFreeGffCompareOutCupcake
         String datasetName
         Int cpu = 1
@@ -635,20 +634,18 @@ task ReferenceFreeAnalysisSummarize {
         cp ~{referenceFreeGffCompareOutIsoQuant} .
         cp ~{referenceFreeGffCompareOutStringTie} .
         cp ~{referenceFreeGffCompareOutIsoSeq} .
-        cp ~{referenceFreeGffCompareOutTama} .
         cp ~{referenceFreeGffCompareOutCupcake} .
 
         tar -xzvf ~{datasetName}_isoquant_rf.tar.gz
         tar -xzvf ~{datasetName}_stringtie_rf.tar.gz
         tar -xzvf ~{datasetName}_isoseq_rf.tar.gz
-        tar -xzvf ~{datasetName}_tama_rf.tar.gz
         tar -xzvf ~{datasetName}_cupcake_rf.tar.gz
 
         ls -lha */*
 
         python3 /usr/local/src/plot_reffree_results.py \
-        ~{datasetName}_isoquant_rf/~{datasetName}_isoquant_reffree,~{datasetName}_stringtie_rf/~{datasetName}_stringtie_reffree,~{datasetName}_isoseq_rf/~{datasetName}_isoseq_reffree,~{datasetName}_tama_rf/~{datasetName}_tama_reffree,~{datasetName}_cupcake_rf/~{datasetName}_cupcake_reffree \
-        isoquant,stringtie,isoseq,tama,cupcake \
+        ~{datasetName}_isoquant_rf/~{datasetName}_isoquant_reffree,~{datasetName}_stringtie_rf/~{datasetName}_stringtie_reffree,~{datasetName}_isoseq_rf/~{datasetName}_isoseq_reffree,~{datasetName}_cupcake_rf/~{datasetName}_cupcake_reffree \
+        isoquant,stringtie,isoseq,cupcake \
         ~{datasetName}
     >>>
 
