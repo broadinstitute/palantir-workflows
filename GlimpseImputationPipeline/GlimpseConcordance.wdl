@@ -40,7 +40,7 @@ task GlimpseConcordance_t {
 
     Int mem_gb = 4
     Int cpu = 4
-    Int disk_size_gb = ceil(size(eval, "GiB") + size(truth, "GiB") + size(af_resource) + 100)
+    Int disk_size_gb = ceil(size(eval, "GiB") + size(truth, "GiB") + size(af_resource, "GB") + 100)
     Int preemptible = 1
     Int max_retries = 3
     String docker = "us.gcr.io/broad-dsde-methods/glimpse:2.0.0"
