@@ -3,18 +3,24 @@ version 1.0
 workflow GlimpseConcordance {
   input {
     File eval
-    File eval_index
     File truth
     File truth_index
     File af_resource
     File af_resource_index
     String af_tag
+    File sample_map
+  }
+
+  call RenameSamples {
+    input:
+      vcf = eval,
+      sample_map = sample_map
   }
 
   call GlimpseConcordance_t {
     input:
-      eval = eval,
-      eval_index = eval_index,
+      eval = RenameSamples.renamed_vcf,
+      eval_index = RenameSamples.renamed_vcf_index,
       truth = truth,
       truth_index = truth_index,
       af_resource = af_resource,
@@ -68,5 +74,31 @@ task GlimpseConcordance_t {
     cpu: cpu
     preemptible: preemptible
     maxRetries: max_retries
+  }
+}
+
+task RenameSamples {
+  input {
+    File vcf
+    File sample_map
+  }
+
+  String vcf_base = basename(vcf, ".vcf.gz")
+  command <<<
+
+    bcftools reheader ~{vcf} -s ~{sample_map} -o ~{vcf_base}_renamed_samples.vcf.gz
+    bcftools index -t ~{vcf_base}_renamed_samples.vcf.gz
+  >>>
+
+  runtime {
+    docker: "us.gcr.io/broad-gotc-prod/imputation-bcf-vcf:1.0.7-1.10.2-0.1.16-1669908889"
+    cpu: 4
+    disks: "local-disk 100 HDD"
+    preemptible: 0
+  }
+
+  output {
+    File renamed_vcf = "~{vcf_base}_renamed_samples.vcf.gz"
+    File renamed_vcf_index = "~{vcf_base}_renamed_samples.vcf.gz.tbi"
   }
 }
