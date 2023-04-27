@@ -322,7 +322,7 @@ workflow LongReadRNABenchmark {
             numTools = 6
     }
 
-    call LongReadRNABenchmarkTasks.SummarizeAnalysise as SummarizeAnalysisReduced {
+    call LongReadRNABenchmarkTasks.SummarizeAnalysis as SummarizeAnalysisReduced {
         input:
             inputList = [ReducedAnnotationAnalysisIsoQuant.novel, ReducedAnnotationAnalysisStringTie.novel, ReducedAnnotationAnalysisBambu.novel ,ReducedAnnotationAnalysisFlair.novel ,ReducedAnnotationAnalysisTalon.novel, ReducedAnnotationAnalysisFlames.novel],
             toolNames = ["isoquant" , "stringtie", "bambu", "flair", "talon", "flames"],
@@ -330,7 +330,7 @@ workflow LongReadRNABenchmark {
             analysisType = "reduced"
     }
 
-    call LongReadRNABenchmarkTasks.SummarizeAnalysise as SummarizeAnalysisReffree {
+    call LongReadRNABenchmarkTasks.SummarizeAnalysis as SummarizeAnalysisReffree {
         input:
             inputList = [ReferenceFreeAnalysisIsoQuant.stats, ReferenceFreeAnalysisStringTie.stats, ReferenceFreeAnalysisIsoSeq.stats ,ReferenceFreeAnalysisCupcake.stats],
             toolNames = ["isoquant" , "stringtie", "isoseq", "cupcake"],
