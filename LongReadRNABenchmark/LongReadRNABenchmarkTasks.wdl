@@ -422,43 +422,77 @@ task Cupcake {
     }
 }
 
-task ReducedAnnotationGFFCompare {
+task SplitGTF {
     input {
-        File reducedAnnotationDB
+        File inputGTF
+        File? inputCounts
+        String toolName
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom:latest"
+    }
+
+    String base = basename(inputGTF, ".gtf")
+
+    command <<<
+        ls -lha
+
+        if [[~{toolName} == "bambu"]]; then
+            /usr/local/src/split_gtf.py --input-gtf ~{inputGTF} --tool ~{toolName} --input-bambu-counts ~{inputCounts}
+        else
+            /usr/local/src/split_gtf.py --input-gtf ~{inputGTF} --tool ~{toolName}
+        fi
+
+        ls -lha
+    >>>
+
+    output {
+        File full = "~{base}.full.gtf"
+        File known = "~{base}.known.gtf"
+        File novel = "~{base}.novel.gtf"
+    }
+
+    runtime {
+        docker: docker
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+    }
+}
+
+task ReducedAnnotationAnalysis {
+    input {
+        File inputFullGTF
+        File inputKnownGTF
+        File inputNovelGTF
         File expressedGTF
         File expressedKeptGTF
         File excludedGTF
-        File inputGTF
-        File? counts
-        String toolName
-        String datasetName
-        Int cpu = 6
-        Int memoryGB = 64
-        Int diskSizeGB = 300
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare:latest"
     }
 
-    String reducedAnnotationPrefix = basename(reducedAnnotationDB, ".reduced.db")
+    String baseFull = basename(inputFullGTF, ".gtf")
+    String baseKnown = basename(inputKnownGTF, ".gtf")
+    String baseNovel = basename(inputNovelGTF, ".gtf")
 
     command <<<
-        cp ~{reducedAnnotationDB} .
-        cp ~{excludedGTF} .
-        cp ~{expressedGTF} .
-        cp ~{expressedKeptGTF} .
+        ls -lha
 
-        cp ~{counts} .
+        gffcompare -r ~{expressedGTF} -o ~{baseFull} ~{inputFullGTF}
+        gffcompare -r ~{expressedKeptGTF} -o ~{baseKnown} ~{inputKnownGTF}
+        gffcompare -r ~{excludedGTF} -o ~{baseNovel} ~{inputNovelGTF}
 
-        /usr/local/src/IsoQuant-3.1.1/misc/reduced_db_gffcompare.py \
-        --genedb ~{reducedAnnotationPrefix} \
-        --gtf ~{inputGTF} \
-        --tool ~{toolName} \
-        --output "~{datasetName}_~{toolName}_reduced_db"
-
-        tar -zcvf ~{datasetName}_~{toolName}_reduced_db.tar.gz ~{datasetName}_~{toolName}_reduced_db
+        ls -lha
     >>>
 
     output {
-        File gffCompareOutput = "~{datasetName}_~{toolName}_reduced_db.tar.gz"
+        File full = "~{baseFull}.stats"
+        File known = "~{baseKnown}.stats"
+        File novel = "~{baseNovel}.stats"
     }
 
     runtime {
@@ -469,95 +503,28 @@ task ReducedAnnotationGFFCompare {
     }
 }
 
-task DenovoAnnotationGFFCompare {
-    input {
-        File isoQuantGTF
-        File stringTieGTF
-        File bambuGTF
-        File bambuGTFCounts
-        File flairGTF
-        File talonGTF
-        File flamesGFF
-        String datasetName
-        Int cpu = 8
-        Int memoryGB = 64
-        Int diskSizeGB = 300
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
-    }
-
-    String isoQuantBasename = basename(isoQuantGTF)
-    String stringTieBasename = basename(stringTieGTF)
-    String bambuBasename = basename(bambuGTF)
-    String flairBasename = basename(flairGTF)
-    String talonBasename = basename(talonGTF)
-    String flamesBasename = basename(flamesGFF)
-
-    command <<<
-        cp ~{isoQuantGTF} .
-        cp ~{stringTieGTF} .
-        cp ~{bambuGTF} .
-        cp ~{bambuGTFCounts} .
-        cp ~{flairGTF} .
-        cp ~{talonGTF} .
-        cp ~{flamesGFF} .
-
-        echo "~{isoQuantBasename} isoquant" > gtfs.list
-        echo "~{stringTieBasename} stringtie" >> gtfs.list
-        echo "~{bambuBasename} bambu" >> gtfs.list
-        echo "~{flairBasename} flair" >> gtfs.list
-        echo "~{talonBasename} talon" >> gtfs.list
-        echo "~{flamesBasename} flames" >> gtfs.list
-
-        /usr/local/src/IsoQuant-3.1.1/misc/denovo_model_stats.py \
-        --gtf_list gtfs.list \
-        --output "~{datasetName}_denovo_stats"
-
-        tar -zcvf ~{datasetName}_denovo_stats.tar.gz ~{datasetName}_denovo_stats
-    >>>
-
-    output {
-        File gffCompareOutput = "~{datasetName}_denovo_stats.tar.gz"
-    }
-
-    runtime {
-        docker: docker
-        cpu: cpu
-        memory: "~{memoryGB} GiB"
-        disks: "local-disk ~{diskSizeGB} HDD"
-    }
-}
-
-task ReferenceFreeGFFCompare {
+task ReferenceFreeAnalysis {
     input {
         File inputGTF
         File expressedGTF
-        String toolName
-        String datasetName
-        Int cpu = 8
-        Int memoryGB = 64
-        Int diskSizeGB = 300
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant-gffcompare:latest"
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare:latest"
     }
 
+    String base = basename(inputGTF, ".gtf")
+
     command <<<
-        mkdir ~{datasetName}_~{toolName}_rf
-
-        cp ~{inputGTF} .
-        cp ~{expressedGTF} .
-
-        gffcompare -V -r ~{expressedGTF} -o ~{datasetName}_~{toolName}_reffree ~{inputGTF}
-
         ls -lha
 
-        mv ~{datasetName}_~{toolName}_reffree* ~{datasetName}_~{toolName}_rf
+        gffcompare -r ~{expressedGTF} -o ~{base}.denovo ~{inputGTF}
 
-        ls -lha */*
-
-        tar -zcvf ~{datasetName}_~{toolName}_rf.tar.gz ~{datasetName}_~{toolName}_rf
+        ls -lha
     >>>
 
     output {
-        File gffCompareOutput = "~{datasetName}_~{toolName}_rf.tar.gz"
+        File stats = "~{base}.denovo.stats"
     }
 
     runtime {
@@ -568,45 +535,26 @@ task ReferenceFreeGFFCompare {
     }
 }
 
-task ReducedAnalysisSummarize {
+task DenovoAnalysis {
     input {
-        File reducedGffCompareOutIsoQuant
-        File reducedGffCompareOutStringTie
-        File reducedGffCompareOutBambu
-        File reducedGffCompareOutFlair
-        File reducedGffCompareOutTalon
-        File reducedGffCompareOutFlames
-        String datasetName
+        String toolName
+        Array[File] gtfList
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/kockan-reduced-analysis-summarize:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare:latest"
     }
 
     command <<<
-        cp ~{reducedGffCompareOutIsoQuant} .
-        cp ~{reducedGffCompareOutStringTie} .
-        cp ~{reducedGffCompareOutBambu} .
-        cp ~{reducedGffCompareOutFlair} .
-        cp ~{reducedGffCompareOutTalon} .
-        cp ~{reducedGffCompareOutFlames} .
+        ls -lha
 
-        tar -xzvf ~{datasetName}_isoquant_reduced_db.tar.gz
-        tar -xzvf ~{datasetName}_stringtie_reduced_db.tar.gz
-        tar -xzvf ~{datasetName}_bambu_reduced_db.tar.gz
-        tar -xzvf ~{datasetName}_flair_reduced_db.tar.gz
-        tar -xzvf ~{datasetName}_talon_reduced_db.tar.gz
-        tar -xzvf ~{datasetName}_flames_reduced_db.tar.gz
+        gffcompare -o ~{toolName} -i ~{gtfList}
 
-        python3 /usr/local/src/plot_isoquant_results.py \
-            ~{datasetName}_talon_reduced_db/talon.novel.stats,~{datasetName}_flair_reduced_db/flair.novel.stats,~{datasetName}_bambu_reduced_db/bambu.novel.stats,~{datasetName}_stringtie_reduced_db/stringtie.novel.stats,~{datasetName}_isoquant_reduced_db/isoquant.novel.stats,~{datasetName}_flames_reduced_db/flames.novel.stats \
-            talon,flair,bambu,stringtie,isoquant,flames \
-            ~{datasetName}
+        ls -lha
     >>>
 
     output {
-        File reducedAnalysisSummary = "~{datasetName}_reduced_analysis_summary.tsv"
-        File reducedAnalysisAccuracyPlots = "~{datasetName}_reduced_analysis_summary.png"
+        File tracking = "~{toolName}.tracking"
     }
 
     runtime {
@@ -617,41 +565,90 @@ task ReducedAnalysisSummarize {
     }
 }
 
-task ReferenceFreeAnalysisSummarize {
+task DenovoStats {
     input {
-        File referenceFreeGffCompareOutIsoQuant
-        File referenceFreeGffCompareOutStringTie
-        File referenceFreeGffCompareOutIsoSeq
-        File referenceFreeGffCompareOutCupcake
-        String datasetName
+        File trackingFile
+        String toolName
+        Int numTools = 6
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/kockan-reffree-analysis-summarize:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom:latest"
     }
 
     command <<<
-        cp ~{referenceFreeGffCompareOutIsoQuant} .
-        cp ~{referenceFreeGffCompareOutStringTie} .
-        cp ~{referenceFreeGffCompareOutIsoSeq} .
-        cp ~{referenceFreeGffCompareOutCupcake} .
+        ls -lha
 
-        tar -xzvf ~{datasetName}_isoquant_rf.tar.gz
-        tar -xzvf ~{datasetName}_stringtie_rf.tar.gz
-        tar -xzvf ~{datasetName}_isoseq_rf.tar.gz
-        tar -xzvf ~{datasetName}_cupcake_rf.tar.gz
+        python3 /usr/local/src/extract_denovo_model_stats.py --tool ~{toolName} --tracking ~{trackingFile} --num-tools ~{numTools}
 
-        ls -lha */*
-
-        python3 /usr/local/src/plot_reffree_results.py \
-        ~{datasetName}_isoquant_rf/~{datasetName}_isoquant_reffree,~{datasetName}_stringtie_rf/~{datasetName}_stringtie_reffree,~{datasetName}_isoseq_rf/~{datasetName}_isoseq_reffree,~{datasetName}_cupcake_rf/~{datasetName}_cupcake_reffree \
-        isoquant,stringtie,isoseq,cupcake \
-        ~{datasetName}
+        ls -lha
     >>>
 
     output {
-        File referenceFreeAnalysisSummary = "~{datasetName}_reffree_analysis_summary.tsv"
-        File referenceFreeAnalysisAccuracyPlots = "~{datasetName}_reffree_analysis_summary.png"
+        File gffCompareOutput = "~{toolName}_denovo_model_stats.tsv"
+    }
+
+    runtime {
+        docker: docker
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+    }
+}
+
+task SummarizeAnalysis {
+    input {
+        Array[File] inputList
+        Array[String] toolNames
+        String datasetName
+        String analysisType
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom:latest"
+    }
+
+    command <<<
+        python3 /usr/local/src/summarize_results.py \
+        --input-list ~{inputList} \
+        --tool-names ~{toolNames} \
+        --dataset-name ~{datasetName} \
+        --analysis-type ~{analysisType}
+    >>>
+
+    output {
+        File summary = "~{datasetName}_~{analysisType}_analysis_summary.tsv"
+    }
+
+    runtime {
+        docker: docker
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+    }
+}
+
+task PlotAnalysisSummary {
+    input {
+        File summary
+        String datasetName
+        String analysisType
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom:latest"
+    }
+
+    command <<<
+        python3 /usr/local/src/plot_summary_results.py \
+        --input ~{summary} \
+        --dataset-name ~{datasetName} \
+        --analysis-type ~{analysisType} \
+        --save
+    >>>
+
+    output {
+        File analysisSummaryPlots = "~{datasetName}_~{analysisType}_analysis_summary.png"
     }
 
     runtime {
