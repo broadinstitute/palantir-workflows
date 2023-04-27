@@ -29,7 +29,11 @@ workflow GlimpseConcordance {
   }
 
   output {
-    File concordance = GlimpseConcordance_t.concordance
+    File concordance_per_sample = GlimpseConcordance_t.concordance_per_sample
+    File concordance_by_frequency = GlimpseConcordance_t.concordance_by_frequency
+    File concordance_per_cal_bin = GlimpseConcordance_t.concordance_per_cal_bin
+    File r2_by_frequency = GlimpseConcordance_t.r2_by_frequency
+    File r2_by_sample = GlimpseConcordance_t.r2_by_sample
   }
 }
 
