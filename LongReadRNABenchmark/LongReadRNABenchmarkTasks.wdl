@@ -439,9 +439,9 @@ task SplitGTF {
         ls -lha
 
         if [[~{toolName} == "bambu"]]; then
-            /usr/local/src/split_gtf.py --input-gtf ~{inputGTF} --tool ~{toolName} --input-bambu-counts ~{inputCounts}
+            python3 /usr/local/src/split_gtf.py --input-gtf ~{inputGTF} --tool ~{toolName} --input-bambu-counts ~{inputCounts}
         else
-            /usr/local/src/split_gtf.py --input-gtf ~{inputGTF} --tool ~{toolName}
+            python3 /usr/local/src/split_gtf.py --input-gtf ~{inputGTF} --tool ~{toolName}
         fi
 
         ls -lha
