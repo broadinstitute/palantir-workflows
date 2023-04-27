@@ -64,7 +64,11 @@ task GlimpseConcordance_t {
   >>>
 
   output {
-    File concordance = 'concordance_glimpse}'
+    File concordance_per_sample = 'concordance_glimpse.error.spl.txt.gz'
+    File concordance_by_frequency = 'concordance_glimpse.error.grp.txt.gz'
+    File concordance_per_cal_bin = 'concordance_glimpse.error.cal.txt.gz'
+    File r2_by_frequency = 'concordance_glimpse.rsquare.grp.txt.gz'
+    File r2_by_sample = 'concordance_glimpse.rsquare.spl.txt.gz'
   }
 
   runtime {
