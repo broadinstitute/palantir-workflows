@@ -438,11 +438,10 @@ task SplitGTF {
     command <<<
         ls -lha
 
-        if [[~{toolName} == "bambu"]]; then
-            python3 /usr/local/src/split_gtf.py --input-gtf ~{inputGTF} --tool ~{toolName} --input-bambu-counts ~{inputCounts}
-        else
-            python3 /usr/local/src/split_gtf.py --input-gtf ~{inputGTF} --tool ~{toolName}
-        fi
+        python3 /usr/local/src/split_gtf.py \
+        --input-gtf ~{inputGTF} \
+        --tool ~{toolName} \
+        ~{"--input-bambu-counts " + inputCounts}
 
         ls -lha
     >>>
@@ -548,7 +547,7 @@ task DenovoAnalysis {
     command <<<
         ls -lha
 
-        gffcompare -o ~{toolName} -i ${sep=" " gtfList}
+        gffcompare -o ~{toolName} -i ~{sep=" " gtfList}
 
         ls -lha
     >>>
