@@ -538,7 +538,7 @@ task ReferenceFreeAnalysis {
 task DenovoAnalysis {
     input {
         String toolName
-        Array[File] gtfList
+        Array[File]+ gtfList
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
@@ -548,7 +548,7 @@ task DenovoAnalysis {
     command <<<
         ls -lha
 
-        gffcompare -o ~{toolName} -i ~{gtfList}
+        gffcompare -o ~{toolName} -i ${sep=" " gtfList}
 
         ls -lha
     >>>
