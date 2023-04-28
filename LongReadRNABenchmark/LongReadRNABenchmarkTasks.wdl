@@ -489,9 +489,9 @@ task ReducedAnnotationAnalysis {
     >>>
 
     output {
-        File full = "~{baseFull}.stats"
-        File known = "~{baseKnown}.stats"
-        File novel = "~{baseNovel}.stats"
+        File full = "~{baseFull}"
+        File known = "~{baseKnown}"
+        File novel = "~{baseNovel}"
     }
 
     runtime {
