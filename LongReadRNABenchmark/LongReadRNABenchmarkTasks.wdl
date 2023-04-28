@@ -433,7 +433,7 @@ task SplitGTF {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom:latest"
     }
 
-    String base = basename(inputGTF, ".gtf")
+    String base = if toolName == "flames" then basename(inputGTF, ".gff") else basename(inputGTF, ".gtf")
 
     command <<<
         ls -lha
@@ -547,7 +547,7 @@ task DenovoAnalysis {
     command <<<
         ls -lha
 
-        gffcompare -o ~{toolName} -i ~{sep=" " gtfList}
+        gffcompare -o ~{toolName} ~{sep=" " gtfList}
 
         ls -lha
     >>>
@@ -597,8 +597,8 @@ task DenovoStats {
 
 task SummarizeAnalysis {
     input {
-        Array[File] inputList
-        Array[String] toolNames
+        Array[File]+ inputList
+        Array[String]+ toolNames
         String datasetName
         String analysisType
         Int cpu = 1
@@ -609,8 +609,8 @@ task SummarizeAnalysis {
 
     command <<<
         python3 /usr/local/src/summarize_results.py \
-        --input-list ~{inputList} \
-        --tool-names ~{toolNames} \
+        --input-list ~{sep=" " inputList} \
+        --tool-names ~~{sep=" " toolNames} \
         --dataset-name ~{datasetName} \
         --analysis-type ~{analysisType}
     >>>
