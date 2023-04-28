@@ -610,7 +610,7 @@ task SummarizeAnalysis {
     command <<<
         python3 /usr/local/src/summarize_results.py \
         --input-list ~{sep=" " inputList} \
-        --tool-names ~~{sep=" " toolNames} \
+        --tool-names ~{sep=" " toolNames} \
         --dataset-name ~{datasetName} \
         --analysis-type ~{analysisType}
     >>>
