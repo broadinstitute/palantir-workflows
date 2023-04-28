@@ -524,7 +524,7 @@ task ReferenceFreeAnalysis {
     >>>
 
     output {
-        File stats = "~{base}.denovo.stats"
+        File stats = "~{base}.denovo"
     }
 
     runtime {
