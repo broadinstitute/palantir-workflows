@@ -82,7 +82,7 @@ task GlimpsePhase {
         File? monitoring_script
     }
 
-    String bam_file_list_input = if defined(crams) then "--bam-file-list crams.list" else ""
+    String bam_file_list_input = if defined(crams) then "--bam-list crams.list" else ""
     command <<<
         set -xeuo pipefail
 
