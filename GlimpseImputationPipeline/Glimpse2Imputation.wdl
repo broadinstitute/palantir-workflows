@@ -11,6 +11,7 @@ workflow Glimpse2Imputation {
         Array[File]? cram_indices
         File? fasta
         File? fasta_index
+        String output_basename
 
         File ref_dict
         
@@ -45,7 +46,7 @@ workflow Glimpse2Imputation {
         input:
             imputed_chunks = GlimpsePhase.imputed_vcf,
             imputed_chunks_indices = GlimpsePhase.imputed_vcf_index,
-            output_basename = basename(input_vcf, ".vcf.gz"),
+            output_basename = output_basename,
             ref_dict = ref_dict,
             preemptible = preemptible,
             docker = docker,
@@ -81,6 +82,7 @@ task GlimpsePhase {
         File? monitoring_script
     }
 
+    String bam_file_list_input = if defined(crams) then "--bam-file-list crams.list" else ""
     command <<<
         set -xeuo pipefail
 
@@ -90,12 +92,13 @@ task GlimpsePhase {
         #NPROC=$(nproc)
         #echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
 
+        echo -e ~{sep="\n" crams} > cram.list
         /GLIMPSE/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
         --reference ~{reference_chunk} \
         --output phase_output.bcf \
         --threads ~{cpu} \
-        ~{"--bam-file-list " + write_lines(crams)} \
+        ~{bam_file_list_input} \
         ~{"--fasta " + fasta}
     >>>
 
