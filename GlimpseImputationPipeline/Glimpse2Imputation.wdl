@@ -92,7 +92,8 @@ task GlimpsePhase {
         #NPROC=$(nproc)
         #echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
 
-        echo -e ~{sep="\n" crams} > cram.list
+        echo -e ~{sep="\n" crams} > crams.list
+        
         /GLIMPSE/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
         --reference ~{reference_chunk} \
