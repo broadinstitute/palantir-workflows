@@ -546,6 +546,7 @@ task PearsonCorrelationByAF {
         String output_basename
         Array[String] ancestries
         File af_resource
+        File? ac_resource
         File? sites
         String? intervals
         String? dosage_field
@@ -564,6 +565,9 @@ task PearsonCorrelationByAF {
             localization_optional : true
         }
         af_resource : {
+            localization_optional : true
+        }
+        ac_resource : {
             localization_optional : true
         }
     }
@@ -595,11 +599,13 @@ EOF
 
         gatk --java-options "-Xmx~{mem_gb - 2}G" EvaluateGenotypingPerformance -eval ~{evalVcf} -truth ~{truthVcf} --af-annotations af_expressions.list --resource ~{af_resource} \
         ~{"--ids " + sites} ~{"-L " + intervals} --sample-map sample_map.list ~{"--dosage-field " + dosage_field} -O ~{output_basename}.correlations.tsv \
-        -OA ~{output_basename}.accuracy.tsv ~{"-nbins " + n_bins} ~{"-first-bin-right-edge " + right_edge_first_bin} ~{"--min-af-for-accuracy-metrics " + min_af_for_accuracy_metrics} --allow-differing-ploidies
+        -OA ~{output_basename}.accuracy.tsv ~{"-nbins " + n_bins} ~{"-first-bin-right-edge " + right_edge_first_bin} ~{"--min-af-for-accuracy-metrics " + min_af_for_accuracy_metrics} \
+        --allow-differing-ploidies --output-accuracy-af ~{output_basename}.accuracy_af.tsv --output-accuracy-ac ~{output_basename}.accuracy_ac.tsv \
+        ~{"ac-resource " + ac_resource}
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-array-correlation@sha256:5910defbc137d43145e6cf1f9c3539ae418b6e465250d55465e19e77773445c4"
+        docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-array-correlation@sha256:6f44ff7d1b6f9aca21baacb36828a949c2d061e3ad4c9c4a73887a677f9a3e0c"
         disks: "local-disk 100 HDD"
         memory: mem_gb + " GB"
         preemptible: preemptible
@@ -608,5 +614,7 @@ EOF
     output {
         File correlations = "~{output_basename}.correlations.tsv"
         File accuracy = "~{output_basename}.accuracy.tsv"
+        File accuracy_af = "~{output_basename}.accuracy_af.tsv"
+        File accuracy_ac = "~~{output_basename}.accuracy_ac.tsv"
     }
 }
