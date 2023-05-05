@@ -4,6 +4,7 @@ workflow CollectBGEImputationMetricsCohort {
     input {
         Array[String] ancestries
         Boolean collect_af_0_1_single_number = false
+        File ac_resource_vcf
 
         Array[String] sample_ids1
         File eval_vcf1
@@ -79,6 +80,7 @@ workflow CollectBGEImputationMetricsCohort {
         input:
             evalVcf = eval_vcf1,
             af_resource = annotation_vcf1,
+            ac_resource = ac_resource_vcf,
             ancestries = ancestries,
             ancestry_to_af_annotation_map = ancestry_to_af_annotation_map1,
             truthVcf = truth_vcf1,
@@ -94,6 +96,7 @@ workflow CollectBGEImputationMetricsCohort {
             input:
                 evalVcf = eval_vcf1,
                 af_resource = annotation_vcf1,
+                ac_resource = ac_resource_vcf,
                 ancestries = ancestries,
                 ancestry_to_af_annotation_map = ancestry_to_af_annotation_map1,
                 truthVcf = truth_vcf1,
@@ -113,6 +116,7 @@ workflow CollectBGEImputationMetricsCohort {
             input:
                 evalVcf = select_first([eval_vcf2]),
                 af_resource = select_first([annotation_vcf2]),
+                ac_resource = ac_resource_vcf,
                 ancestries = ancestries,
                 ancestry_to_af_annotation_map = ancestry_to_af_annotation_map2,
                 truthVcf = select_first([truth_vcf2]),
@@ -128,6 +132,7 @@ workflow CollectBGEImputationMetricsCohort {
                 input:
                     evalVcf = select_first([eval_vcf2]),
                     af_resource = select_first([annotation_vcf2]),
+                    ac_resource = ac_resource_vcf,
                     ancestries = ancestries,
                     ancestry_to_af_annotation_map = ancestry_to_af_annotation_map2,
                     truthVcf = select_first([truth_vcf2]),
@@ -148,6 +153,7 @@ workflow CollectBGEImputationMetricsCohort {
             input:
                 evalVcf = select_first([eval_vcf3]),
                 af_resource = select_first([annotation_vcf3]),
+                ac_resource = ac_resource_vcf,
                 ancestries = ancestries,
                 ancestry_to_af_annotation_map = ancestry_to_af_annotation_map3,
                 truthVcf = select_first([truth_vcf3]),
@@ -163,6 +169,7 @@ workflow CollectBGEImputationMetricsCohort {
                 input:
                     evalVcf = select_first([eval_vcf3]),
                     af_resource = select_first([annotation_vcf3]),
+                    ac_resource = ac_resource_vcf,
                     ancestries = ancestries,
                     ancestry_to_af_annotation_map = ancestry_to_af_annotation_map3,
                     truthVcf = select_first([truth_vcf3]),
@@ -183,6 +190,7 @@ workflow CollectBGEImputationMetricsCohort {
             input:
                 evalVcf = select_first([eval_vcf4]),
                 af_resource = select_first([annotation_vcf4]),
+                ac_resource = ac_resource_vcf,
                 ancestries = ancestries,
                 ancestry_to_af_annotation_map = ancestry_to_af_annotation_map4,
                 truthVcf = select_first([truth_vcf4]),
@@ -198,6 +206,7 @@ workflow CollectBGEImputationMetricsCohort {
                 input:
                     evalVcf = select_first([eval_vcf4]),
                     af_resource = select_first([annotation_vcf4]),
+                    ac_resource = ac_resource_vcf,
                     ancestries = ancestries,
                     ancestry_to_af_annotation_map = ancestry_to_af_annotation_map4,
                     truthVcf = select_first([truth_vcf4]),
@@ -218,6 +227,7 @@ workflow CollectBGEImputationMetricsCohort {
             input:
                 evalVcf = select_first([eval_vcf5]),
                 af_resource = select_first([annotation_vcf5]),
+                ac_resource = ac_resource_vcf,
                 ancestries = ancestries,
                 ancestry_to_af_annotation_map = ancestry_to_af_annotation_map5,
                 truthVcf = select_first([truth_vcf5]),
@@ -233,6 +243,7 @@ workflow CollectBGEImputationMetricsCohort {
                 input:
                     evalVcf = select_first([eval_vcf3]),
                     af_resource = select_first([annotation_vcf5]),
+                    ac_resource = ac_resource_vcf,
                     ancestries = ancestries,
                     ancestry_to_af_annotation_map = ancestry_to_af_annotation_map5,
                     truthVcf = select_first([truth_vcf5]),
@@ -253,6 +264,7 @@ workflow CollectBGEImputationMetricsCohort {
             input:
                 evalVcf = select_first([eval_vcf6]),
                 af_resource = select_first([annotation_vcf6]),
+                ac_resource = ac_resource_vcf,
                 ancestries = ancestries,
                 ancestry_to_af_annotation_map = ancestry_to_af_annotation_map6,
                 truthVcf = select_first([truth_vcf6]),
@@ -268,6 +280,7 @@ workflow CollectBGEImputationMetricsCohort {
                 input:
                     evalVcf = select_first([eval_vcf3]),
                     af_resource = select_first([annotation_vcf6]),
+                    ac_resource = ac_resource_vcf,
                     ancestries = ancestries,
                     ancestry_to_af_annotation_map = ancestry_to_af_annotation_map6,
                     truthVcf = select_first([truth_vcf6]),
@@ -288,6 +301,7 @@ workflow CollectBGEImputationMetricsCohort {
             input:
                 evalVcf = select_first([eval_vcf7]),
                 af_resource = select_first([annotation_vcf7]),
+                ac_resource = ac_resource_vcf,
                 ancestries = ancestries,
                 ancestry_to_af_annotation_map = ancestry_to_af_annotation_map7,
                 truthVcf = select_first([truth_vcf7]),
@@ -303,6 +317,7 @@ workflow CollectBGEImputationMetricsCohort {
                 input:
                     evalVcf = select_first([eval_vcf3]),
                     af_resource = select_first([annotation_vcf7]),
+                    ac_resource = ac_resource_vcf,
                     ancestries = ancestries,
                     ancestry_to_af_annotation_map = ancestry_to_af_annotation_map7,
                     truthVcf = select_first([truth_vcf7]),
