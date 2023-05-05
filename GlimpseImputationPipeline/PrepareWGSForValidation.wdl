@@ -33,7 +33,7 @@ workflow PrepareWGSForValidation {
         gvcf = gvcf,
         gvcf_index = gvcf_index,
         output_vcf_filename = gvcf_basename + ".reblocked.g.vcf.gz",
-        docker_image = "us.gcr.io/broad-gatk/gatk:4.1.8.0"
+        docker_image = "us.gcr.io/broad-gatk/gatk:4.3.0.0"
     }
 
     call RemoveAFAnnotation_t {
