@@ -630,6 +630,6 @@ EOF
         File correlations = "~{output_basename}.correlations.tsv"
         File accuracy = "~{output_basename}.accuracy.tsv"
         File accuracy_af = "~{output_basename}.accuracy_af.tsv"
-        File accuracy_ac = "~~{output_basename}.accuracy_ac.tsv"
+        File accuracy_ac = "~{output_basename}.accuracy_ac.tsv"
     }
 }
