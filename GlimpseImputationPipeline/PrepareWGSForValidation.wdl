@@ -24,37 +24,16 @@ workflow PrepareWGSForValidation {
       ref_dict = ref_dict,
       disk_size = 100
   }
-  scatter (i in range(length(gvcfs))) {
-    String gvcf = gvcfs[i]
-    String gvcf_index = gvcf_indices[i]
-    String gvcf_basename = basename(gvcf, ".g.vcf.gz")
-    call Reblock {
-      input:
-        gvcf = gvcf,
-        gvcf_index = gvcf_index,
-        ref_fasta = ref_fasta,
-        ref_fasta_index = ref_fasta_index,
-        ref_dict = ref_dict,
-        output_vcf_filename = gvcf_basename + ".reblocked.g.vcf.gz",
-        docker_image = "us.gcr.io/broad-dsde-methods/haploid_reblocking@sha256:f6aa1eca55cfbdaa0edd9dda034e91f97b5d81beccb0393ecdc28533499c5de5"
-    }
-
-    call RemoveAFAnnotation_t {
-      input:
-        vcf = Reblock.output_vcf,
-        basename = basename(Reblock.output_vcf,".g.vzf.gz") + ".AF.removed.g.vcf.gz"
-    }
-  }
 
   scatter(interval in SplitIntervalList.output_intervals) {
     call ImportGVCFs {
       input:
-        vcfs = RemoveAFAnnotation_t.output_vcf,
+        vcfs = gvcfs,
         workspace_dir_name = "genomicsdb",
         interval = interval
     }
 
-    call GnarlyGenotyper {
+    call GenotypeGVCFs {
       input:
         workspace_tar = ImportGVCFs.output_genomicsdb,
         ref_fasta = ref_fasta,
@@ -66,8 +45,8 @@ workflow PrepareWGSForValidation {
 
     call UpdateAlternateAlleles {
       input:
-        input_vcf = GnarlyGenotyper.output_vcf,
-        input_vcf_index = GnarlyGenotyper.output_vcf_index,
+        input_vcf = GenotypeGVCFs.output_vcf,
+        input_vcf_index = GenotypeGVCFs.output_vcf_index,
         basename = output_basename + "_" + basename(interval, ".interval_list"),
         reference_panel = reference_panel,
         reference_panel_index = reference_panel_index
