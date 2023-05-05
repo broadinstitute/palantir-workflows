@@ -616,7 +616,7 @@ EOF
         ~{"--ids " + sites} ~{"-L " + intervals} --sample-map sample_map.list ~{"--dosage-field " + dosage_field} -O ~{output_basename}.correlations.tsv \
         -OA ~{output_basename}.accuracy.tsv ~{"-nbins " + n_bins} ~{"-first-bin-right-edge " + right_edge_first_bin} ~{"--min-af-for-accuracy-metrics " + min_af_for_accuracy_metrics} \
         --allow-differing-ploidies --output-accuracy-af ~{output_basename}.accuracy_af.tsv --output-accuracy-ac ~{output_basename}.accuracy_ac.tsv \
-        ~{"ac-resource " + ac_resource}
+        ~{"--ac-resource " + ac_resource}
     >>>
 
     runtime {
