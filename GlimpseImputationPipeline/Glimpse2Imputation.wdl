@@ -9,6 +9,8 @@ workflow Glimpse2Imputation {
         File input_vcf_index
 
         File ref_dict
+
+        Boolean impute_reference_only_variants
         
         Int preemptible = 1
         String docker = "us.gcr.io/broad-dsde-methods/glimpse:2.0.0"
@@ -25,6 +27,7 @@ workflow Glimpse2Imputation {
                 reference_chunk = reference_chunk,
                 input_vcf = input_vcf,
                 input_vcf_index = input_vcf_index,
+                impute_reference_only_variants = impute_reference_only_variants,
                 preemptible = preemptible,
                 docker = docker,
                 cpu = cpu_phase,
@@ -60,6 +63,8 @@ task GlimpsePhase {
         File input_vcf_index
         File reference_chunk
 
+        Boolean impute_reference_only_variants
+
         Int mem_gb = 4
         Int cpu = 4
         Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + size(reference_chunk, "GiB") + 100)
@@ -77,7 +82,7 @@ task GlimpsePhase {
         #NPROC=$(nproc)
         #echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
 
-        /GLIMPSE/GLIMPSE2_phase --input-gl ~{input_vcf} --reference ~{reference_chunk} --output phase_output.bcf --threads ~{cpu} #${NPROC}
+        /GLIMPSE/GLIMPSE2_phase --input-gl ~{input_vcf} --reference ~{reference_chunk} ~{if impute_reference_only_variants then "--impute-reference-only-variants" else ""} --output phase_output.bcf --threads ~{cpu} #${NPROC}
     >>>
 
     runtime {
