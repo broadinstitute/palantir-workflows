@@ -7,8 +7,8 @@ workflow Glimpse2Imputation {
 
         File? input_vcf
         File? input_vcf_index
-        Array[File]? crams
-        Array[File]? cram_indices
+        Array[String]? crams
+        Array[String]? cram_indices
         File? fasta
         File? fasta_index
         String output_basename
@@ -67,8 +67,8 @@ task GlimpsePhase {
     input {
         File? input_vcf
         File? input_vcf_index
-        Array[File]? crams
-        Array[File]? cram_indices
+        Array[String]? crams
+        Array[String]? cram_indices
         File? fasta
         File? fasta_index
         File reference_chunk
@@ -84,15 +84,27 @@ task GlimpsePhase {
 
     String bam_file_list_input = if defined(crams) then "--bam-list crams.list" else ""
     command <<<
-        set -xeuo pipefail
+        set -euo pipefail
+
+        export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
 
         ~{"bash " + monitoring_script + " > monitoring.log &"}
-
 
         #NPROC=$(nproc)
         #echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
 
-        echo -e "~{sep="\n" crams}" > crams.list
+        cram_paths=( ~{sep=" " crams} )
+        cram_index_paths=( ~{sep=" " cram_indices} )
+
+        chunk_region=$(echo "~{reference_chunk}"|sed 's/^.*chr/chr/'|sed 's/\.bin//'|sed 's/_/:/1'|sed 's/_/-/1')
+
+        echo "Region for CRAM extraction: ${chunk_region}"
+        for i in "${!cram_paths[@]}" ; do
+            samtools view -h -C -X -T ~{fasta} -o cram${i}.cram "${cram_paths[$i]}" "${cram_index_paths[$i]}" ${chunk_region}
+            samtools index cram${i}.cram
+            echo -e "cram${i}.cram" >> crams.list
+            echo "Processed CRAM ${i}: ${cram_paths[$i]} -> cram${i}.cram"
+        done
 
         cram_paths=( ~{sep=" " crams} )
         cram_index_paths=( ~{sep=" " cram_indices} )
