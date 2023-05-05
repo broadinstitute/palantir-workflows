@@ -545,7 +545,7 @@ task Reblock {
     File ref_dict
   }
 
-  Int disk_size = ceil(size(gvcf, "GiB")) * 2
+  Int disk_size = ceil(size(gvcf, "GiB")*2.5) + 100
 
   command {
     gatk --java-options "-Xms3g -Xmx3g" \
@@ -555,6 +555,7 @@ task Reblock {
     -drop-low-quals \
     -do-qual-approx \
     --floor-blocks -GQB 10 -GQB 20 -GQB 30 -GQB 40 -GQB 50 -GQB 60 \
+    --use-jdk-deflater \
     -O ~{output_vcf_filename}
   }
 
