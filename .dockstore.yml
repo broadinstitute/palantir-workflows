@@ -81,3 +81,6 @@ workflows:
   - name: GlimpseReferencePanelDev
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/ReferencePanelDev.wdl
+  - name: PrepareWGSForValidation
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/PrepareWGSForValidation.wdl

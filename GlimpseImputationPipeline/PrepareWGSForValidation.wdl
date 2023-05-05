@@ -24,7 +24,7 @@ workflow PrepareWGSForValidation {
       ref_dict = ref_dict,
       disk_size = 100
   }
-  scatter (i in range(len(gvcfs))) {
+  scatter (i in range(length(gvcfs))) {
     String gvcf = gvcfs[i]
     String gvcf_index = gvcf_indices[i]
     String gvcf_basename = basename(gvcf, ".g.vcf.gz")
