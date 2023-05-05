@@ -32,6 +32,9 @@ workflow PrepareWGSForValidation {
       input:
         gvcf = gvcf,
         gvcf_index = gvcf_index,
+        ref_fasta = ref_fasta,
+        ref_fasta_index = ref_fasta_index,
+        ref_dict = ref_dict,
         output_vcf_filename = gvcf_basename + ".reblocked.g.vcf.gz",
         docker_image = "us.gcr.io/broad-gatk/gatk:4.3.0.0"
     }
@@ -537,6 +540,9 @@ task Reblock {
     File gvcf_index
     String output_vcf_filename
     String docker_image
+    File ref_fasta
+    File ref_fasta_index
+    File ref_dict
   }
 
   Int disk_size = ceil(size(gvcf, "GiB")) * 2
@@ -545,6 +551,7 @@ task Reblock {
     gatk --java-options "-Xms3g -Xmx3g" \
     ReblockGVCF \
     -V ~{gvcf} \
+    --reference ~{ref_fasta} \
     -drop-low-quals \
     -do-qual-approx \
     --floor-blocks -GQB 10 -GQB 20 -GQB 30 -GQB 40 -GQB 50 -GQB 60 \
