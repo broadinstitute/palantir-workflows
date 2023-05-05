@@ -36,7 +36,7 @@ workflow PrepareWGSForValidation {
         ref_fasta_index = ref_fasta_index,
         ref_dict = ref_dict,
         output_vcf_filename = gvcf_basename + ".reblocked.g.vcf.gz",
-        docker_image = "us.gcr.io/broad-gatk/gatk:4.3.0.0"
+        docker_image = "us.gcr.io/broad-dsde-methods/haploid_reblocking@sha256:f6aa1eca55cfbdaa0edd9dda034e91f97b5d81beccb0393ecdc28533499c5de5"
     }
 
     call RemoveAFAnnotation_t {
