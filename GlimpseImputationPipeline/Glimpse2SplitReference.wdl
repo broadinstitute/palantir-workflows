@@ -60,6 +60,8 @@ workflow Glimpse2SplitReference {
     output {
         Array[File] chunks = GlimpseSplitReferenceTask.chunks
         Array[File] reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks)
+        File num_sites = write_lines(flatten(GlimpseSplitReferenceTask.num_sites))
+        File num_sites_uniform = write_lines(flatten(GlimpseSplitReferenceTask.num_sites_uniform))
         Array[File?] split_reference_monitoring = GlimpseSplitReferenceTask.monitoring
     }
 }
@@ -100,11 +102,25 @@ task GlimpseSplitReferenceTask {
 
         /GLIMPSE/GLIMPSE2_chunk --input ~{reference_panel} --region ~{contig} --map ~{genetic_map} --sequential \
             --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt \
-            ~{"--seed "+seed} ~{"--window-cm "+min_window_cm} ~{uniform_number_variants_string}
+            ~{"--seed "+seed} ~{"--window-cm "+min_window_cm} ~{uniform_number_variants_string} | tee split_log.txt
 
         if [ -f chunks_contigindex_${CONTIGINDEX}.txt_uniform ]; then
             mv chunks_contigindex_${CONTIGINDEX}.txt_uniform chunks_contigindex_${CONTIGINDEX}.txt
         fi
+
+        touch num_sites.txt
+        touch num_sites_uniform.txt
+        output_filename="num_sites.txt"
+
+        while read line; do
+            if grep -q "Uniform solution found" <<< "$line"; then
+                output_filename="num_sites_uniform.txt"
+            fi
+            if grep -q "Terminal window" <<< "$line"; then
+                num_sites=$(sed 's/^.*C=//' <<< "$line")
+                echo "$num_sites" >> $output_filename
+            fi
+        done < split_log.txt
 
         mkdir -p ~{reference_output_dir}
 
@@ -141,6 +157,9 @@ task GlimpseSplitReferenceTask {
         # have a built-in way to do that, we have to rely on the command section to do that. However, we don't have access to that bash
         # variable in the output section, so we have to use glob here and return the first (and only) result.
         File chunks = glob("chunks_contigindex_*.txt")[0]
+
+        Array[String] num_sites = read_lines("num_sites.txt")
+        Array[String] num_sites_uniform = read_lines("num_sites_uniform.txt")
 
         File? monitoring = "monitoring.log"
     }
