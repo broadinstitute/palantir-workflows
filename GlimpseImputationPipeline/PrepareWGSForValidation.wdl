@@ -10,6 +10,7 @@ workflow PrepareWGSForValidation {
     File ref_dict
 
     Int scatter_count
+    Int? minimum_contig_length_to_keep
 
     String output_basename
     File reference_panel
@@ -22,6 +23,7 @@ workflow PrepareWGSForValidation {
       ref_fasta = ref_fasta,
       ref_fasta_index = ref_fasta_index,
       ref_dict = ref_dict,
+      minimum_contig_length_to_keep = minimum_contig_length_to_keep,
       disk_size = 100
   }
 
@@ -91,12 +93,13 @@ task SplitIntervalList {
     File ref_fasta_index
     File ref_dict
     Int disk_size
+    Int? minimum_contig_length_to_keep
     String gatk_docker = "us.gcr.io/broad-gatk/gatk:4.1.8.0"
   }
 
   command <<<
     gatk --java-options -Xms3g SplitIntervals \
-    -O  scatterDir -scatter ~{scatter_count} -R ~{ref_fasta}
+    -O  scatterDir -scatter ~{scatter_count} -R ~{ref_fasta} ~{"--min-contig-size " + minimum_contig_length_to_keep}
   >>>
 
   runtime {
