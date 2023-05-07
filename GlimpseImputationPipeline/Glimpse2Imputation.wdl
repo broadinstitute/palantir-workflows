@@ -75,7 +75,7 @@ task GlimpsePhase {
 
         Int mem_gb = 4
         Int cpu = 4
-        Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + size(reference_chunk, "GiB") + 100)
+        Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + 1.5 * size(select_first([crams, []]), "GiB") + size(reference_chunk, "GiB") + 100)
         Int preemptible = 1
         Int max_retries = 3
         String docker
