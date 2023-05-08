@@ -53,10 +53,15 @@ RUN apt-get -qq update && apt-get -qq -y install \
     zlib1g-dev
 
 RUN pip install matplotlib
+RUN pip install pandas
+RUN pip install seaborn
 
 ENV SRC=/usr/local/src
 ENV BIN=/usr/local/bin
 
-COPY plot_isoquant_results.py $SRC/plot_isoquant_results.py
+COPY split_gtf.py $SRC/split_gtf.py
+COPY summarize_results.py $SRC/summarize_results.py
+COPY extract_denovo_model_stats.py $SRC/extract_denovo_model_stats.py
+COPY plot_summary_results.py $SRC/plot_summary_results.py
 
 WORKDIR $SRC

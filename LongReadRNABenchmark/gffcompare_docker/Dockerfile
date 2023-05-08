@@ -57,33 +57,9 @@ ENV BIN=/usr/local/bin
 
 WORKDIR $SRC
 
-## Minimap2
-RUN wget https://github.com/lh3/minimap2/releases/download/v2.24/minimap2-2.24.tar.bz2 && \
-   tar xvf minimap2-2.24.tar.bz2 && \
-   cd minimap2-2.24 && \
-   make && \
-   cp minimap2 $BIN/
-
-## Samtools
-RUN wget https://github.com/samtools/samtools/releases/download/1.16.1/samtools-1.16.1.tar.bz2 && \
-	tar xvf samtools-1.16.1.tar.bz2 && \
-	cd samtools-1.16.1 && \
-    ./configure && \
-    make && \
-    make install
-
-## IsoQuant
-RUN wget https://github.com/ablab/IsoQuant/archive/refs/tags/v3.1.1.tar.gz && \
-   tar xvf v3.1.1.tar.gz && \
-   cd IsoQuant-3.1.1 && \
-   pip install numpy==1.19 && \
-   pip install -r requirements.txt
-
 ## GFFCompare
 RUN wget https://github.com/gpertea/gffcompare/releases/download/v0.12.6/gffcompare-0.12.6.tar.gz && \
 	tar xvf gffcompare-0.12.6.tar.gz && \
 	cd gffcompare-0.12.6 && \
 	make release && \
 	cp gffcompare $BIN/
-
-

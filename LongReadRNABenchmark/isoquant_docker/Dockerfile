@@ -52,23 +52,19 @@ RUN apt-get -qq update && apt-get -qq -y install \
     x11-common \
     zlib1g-dev
 
-
 ENV SRC=/usr/local/src
 ENV BIN=/usr/local/bin
 
-
 WORKDIR $SRC
 
-## Minimap2
-
+# minimap2
 RUN wget https://github.com/lh3/minimap2/releases/download/v2.24/minimap2-2.24.tar.bz2 && \
    tar xvf minimap2-2.24.tar.bz2 && \
    cd minimap2-2.24 && \
    make && \
    cp minimap2 $BIN/
 
-## Samtools
-
+# samtools
 RUN wget https://github.com/samtools/samtools/releases/download/1.16.1/samtools-1.16.1.tar.bz2 && \
 	tar xvf samtools-1.16.1.tar.bz2 && \
 	cd samtools-1.16.1 && \
@@ -76,16 +72,9 @@ RUN wget https://github.com/samtools/samtools/releases/download/1.16.1/samtools-
     make && \
     make install
 
-## IsoQuant
-
-RUN wget https://github.com/ablab/IsoQuant/releases/download/v3.1.1/IsoQuant-3.1.1.tar.gz && \
-   tar xvf IsoQuant-3.1.1.tar.gz && \
-   cd IsoQuant-3.1.1 && \
-   pip install numpy==1.19 && \
+# IsoQuant 3.2.0 for memory optimizations
+RUN wget https://github.com/ablab/IsoQuant/releases/download/v3.2.0/IsoQuant-3.2.0.tar.gz && \
+   tar xvf IsoQuant-3.2.0.tar.gz && \
+   cd IsoQuant-3.2.0 && \
+   pip install numpy==1.21 && \
    pip install -r requirements.txt
-
-
-
-
-
-
