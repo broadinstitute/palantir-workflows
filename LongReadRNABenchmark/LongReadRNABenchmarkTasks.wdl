@@ -13,7 +13,7 @@ task IsoQuant {
         Int numThreads = 32
         Int memoryGB = 256
         Int diskSizeGB = 500
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoquant@sha256:8af2461f7bb9de2137172c8637b35bea1242b28ff367d42b08d62f2a98c3fc8d"
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
@@ -23,7 +23,7 @@ task IsoQuant {
     command <<<
         bash ~{monitoringScript} > monitoring.log &
 
-        /usr/local/src/IsoQuant-3.1.1/isoquant.py \
+        /usr/local/src/IsoQuant-3.2.0/isoquant.py \
         --reference ~{referenceGenome} \
         ~{completeGeneDBOption} \
         ~{"--genedb " + referenceAnnotation} \
@@ -40,10 +40,10 @@ task IsoQuant {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -56,7 +56,7 @@ task StringTie {
         Int numThreads = 32
         Int memoryGB = 64
         Int diskSizeGB = 500
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/stringtie:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/stringtie@sha256:77371c6e81abbc3a0dd169ad21f861903f695ea73ffadca2c84e31651fffb548"
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
@@ -78,10 +78,10 @@ task StringTie {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -98,7 +98,7 @@ task Bambu {
         Int numThreads = 32
         Int memoryGB = 64
         Int diskSizeGB = 500
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/bambu:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/bambu@sha256:330ba8d5e9a70da486dfba3d2271739dc05cf5d157db85d6a1d006de8f1d8953"
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
@@ -131,10 +131,10 @@ task Bambu {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -150,7 +150,7 @@ task Flair {
         Int numThreads = 32
         Int memoryGB = 64
         Int diskSizeGB = 500
-        String docker = "brookslab/flair:latest"
+        String docker = "brookslab/flair@sha256:994a5f6dd6bee041c8a2a82e84b77293d9bf5f3a2f172d440a72daee33474043"
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
@@ -185,10 +185,10 @@ task Flair {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -205,7 +205,7 @@ task Talon {
         Int numThreads = 32
         Int memoryGB = 256
         Int diskSizeGB = 500
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/talon:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/talon@sha256:07f5dda62d29976eded3b8c4afaaff176b370a1237c95253e4a550a4e3a6e629"
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
@@ -229,10 +229,10 @@ task Talon {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -247,7 +247,7 @@ task IsoSeq {
         Int numThreads = 32
         Int memoryGB = 256
         Int diskSizeGB = 500
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoseq3:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/isoseq3@sha256:e715dda61f295d6825c0f4bea5133d583158db5d63c550ff186ee59f1ff10385"
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
@@ -267,10 +267,10 @@ task IsoSeq {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -284,7 +284,7 @@ task Tama {
         Int cpu = 16
         Int memoryGB = 256
         Int diskSizeGB = 500
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/tama:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/tama@sha256:3824f9b4769f08c4a2d5e46505fc21e08ae2a0d0e8f3acad2d06739e2d5b23f5"
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
@@ -295,11 +295,7 @@ task Tama {
 
         python2 /usr/local/src/tama/tama_collapse.py -b BAM -s ~{inputBAM} -f ~{referenceGenome} -p ~{outputPrefix} -x capped
 
-        ls -lha
-
         cat ~{outputPrefix}.bed | perl /usr/local/src/bed12ToGTF.1.pl > ~{outputPrefix}.gtf
-
-        ls -lha
     >>>
 
     output {
@@ -308,10 +304,10 @@ task Tama {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -326,7 +322,7 @@ task Flames {
         Int cpu = 16
         Int memoryGB = 256
         Int diskSizeGB = 500
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/flames:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/flames@sha256:74bdb17cf2bf092f3358e0ae0edfea33783180d0f3a688e2362b82544049ad63"
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
@@ -343,20 +339,18 @@ task Flames {
         --fq_dir ./fq \
         --inbam ~{inputBAM} \
         --outdir .
-
-        mv isoform_annotated.gff3 FLAMES_out_~{datasetName}.gff
     >>>
 
     output {
-        File flamesGFF = "FLAMES_out_~{datasetName}.gff"
+        File flamesGFF = "isoform_annotated.gff3"
         File monitoringLog = "monitoring.log"
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -368,7 +362,7 @@ task Cupcake {
         Int cpu = 16
         Int memoryGB = 256
         Int diskSizeGB = 500
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/cdna-cupcake:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/cdna-cupcake@sha256:1d9e8c05fad09223d9f9a0adc2d56b637463365726c3461691ec4aa1f84dcacc"
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
@@ -386,20 +380,18 @@ task Cupcake {
         --bam ~{inputBAM} \
         --prefix ~{outputPrefix} \
         --cpus 1
-
-        mv ~{outputPrefix}.collapsed.gff ~{outputPrefix}.gff
     >>>
 
     output {
-        File cupcakeGFF = "~{outputPrefix}.gff"
+        File cupcakeGFF = "~{outputPrefix}.collapsed.gff"
         File monitoringLog = "monitoring.log"
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -411,20 +403,16 @@ task SplitGTF {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:dfa51467cc05395feb5ba9f14f9a35e16ea7882fb84ad35abf25111acbc9fa04"
     }
 
     String base = if toolName == "flames" then basename(inputGTF, ".gff") else basename(inputGTF, ".gtf")
 
     command <<<
-        ls -lha
-
         python3 /usr/local/src/split_gtf.py \
         --input-gtf ~{inputGTF} \
         --tool ~{toolName} \
         ~{"--input-bambu-counts " + inputCounts}
-
-        ls -lha
     >>>
 
     output {
@@ -434,10 +422,10 @@ task SplitGTF {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -452,7 +440,7 @@ task ReducedAnnotationAnalysis {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare@sha256:e63da5cf04c83e766ec546bb5f6c0f7b9fef4ec5c5d68c6b4a527ba72012ea3b"
     }
 
     String baseFull = basename(inputFullGTF, ".gtf")
@@ -460,13 +448,9 @@ task ReducedAnnotationAnalysis {
     String baseNovel = basename(inputNovelGTF, ".gtf")
 
     command <<<
-        ls -lha
-
         gffcompare -r ~{expressedGTF} -o ~{baseFull} ~{inputFullGTF}
         gffcompare -r ~{expressedKeptGTF} -o ~{baseKnown} ~{inputKnownGTF}
         gffcompare -r ~{excludedGTF} -o ~{baseNovel} ~{inputNovelGTF}
-
-        ls -lha
     >>>
 
     output {
@@ -476,10 +460,10 @@ task ReducedAnnotationAnalysis {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -490,17 +474,13 @@ task ReferenceFreeAnalysis {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare@sha256:e63da5cf04c83e766ec546bb5f6c0f7b9fef4ec5c5d68c6b4a527ba72012ea3b"
     }
 
     String base = basename(inputGTF, ".gtf")
 
     command <<<
-        ls -lha
-
         gffcompare -r ~{expressedGTF} -o ~{base}.denovo ~{inputGTF}
-
-        ls -lha
     >>>
 
     output {
@@ -508,10 +488,10 @@ task ReferenceFreeAnalysis {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -522,15 +502,11 @@ task DenovoAnalysis {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare@sha256:e63da5cf04c83e766ec546bb5f6c0f7b9fef4ec5c5d68c6b4a527ba72012ea3b"
     }
 
     command <<<
-        ls -lha
-
         gffcompare -o ~{toolName} ~{sep=" " gtfList}
-
-        ls -lha
     >>>
 
     output {
@@ -538,10 +514,10 @@ task DenovoAnalysis {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -553,15 +529,11 @@ task DenovoStats {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:dfa51467cc05395feb5ba9f14f9a35e16ea7882fb84ad35abf25111acbc9fa04"
     }
 
     command <<<
-        ls -lha
-
         python3 /usr/local/src/extract_denovo_model_stats.py --tool ~{toolName} --tracking ~{trackingFile} --num-tools ~{numTools}
-
-        ls -lha
     >>>
 
     output {
@@ -569,10 +541,10 @@ task DenovoStats {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -585,7 +557,7 @@ task SummarizeAnalysis {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:dfa51467cc05395feb5ba9f14f9a35e16ea7882fb84ad35abf25111acbc9fa04"
     }
 
     command <<<
@@ -601,10 +573,10 @@ task SummarizeAnalysis {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
 
@@ -616,7 +588,7 @@ task PlotAnalysisSummary {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom:latest"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:dfa51467cc05395feb5ba9f14f9a35e16ea7882fb84ad35abf25111acbc9fa04"
     }
 
     command <<<
@@ -632,9 +604,9 @@ task PlotAnalysisSummary {
     }
 
     runtime {
-        docker: docker
         cpu: cpu
         memory: "~{memoryGB} GiB"
         disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }

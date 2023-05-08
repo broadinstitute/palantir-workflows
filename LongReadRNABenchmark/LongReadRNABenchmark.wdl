@@ -90,16 +90,7 @@ workflow LongReadRNABenchmark {
             referenceGenomeIndex = referenceGenomeIndex,
             datasetName = datasetName
     }
-
-#    call LongReadRNABenchmarkTasks.Tama as Tama {
-#        input:
-#            inputBAM = inputBAM,
-#            inputBAMIndex = inputBAMIndex,
-#            referenceGenome = referenceGenome,
-#            referenceGenomeIndex = referenceGenomeIndex,
-#            datasetName = datasetName
-#    }
-
+    
     call LongReadRNABenchmarkTasks.Flames as Flames {
         input:
             inputBAM = inputBAM,
@@ -238,12 +229,6 @@ workflow LongReadRNABenchmark {
             expressedGTF = expressedGTF
     }
 
-#    call LongReadRNABenchmarkTasks.ReferenceFreeAnalysis as ReferenceFreeAnalysisTama {
-#        input:
-#            inputGTF = Tama.tamaGTF,
-#            expressedGTF = expressedGTF
-#    }
-
     call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisIsoQuant {
         input:
             toolName = "isoquant",
@@ -362,40 +347,45 @@ workflow LongReadRNABenchmark {
         File flairGTF = Flair.flairGTF
         File talonGTF = Talon.talonGTF
         File isoSeqGFF = IsoSeq.isoSeqGFF
-        #File tamaGTF = Tama.tamaGTF
         File flamesGFF = Flames.flamesGFF
         File cupcakeGFF = Cupcake.cupcakeGFF
         File isoQuantFull = SplitGTFIsoQuant.full
         File isoQuantKnown = SplitGTFIsoQuant.known
         File isoQuantNovel = SplitGTFIsoQuant.novel
         File isoQuantTracking = DenovoAnalysisIsoQuant.tracking
+        File isoQuantDenovoStats = DenovoStatsIsoQuant.gffCompareOutput
         File isoQuantReducedAnnotationAnalysisStats = ReducedAnnotationAnalysisIsoQuant.novel
         File isoQuantReferenceFreeAnalysisStats = ReferenceFreeAnalysisIsoQuant.stats
         File stringTieFull = SplitGTFStringTie.full
         File stringTieKnown = SplitGTFStringTie.known
         File stringTieNovel = SplitGTFStringTie.novel
         File stringTieTracking = DenovoAnalysisStringTie.tracking
+        File stringTieDenovoStats = DenovoStatsStringTie.gffCompareOutput
         File stringTieReducedAnnotationAnalysisStats = ReducedAnnotationAnalysisStringTie.novel
         File stringTieReferenceFreeAnalysisStats = ReferenceFreeAnalysisStringTie.stats
         File bambuFull = SplitGTFBambu.full
         File bambuKnown = SplitGTFBambu.known
         File bambuNovel = SplitGTFBambu.novel
         File bambuTracking = DenovoAnalysisBambu.tracking
+        File bambuDenovoStats = DenovoStatsBambu.gffCompareOutput
         File bambuReducedAnnotationAnalysisStats = ReducedAnnotationAnalysisBambu.novel
         File flairFull = SplitGTFFlair.full
         File flairKnown = SplitGTFFlair.known
         File flairNovel = SplitGTFFlair.novel
         File flairTracking = DenovoAnalysisFlair.tracking
+        File flairDenovoStats = DenovoStatsFlair.gffCompareOutput
         File flairReducedAnnotationAnalysisStats = ReducedAnnotationAnalysisFlair.novel
         File talonFull = SplitGTFTalon.full
         File talonKnown = SplitGTFTalon.known
         File talonNovel = SplitGTFTalon.novel
         File talonTracking = DenovoAnalysisTalon.tracking
+        File talonDenovoStats = DenovoStatsTalon.gffCompareOutput
         File talonReducedAnnotationAnalysisStats = ReducedAnnotationAnalysisTalon.novel
         File flamesFull = SplitGTFFlames.full
         File flamesKnown = SplitGTFFlames.known
         File flamestNovel = SplitGTFFlames.novel
         File flamesTracking = DenovoAnalysisFlames.tracking
+        File flamesDenovoStats = DenovoStatsFlames.gffCompareOutput
         File flamesReducedAnnotationAnalysisStats = ReducedAnnotationAnalysisFlames.novel
         File isoSeqReferenceFreeAnalysisStats = ReferenceFreeAnalysisIsoSeq.stats
         File cupcakeReferenceFreeAnalysisStats = ReferenceFreeAnalysisCupcake.stats
@@ -407,7 +397,6 @@ workflow LongReadRNABenchmark {
         File flairMonitoringLog = Flair.monitoringLog
         File talonMonitoringLog = Talon.monitoringLog
         File isoSeqMonitoringLog = IsoSeq.monitoringLog
-        #File tamaMonitoringLog = Tama.monitoringLog
         File flamesMonitoringLog = Flames.monitoringLog
         File cupcakeMonitoringLog = Cupcake.monitoringLog
         File reducedAnalysisSummary = SummarizeAnalysisReduced.summary
