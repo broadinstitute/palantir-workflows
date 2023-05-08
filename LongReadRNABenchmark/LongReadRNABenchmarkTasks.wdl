@@ -366,7 +366,7 @@ task SplitGTF {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:fbab79dab9964efe75f9226dcacc303001a58f2e17abb77e679909bf3537d1de"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:775cd637fa3f4befc6b0b7dc1a674a0e64461920df8b10ab1b6e330e439049a3"
     }
 
     String base = if toolName == "flames" then basename(inputGTF, ".gff3") else basename(inputGTF, ".gtf")
@@ -492,7 +492,7 @@ task DenovoStats {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:fbab79dab9964efe75f9226dcacc303001a58f2e17abb77e679909bf3537d1de"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:775cd637fa3f4befc6b0b7dc1a674a0e64461920df8b10ab1b6e330e439049a3"
     }
 
     command <<<
@@ -520,7 +520,7 @@ task SummarizeAnalysis {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:fbab79dab9964efe75f9226dcacc303001a58f2e17abb77e679909bf3537d1de"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:775cd637fa3f4befc6b0b7dc1a674a0e64461920df8b10ab1b6e330e439049a3"
     }
 
     command <<<
@@ -551,7 +551,7 @@ task PlotAnalysisSummary {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:fbab79dab9964efe75f9226dcacc303001a58f2e17abb77e679909bf3537d1de"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:775cd637fa3f4befc6b0b7dc1a674a0e64461920df8b10ab1b6e330e439049a3"
     }
 
     command <<<
