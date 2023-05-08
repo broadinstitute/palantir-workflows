@@ -19,7 +19,6 @@ task IsoQuant {
 
     String outputPrefix = if defined(referenceAnnotation) then "IsoQuant_out_~{datasetName}" else "IsoQuant_denovo_out_~{datasetName}"
     String completeGeneDBOption = if defined(referenceAnnotation) then "--complete_genedb" else ""
-    String referenceAnnotationBasename = if defined(referenceAnnotation) then basename(select_first([referenceAnnotation]), ".reduced.gtf") else ""
 
     command <<<
         bash ~{monitoringScript} > monitoring.log &
@@ -33,18 +32,10 @@ task IsoQuant {
         --threads ~{numThreads} \
         --labels ~{datasetName} \
         --output ~{outputPrefix}
-
-        mv ~{outputPrefix}/~{datasetName}/~{datasetName}.transcript_models.gtf ~{outputPrefix}.gtf
-
-        tar -zcvf ~{outputPrefix}.tar.gz ~{outputPrefix}/~{datasetName}
-
-        touch ~{outputPrefix}/~{referenceAnnotationBasename}.reduced.db
     >>>
 
     output {
-        File isoQuantGTF = "~{outputPrefix}.gtf"
-        File isoQuantOut = "~{outputPrefix}.tar.gz"
-        File isoQuantDB = "~{outputPrefix}/~{referenceAnnotationBasename}.reduced.db"
+        File isoQuantGTF = "~{outputPrefix}/~{datasetName}/~{datasetName}.transcript_models.gtf"
         File monitoringLog = "monitoring.log"
     }
 
