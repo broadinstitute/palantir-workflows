@@ -177,12 +177,10 @@ task Flair {
         -q "~{flairPrefix}_all_corrected.bed" \
         -o ~{flairPrefix} \
         -t ~{numThreads}
-
-        mv Flair_out_~{datasetName}.isoforms.gtf Flair_out_~{datasetName}.gtf
     >>>
 
     output {
-        File flairGTF = "Flair_out_~{datasetName}.gtf"
+        File flairGTF = "Flair_out_~{datasetName}.isoforms.gtf"
         File monitoringLog = "monitoring.log"
     }
 
@@ -223,12 +221,10 @@ task Talon {
         talon --build ~{datasetName} --db "~{datasetName}.db" --o "~{talonPrefix}_raw" --f "~{talonPrefix}.csv" --threads ~{numThreads}
         talon_filter_transcripts --db "~{datasetName}.db" -a ~{datasetName} --datasets ~{datasetName} --o "~{talonPrefix}_filter"
         talon_create_GTF --build ~{datasetName} --db "~{datasetName}.db" -a ~{datasetName} --o ~{talonPrefix} --whitelist "~{talonPrefix}_filter"
-
-        mv Talon_out_~{datasetName}_talon.gtf Talon_out_~{datasetName}.gtf
     >>>
 
     output {
-        File talonGTF = "Talon_out_~{datasetName}.gtf"
+        File talonGTF = "Talon_out_~{datasetName}_talon.gtf"
         File monitoringLog = "monitoring.log"
     }
 
