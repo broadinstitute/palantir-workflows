@@ -55,5 +55,5 @@ args = parser.parse_args()
 
 out_stats = open(args.tool + "_denovo_model_stats.tsv", "w")
 reliable_transcripts, almost_reliable_transcripts, total_transcripts, unique_transcripts, missed_transcripts = process_tracking(args.tracking, args.num_tools)
-print_stats(args.tool, reliable_transcripts, almost_reliable_transcripts, total_transcripts, unique_transcripts, missed_transcripts, out = out_stats)
+print_denovo_stats(args.tool, reliable_transcripts, almost_reliable_transcripts, total_transcripts, unique_transcripts, missed_transcripts, out = out_stats)
 out_stats.close()
