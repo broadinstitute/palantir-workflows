@@ -90,7 +90,7 @@ workflow LongReadRNABenchmark {
             referenceGenomeIndex = referenceGenomeIndex,
             datasetName = datasetName
     }
-    
+
     call LongReadRNABenchmarkTasks.Flames as Flames {
         input:
             inputBAM = inputBAM,
@@ -383,7 +383,7 @@ workflow LongReadRNABenchmark {
         File talonReducedAnnotationAnalysisStats = ReducedAnnotationAnalysisTalon.novel
         File flamesFull = SplitGTFFlames.full
         File flamesKnown = SplitGTFFlames.known
-        File flamestNovel = SplitGTFFlames.novel
+        File flamesNovel = SplitGTFFlames.novel
         File flamesTracking = DenovoAnalysisFlames.tracking
         File flamesDenovoStats = DenovoStatsFlames.gffCompareOutput
         File flamesReducedAnnotationAnalysisStats = ReducedAnnotationAnalysisFlames.novel
