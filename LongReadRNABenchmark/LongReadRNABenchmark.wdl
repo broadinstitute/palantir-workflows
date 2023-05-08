@@ -132,7 +132,7 @@ workflow LongReadRNABenchmark {
     call LongReadRNABenchmarkTasks.SplitGTF as SplitGTFBambu {
         input:
             inputGTF = Bambu.bambuGTF,
-            inputCounts = Bambu.bambuGTFCounts,
+            inputCounts = Bambu.bambuCounts,
             toolName = "bambu"
     }
 
@@ -353,16 +353,12 @@ workflow LongReadRNABenchmark {
     }
 
     output {
-        File isoQuantDB = IsoQuant.isoQuantDB
         File isoQuantGTF = IsoQuant.isoQuantGTF
-        File isoQuantOut = IsoQuant.isoQuantOut
         File isoQuantDenovoGTF = IsoQuantReferenceFree.isoQuantGTF
-        File isoQuantDenovoOut = IsoQuantReferenceFree.isoQuantOut
         File stringTieGTF = StringTie.stringTieGTF
         File stringTieDenovoGTF = StringTieReferenceFree.stringTieGTF
         File bambuGTF = Bambu.bambuGTF
-        File bambuGTFCounts = Bambu.bambuGTFCounts
-        File bambuOut = Bambu.bambuOut
+        File bambuCounts = Bambu.bambuCounts
         File flairGTF = Flair.flairGTF
         File talonGTF = Talon.talonGTF
         File isoSeqGFF = IsoSeq.isoSeqGFF

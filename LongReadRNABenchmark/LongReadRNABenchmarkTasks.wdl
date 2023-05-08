@@ -102,9 +102,7 @@ task Bambu {
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
-    String referenceAnnotationBasename = basename(referenceAnnotation, ".reduced.gtf")
     String bambuOutDir = "Bambu_out"
-    String bambuGTFPath = "Bambu_out/Bambu_out_~{datasetName}.gtf"
 
     command <<<
         bash ~{monitoringScript} > monitoring.log &
@@ -123,16 +121,12 @@ task Bambu {
 
         awk ' $3 >= 1 ' ~{bambuOutDir}/counts_transcript.txt | sort -k3,3n > ~{bambuOutDir}/expressed_annotations.gtf.counts
         cut -f1 ~{bambuOutDir}/expressed_annotations.gtf.counts > ~{bambuOutDir}/expressed_transcripts.txt
-        grep -Ff ~{bambuOutDir}/expressed_transcripts.txt ~{bambuOutDir}/extended_annotations.gtf > ~{bambuGTFPath}
-        cp ~{bambuOutDir}/expressed_annotations.gtf.counts "~{bambuGTFPath}.counts"
-
-        tar -zcvf ~{bambuOutDir}_~{datasetName}.tar.gz ~{bambuOutDir}
+        grep -Ff ~{bambuOutDir}/expressed_transcripts.txt ~{bambuOutDir}/extended_annotations.gtf > ~{bambuOutDir}/Bambu_out_~{datasetName}.gtf
     >>>
 
     output {
-        File bambuGTF = "Bambu_out/Bambu_out_~{datasetName}.gtf"
-        File bambuGTFCounts = "Bambu_out/Bambu_out_~{datasetName}.gtf.counts"
-        File bambuOut = "~{bambuOutDir}_~{datasetName}.tar.gz"
+        File bambuGTF = "~{bambuOutDir}/Bambu_out_~{datasetName}.gtf"
+        File bambuCounts = "~{bambuOutDir}/expressed_annotations.gtf.counts"
         File monitoringLog = "monitoring.log"
     }
 
