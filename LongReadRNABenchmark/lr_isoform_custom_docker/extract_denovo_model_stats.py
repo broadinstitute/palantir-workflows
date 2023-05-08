@@ -50,7 +50,7 @@ def print_denovo_stats(tool_name, reliable_transcripts, almost_reliable_transcri
 parser = argparse.ArgumentParser(description = "Extract and print denovo model statistics for long read isoform reconstruction benchmarking.")
 parser.add_argument("-t", "--tool", help = "Name of the tool used to obtain the input GTF.", required = True)
 parser.add_argument("-r", "--tracking", help = "Tracking file that accompanies the input GTF, obtained from a reference-free run of gffcompare with the compared tools.", required = True)
-parser.add_argument("-n", "--num-tools", help = "Number of tools (including this one) included in the reference-free benchmarking.", required = True)
+parser.add_argument("-n", "--num-tools", type = int, help = "Number of tools (including this one) included in the reference-free benchmarking.", required = True)
 args = parser.parse_args()
 
 out_stats = open(args.tool + "_denovo_model_stats.tsv", "w")
