@@ -406,7 +406,7 @@ task SplitGTF {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:dfa51467cc05395feb5ba9f14f9a35e16ea7882fb84ad35abf25111acbc9fa04"
     }
 
-    String base = if toolName == "flames" then basename(inputGTF, ".gff") else basename(inputGTF, ".gtf")
+    String base = if toolName == "flames" then basename(inputGTF, ".gff3") else basename(inputGTF, ".gtf")
 
     command <<<
         python3 /usr/local/src/split_gtf.py \
