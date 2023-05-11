@@ -69,7 +69,7 @@ task CreateSequenceDictionary {
     String refBasename = select_first([basename(ref, ".fa"), basename(ref, ".fasta")])
 
     command <<<
-        java -Xmx4g -Xms4g -jar picard.jar CreateSequenceDictionary \
+        java -Xmx4g -Xms4g -jar /usr/picard/picard.jar CreateSequenceDictionary \
             REFERENCE=~{ref} \
             OUTPUT=~{refBasename}.dict
     >>>
