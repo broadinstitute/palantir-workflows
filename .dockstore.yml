@@ -57,6 +57,9 @@ workflows:
   - name: TrainAncestryAdjustmentModel
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/TrainAncestryAdjustmentModel.wdl
-  - name: MethylationBenchmark
+  - name: MethylationBenchmarkPerReference
     subclass: WDL
-    primaryDescriptorPath: /MethylationBenchmark/MethylationBenchmark.wdl
+    primaryDescriptorPath: /MethylationBenchmark/MethylationBenchmarkPerReference.wdl
+  - name: MethylationBenchmarkPerSample
+    subclass: WDL
+    primaryDescriptorPath: /MethylationBenchmark/MethylationBenchmarkPerSample.wdl
