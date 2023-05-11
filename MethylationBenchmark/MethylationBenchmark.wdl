@@ -15,15 +15,15 @@ workflow MethylationBenchmark {
             ref = ref
     }
 
-    #call MethylationBenchmarkTasks.SamtoolsFaidx as SamtoolsFaidx {
-    #    input:
-    #        reference = reference
-    #}
+    call MethylationBenchmarkTasks.GenerateFASTAIndex as GenerateFASTAIndex {
+        input:
+            ref = ref
+    }
 
-    #call MethylationBenchmarkTasks.CreateSequenceDictionary as CreateSequenceDictionary {
-    #    input:
-    #        reference = reference
-    #}
+    call MethylationBenchmarkTasks.CreateSequenceDictionary as CreateSequenceDictionary {
+        input:
+            ref = ref
+    }
 
     #call MethylationBenchmarkTasks.FastQC as FastQC {
     #    input:
@@ -32,12 +32,12 @@ workflow MethylationBenchmark {
     #}
 
     output {
-        #File amb = BWAIndex.amb
-        #File ann = BWAIndex.ann
-        #File bwt = BWAIndex.bwt
-        #File pac = BWAIndex.pac
-        #File sa = BWAIndex.sa
-        #File fai = SamtoolsFaidx.fai
-        #File dict = CreateSequenceDictionary.dict
+        File bwaIdxAmb = GenerateBWAIndex.amb
+        File bwaIdxAnn = GenerateBWAIndex.ann
+        File bwaIdxBwt = GenerateBWAIndex.bwt
+        File bwaIdxPac = GenerateBWAIndex.pac
+        File bwaIdxSa = GenerateBWAIndex.sa
+        File fai = GenerateFASTAIndex.fai
+        File dict = CreateSequenceDictionary.dict
     }
 }

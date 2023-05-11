@@ -12,8 +12,6 @@ task GenerateBWAIndex {
 
     command <<<
         bwa index -a bwtsw ~{ref}
-
-        ls -lha
     >>>
 
     output {
@@ -32,60 +30,62 @@ task GenerateBWAIndex {
     }
 }
 
-#task SamtoolsFaidx {
-#    input {
-#        File reference
-#        Int cpu = 16
-#        Int numThreads = 32
-#        Int memoryGB = 64
-#        Int diskSizeGB = 100
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/..."
-#    }
-#
-#    command <<<
-#        samtools faidx ~{reference} > ~{reference}.fai
-#    >>>
-#
-#    output {
-#        File fai = "~{reference}.fai"
-#    }
-#
-#    runtime {
-#        cpu: cpu
-#        memory: "~{memoryGB} GiB"
-#        disks: "local-disk ~{diskSizeGB} HDD"
-#        docker: docker
-#    }
-#}
-#
-#task CreateSequenceDictionary {
-#    input {
-#        File reference
-#        Int cpu = 16
-#        Int numThreads = 32
-#        Int memoryGB = 64
-#        Int diskSizeGB = 100
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/..."
-#    }
-#
-#    String referenceBasename = basename(reference, ".fa")
-#
-#    command <<<
-#        java -Xmx4g -Xms4g -jar picard.jar CreateSequenceDictionary REFERENCE=~{reference} OUTPUT=~{referenceBasename}.dict
-#    >>>
-#
-#    output {
-#        File dict = "~{referenceBasename}.dict"
-#    }
-#
-#    runtime {
-#        cpu: cpu
-#        memory: "~{memoryGB} GiB"
-#        disks: "local-disk ~{diskSizeGB} HDD"
-#        docker: docker
-#    }
-#}
-#
+task GenerateFASTAIndex {
+    input {
+        File ref
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/samtools@sha256:b0f4520282c18967e279071615dcc7685ee9457649928664d68728add6f01156"
+    }
+
+    command <<<
+        samtools faidx ~{ref} > ~{ref}.fai
+    >>>
+
+    output {
+        File fai = "~{ref}.fai"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task CreateSequenceDictionary {
+    input {
+        File ref
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
+    }
+
+    String refBasename = select_first([basename(ref, ".fa"), basename(ref, ".fasta")])
+
+    command <<<
+        java -Xmx4g -Xms4g -jar picard.jar CreateSequenceDictionary \
+            REFERENCE=~{ref} \
+            OUTPUT=~{refBasename}.dict
+    >>>
+
+    output {
+        File dict = "~{refBasename}.dict"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
 #task FastQC {
 #    input {
 #        File fq1
