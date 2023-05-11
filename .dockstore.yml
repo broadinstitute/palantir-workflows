@@ -57,3 +57,6 @@ workflows:
   - name: TrainAncestryAdjustmentModel
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/TrainAncestryAdjustmentModel.wdl
+  - name: RNAMetrics
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/RNAMetrics.wdl
