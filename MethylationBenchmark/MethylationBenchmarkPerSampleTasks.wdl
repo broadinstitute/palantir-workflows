@@ -37,64 +37,67 @@ task DownsampleReads {
     }
 }
 
-#task TrimAdapters {
-#    input {
-#        File fq1
-#        File fq2
-#        Int cpu = 16
-#        Int numThreads = 32
-#        Int memoryGB = 64
-#        Int diskSizeGB = 100
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/..."
-#    }
-#
-#    String fq1Basename = basename(fq1, "_downsampled.fastq")
-#    String fq2Basename = basename(fq2, "_downsampled.fastq")
-#
-#    command <<<
-#        trim_galore --gzip --cores ~{cpu} --output_dir . --2colour 20 --paired ~{fq1} ~{fq2}
-#    >>>
-#
-#    output {
-#        File fq1Trimmed = "~{fq1Basename}.trimmed.fq.gz"
-#        File fq2Trimmed = "~{fq2Basename}.trimmed.fq.gz"
-#    }
-#
-#    runtime {
-#        cpu: cpu
-#        memory: "~{memoryGB} GiB"
-#        disks: "local-disk ~{diskSizeGB} HDD"
-#        docker: docker
-#    }
-#}
-#
+task TrimAdapters {
+    input {
+        File fq1
+        File fq2
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/trim_galore@sha256:3860476810a6c68c24c504fcaacf0addeca15db3ab207eddf560b86645ae35c5"
+    }
 
-#task FastQC {
-#    input {
-#        File fq1
-#        File fq2
-#        Int cpu = 8
-#        Int numThreads = 16
-#        Int memoryGB = 64
-#        Int diskSizeGB = 100
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/..."
-#    }
-#
-#    command <<<
-#        fastqc --noextract --threads ~{numThreads} ~{fq1} ~{fq2}
-#    >>>
-#
-#    output {
-#    }
-#
-#    runtime {
-#        cpu: cpu
-#        memory: "~{memoryGB} GiB"
-#        disks: "local-disk ~{diskSizeGB} HDD"
-#        docker: docker
-#    }
-#}
-#
+    String fq1Basename = basename(fq1, ".downsampled.fastq")
+    String fq2Basename = basename(fq2, ".downsampled.fastq")
+
+    command <<<
+        trim_galore --gzip --cores ~{cpu} --output_dir . --2colour 20 --paired ~{fq1} ~{fq2}
+    >>>
+
+    output {
+        File fq1Trimmed = "~{fq1Basename}.trimmed.fq.gz"
+        File fq2Trimmed = "~{fq2Basename}.trimmed.fq.gz"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task FastQC {
+    input {
+        File fq1gz
+        File fq2gz
+        Int cpu = 8
+        Int numThreads = 16
+        Int memoryGB = 64
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/fastqc@sha256:ec113d537e232de7b8030a9944f16274ca855f487ecdd8e2f8db1aebecfeeeb5"
+    }
+
+    String fq1Basename = select_first([basename(fq1gz, ".fastq.gz"), basename(fq1gz, ".fq.gz")])
+    String fq2Basename = select_first([basename(fq2gz, ".fastq.gz"), basename(fq2gz, ".fq.gz")])
+
+    command <<<
+        fastqc --noextract --threads ~{numThreads} ~{fq1gz} ~{fq2gz}
+    >>>
+
+    output {
+        File htmlReportFq1 = "~{fq1Basename}_fastqc.html"
+        File htmlReportFq2 = "~{fq2Basename}_fastqc.html"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
 
 #task BWAMeth {
 #    input {
