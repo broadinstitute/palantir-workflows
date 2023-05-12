@@ -75,16 +75,25 @@ task GlimpsePhase {
 
         Int mem_gb = 4
         Int cpu = 4
-        Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + 1.5 * size(select_first([crams, []]), "GiB") + size(reference_chunk, "GiB") + 100)
+        Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + size(reference_chunk, "GiB") + 100)
         Int preemptible = 1
         Int max_retries = 3
         String docker
         File? monitoring_script
     }
 
+    parameter_meta {
+        crams : {
+            localization_optional : true
+        }
+        cram_indices : {
+            localization_optional : true
+        }
+    }
+
     String bam_file_list_input = if defined(crams) then "--bam-list crams.list" else ""
     command <<<
-        set -xeuo pipefail
+        set -euo pipefail
 
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
