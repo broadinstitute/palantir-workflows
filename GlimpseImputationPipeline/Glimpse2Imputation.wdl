@@ -97,7 +97,7 @@ task GlimpsePhase {
 
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
-        export GCS_OAUTH_TOKEN=$(gcloud auth application-default print-access-token)
+        export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
         
         #NPROC=$(nproc)
         #echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
