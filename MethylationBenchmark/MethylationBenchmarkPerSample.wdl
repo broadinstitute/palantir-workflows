@@ -16,16 +16,20 @@ workflow MethylationBenchmarkPerSample {
         File targets
     }
 
-    call MethylationBenchmarkPerSampleTasks.DownsampleReads as DownsampleReads {
+    call MethylationBenchmarkPerSampleTasks.DownsampleReads as DownsampleReadsFq1 {
         input:
-            fq1gz = fq1gz,
-            fq2gz = fq2gz
+            fqgz = fq1gz,
+    }
+
+    call MethylationBenchmarkPerSampleTasks.DownsampleReads as DownsampleReadsFq2 {
+        input:
+            fqgz = fq2gz,
     }
 
     call MethylationBenchmarkPerSampleTasks.TrimAdapters as TrimAdapters {
         input:
-            fq1 = DownsampleReads.fq1Downsampled,
-            fq2 = DownsampleReads.fq2Downsampled
+            fq1 = DownsampleReadsFq1.fqDownsampled,
+            fq2 = DownsampleReadsFq2.fqDownsampled
     }
 
     call MethylationBenchmarkPerSampleTasks.FastQC as FastQC {
@@ -54,8 +58,8 @@ workflow MethylationBenchmarkPerSample {
     }
 
     output {
-        File fq1Downsampled = DownsampleReads.fq1Downsampled
-        File fq2Downsampled = DownsampleReads.fq2Downsampled
+        File fq1Downsampled = DownsampleReadsFq1.fqDownsampled
+        File fq2Downsampled = DownsampleReadsFq2.fqDownsampled
         File fq1Trimmed = TrimAdapters.fq1Trimmed
         File fq2Trimmed = TrimAdapters.fq2Trimmed
         File fastqcReportFq1 = FastQC.htmlReportFq1
