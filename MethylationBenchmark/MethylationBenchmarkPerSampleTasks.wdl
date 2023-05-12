@@ -176,167 +176,173 @@ task SAMBamba {
     }
 }
 
-#task IndexBAM {
-#    input {
-#        File bam
-#        Int cpu = 16
-#        Int numThreads = 32
-#        Int memoryGB = 64
-#        Int diskSizeGB = 100
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/..."
-#    }
-#
-#    command <<<
-#        samtools index -@ 16 ~{bam} > ~{bam}.bai
-#    >>>
-#
-#    output {
-#        File bai = "~{bam}.bai"
-#    }
-#
-#    runtime {
-#        cpu: cpu
-#        memory: "~{memoryGB} GiB"
-#        disks: "local-disk ~{diskSizeGB} HDD"
-#        docker: docker
-#    }
-#}
-#
-#task MarkDuplicates {
-#    input {
-#        File reference
-#        File bam
-#        Int cpu = 16
-#        Int numThreads = 32
-#        Int memoryGB = 64
-#        Int diskSizeGB = 100
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/..."
-#    }
-#
-#    String bamBasename = basename(bam, ".bam")
-#
-#    command <<<
-#        java -Xmx4g -Xms4g -jar picard.jar MarkDuplicates \
-#        -I ~{bam} \
-#        -O ~{bamBasename}.markdup.bam \
-#        -R ~{reference} \
-#        -M S1_methylome_sorted.picard_markdup_raw_metrics \ #TODO: properly construct this name for the sample!
-#        --CREATE_INDEX false \
-#        --MAX_RECORDS_IN_RAM 1000 \
-#        --SORTING_COLLECTION_SIZE_RATIO 0.15 \
-#        --ASSUME_SORT_ORDER coordinate \
-#        --OPTICAL_DUPLICATE_PIXEL_DISTANCE 2500
-#    >>>
-#
-#    output {
-#    }
-#
-#    runtime {
-#        cpu: cpu
-#        memory: "~{memoryGB} GiB"
-#        disks: "local-disk ~{diskSizeGB} HDD"
-#        docker: docker
-#    }
-#}
-#
-#task ConvertBedToIntervalList {
-#    input {
-#        File bed
-#        File dict
-#        Int cpu = 16
-#        Int numThreads = 32
-#        Int memoryGB = 64
-#        Int diskSizeGB = 100
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/..."
-#    }
-#
-#    command <<<
-#        java -Xmx4g -Xms4g -jar picard.jar BedToIntervalList \
-#        -I ~{bed} \
-#        -O ~{bed}.intervals \
-#        SD ~{dict}
-#    >>>
-#
-#    output {
-#    }
-#
-#    runtime {
-#        cpu: cpu
-#        memory: "~{memoryGB} GiB"
-#        disks: "local-disk ~{diskSizeGB} HDD"
-#        docker: docker
-#    }
-#}
-#
-#task CollectHsMetrics {
-#    input {
-#        File bam
-#        File intervals
-#        File reference
-#        Int cpu = 16
-#        Int numThreads = 32
-#        Int memoryGB = 64
-#        Int diskSizeGB = 100
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/..."
-#    }
-#
-#    command <<<
-#        java -Xmx4g -Xms4g -jar picard.jar CollectHsMetrics \
-#        -I ~{bam} \
-#        -O metrics.txt \
-#        -R ~{reference} \
-#        --BAIT_INTERVALS ~{intervals} \
-#        --TARGET_INTERVALS ~{intervals} \
-#        --MINIMUM_MAPPING_QUALITY 20 \
-#        --COVERAGE_CAP 1000 \
-#        --PER_TARGET_COVERAGE asd.text \
-#        --NEAR_DISTANCE 500
-#    >>>
-#
-#    output {
-#    }
-#
-#    runtime {
-#        cpu: cpu
-#        memory: "~{memoryGB} GiB"
-#        disks: "local-disk ~{diskSizeGB} HDD"
-#        docker: docker
-#    }
-#}
-#
-#task CollectMultipleMetrics {
-#    input {
-#        File bam
-#        File reference
-#        Int cpu = 16
-#        Int numThreads = 32
-#        Int memoryGB = 64
-#        Int diskSizeGB = 100
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/..."
-#    }
-#
-#    command <<<
-#        java -Xmx4g -Xms4g -jar picard.jar CollectMultipleMetrics \
-#        -I ~{bam} \
-#        -O rawmetrics.txt \
-#        -R ~{reference} \
-#        --PROGRAM null \
-#        --PROGRAM CollectGcBiasMetrics \
-#        --PROGRAM CollectInsertSizeMetrics \
-#        --PROGRAM CollectAlignmentSummaryMetrics
-#    >>>
-#
-#    output {
-#    }
-#
-#    runtime {
-#        cpu: cpu
-#        memory: "~{memoryGB} GiB"
-#        disks: "local-disk ~{diskSizeGB} HDD"
-#        docker: docker
-#    }
-#}
-#
+task IndexBAM {
+    input {
+        File bam
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/samtools@sha256:b0f4520282c18967e279071615dcc7685ee9457649928664d68728add6f01156"
+    }
+
+    command <<<
+        samtools index -@ 16 ~{bam} > ~{bam}.bai
+    >>>
+
+    output {
+        File bai = "~{bam}.bai"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task MarkDuplicates {
+    input {
+        String sampleId
+        File ref
+        File bam
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
+    }
+
+    String bamBasename = basename(bam, ".bam")
+
+    command <<<
+        java -Xmx4g -Xms4g -jar /usr/picard/picard.jar MarkDuplicates \
+            -I ~{bam} \
+            -O ~{bamBasename}.markdup.bam \
+            -R ~{ref} \
+            -M ~{sampleId}.sorted.picard_markdup_raw_metrics \
+            --CREATE_INDEX false \
+            --MAX_RECORDS_IN_RAM 1000 \
+            --SORTING_COLLECTION_SIZE_RATIO 0.15 \
+            --ASSUME_SORT_ORDER coordinate \
+            --OPTICAL_DUPLICATE_PIXEL_DISTANCE 2500
+    >>>
+
+    output {
+        File outputBam = "~{bamBasename}.markdup.bam"
+        File outputMetrics = "~{sampleId}.sorted.picard_markdup_raw_metrics"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task ConvertBedToIntervalList {
+    input {
+        File bed
+        File dict
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
+    }
+
+    command <<<
+        java -Xmx4g -Xms4g -jar /usr/picard/picard.jar BedToIntervalList \
+            -I ~{bed} \
+            -O ~{bed}.intervals \
+            -SD ~{dict}
+    >>>
+
+    output {
+        File intervalList = "~{bed}.intervals"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task CollectHsMetrics {
+    input {
+        File ref
+        File bam
+        File intervals
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
+    }
+
+    command <<<
+        java -Xmx4g -Xms4g -jar /usr/picard/picard.jar CollectHsMetrics \
+            -I ~{bam} \
+            -O metrics.txt \
+            -R ~{ref} \
+            --BAIT_INTERVALS ~{intervals} \
+            --TARGET_INTERVALS ~{intervals} \
+            --MINIMUM_MAPPING_QUALITY 20 \
+            --COVERAGE_CAP 1000 \
+            --PER_TARGET_COVERAGE asd.text \
+            --NEAR_DISTANCE 500
+    >>>
+
+    output {
+        File metrics = "metrics.txt"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task CollectMultipleMetrics {
+    input {
+        File ref
+        File bam
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
+    }
+
+    command <<<
+        java -Xmx4g -Xms4g -jar /usr/picard/picard.jar CollectMultipleMetrics \
+            -I ~{bam} \
+            -O rawmetrics.txt \
+            -R ~{ref} \
+            --PROGRAM null \
+            --PROGRAM CollectGcBiasMetrics \
+            --PROGRAM CollectInsertSizeMetrics \
+            --PROGRAM CollectAlignmentSummaryMetrics
+    >>>
+
+    output {
+        File rawMetrics = "rawmetrics.txt"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
 #task CallMethylation {
 #    input {
 #        String sample
@@ -388,7 +394,7 @@ task SAMBamba {
 #        Int numThreads = 32
 #        Int memoryGB = 64
 #        Int diskSizeGB = 100
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/..."
+#        String docker = "us.gcr.io/broad-dsde-methods/kockan/samtools@sha256:b0f4520282c18967e279071615dcc7685ee9457649928664d68728add6f01156"
 #    }
 #
 #    command <<<
