@@ -99,70 +99,89 @@ task FastQC {
     }
 }
 
-#task BWAMeth {
-#    input {
-#        File reference
-#        File fq1
-#        File fq2
-#        Int cpu = 16
-#        Int numThreads = 32
-#        Int memoryGB = 64
-#        Int diskSizeGB = 100
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/..."
-#    }
-#
-#    command <<<
-#        bwameth.py --reference ~{reference} -t 16 --read-group '@RG\tSAMPLE_ID:1\tPL:illumina\tLB:SAMPLE\tSM:SAMPLE' ~{fq1} ~{fq2}
-#    >>>
-#
-#    output {
-#    }
-#
-#    runtime {
-#        cpu: cpu
-#        memory: "~{memoryGB} GiB"
-#        disks: "local-disk ~{diskSizeGB} HDD"
-#        docker: docker
-#    }
-#}
-#
-#task SAMBamba {
-#    input {
-#        File reference
-#        File bam
-#        Int cpu = 16
-#        Int numThreads = 32
-#        Int memoryGB = 64
-#        Int diskSizeGB = 100
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/..."
-#    }
-#
-#    String bamBasename = basename(bam, ".bam")
-#    String sortedBAM = bamBasename + "_sorted.bam"
-#
-#    command <<<
-#        sambamba view -h \
-#        -t 16 \
-#        -T ~{reference} \
-#        --filter 'not secondary_alignment and not failed_quality_control and not supplementary and proper_pair and mapping_quality > 0' \
-#        -f bam \
-#        -l 0 ~{bam} \
-#        -o /tmp/tmpzs73858y.bam
-#
-#        sambamba sort -t 16 -m 30Gib --tmpdir /tmp/ -o /dev/stdout -l 0 /tmp/tmpzs73858y.bam | sambamba view -h -t 16 -o ~{sortedBAM} -T ~{reference} -f bam /dev/stdin
-#    >>>
-#
-#    output {
-#    }
-#
-#    runtime {
-#        cpu: cpu
-#        memory: "~{memoryGB} GiB"
-#        disks: "local-disk ~{diskSizeGB} HDD"
-#        docker: docker
-#    }
-#}
-#
+task BWAMethAlign {
+    input {
+        String sampleId
+        File ref
+        File amb
+        File ann
+        File bwt
+        File pac
+        File sa
+        File fq1
+        File fq2
+        Int cpu = 8
+        Int numThreads = 16
+        Int memoryGB = 64
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/bwameth@sha256:c2415b900b8aa96d39c0c9e615e6f6eece37bf142bdbfee1ec783434390c34d9"
+    }
+
+    command <<<
+        cp ~{amb} ~{ann} ~{bwt} ~{pac} ~{sa} .
+
+        bwameth.py \
+            --reference ~{ref} \
+            --threads ~{numThreads} \
+            --read-group '@RG\tSAMPLE_ID:1\tPL:illumina\tLB:SAMPLE\tSM:SAMPLE' \
+            ~{fq1} ~{fq2} > ~{sampleId}.bam
+    >>>
+
+    output {
+        File bam = "~{sampleId}.bam"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task SAMBamba {
+    input {
+        File ref
+        File bam
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/sambamba@sha256:a27ab0121ffb3b5a5346ddb0d531a90966923015e8a945de26d2465f3103da73"
+    }
+
+    String bamBasename = basename(bam, ".bam")
+    String sortedBAM = bamBasename + ".sorted.bam"
+
+    command <<<
+        sambamba view -h \
+            -t 16 \
+            -T ~{ref} \
+            --filter 'not secondary_alignment and not failed_quality_control and not supplementary and proper_pair and mapping_quality > 0' \
+            -f bam \
+            -l 0 ~{bam} \
+            -o temp.bam
+
+        sambamba sort \
+            -t 16 \
+            -m 30Gib \
+            --tmpdir /tmp/ \
+            -o /dev/stdout \
+            -l temp.bam | sambamba view -h -t 16 -o ~{sortedBAM} -T ~{ref} -f bam /dev/stdin
+    >>>
+
+    output {
+        File sortedBam = "~{sortedBAM}"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
 #task IndexBAM {
 #    input {
 #        File bam
