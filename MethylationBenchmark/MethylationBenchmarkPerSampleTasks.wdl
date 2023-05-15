@@ -68,8 +68,8 @@ task FastQC {
         File fq2gz
         Int cpu = 8
         Int numThreads = 16
-        Int memoryGB = 64
-        Int diskSizeGB = 100
+        Int memoryGB = 32
+        Int diskSizeGB = 512
         String docker = "us.gcr.io/broad-dsde-methods/kockan/fastqc@sha256:ec113d537e232de7b8030a9944f16274ca855f487ecdd8e2f8db1aebecfeeeb5"
     }
 
@@ -104,10 +104,10 @@ task BWAMethAlign {
         File sa
         File fq1
         File fq2
-        Int cpu = 8
-        Int numThreads = 16
+        Int cpu = 16
+        Int numThreads = 32
         Int memoryGB = 64
-        Int diskSizeGB = 100
+        Int diskSizeGB = 512
         String docker = "us.gcr.io/broad-dsde-methods/kockan/bwameth@sha256:c2415b900b8aa96d39c0c9e615e6f6eece37bf142bdbfee1ec783434390c34d9"
     }
 
@@ -137,10 +137,10 @@ task SAMBamba {
     input {
         File ref
         File bam
-        Int cpu = 16
-        Int numThreads = 32
-        Int memoryGB = 64
-        Int diskSizeGB = 100
+        Int cpu = 8
+        Int numThreads = 16
+        Int memoryGB = 32
+        Int diskSizeGB = 256
         String docker = "us.gcr.io/broad-dsde-methods/kockan/sambamba@sha256:a27ab0121ffb3b5a5346ddb0d531a90966923015e8a945de26d2465f3103da73"
     }
 
@@ -179,10 +179,10 @@ task SAMBamba {
 task IndexBAM {
     input {
         File bam
-        Int cpu = 16
-        Int numThreads = 32
+        Int cpu = 8
+        Int numThreads = 16
         Int memoryGB = 64
-        Int diskSizeGB = 100
+        Int diskSizeGB = 256
         String docker = "us.gcr.io/broad-dsde-methods/kockan/samtools@sha256:b0f4520282c18967e279071615dcc7685ee9457649928664d68728add6f01156"
     }
 
@@ -207,10 +207,10 @@ task MarkDuplicates {
         String sampleId
         File ref
         File bam
-        Int cpu = 16
-        Int numThreads = 32
-        Int memoryGB = 64
-        Int diskSizeGB = 100
+        Int cpu = 4
+        Int numThreads = 8
+        Int memoryGB = 32
+        Int diskSizeGB = 256
         String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
     }
 
@@ -246,10 +246,10 @@ task ConvertBedToIntervalList {
     input {
         File bed
         File dict
-        Int cpu = 16
-        Int numThreads = 32
-        Int memoryGB = 64
-        Int diskSizeGB = 100
+        Int cpu = 4
+        Int numThreads = 8
+        Int memoryGB = 32
+        Int diskSizeGB = 256
         String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
     }
 
@@ -277,10 +277,10 @@ task CollectHsMetrics {
         File ref
         File bam
         File intervals
-        Int cpu = 16
-        Int numThreads = 32
-        Int memoryGB = 64
-        Int diskSizeGB = 100
+        Int cpu = 4
+        Int numThreads = 8
+        Int memoryGB = 32
+        Int diskSizeGB = 256
         String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
     }
 
@@ -313,10 +313,10 @@ task CollectMultipleMetrics {
     input {
         File ref
         File bam
-        Int cpu = 16
-        Int numThreads = 32
-        Int memoryGB = 64
-        Int diskSizeGB = 100
+        Int cpu = 4
+        Int numThreads = 8
+        Int memoryGB = 32
+        Int diskSizeGB = 256
         String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
     }
 
@@ -343,57 +343,57 @@ task CollectMultipleMetrics {
     }
 }
 
-#task CallMethylation {
-#    input {
-#        String sample
-#        File bam
-#        File reference
-#        Int cpu = 16
-#        Int numThreads = 32
-#        Int memoryGB = 64
-#        Int diskSizeGB = 100
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/..."
-#    }
-#
-#    command <<<
-#        MethylDackel mbias ~{reference} ~{bam} ~{sample}
-#
-#        MethylDackel extract \
-#        --minDepth 10 \
-#        --maxVariantFrac 0.25 \
-#        --OT X,X,X,X \
-#        --OB X,X,X,X \
-#        --mergeContext ~{reference} ~{bam} \
-#        -o ~{sample}
-#
-#        MethylDackel extract \
-#        --minDepth 10 \
-#        --maxVariantFrac 0.25 \
-#        --OT 0,0,0,98 \
-#        --OB 0,0,3,0 \
-#        --cytosine_report \
-#        --CHH --CHG ~{reference} ~{bam} \
-#        -o ~{sample}_report
-#    >>>
-#
-#    output {
-#    }
-#
-#    runtime {
-#        cpu: cpu
-#        memory: "~{memoryGB} GiB"
-#        disks: "local-disk ~{diskSizeGB} HDD"
-#        docker: docker
-#    }
-#}
-#
+task CallMethylation {
+    input {
+        String sampleId
+        File bam
+        File ref
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 512
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/methyldackel@sha256:36a7349df6bad066df5af7db33b913fe902d6ae3a67bb1544552b7c8a2da90a5"
+    }
+
+    command <<<
+        MethylDackel mbias ~{ref} ~{bam} ~{sampleId}
+
+        MethylDackel extract \
+        --minDepth 10 \
+        --maxVariantFrac 0.25 \
+        --OT X,X,X,X \
+        --OB X,X,X,X \
+        --mergeContext ~{ref} ~{bam} \
+        -o ~{sampleId}
+
+        MethylDackel extract \
+        --minDepth 10 \
+        --maxVariantFrac 0.25 \
+        --OT 0,0,0,98 \
+        --OB 0,0,3,0 \
+        --cytosine_report \
+        --CHH --CHG ~{ref} ~{bam} \
+        -o ~{sampleId}_report
+    >>>
+
+    output {
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
 #task CollectMethylationStatistics {
 #    input {
 #        File bam
-#        Int cpu = 16
-#        Int numThreads = 32
-#        Int memoryGB = 64
-#        Int diskSizeGB = 100
+#        Int cpu = 4
+#        Int numThreads = 8
+#        Int memoryGB = 32
+#        Int diskSizeGB = 256
 #        String docker = "us.gcr.io/broad-dsde-methods/kockan/samtools@sha256:b0f4520282c18967e279071615dcc7685ee9457649928664d68728add6f01156"
 #    }
 #
