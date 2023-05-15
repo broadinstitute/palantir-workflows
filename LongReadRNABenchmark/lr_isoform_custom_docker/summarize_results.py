@@ -62,7 +62,7 @@ for i in range(len(args.input_list)):
 outfile = open(args.dataset_name + "_" + args.analysis_type + "_analysis_summary.tsv", 'w')
 
 # Write the header line
-outfile.write("#Tool" + "\t" + "Sensitivity" + "\t" + "Precision" + "\t" + "F1-Score\n")
+outfile.write("Tool" + "\t" + "Sensitivity" + "\t" + "Precision" + "\t" + "F1-Score\n")
 
 # Write the data rows
 for i in range(len(args.tool_names)):
