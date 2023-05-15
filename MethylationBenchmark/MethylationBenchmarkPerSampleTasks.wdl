@@ -5,8 +5,8 @@ task DownsampleReads {
         File fqgz
         Int finalTotalReads = 153930409
         Int rngSeed = 42
-        Int cpu = 4
-        Int memoryGB = 16
+        Int cpu = 8
+        Int memoryGB = 32
         Int diskSizeGB = 256
         String docker = "us.gcr.io/broad-dsde-methods/kockan/seqtk@sha256:eb2e9af13f0836fe7652725db4fc82a0e5708778c706bca3fd1f556ecbaba69b"
     }
@@ -35,10 +35,10 @@ task TrimAdapters {
     input {
         File fq1
         File fq2
-        Int cpu = 16
-        Int numThreads = 32
-        Int memoryGB = 64
-        Int diskSizeGB = 100
+        Int cpu = 8
+        Int numThreads = 16
+        Int memoryGB = 32
+        Int diskSizeGB = 512
         String docker = "us.gcr.io/broad-dsde-methods/kockan/trim_galore@sha256:3860476810a6c68c24c504fcaacf0addeca15db3ab207eddf560b86645ae35c5"
     }
 
@@ -46,7 +46,7 @@ task TrimAdapters {
     String fq2Basename = basename(fq2, ".downsampled.fastq")
 
     command <<<
-        trim_galore --gzip --cores ~{cpu} --output_dir . --2colour 20 --paired ~{fq1} ~{fq2}
+        trim_galore --gzip --cores ~{numThreads} --output_dir . --2colour 20 --paired ~{fq1} ~{fq2}
     >>>
 
     output {
