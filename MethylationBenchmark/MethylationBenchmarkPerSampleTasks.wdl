@@ -149,7 +149,7 @@ task SAMBamba {
 
     command <<<
         sambamba view -h \
-            -t 16 \
+            -t ~{numThreads} \
             -T ~{ref} \
             --filter 'not secondary_alignment and not failed_quality_control and not supplementary and proper_pair and mapping_quality > 0' \
             -f bam \
@@ -157,11 +157,11 @@ task SAMBamba {
             -o temp.bam
 
         sambamba sort \
-            -t 16 \
-            -m 30Gib \
+            -t ~{numThreads} \
+            -m ~{memoryGB}GiB \
             --tmpdir /tmp/ \
             -o /dev/stdout \
-            -l temp.bam | sambamba view -h -t 16 -o ~{sortedBAM} -T ~{ref} -f bam /dev/stdin
+            -l temp.bam | sambamba view -h -t ~{numThreads} -o ~{sortedBAM} -T ~{ref} -f bam /dev/stdin
     >>>
 
     output {
@@ -187,7 +187,7 @@ task IndexBAM {
     }
 
     command <<<
-        samtools index -@ 16 ~{bam} > ~{bam}.bai
+        samtools index -@ ~{numThreads} ~{bam} > ~{bam}.bai
     >>>
 
     output {
