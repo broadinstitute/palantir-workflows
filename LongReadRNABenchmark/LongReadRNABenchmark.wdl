@@ -118,7 +118,7 @@ workflow LongReadRNABenchmark {
         String tool = gtfAndTool.right
 
         if (tool != "bambu") {
-            call LongReadRNABenchmarkTasks.SplitGTF {
+            call LongReadRNABenchmarkTasks.SplitGTF as SplitGTF1 {
                 input:
                     inputGTF = gtf,
                     toolName = tool
@@ -126,7 +126,7 @@ workflow LongReadRNABenchmark {
         }
 
         if (tool == "bambu") {
-            call LongReadRNABenchmarkTasks.SplitGTF {
+            call LongReadRNABenchmarkTasks.SplitGTF as SplitGTF2 {
                 input:
                     inputGTF = gtf,
                     inputCounts = Bambu.bambuCounts,
@@ -136,9 +136,9 @@ workflow LongReadRNABenchmark {
 
         call LongReadRNABenchmarkTasks.ReducedAnnotationAnalysis {
             input:
-                inputFullGTF = SplitGTF.full,
-                inputKnownGTF = SplitGTF.known,
-                inputNovelGTF = SplitGTF.novel,
+                inputFullGTF = select_first([SplitGTF1.full, SplitGTF2.full]),
+                inputKnownGTF = select_first([SplitGTF1.known, SplitGTF2.known]),
+                inputNovelGTF = select_first([SplitGTF1.novel, SplitGTF2.novel]),
                 expressedGTF = expressedGTF,
                 expressedKeptGTF = expressedKeptGTF,
                 excludedGTF = excludedGTF
