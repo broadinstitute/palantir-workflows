@@ -108,217 +108,102 @@ workflow LongReadRNABenchmark {
             datasetName = datasetName
     }
 
-    call LongReadRNABenchmarkTasks.SplitGTF as SplitGTFIsoQuant {
-        input:
-            inputGTF = IsoQuant.isoQuantGTF,
-            toolName = "isoquant"
+    Array[File] gtfListReduced = [IsoQuant.isoQuantGTF, StringTie.stringTieGTF, Bambu.bambuGTF, Flair.flairGTF, Talon.talonGTF, Flames.flamesGFF]
+    Array[File] gtfListReferenceFree = [IsoQuantReferenceFree.isoQuantGTF, StringTieReferenceFree.stringTieGTF, IsoSeq.isoSeqGFF, Cupcake.cupcakeGFF]
+    Array[String] toolNamesReduced = ["isoquant", "stringtie", "bambu", "flair", "talon", "flames"]
+    Array[String] toolNamesReferenceFree = ["isoquant", "stringtie", "isoseq", "cupcake"]
+
+    scatter(gtfAndTool in zip(gtfListReduced, toolNamesReduced)) {
+        File gtf = gtfAndTool.left
+        String tool = gtfAndTool.right
+
+        if (tool != "bambu") {
+            call LongReadRNABenchmarkTasks.SplitGTF {
+                input:
+                    inputGTF = gtf,
+                    toolName = tool
+            }
+        }
+
+        if (tool == "bambu") {
+            call LongReadRNABenchmarkTasks.SplitGTF {
+                input:
+                    inputGTF = gtf,
+                    inputCounts = Bambu.bambuCounts,
+                    toolName = tool
+            }
+        }
+
+        call LongReadRNABenchmarkTasks.ReducedAnnotationAnalysis {
+            input:
+                inputFullGTF = SplitGTF.full,
+                inputKnownGTF = SplitGTF.known,
+                inputNovelGTF = SplitGTF.novel,
+                expressedGTF = expressedGTF,
+                expressedKeptGTF = expressedKeptGTF,
+                excludedGTF = excludedGTF
+        }
     }
 
-    call LongReadRNABenchmarkTasks.SplitGTF as SplitGTFStringTie {
-        input:
-            inputGTF = StringTie.stringTieGTF,
-            toolName = "stringtie"
+    scatter(gtf in gtfListReferenceFree) {
+        call LongReadRNABenchmarkTasks.ReferenceFreeAnalysis {
+            input:
+                inputGTF = gtf,
+                expressedGTF = expressedGTF
+        }
     }
 
-    call LongReadRNABenchmarkTasks.SplitGTF as SplitGTFBambu {
+    call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisFull {
         input:
-            inputGTF = Bambu.bambuGTF,
-            inputCounts = Bambu.bambuCounts,
-            toolName = "bambu"
+            splitType = "full",
+            gtfList = SplitGTF.full
     }
 
-    call LongReadRNABenchmarkTasks.SplitGTF as SplitGTFFlair {
+    call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisKnown {
         input:
-            inputGTF = Flair.flairGTF,
-            toolName = "flair"
+            splitType = "known",
+            gtfList = SplitGTF.known
     }
 
-    call LongReadRNABenchmarkTasks.SplitGTF as SplitGTFTalon {
+    call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisNovel {
         input:
-            inputGTF = Talon.talonGTF,
-            toolName = "talon"
+            splitType = "novel",
+            gtfList = SplitGTF.novel
     }
 
-    call LongReadRNABenchmarkTasks.SplitGTF as SplitGTFFlames {
+    call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsFull {
         input:
-            inputGTF = Flames.flamesGFF,
-            toolName = "flames"
-    }
-
-    call LongReadRNABenchmarkTasks.ReducedAnnotationAnalysis as ReducedAnnotationAnalysisIsoQuant {
-        input:
-            inputFullGTF = SplitGTFIsoQuant.full,
-            inputKnownGTF = SplitGTFIsoQuant.known,
-            inputNovelGTF = SplitGTFIsoQuant.novel,
-            expressedGTF = expressedGTF,
-            expressedKeptGTF = expressedKeptGTF,
-            excludedGTF = excludedGTF
-    }
-
-    call LongReadRNABenchmarkTasks.ReducedAnnotationAnalysis as ReducedAnnotationAnalysisStringTie {
-        input:
-            inputFullGTF = SplitGTFStringTie.full,
-            inputKnownGTF = SplitGTFStringTie.known,
-            inputNovelGTF = SplitGTFStringTie.novel,
-            expressedGTF = expressedGTF,
-            expressedKeptGTF = expressedKeptGTF,
-            excludedGTF = excludedGTF
-    }
-
-    call LongReadRNABenchmarkTasks.ReducedAnnotationAnalysis as ReducedAnnotationAnalysisBambu {
-        input:
-            inputFullGTF = SplitGTFBambu.full,
-            inputKnownGTF = SplitGTFBambu.known,
-            inputNovelGTF = SplitGTFBambu.novel,
-            expressedGTF = expressedGTF,
-            expressedKeptGTF = expressedKeptGTF,
-            excludedGTF = excludedGTF
-    }
-
-    call LongReadRNABenchmarkTasks.ReducedAnnotationAnalysis as ReducedAnnotationAnalysisFlair {
-        input:
-            inputFullGTF = SplitGTFFlair.full,
-            inputKnownGTF = SplitGTFFlair.known,
-            inputNovelGTF = SplitGTFFlair.novel,
-            expressedGTF = expressedGTF,
-            expressedKeptGTF = expressedKeptGTF,
-            excludedGTF = excludedGTF
-    }
-
-    call LongReadRNABenchmarkTasks.ReducedAnnotationAnalysis as ReducedAnnotationAnalysisTalon {
-        input:
-            inputFullGTF = SplitGTFTalon.full,
-            inputKnownGTF = SplitGTFTalon.known,
-            inputNovelGTF = SplitGTFTalon.novel,
-            expressedGTF = expressedGTF,
-            expressedKeptGTF = expressedKeptGTF,
-            excludedGTF = excludedGTF
-    }
-
-    call LongReadRNABenchmarkTasks.ReducedAnnotationAnalysis as ReducedAnnotationAnalysisFlames {
-        input:
-            inputFullGTF = SplitGTFFlames.full,
-            inputKnownGTF = SplitGTFFlames.known,
-            inputNovelGTF = SplitGTFFlames.novel,
-            expressedGTF = expressedGTF,
-            expressedKeptGTF = expressedKeptGTF,
-            excludedGTF = excludedGTF
-    }
-
-    call LongReadRNABenchmarkTasks.ReferenceFreeAnalysis as ReferenceFreeAnalysisIsoQuant {
-        input:
-            inputGTF = IsoQuantReferenceFree.isoQuantGTF,
-            expressedGTF = expressedGTF
-    }
-
-    call LongReadRNABenchmarkTasks.ReferenceFreeAnalysis as ReferenceFreeAnalysisStringTie {
-        input:
-            inputGTF = StringTieReferenceFree.stringTieGTF,
-            expressedGTF = expressedGTF
-    }
-
-    call LongReadRNABenchmarkTasks.ReferenceFreeAnalysis as ReferenceFreeAnalysisIsoSeq {
-        input:
-            inputGTF = IsoSeq.isoSeqGFF,
-            expressedGTF = expressedGTF
-    }
-
-    call LongReadRNABenchmarkTasks.ReferenceFreeAnalysis as ReferenceFreeAnalysisCupcake {
-        input:
-            inputGTF = Cupcake.cupcakeGFF,
-            expressedGTF = expressedGTF
-    }
-
-    call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisIsoQuant {
-        input:
-            toolName = "isoquant",
-            gtfList = [IsoQuant.isoQuantGTF, StringTie.stringTieGTF, Bambu.bambuGTF, Flair.flairGTF, Talon.talonGTF, Flames.flamesGFF]
-    }
-
-    call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisStringTie {
-        input:
-            toolName = "stringtie",
-            gtfList = [IsoQuant.isoQuantGTF, StringTie.stringTieGTF, Bambu.bambuGTF, Flair.flairGTF, Talon.talonGTF, Flames.flamesGFF]
-    }
-
-    call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisBambu {
-        input:
-            toolName = "bambu",
-            gtfList = [IsoQuant.isoQuantGTF, StringTie.stringTieGTF, Bambu.bambuGTF, Flair.flairGTF, Talon.talonGTF, Flames.flamesGFF]
-    }
-
-    call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisFlair {
-        input:
-            toolName = "flair",
-            gtfList = [IsoQuant.isoQuantGTF, StringTie.stringTieGTF, Bambu.bambuGTF, Flair.flairGTF, Talon.talonGTF, Flames.flamesGFF]
-    }
-
-    call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisTalon {
-        input:
-            toolName = "talon",
-            gtfList = [IsoQuant.isoQuantGTF, StringTie.stringTieGTF, Bambu.bambuGTF, Flair.flairGTF, Talon.talonGTF, Flames.flamesGFF]
-    }
-
-    call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisFlames {
-        input:
-            toolName = "flames",
-            gtfList = [IsoQuant.isoQuantGTF, StringTie.stringTieGTF, Bambu.bambuGTF, Flair.flairGTF, Talon.talonGTF, Flames.flamesGFF]
-    }
-
-    call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsIsoQuant {
-        input:
-            trackingFile = DenovoAnalysisIsoQuant.tracking,
-            toolName = "isoquant",
+            splitType = "full",
+            trackingFile = DenovoAnalysisFull.tracking,
             numTools = 6
     }
 
-    call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsStringTie {
+    call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsKnown {
         input:
-            trackingFile = DenovoAnalysisStringTie.tracking,
-            toolName = "stringtie",
+            splitType = "known",
+            trackingFile = DenovoAnalysisKnown.tracking,
             numTools = 6
     }
 
-    call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsBambu {
+    call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsNovel {
         input:
-            trackingFile = DenovoAnalysisBambu.tracking,
-            toolName = "bambu",
-            numTools = 6
-    }
-
-    call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsFlair {
-        input:
-            trackingFile = DenovoAnalysisFlair.tracking,
-            toolName = "flair",
-            numTools = 6
-    }
-
-    call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsTalon {
-        input:
-            trackingFile = DenovoAnalysisTalon.tracking,
-            toolName = "talon",
-            numTools = 6
-    }
-
-    call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsFlames {
-        input:
-            trackingFile = DenovoAnalysisFlames.tracking,
-            toolName = "flames",
+            splitType = "novel",
+            trackingFile = DenovoAnalysisNovel.tracking,
             numTools = 6
     }
 
     call LongReadRNABenchmarkTasks.SummarizeAnalysis as SummarizeAnalysisReduced {
         input:
-            inputList = [ReducedAnnotationAnalysisIsoQuant.novel, ReducedAnnotationAnalysisStringTie.novel, ReducedAnnotationAnalysisBambu.novel ,ReducedAnnotationAnalysisFlair.novel ,ReducedAnnotationAnalysisTalon.novel, ReducedAnnotationAnalysisFlames.novel],
-            toolNames = ["isoquant" , "stringtie", "bambu", "flair", "talon", "flames"],
+            inputList = ReducedAnnotationAnalysis.novel,
+            toolNames = toolNamesReduced,
             datasetName = datasetName,
             analysisType = "reduced"
     }
 
     call LongReadRNABenchmarkTasks.SummarizeAnalysis as SummarizeAnalysisReffree {
         input:
-            inputList = [ReferenceFreeAnalysisIsoQuant.stats, ReferenceFreeAnalysisStringTie.stats, ReferenceFreeAnalysisIsoSeq.stats ,ReferenceFreeAnalysisCupcake.stats],
-            toolNames = ["isoquant" , "stringtie", "isoseq", "cupcake"],
+            inputList = ReferenceFreeAnalysis.stats,
+            toolNames = toolNamesReferenceFree,
             datasetName = datasetName,
             analysisType = "reffree"
     }

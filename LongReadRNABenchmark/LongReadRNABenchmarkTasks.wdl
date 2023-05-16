@@ -460,7 +460,7 @@ task ReferenceFreeAnalysis {
 
 task DenovoAnalysis {
     input {
-        String toolName
+        String splitType
         Array[File]+ gtfList
         Int cpu = 1
         Int memoryGB = 32
@@ -469,11 +469,11 @@ task DenovoAnalysis {
     }
 
     command <<<
-        gffcompare -o ~{toolName} ~{sep=" " gtfList}
+        gffcompare -o ~{splitType} ~{sep=" " gtfList}
     >>>
 
     output {
-        File tracking = "~{toolName}.tracking"
+        File tracking = "~{splitType}.tracking"
     }
 
     runtime {
@@ -486,8 +486,8 @@ task DenovoAnalysis {
 
 task DenovoStats {
     input {
+        String splitType
         File trackingFile
-        String toolName
         Int numTools = 6
         Int cpu = 1
         Int memoryGB = 32
@@ -496,11 +496,11 @@ task DenovoStats {
     }
 
     command <<<
-        python3 /usr/local/src/extract_denovo_model_stats.py --tool ~{toolName} --tracking ~{trackingFile} --num-tools ~{numTools}
+        python3 /usr/local/src/extract_denovo_model_stats.py --split-type ~{splitType} --tracking ~{trackingFile} --num-tools ~{numTools}
     >>>
 
     output {
-        File gffCompareOutput = "~{toolName}_denovo_model_stats.tsv"
+        File gffCompareOutput = "~{splitType}.denovo_model_stats.tsv"
     }
 
     runtime {

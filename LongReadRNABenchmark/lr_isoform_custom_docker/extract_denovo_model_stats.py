@@ -36,8 +36,8 @@ def process_tracking(input_tracking_file, num_gtfs):
 	return reliable_transcripts, almost_reliable_transcripts, total_transcripts, unique_transcripts, missed_transcripts
 
 
-def print_denovo_stats(tool_name, reliable_transcripts, almost_reliable_transcripts, total_transcripts, unique_transcripts, missed_transcripts, out = sys.stdout):
-	out.write(tool_name + "\n")
+def print_denovo_stats(split_type, reliable_transcripts, almost_reliable_transcripts, total_transcripts, unique_transcripts, missed_transcripts, out = sys.stdout):
+	out.write(split_type + "\n")
 	total_columns = len(total_transcripts)
 	out.write("\t".join([str(reliable_transcripts)] * total_columns) + "\n")
 	out.write("\t".join([str(almost_reliable_transcripts[i]) for i in range(total_columns)]) + "\n")
@@ -48,12 +48,12 @@ def print_denovo_stats(tool_name, reliable_transcripts, almost_reliable_transcri
 
 # Main starts here
 parser = argparse.ArgumentParser(description = "Extract and print denovo model statistics for long read isoform reconstruction benchmarking.")
-parser.add_argument("-t", "--tool", help = "Name of the tool used to obtain the input GTF.", required = True)
-parser.add_argument("-r", "--tracking", help = "Tracking file that accompanies the input GTF, obtained from a reference-free run of gffcompare with the compared tools.", required = True)
-parser.add_argument("-n", "--num-tools", type = int, help = "Number of tools (including this one) included in the reference-free benchmarking.", required = True)
+parser.add_argument("-s", "--split-type", help = "Type of the split (full, known, or novel) used to obtain the tracking file.", required = True)
+parser.add_argument("-r", "--tracking", help = "Tracking file that accompanies the input GTFs, obtained from a reference-free run of gffcompare with the compared tools.", required = True)
+parser.add_argument("-n", "--num-tools", type = int, help = "Number of tools (including this one) included in the benchmarking.", required = True)
 args = parser.parse_args()
 
-out_stats = open(args.tool + "_denovo_model_stats.tsv", "w")
+out_stats = open(args.split_type + ".denovo_model_stats.tsv", "w")
 reliable_transcripts, almost_reliable_transcripts, total_transcripts, unique_transcripts, missed_transcripts = process_tracking(args.tracking, args.num_tools)
-print_denovo_stats(args.tool, reliable_transcripts, almost_reliable_transcripts, total_transcripts, unique_transcripts, missed_transcripts, out = out_stats)
+print_denovo_stats(args.split_type, reliable_transcripts, almost_reliable_transcripts, total_transcripts, unique_transcripts, missed_transcripts, out = out_stats)
 out_stats.close()
