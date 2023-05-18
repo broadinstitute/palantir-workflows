@@ -102,7 +102,7 @@ task GlimpseSplitReferenceTask {
             --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt \
             ~{"--seed "+seed} ~{"--window-cm "+min_window_cm} ~{uniform_number_variants_string}
 
-        if [-f chunks_contigindex_${CONTIGINDEX}.txt_uniform]; then
+        if [ -f chunks_contigindex_${CONTIGINDEX}.txt_uniform ]; then
             mv chunks_contigindex_${CONTIGINDEX}.txt_uniform chunks_contigindex_${CONTIGINDEX}.txt
         fi
 
