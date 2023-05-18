@@ -26,6 +26,7 @@ workflow Glimpse2SplitReference {
 
         Int? seed
         Int? min_window_cm
+        Boolean uniform_number_variants = false
         
         Int preemptible = 1
         String docker = "us.gcr.io/broad-dsde-methods/glimpse:2.0.0"
@@ -49,6 +50,7 @@ workflow Glimpse2SplitReference {
                 genetic_map = genetic_map_filename,
                 seed = seed,
                 min_window_cm = min_window_cm,
+                uniform_number_variants = uniform_number_variants,
                 preemptible = preemptible,
                 docker = docker,
                 monitoring_script = monitoring_script
@@ -72,6 +74,7 @@ task GlimpseSplitReferenceTask {
 
         Int? seed
         Int? min_window_cm
+        Boolean uniform_number_variants = false
 
         Int mem_gb = 4
         Int cpu = 4
@@ -83,6 +86,7 @@ task GlimpseSplitReferenceTask {
 
     String reference_output_dir = "reference_output_dir"
 
+    String uniform_number_variants_string = if uniform_number_variants then "--uniform-number-variants" else ""
     command <<<
         set -xeuo pipefail
 
@@ -94,7 +98,9 @@ task GlimpseSplitReferenceTask {
         # Print chunk index to variable
         CONTIGINDEX=$(printf "%04d" ~{i_contig})
 
-        /GLIMPSE/GLIMPSE2_chunk --input ~{reference_panel} --region ~{contig} --map ~{genetic_map} --sequential --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt ~{"--seed "+seed} ~{"--window-cm "+min_window_cm}
+        /GLIMPSE/GLIMPSE2_chunk --input ~{reference_panel} --region ~{contig} --map ~{genetic_map} --sequential \
+            --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt \
+            ~{"--seed "+seed} ~{"--window-cm "+min_window_cm} ~{uniform_number_variants_string}
 
         mkdir -p ~{reference_output_dir}
 
