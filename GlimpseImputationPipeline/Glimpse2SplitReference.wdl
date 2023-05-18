@@ -87,7 +87,6 @@ task GlimpseSplitReferenceTask {
     String reference_output_dir = "reference_output_dir"
 
     String uniform_number_variants_string = if uniform_number_variants then "--uniform-number-variants" else ""
-    String uniform_chunks_extension = if uniform_number_variants then "_uniform" else ""
     command <<<
         set -xeuo pipefail
 
@@ -102,6 +101,10 @@ task GlimpseSplitReferenceTask {
         /GLIMPSE/GLIMPSE2_chunk --input ~{reference_panel} --region ~{contig} --map ~{genetic_map} --sequential \
             --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt \
             ~{"--seed "+seed} ~{"--window-cm "+min_window_cm} ~{uniform_number_variants_string}
+
+        if [-f chunks_contigindex_${CONTIGINDEX}.txt_uniform]; then
+            mv chunks_contigindex_${CONTIGINDEX}.txt_uniform chunks_contigindex_${CONTIGINDEX}.txt
+        fi
 
         mkdir -p ~{reference_output_dir}
 
@@ -120,7 +123,7 @@ task GlimpseSplitReferenceTask {
 
             # Increase i (and make sure the exit code is zero)
             (( I_CHUNK++ )) || true
-        done < chunks_contigindex_${CONTIGINDEX}.txt~{uniform_chunks_extension}
+        done < chunks_contigindex_${CONTIGINDEX}.txt
     >>>
 
     runtime {
@@ -137,7 +140,7 @@ task GlimpseSplitReferenceTask {
         # We don't know the exact filename of the chunks.txt file since we need to add leading zeros to the contigindex. Since WDL doesn't
         # have a built-in way to do that, we have to rely on the command section to do that. However, we don't have access to that bash
         # variable in the output section, so we have to use glob here and return the first (and only) result.
-        File chunks = glob("chunks_contigindex_*.txt~{uniform_chunks_extension}")[0]
+        File chunks = glob("chunks_contigindex_*.txt")[0]
 
         File? monitoring = "monitoring.log"
     }
