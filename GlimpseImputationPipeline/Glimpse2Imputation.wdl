@@ -98,7 +98,9 @@ task GlimpsePhase {
         cram_index_paths=( ~{sep=" " cram_indices} )
 
         for i in "${!cram_paths[@]}" ; do
-            mv "${cram_index_paths[$i]}" "${cram_paths[$i]}.crai"
+            if [[ "${cram_index_paths[$i]}" != "${cram_paths[$i]}.crai" ]]; then
+                mv "${cram_index_paths[$i]}" "${cram_paths[$i]}.crai"
+            fi
         done
 
         /GLIMPSE/GLIMPSE2_phase \
