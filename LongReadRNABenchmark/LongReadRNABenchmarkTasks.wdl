@@ -98,7 +98,7 @@ task Bambu {
         Int numThreads = 32
         Int memoryGB = 64
         Int diskSizeGB = 500
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/bambu@sha256:5b934db5ba2dde318694f52a6fecdfaddbe1836751c7a4a49d2b17ecb160d5e7"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/bambu@sha256:20a7cf57fa9e68e099cf6f2fd31043bcee5711ed2893d969a96efda152dac71c"
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
