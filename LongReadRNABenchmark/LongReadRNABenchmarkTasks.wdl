@@ -460,6 +460,7 @@ task ReferenceFreeAnalysis {
 
 task DenovoAnalysis {
     input {
+        String datasetName
         String splitType
         Array[File]+ gtfList
         Int cpu = 1
@@ -473,7 +474,7 @@ task DenovoAnalysis {
     >>>
 
     output {
-        File tracking = "~{splitType}.tracking"
+        File tracking = "~{datasetName}_~{splitType}.tracking"
     }
 
     runtime {
@@ -486,9 +487,11 @@ task DenovoAnalysis {
 
 task DenovoStats {
     input {
+        String datasetName
         String splitType
         File trackingFile
         Int numTools = 6
+        Array[String]+ toolNames
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
@@ -496,11 +499,16 @@ task DenovoStats {
     }
 
     command <<<
-        python3 /usr/local/src/extract_denovo_model_stats.py --split-type ~{splitType} --tracking ~{trackingFile} --num-tools ~{numTools}
+        python3 /usr/local/src/extract_denovo_model_stats.py \
+        --dataset-name ~{datasetName} \
+        --split-type ~{splitType} \
+        --tracking ~{trackingFile} \
+        --tool-names ~{sep=" " toolNames} \
+        --num-tools ~{numTools}
     >>>
 
     output {
-        File gffCompareOutput = "~{splitType}.denovo_model_stats.tsv"
+        File denovoStats = "~{datasetName}_~{splitType}_denovo_model_stats.tsv"
     }
 
     runtime {
@@ -564,6 +572,37 @@ task PlotAnalysisSummary {
 
     output {
         File analysisSummaryPlots = "~{datasetName}_~{analysisType}_analysis_summary.png"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task PlotDenovoStats {
+    input {
+        File stats
+        String datasetName
+        String splitType
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:775cd637fa3f4befc6b0b7dc1a674a0e64461920df8b10ab1b6e330e439049a3"
+    }
+
+    command <<<
+        python3 /usr/local/src/plot_denovo_stats.py \
+        --input ~{stats} \
+        --dataset-name ~{datasetName} \
+        --split-type ~{splitType} \
+        --save
+    >>>
+
+    output {
+        File denovoStatsPlot = "~{datasetName}_~{splitType}_denovo.png"
     }
 
     runtime {

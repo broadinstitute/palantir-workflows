@@ -108,6 +108,8 @@ workflow LongReadRNABenchmark {
             datasetName = datasetName
     }
 
+    # Note: Make sure that your toolNames arrays match the order of your gtfList arrays.
+    # If they don't match, you may not get an error but you will get incorrect results.
     Array[File] gtfListReduced = [IsoQuant.isoQuantGTF, StringTie.stringTieGTF, Bambu.bambuGTF, Flair.flairGTF, Talon.talonGTF, Flames.flamesGFF]
     Array[File] gtfListReferenceFree = [IsoQuantReferenceFree.isoQuantGTF, StringTieReferenceFree.stringTieGTF, IsoSeq.isoSeqGFF, Cupcake.cupcakeGFF]
     Array[String] toolNamesReduced = ["isoquant", "stringtie", "bambu", "flair", "talon", "flames"]
@@ -145,41 +147,71 @@ workflow LongReadRNABenchmark {
 
     call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisFull {
         input:
+            datasetName = datasetName,
             splitType = "full",
             gtfList = SplitGTF.full
     }
 
     call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisKnown {
         input:
+            datasetName = datasetName,
             splitType = "known",
             gtfList = SplitGTF.known
     }
 
     call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisNovel {
         input:
+            datasetName = datasetName,
             splitType = "novel",
             gtfList = SplitGTF.novel
     }
 
     call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsFull {
         input:
+            datasetName = datasetName,
             splitType = "full",
             trackingFile = DenovoAnalysisFull.tracking,
-            numTools = 6
+            numTools = 6,
+            toolNames = toolNamesReduced
     }
 
     call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsKnown {
         input:
+            datasetName = datasetName,
             splitType = "known",
             trackingFile = DenovoAnalysisKnown.tracking,
-            numTools = 6
+            numTools = 6,
+            toolNames = toolNamesReduced
     }
 
     call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsNovel {
         input:
+            datasetName = datasetName,
             splitType = "novel",
             trackingFile = DenovoAnalysisNovel.tracking,
-            numTools = 6
+            numTools = 6,
+            toolNames = toolNamesReduced
+    }
+
+    call LongReadRNABenchmarkTasks.PlotDenovoStats as PlotDenovoStatsFull {
+        input:
+            stats = DenovoStatsFull.denovoStats,
+            datasetName = datasetName,
+            splitType = "full"
+    }
+
+    call LongReadRNABenchmarkTasks.PlotDenovoStats as PlotDenovoStatsKnown {
+        input:
+            stats = DenovoStatsKnown.denovoStats,
+            datasetName = datasetName,
+            splitType = "known"
+    }
+
+    call LongReadRNABenchmarkTasks.PlotDenovoStats as PlotDenovoStatsNovel {
+        input:
+            stats = DenovoStatsNovel.denovoStats,
+            datasetName = datasetName,
+            splitType = "novel"
     }
 
     call LongReadRNABenchmarkTasks.SummarizeAnalysis as SummarizeAnalysisReduced {
@@ -217,5 +249,8 @@ workflow LongReadRNABenchmark {
         File referenceFreeAnalysisSummary = SummarizeAnalysisReffree.summary
         File reducedAnalysisSummaryPlots = PlotAnalysisSummaryReduced.analysisSummaryPlots
         File referenceFreeAnalysisSummaryPlots = PlotAnalysisSummaryReffree.analysisSummaryPlots
+        File fullDenovoStatsPlot = PlotDenovoStatsFull.denovoStatsPlot
+        File knownDenovoStatsPlot = PlotDenovoStatsKnown.denovoStatsPlot
+        File novelDenovoStatsPlot = PlotDenovoStatsNovel.denovoStatsPlot
     }
 }
