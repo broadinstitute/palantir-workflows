@@ -640,3 +640,33 @@ task GenerateSplitFreeTracking {
         docker: docker
     }
 }
+
+task SplitFreeStats {
+    input {
+        File trackingFile
+        String toolName
+        String datasetName
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:232d343e0f4aa61b72240e88c13641d33ce90f57225b35c5305632976dd558d1"
+    }
+
+    command <<<
+        python3 /usr/local/src/generate_split_free_benchmark_stats.py \
+        --tracking ~{trackingFile} \
+        --tool-name ~{toolName} \
+        --dataset-name ~{datasetName}
+    >>>
+
+    output {
+        File splitFreeStats = "~{toolName}_~{datasetName}_accuracy_stats.tsv"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}

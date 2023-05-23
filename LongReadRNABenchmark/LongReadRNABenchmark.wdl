@@ -244,6 +244,21 @@ workflow LongReadRNABenchmark {
             analysisType = "reffree"
     }
 
+    call LongReadRNABenchmarkTasks.GenerateSplitFreeTracking as GenerateSplitFreeTrackingIsoQuant {
+        input:
+            datasetName = datasetName,
+            toolGTF = IsoQuant.isoQuantGTF,
+            expressedGTF = expressedGTF,
+            expressedKeptGTF = expressedKeptGTF
+    }
+
+    call LongReadRNABenchmarkTasks.SplitFreeStats as SplitFreeStatsIsoQuant {
+        input:
+            trackingFile = GenerateSplitFreeTrackingIsoQuant.tracking,
+            toolName = "isoquant",
+            datasetName = datasetName
+    }
+
     output {
         File reducedAnalysisSummary = SummarizeAnalysisReduced.summary
         File referenceFreeAnalysisSummary = SummarizeAnalysisReffree.summary
