@@ -15,7 +15,7 @@ def process_tracking(input_tracking_file):
 		# column[2]: gene name and transcript id of the reference record associated to this transcript
 		# column[3]: type of overlap or relationship between the reference transcripts and the transcript structure represented by this row
 		# columns[4:]: each following column showns the transcript for each sample/tool
-		transcript_columns = line.strip().split()[4:]
+		transcript_columns = line.strip().split()
 
 		if transcript_columns[4] != '-' and transcript_columns[5] == '-' and transcript_columns[6] == '-':
 			novel_fn += 1
