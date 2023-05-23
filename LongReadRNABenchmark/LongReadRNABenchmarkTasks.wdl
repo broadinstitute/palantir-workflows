@@ -98,7 +98,7 @@ task Bambu {
         Int numThreads = 32
         Int memoryGB = 64
         Int diskSizeGB = 500
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/bambu@sha256:20a7cf57fa9e68e099cf6f2fd31043bcee5711ed2893d969a96efda152dac71c"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/bambu@sha256:109fcdec65637eaca9f465808f3cc2aba3a9d2a0b1f967b4ed1c87989c3969de"
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
     }
 
@@ -470,7 +470,7 @@ task DenovoAnalysis {
     }
 
     command <<<
-        gffcompare -o ~{splitType} ~{sep=" " gtfList}
+        gffcompare -o ~{datasetName}_~{splitType} ~{sep=" " gtfList}
     >>>
 
     output {
@@ -603,6 +603,34 @@ task PlotDenovoStats {
 
     output {
         File denovoStatsPlot = "~{datasetName}_~{splitType}_denovo.png"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task GenerateSplitFreeTracking {
+    input {
+        String datasetName
+        File toolGTF
+        File expressedGTF
+        File expressedKeptGTF
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare@sha256:b7208e67cb52ef41f0b9f9182414b8f12617a079546bbc2a4dbd826590ec63d2"
+    }
+
+    command <<<
+        gffcompare -o ~{datasetName} ~{expressedGTF} ~{expressedKeptGTF} ~{toolGTF}
+    >>>
+
+    output {
+        File tracking = "~{datasetName}.tracking"
     }
 
     runtime {
