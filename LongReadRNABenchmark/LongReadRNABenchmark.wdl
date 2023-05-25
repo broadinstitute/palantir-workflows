@@ -1,5 +1,6 @@
 version 1.0
 
+import "IsoQuant.wdl" as IsoQuantWorkflow
 import "LongReadRNABenchmarkTasks.wdl" as LongReadRNABenchmarkTasks
 
 workflow LongReadRNABenchmark {
@@ -16,7 +17,7 @@ workflow LongReadRNABenchmark {
         String dataType
     }
 
-    call LongReadRNABenchmarkTasks.IsoQuant as IsoQuant {
+    call IsoQuantWorkflow.IsoQuant as IsoQuant {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
@@ -27,7 +28,7 @@ workflow LongReadRNABenchmark {
             dataType = dataType
     }
 
-    call LongReadRNABenchmarkTasks.IsoQuant as IsoQuantReferenceFree {
+    call IsoQuantWorkflow.IsoQuant as IsoQuantReferenceFree {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
