@@ -1,5 +1,5 @@
 version 1.0
-    
+
 task IsoSeqTask {
     input {
         File inputBAM
@@ -44,9 +44,7 @@ workflow IsoSeq {
         File inputBAMIndex
         File referenceGenome
         File referenceGenomeIndex
-        File? referenceAnnotation
         String datasetName
-        String dataType
     }
 
     call IsoSeqTask {
@@ -55,9 +53,7 @@ workflow IsoSeq {
             inputBAMIndex = inputBAMIndex,
             referenceGenome = referenceGenome,
             referenceGenomeIndex = referenceGenomeIndex,
-            referenceAnnotation = referenceAnnotation,
-            datasetName = datasetName,
-            dataType = dataType
+            datasetName = datasetName
     }
 
     output {
