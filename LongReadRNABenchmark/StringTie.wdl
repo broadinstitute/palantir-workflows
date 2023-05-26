@@ -53,7 +53,7 @@ workflow StringTie {
     }
 
     output {
-        File stringTieGTF = StringTieTask.isoQuantGTF
+        File stringTieGTF = StringTieTask.stringTieGTF
         File monitoringLog = StringTieTask.monitoringLog
     }
 }
