@@ -1,3 +1,5 @@
+version 1.0
+    
 task IsoSeqTask {
     input {
         File inputBAM
