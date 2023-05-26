@@ -1,7 +1,14 @@
 version 1.0
 
 import "IsoQuant.wdl" as IsoQuantWorkflow
-import "LongReadRNABenchmarkTasks.wdl" as LongReadRNABenchmarkTasks
+import "StringTie.wdl" as StringTieWorkflow
+import "Bambu.wdl" as BambuWorkflow
+import "Flair.wdl" as FlairWorkflow
+import "Talon.wdl" as TalonWorkflow
+import "IsoSeq.wdl" as IsoSeqWorkflow
+import "Flames.wdl" as FlamesWorkflow
+import "Cupcake.wdl" as CupcakeWorkflow
+import "IsoformDiscoveryBenchmarkTasks.wdl" as IsoformDiscoveryBenchmarkTasks
 
 workflow LongReadRNABenchmark {
     input {
@@ -38,20 +45,20 @@ workflow LongReadRNABenchmark {
             dataType = dataType
     }
 
-    call LongReadRNABenchmarkTasks.StringTie as StringTie {
+    call StringTieWorkflow.StringTie as StringTie {
         input:
             inputBAM = inputBAM,
             referenceAnnotation = referenceAnnotation,
             datasetName = datasetName
     }
 
-    call LongReadRNABenchmarkTasks.StringTie as StringTieReferenceFree {
+    call StringTieWorkflow.StringTie as StringTieReferenceFree {
         input:
             inputBAM = inputBAM,
             datasetName = datasetName
     }
 
-    call LongReadRNABenchmarkTasks.Bambu as Bambu {
+    call BambuWorkflow.Bambu as Bambu {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
@@ -62,7 +69,7 @@ workflow LongReadRNABenchmark {
             dataType = dataType
     }
 
-    call LongReadRNABenchmarkTasks.Flair as Flair {
+    call FlairWorkflow.Flair as Flair {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
@@ -72,7 +79,7 @@ workflow LongReadRNABenchmark {
             datasetName = datasetName
     }
 
-    call LongReadRNABenchmarkTasks.Talon as Talon {
+    call TalonWorkflow.Talon as Talon {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
@@ -83,7 +90,7 @@ workflow LongReadRNABenchmark {
             dataType = dataType
     }
 
-    call LongReadRNABenchmarkTasks.IsoSeq as IsoSeq {
+    call IsoSeqWorkflow.IsoSeq as IsoSeq {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
@@ -92,7 +99,7 @@ workflow LongReadRNABenchmark {
             datasetName = datasetName
     }
 
-    call LongReadRNABenchmarkTasks.Flames as Flames {
+    call FlamesWorkflow.Flames as Flames {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
@@ -102,7 +109,7 @@ workflow LongReadRNABenchmark {
             datasetName = datasetName
     }
 
-    call LongReadRNABenchmarkTasks.Cupcake as Cupcake {
+    call CupcakeWorkflow.Cupcake as Cupcake {
         input:
             inputBAM = inputBAM,
             inputBAMIndex = inputBAMIndex,
@@ -120,14 +127,14 @@ workflow LongReadRNABenchmark {
         File gtf = gtfAndTool.left
         String tool = gtfAndTool.right
 
-        call LongReadRNABenchmarkTasks.SplitGTF {
+        call IsoformDiscoveryBenchmarkTasks.SplitGTF {
             input:
                 inputGTF = gtf,
                 inputCounts = Bambu.bambuCounts,
                 toolName = tool
         }
 
-        call LongReadRNABenchmarkTasks.ReducedAnnotationAnalysis {
+        call IsoformDiscoveryBenchmarkTasks.ReducedAnnotationAnalysis {
             input:
                 inputFullGTF = SplitGTF.full,
                 inputKnownGTF = SplitGTF.known,
@@ -139,35 +146,35 @@ workflow LongReadRNABenchmark {
     }
 
     scatter(gtf in gtfListReferenceFree) {
-        call LongReadRNABenchmarkTasks.ReferenceFreeAnalysis {
+        call IsoformDiscoveryBenchmarkTasks.ReferenceFreeAnalysis {
             input:
                 inputGTF = gtf,
                 expressedGTF = expressedGTF
         }
     }
 
-    call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisFull {
+    call IsoformDiscoveryBenchmarkTasks.DenovoAnalysis as DenovoAnalysisFull {
         input:
             datasetName = datasetName,
             splitType = "full",
             gtfList = SplitGTF.full
     }
 
-    call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisKnown {
+    call IsoformDiscoveryBenchmarkTasks.DenovoAnalysis as DenovoAnalysisKnown {
         input:
             datasetName = datasetName,
             splitType = "known",
             gtfList = SplitGTF.known
     }
 
-    call LongReadRNABenchmarkTasks.DenovoAnalysis as DenovoAnalysisNovel {
+    call IsoformDiscoveryBenchmarkTasks.DenovoAnalysis as DenovoAnalysisNovel {
         input:
             datasetName = datasetName,
             splitType = "novel",
             gtfList = SplitGTF.novel
     }
 
-    call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsFull {
+    call IsoformDiscoveryBenchmarkTasks.DenovoStats as DenovoStatsFull {
         input:
             datasetName = datasetName,
             splitType = "full",
@@ -176,7 +183,7 @@ workflow LongReadRNABenchmark {
             toolNames = toolNamesReduced
     }
 
-    call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsKnown {
+    call IsoformDiscoveryBenchmarkTasks.DenovoStats as DenovoStatsKnown {
         input:
             datasetName = datasetName,
             splitType = "known",
@@ -185,7 +192,7 @@ workflow LongReadRNABenchmark {
             toolNames = toolNamesReduced
     }
 
-    call LongReadRNABenchmarkTasks.DenovoStats as DenovoStatsNovel {
+    call IsoformDiscoveryBenchmarkTasks.DenovoStats as DenovoStatsNovel {
         input:
             datasetName = datasetName,
             splitType = "novel",
@@ -194,28 +201,28 @@ workflow LongReadRNABenchmark {
             toolNames = toolNamesReduced
     }
 
-    call LongReadRNABenchmarkTasks.PlotDenovoStats as PlotDenovoStatsFull {
+    call IsoformDiscoveryBenchmarkTasks.PlotDenovoStats as PlotDenovoStatsFull {
         input:
             stats = DenovoStatsFull.denovoStats,
             datasetName = datasetName,
             splitType = "full"
     }
 
-    call LongReadRNABenchmarkTasks.PlotDenovoStats as PlotDenovoStatsKnown {
+    call IsoformDiscoveryBenchmarkTasks.PlotDenovoStats as PlotDenovoStatsKnown {
         input:
             stats = DenovoStatsKnown.denovoStats,
             datasetName = datasetName,
             splitType = "known"
     }
 
-    call LongReadRNABenchmarkTasks.PlotDenovoStats as PlotDenovoStatsNovel {
+    call IsoformDiscoveryBenchmarkTasks.PlotDenovoStats as PlotDenovoStatsNovel {
         input:
             stats = DenovoStatsNovel.denovoStats,
             datasetName = datasetName,
             splitType = "novel"
     }
 
-    call LongReadRNABenchmarkTasks.SummarizeAnalysis as SummarizeAnalysisReduced {
+    call IsoformDiscoveryBenchmarkTasks.SummarizeAnalysis as SummarizeAnalysisReduced {
         input:
             inputList = ReducedAnnotationAnalysis.novel,
             toolNames = toolNamesReduced,
@@ -223,7 +230,7 @@ workflow LongReadRNABenchmark {
             analysisType = "reduced"
     }
 
-    call LongReadRNABenchmarkTasks.SummarizeAnalysis as SummarizeAnalysisReffree {
+    call IsoformDiscoveryBenchmarkTasks.SummarizeAnalysis as SummarizeAnalysisReffree {
         input:
             inputList = ReferenceFreeAnalysis.stats,
             toolNames = toolNamesReferenceFree,
@@ -231,21 +238,21 @@ workflow LongReadRNABenchmark {
             analysisType = "reffree"
     }
 
-    call LongReadRNABenchmarkTasks.PlotAnalysisSummary as PlotAnalysisSummaryReduced {
+    call IsoformDiscoveryBenchmarkTasks.PlotAnalysisSummary as PlotAnalysisSummaryReduced {
         input:
             summary = SummarizeAnalysisReduced.summary,
             datasetName = datasetName,
             analysisType = "reduced"
     }
 
-    call LongReadRNABenchmarkTasks.PlotAnalysisSummary as PlotAnalysisSummaryReffree {
+    call IsoformDiscoveryBenchmarkTasks.PlotAnalysisSummary as PlotAnalysisSummaryReffree {
         input:
             summary = SummarizeAnalysisReffree.summary,
             datasetName = datasetName,
             analysisType = "reffree"
     }
 
-    call LongReadRNABenchmarkTasks.GenerateSplitFreeTracking as GenerateSplitFreeTrackingIsoQuant {
+    call IsoformDiscoveryBenchmarkTasks.GenerateSplitFreeTracking as GenerateSplitFreeTrackingIsoQuant {
         input:
             datasetName = datasetName,
             toolGTF = IsoQuant.isoQuantGTF,
@@ -253,7 +260,7 @@ workflow LongReadRNABenchmark {
             expressedKeptGTF = expressedKeptGTF
     }
 
-    call LongReadRNABenchmarkTasks.SplitFreeStats as SplitFreeStatsIsoQuant {
+    call IsoformDiscoveryBenchmarkTasks.SplitFreeStats as SplitFreeStatsIsoQuant {
         input:
             trackingFile = GenerateSplitFreeTrackingIsoQuant.tracking,
             toolName = "isoquant",

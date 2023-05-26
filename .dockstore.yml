@@ -60,6 +60,27 @@ workflows:
   - name: IsoQuant
     subclass: WDL
     primaryDescriptorPath: /LongReadRNABenchmark/IsoQuant.wdl
-  - name: LongReadRNABenchmark
+  - name: StringTie
     subclass: WDL
-    primaryDescriptorPath: /LongReadRNABenchmark/LongReadRNABenchmark.wdl
+    primaryDescriptorPath: /LongReadRNABenchmark/StringTie.wdl
+  - name: Bambu
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/Bambu.wdl
+  - name: Flair
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/Flair.wdl
+  - name: Talon
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/Talon.wdl
+  - name: IsoSeq
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/IsoSeq.wdl
+  - name: Flames
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/Flames.wdl
+  - name: Cupcake
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/Cupcake.wdl
+  - name: IsoformDiscoveryBenchmark
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/IsoformDiscoveryBenchmark.wdl
