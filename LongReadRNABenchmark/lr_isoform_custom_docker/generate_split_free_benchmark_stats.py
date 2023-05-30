@@ -66,6 +66,13 @@ f1_score = []
 for i in range(len(args.tracking)):
 	tracking_stats = process_tracking(args.tracking[i])
 	accuracy_stats = compute_novel_accuracy_stats(tracking_stats[0], tracking_stats[1], tracking_stats[2])
+
+	novel_tps.append(tracking_stats[0])
+	novel_fps.append(tracking_stats[1])
+	novel_fns.append(tracking_stats[2])
+	known_tps.append(tracking_stats[3])
+	known_fns.append(tracking_stats[4])
+
 	sensitivity.append(accuracy_stats[0] / 100.0)
 	precision.append(accuracy_stats[1] / 100.0)
 	f1_score.append(accuracy_stats[2] / 100.0)
@@ -79,8 +86,8 @@ outfile.write("TP_Novel" + "\t" + "FP_Novel" + "\t" + "FN_Novel" + "\t" + "TP_Kn
 
 # Write the data rows
 for i in range(len(args.tool_names)):
-	outfile.write(args.tool_names[i] + "\t" + str(sensitivity[i]) + "\t" + str(precision[i]) + "\t" + str(f1_score[i]) + "\t")
-	outfile.write(str(novel_tps[i]) + "\t" + str(novel_fps[i]) + "\t" + str(novel_fns[i]) + "\t" + str(known_tps[i]) + "\t" str(known_fns[i]) + "\n")
+	outfile.write(args.tool_names[i] + "\t" + str(sensitivity[i]) + "\t" + str(precision[i]) + "\t" + str(f1_score[i]))
+	outfile.write("\t" + str(novel_tps[i]) + "\t" + str(novel_fps[i]) + "\t" + str(novel_fns[i]) + "\t" + str(known_tps[i]) + "\t" str(known_fns[i]) + "\n")
 
 # Close output file
 outfile.close()
