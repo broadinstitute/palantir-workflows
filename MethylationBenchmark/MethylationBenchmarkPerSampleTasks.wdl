@@ -47,6 +47,8 @@ task TrimAdapters {
 
     command <<<
         trim_galore --gzip --cores ~{numThreads} --output_dir . --2colour 20 --paired ~{fq1} ~{fq2}
+
+        ls -lha
     >>>
 
     output {
