@@ -252,18 +252,20 @@ workflow LongReadRNABenchmark {
             analysisType = "reffree"
     }
 
-    call IsoformDiscoveryBenchmarkTasks.GenerateSplitFreeTracking as GenerateSplitFreeTrackingIsoQuant {
-        input:
-            datasetName = datasetName,
-            toolGTF = IsoQuant.isoQuantGTF,
-            expressedGTF = expressedGTF,
-            expressedKeptGTF = expressedKeptGTF
+    scatter(gtf in gtfListReduced) {
+        call IsoformDiscoveryBenchmarkTasks.GenerateSplitFreeTracking {
+            input:
+                datasetName = datasetName,
+                toolGTF = gtf,
+                expressedGTF = expressedGTF,
+                expressedKeptGTF = expressedKeptGTF
+        }
     }
 
-    call IsoformDiscoveryBenchmarkTasks.SplitFreeStats as SplitFreeStatsIsoQuant {
+    call IsoformDiscoveryBenchmarkTasks.SplitFreeStats {
         input:
-            trackingFile = GenerateSplitFreeTrackingIsoQuant.tracking,
-            toolName = "isoquant",
+            trackingFiles = GenerateSplitFreeTracking.tracking,
+            toolNames = toolNamesReduced,
             datasetName = datasetName
     }
 
@@ -275,5 +277,6 @@ workflow LongReadRNABenchmark {
         File fullDenovoStatsPlot = PlotDenovoStatsFull.denovoStatsPlot
         File knownDenovoStatsPlot = PlotDenovoStatsKnown.denovoStatsPlot
         File novelDenovoStatsPlot = PlotDenovoStatsNovel.denovoStatsPlot
+        File splitFreeStats = SplitFreeStats.splitFreeStats
     }
 }

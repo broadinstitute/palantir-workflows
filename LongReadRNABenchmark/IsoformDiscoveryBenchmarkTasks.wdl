@@ -285,8 +285,8 @@ task GenerateSplitFreeTracking {
 
 task SplitFreeStats {
     input {
-        File trackingFile
-        String toolName
+        Array[File]+ trackingFiles
+        Array[String]+ toolNames
         String datasetName
         Int cpu = 1
         Int memoryGB = 32
@@ -296,13 +296,13 @@ task SplitFreeStats {
 
     command <<<
         python3 /usr/local/src/generate_split_free_benchmark_stats.py \
-        --tracking ~{trackingFile} \
-        --tool-name ~{toolName} \
+        --tracking ~{sep=" " trackingFiles} \
+        --tool-name ~{sep=" " toolNames} \
         --dataset-name ~{datasetName}
     >>>
 
     output {
-        File splitFreeStats = "~{toolName}_~{datasetName}_accuracy_stats.tsv"
+        File splitFreeStats = "~{datasetName}_accuracy_stats.tsv"
     }
 
     runtime {
