@@ -86,8 +86,8 @@ outfile.write("TP_Novel" + "\t" + "FP_Novel" + "\t" + "FN_Novel" + "\t" + "TP_Kn
 
 # Write the data rows
 for i in range(len(args.tool_names)):
-	outfile.write(args.tool_names[i] + "\t" + str(sensitivity[i]) + "\t" + str(precision[i]) + "\t" + str(f1_score[i]))
-	outfile.write("\t" + str(novel_tps[i]) + "\t" + str(novel_fps[i]) + "\t" + str(novel_fns[i]) + "\t" + str(known_tps[i]) + "\t" str(known_fns[i]) + "\n")
+	outfile.write(args.tool_names[i] + "\t" + str(sensitivity[i]) + "\t" + str(precision[i]) + "\t" + str(f1_score[i]) + "\t")
+	outfile.write(str(novel_tps[i]) + "\t" + str(novel_fps[i]) + "\t" + str(novel_fns[i]) + "\t" + str(known_tps[i]) + "\t" + str(known_fns[i]) + "\n")
 
 # Close output file
 outfile.close()
