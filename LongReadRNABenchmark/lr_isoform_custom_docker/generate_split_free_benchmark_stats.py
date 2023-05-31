@@ -1,6 +1,7 @@
 import sys
 import os
 import argparse
+import math
 
 def process_tracking(input_tracking_file):
 	novel_tp = 0
