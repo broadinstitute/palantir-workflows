@@ -269,6 +269,13 @@ workflow LongReadRNABenchmark {
             datasetName = datasetName
     }
 
+    call IsoformDiscoveryBenchmarkTasks.GenerateSplitFreeTrackingDenovo {
+        input:
+            datasetName = datasetName,
+            toolGTFs = gtfListReduced,
+            expressedKeptGTF = expressedKeptGTF
+    }
+
     output {
         File reducedAnalysisSummary = SummarizeAnalysisReduced.summary
         File referenceFreeAnalysisSummary = SummarizeAnalysisReffree.summary

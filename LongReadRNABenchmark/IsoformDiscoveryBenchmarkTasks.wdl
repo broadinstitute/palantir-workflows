@@ -283,6 +283,33 @@ task GenerateSplitFreeTracking {
     }
 }
 
+task GenerateSplitFreeTrackingDenovo {
+    input {
+        String datasetName
+        Array[File]+ toolGTFs
+        File expressedKeptGTF
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare@sha256:b7208e67cb52ef41f0b9f9182414b8f12617a079546bbc2a4dbd826590ec63d2"
+    }
+
+    command <<<
+        gffcompare -o ~{datasetName}.denovo ~{expressedKeptGTF} ~{sep=" " toolGTFs}
+    >>>
+
+    output {
+        File tracking = "~{datasetName}.denovo.tracking"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
 task SplitFreeStats {
     input {
         Array[File]+ trackingFiles
