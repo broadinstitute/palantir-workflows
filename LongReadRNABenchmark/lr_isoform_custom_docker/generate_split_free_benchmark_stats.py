@@ -32,10 +32,16 @@ def process_tracking(input_tracking_file):
 	return (novel_tp, novel_fp, novel_fn, known_tp, known_fn)
 
 def compute_novel_accuracy_stats(novel_tp, novel_fp, novel_fn):
-	sensitivity = novel_tp / (novel_tp + novel_fn)
-	precision = novel_tp / (novel_tp + novel_fp)
-
+	sensitivity = 0.0
+	precision = 0.0
 	f1_score = 0.0
+
+	if not math.isclose(novel_tp + novel_fn, 0.0):
+		sensitivity = novel_tp / (novel_tp + novel_fn)
+
+	if not math.isclose(novel_tp + novel_fp, 0.0):
+		precision = novel_tp / (novel_tp + novel_fp)
+
 	if not math.isclose(precision + sensitivity, 0.0):
 		f1_score = 2 * precision * sensitivity / (precision + sensitivity)
 
