@@ -80,9 +80,9 @@ for i in range(len(args.tracking)):
 	known_tps.append(tracking_stats[3])
 	known_fns.append(tracking_stats[4])
 
-	sensitivity.append(accuracy_stats[0] / 100.0)
-	precision.append(accuracy_stats[1] / 100.0)
-	f1_score.append(accuracy_stats[2] / 100.0)
+	sensitivity.append(accuracy_stats[0])
+	precision.append(accuracy_stats[1])
+	f1_score.append(accuracy_stats[2])
 
 # Open output file
 outfile = open(args.dataset_name + "_accuracy_stats.tsv", "w")

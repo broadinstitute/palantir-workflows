@@ -8,7 +8,7 @@ task SplitGTF {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:1a9c9f040ef6f90f36b5fbb3613a83574ebf67f777c9b87dfe177c3ca1fa977d"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:3b3e48a2360ae12dc3f015cb94932388b62dae2e1098f5c86f29946d0f45b75b"
     }
 
     String base = if toolName == "flames" then basename(inputGTF, ".gff3") else basename(inputGTF, ".gtf")
@@ -137,7 +137,7 @@ task DenovoStats {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:1a9c9f040ef6f90f36b5fbb3613a83574ebf67f777c9b87dfe177c3ca1fa977d"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:3b3e48a2360ae12dc3f015cb94932388b62dae2e1098f5c86f29946d0f45b75b"
     }
 
     command <<<
@@ -170,7 +170,7 @@ task SummarizeAnalysis {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:1a9c9f040ef6f90f36b5fbb3613a83574ebf67f777c9b87dfe177c3ca1fa977d"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:3b3e48a2360ae12dc3f015cb94932388b62dae2e1098f5c86f29946d0f45b75b"
     }
 
     command <<<
@@ -201,7 +201,7 @@ task PlotAnalysisSummary {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:1a9c9f040ef6f90f36b5fbb3613a83574ebf67f777c9b87dfe177c3ca1fa977d"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:3b3e48a2360ae12dc3f015cb94932388b62dae2e1098f5c86f29946d0f45b75b"
     }
 
     command <<<
@@ -232,7 +232,7 @@ task PlotDenovoStats {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:1a9c9f040ef6f90f36b5fbb3613a83574ebf67f777c9b87dfe177c3ca1fa977d"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:3b3e48a2360ae12dc3f015cb94932388b62dae2e1098f5c86f29946d0f45b75b"
     }
 
     command <<<
@@ -291,7 +291,7 @@ task SplitFreeStats {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:1a9c9f040ef6f90f36b5fbb3613a83574ebf67f777c9b87dfe177c3ca1fa977d"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:3b3e48a2360ae12dc3f015cb94932388b62dae2e1098f5c86f29946d0f45b75b"
     }
 
     command <<<
