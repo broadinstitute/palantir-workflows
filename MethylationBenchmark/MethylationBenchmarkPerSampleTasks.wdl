@@ -69,7 +69,7 @@ task FastQC {
         Int numThreads = 16
         Int memoryGB = 32
         Int diskSizeGB = 512
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/fastqc@sha256:ec113d537e232de7b8030a9944f16274ca855f487ecdd8e2f8db1aebecfeeeb5"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/fastqc@sha256:59e7380ddd362198ab70e2db097ee710156f1af5f5cc7b74c615e9c9af0fd086"
     }
 
     String fq1Basename = select_first([basename(fq1gz, ".fastq.gz"), basename(fq1gz, ".fq.gz")])
@@ -96,11 +96,6 @@ task BWAMethAlign {
     input {
         String sampleId
         File ref
-        File amb
-        File ann
-        File bwt
-        File pac
-        File sa
         File fq1
         File fq2
         Int cpu = 16
@@ -111,7 +106,7 @@ task BWAMethAlign {
     }
 
     command <<<
-        cp ~{amb} ~{ann} ~{bwt} ~{pac} ~{sa} .
+        bwameth.py index ~{ref}
 
         bwameth.py \
         --reference ~{ref} \

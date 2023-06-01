@@ -42,11 +42,6 @@ workflow MethylationBenchmarkPerSample {
         input:
             sampleId = sampleId,
             ref = ref,
-            amb = amb,
-            ann = ann,
-            bwt = bwt,
-            pac = pac,
-            sa = sa,
             fq1 = TrimAdapters.fq1Trimmed,
             fq2 = TrimAdapters.fq2Trimmed
     }

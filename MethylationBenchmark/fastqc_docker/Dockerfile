@@ -7,6 +7,10 @@ RUN apt-get -qq -y install apt-utils
 RUN apt-get -qq -y install build-essential
 RUN apt-get -qq -y install wget
 RUN apt-get -qq -y install unzip
+RUN apt-get -qq -y install default-jdk
+
+RUN java -version
+RUN javac -version
 
 ENV SRC=/usr/local/src
 ENV BIN=/usr/local/bin
