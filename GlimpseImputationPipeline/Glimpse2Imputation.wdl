@@ -94,11 +94,11 @@ task GlimpsePhase {
 
         echo -e "~{sep="\n" crams}" > crams.list
 
-        # FIXME commented out because Terra doesn't parse this
+        # FIXME deleted because Terra doesn't parse this
         #cram_paths=( ~{sep=" " crams} )
         #cram_index_paths=( ~{sep=" " cram_indices} )
         #
-        #for i in "${!cram_paths[@]}" ; do
+        # HAD TO DELETE THIS LINE
         #    if [[ "${cram_index_paths[$i]}" != "${cram_paths[$i]}.crai" ]]; then
         #        mv "${cram_index_paths[$i]}" "${cram_paths[$i]}.crai"
         #    fi
