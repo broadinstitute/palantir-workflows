@@ -21,5 +21,4 @@ WORKDIR $SRC
 RUN wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.9.zip && \
 	unzip fastqc_v0.11.9.zip && \
 	cd FastQC && \
-	chmod +x ./fastqc && \
-	cp fastqc $BIN/
+	chmod +x ./fastqc

@@ -69,14 +69,14 @@ task FastQC {
         Int numThreads = 16
         Int memoryGB = 32
         Int diskSizeGB = 512
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/fastqc@sha256:59e7380ddd362198ab70e2db097ee710156f1af5f5cc7b74c615e9c9af0fd086"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/fastqc@sha256:2a3b6bb1df757557cc6daa4a072931b3cd824c1cad4a43c779e70b448a5b1504"
     }
 
     String fq1Basename = select_first([basename(fq1gz, ".fastq.gz"), basename(fq1gz, ".fq.gz")])
     String fq2Basename = select_first([basename(fq2gz, ".fastq.gz"), basename(fq2gz, ".fq.gz")])
 
     command <<<
-        fastqc --noextract --threads ~{numThreads} ~{fq1gz} ~{fq2gz}
+        /usr/local/src/FastQC/fastqc --noextract --threads ~{numThreads} ~{fq1gz} ~{fq2gz}
     >>>
 
     output {
