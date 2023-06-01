@@ -12,11 +12,14 @@ workflow BenchmarkSVs {
 
         String? experiment
 
+        File ref_dict
+
         Boolean perform_qc = true
         Boolean run_wittyer = true
 
         Array[File] bed_regions = []
         Array[String] bed_labels = []
+        Int breakpoint_padding = 20
 
         # Types to stratify stats over for Truvari; possible values for SVTYPE in inputs INFO field
         # By default, workflow adds "ALL" category to run over entire VCF (subset first if only interested in one type)
@@ -78,7 +81,9 @@ workflow BenchmarkSVs {
                         fn=select_first(select_first(RunTruvari.fn)),
                         fn_index=select_first(select_first(RunTruvari.fn_index)),
                         bed_regions=bed_regions,
-                        bed_labels=bed_labels
+                        bed_labels=bed_labels,
+                        breakpoint_padding=breakpoint_padding,
+                        ref_dict=ref_dict
                 }
             }
         }
@@ -159,8 +164,10 @@ workflow BenchmarkSVs {
                         base_sample_name=sample_pair.right.left,
                         comp_sample_name=sample_pair.right.right,
                         experiment=experiment,
+                        ref_dict=ref_dict,
                         bed_regions=select_all(bed_regions),
-                        bed_labels=select_all(bed_labels)
+                        bed_labels=select_all(bed_labels),
+                        breakpoint_padding=breakpoint_padding
                 }
             }
 
@@ -427,6 +434,8 @@ task CollectIntervalComparisonMetrics {
 
         Array[File] bed_regions = []
         Array[String] bed_labels = []
+        Int breakpoint_padding = 20
+        File ref_dict
 
         Int k_closest = 3    # Number of close by variants to compare to
 
@@ -458,6 +467,9 @@ task CollectIntervalComparisonMetrics {
         awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", $0 }' fn-closest.bed > fn-closest-samples.bed
         cat header.txt fn-closest-samples.bed > fn-closest-final.bed
 
+        # Clean ref_dict into genome file for bedtools
+        tail -n +2 ~{ref_dict} | cut -f2,3 - | sed 's/SN://g' - | sed 's/LN://g' - > ref.genome
+
         # Collect interval bed overlap stats
         generate_interval_stats () {
             CURRENT_LABEL=$1
@@ -467,8 +479,22 @@ task CollectIntervalComparisonMetrics {
 
             echo -e "${CURRENT_LABEL}-count\t${CURRENT_LABEL}-overlap" > header.txt
             # WARNING: annotate does not preserve order of input bed regions!
-            bedtools annotate -both -i $VCF_FILE -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-preheader.bed"
+            cut -f1-3 $VCF_FILE > vcf.bed
+            bedtools annotate -both -i vcf.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-preheader.bed"
             cat header.txt "${CURRENT_LABEL}-${INPUT_LABEL}-preheader.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-annotated.bed"
+
+            # Also add in breakpoint overlap stats using POS and END values
+            echo -e "${CURRENT_LABEL}-LBEND-count\t${CURRENT_LABEL}-LBEND-overlap" > pos-header.txt
+            echo -e "${CURRENT_LABEL}-RBEND-count\t${CURRENT_LABEL}-RBEND-overlap" > end-header.txt
+            awk '{OFS="\t"; print $1, $2, $2}' vcf.bed | bedtools slop -b ~{breakpoint_padding} -i - -g ref.genome > pos.bed
+            awk '{OFS="\t"; print $1, $3, $3}' vcf.bed | bedtools slop -b ~{breakpoint_padding} -i - -g ref.genome > end.bed
+            bedtools annotate -both -i pos.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-pos-preheader.bed"
+            bedtools annotate -both -i end.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-end-preheader.bed"
+            cat pos-header.txt "${CURRENT_LABEL}-${INPUT_LABEL}-pos-preheader.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-pos-annotated.bed"
+            cat end-header.txt "${CURRENT_LABEL}-${INPUT_LABEL}-end-preheader.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-end-annotated.bed"
+
+            # Paste together three overlap stats files
+            paste "${CURRENT_LABEL}-${INPUT_LABEL}-annotated.bed" "${CURRENT_LABEL}-${INPUT_LABEL}-pos-annotated.bed" "${CURRENT_LABEL}-${INPUT_LABEL}-end-annotated.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-full-annotated.bed"
         }
 
         if [ ~{length(bed_regions)} -gt 0 ]
@@ -491,19 +517,19 @@ task CollectIntervalComparisonMetrics {
 
             awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", $0 }' tp-base.bed > tp-base_samples.bed
             cat header.txt tp-base_samples.bed > tp-base_header.bed
-            paste tp-base_header.bed *-tp-base-annotated.bed > tp-base_intervals-final.bed
+            paste tp-base_header.bed *-tp-base-full-annotated.bed > tp-base_intervals-final.bed
 
             awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", $0 }' tp-comp.bed > tp-comp_samples.bed
             cat header.txt tp-comp_samples.bed > tp-comp_header.bed
-            paste tp-comp_header.bed *-tp-comp-annotated.bed > tp-comp_intervals-final.bed
+            paste tp-comp_header.bed *-tp-comp-full-annotated.bed > tp-comp_intervals-final.bed
 
             awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", $0 }' fp.bed > fp_samples.bed
             cat header.txt fp_samples.bed > fp_header.bed
-            paste fp_header.bed *-fp-annotated.bed > fp_intervals-final.bed
+            paste fp_header.bed *-fp-full-annotated.bed > fp_intervals-final.bed
 
             awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", $0 }' fn.bed > fn_samples.bed
             cat header.txt fn_samples.bed > fn_header.bed
-            paste fn_header.bed *-fn-annotated.bed > fn_intervals-final.bed
+            paste fn_header.bed *-fn-full-annotated.bed > fn_intervals-final.bed
         fi
 
     >>>
@@ -536,6 +562,9 @@ task AddIntervalOverlapStatsWittyer {
 
         Array[File] bed_regions
         Array[String] bed_labels
+        Int breakpoint_padding = 20
+
+        File ref_dict
 
         # Runtime parameters
         Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
@@ -579,6 +608,9 @@ task AddIntervalOverlapStatsWittyer {
 
         CODE
 
+        # Clean ref_dict into genome file for bedtools
+        tail -n +2 ~{ref_dict} | cut -f2,3 - | sed 's/SN://g' - | sed 's/LN://g' - > ref.genome
+
         # Collect interval bed overlap stats
         generate_interval_stats () {
             CURRENT_LABEL=$1
@@ -589,8 +621,24 @@ task AddIntervalOverlapStatsWittyer {
             echo -e "${CURRENT_LABEL}-count\t${CURRENT_LABEL}-overlap" > header.txt
             # WARNING: annotate does not preserve order of input bed regions!
             # Also: bedtools annotate complains with this input if not cut to first 3 fields
-            cut -f1-3 $VCF_FILE | bedtools annotate -both -i - -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-preheader.bed"
+            cut -f1-3 $VCF_FILE > vcf.bed
+            bedtools annotate -both -i vcf.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-preheader.bed"
             cat header.txt "${CURRENT_LABEL}-${INPUT_LABEL}-preheader.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-annotated.bed"
+
+            # Also add in breakpoint overlap stats using POS and END values
+            echo -e "${CURRENT_LABEL}-LBEND-count\t${CURRENT_LABEL}-LBEND-overlap" > pos-header.txt
+            echo -e "${CURRENT_LABEL}-RBEND-count\t${CURRENT_LABEL}-RBEND-overlap" > end-header.txt
+            echo "Printing vcf.bed head..."
+            head -n 10 vcf.bed
+            awk '{OFS="\t"; print $1, $2, $2}' vcf.bed | bedtools slop -b ~{breakpoint_padding} -i - -g ref.genome > pos.bed
+            awk '{OFS="\t"; print $1, $3, $3}' vcf.bed | bedtools slop -b ~{breakpoint_padding} -i - -g ref.genome > end.bed
+            bedtools annotate -both -i pos.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-pos-preheader.bed"
+            bedtools annotate -both -i end.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-end-preheader.bed"
+            cat pos-header.txt "${CURRENT_LABEL}-${INPUT_LABEL}-pos-preheader.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-pos-annotated.bed"
+            cat end-header.txt "${CURRENT_LABEL}-${INPUT_LABEL}-end-preheader.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-end-annotated.bed"
+
+            # Paste together three overlap stats files
+            paste "${CURRENT_LABEL}-${INPUT_LABEL}-annotated.bed" "${CURRENT_LABEL}-${INPUT_LABEL}-pos-annotated.bed" "${CURRENT_LABEL}-${INPUT_LABEL}-end-annotated.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-full-annotated.bed"
         }
 
         INTERVAL_FILES=(~{sep=' ' bed_regions})
@@ -608,14 +656,14 @@ task AddIntervalOverlapStatsWittyer {
         # Combine across interval beds
         echo -e "CHROM\tPOS\tEND\tSVLEN\tSVTYPE\tFILTER\tWHERE\tWIN\tTWIT\tTWHY\tQWIT\tQWHY\tExperiment" > no_gt-header.txt
         cat no_gt-header.txt no_gt.tsv > no_gt-with_header.tsv
-        paste no_gt-with_header.tsv *-no-gt-annotated.bed > no-gt_intervals-final.bed
+        paste no_gt-with_header.tsv *-no-gt-full-annotated.bed > no-gt_intervals-final.bed
 
         echo -e "CHROM\tPOS\tEND\tSVLEN\tSVTYPE\tFILTER\tWHERE\tWIN\tGT\tWIT\tWHY\tTruthSample\tQuerySample\tExperiment" > header.txt
         cat header.txt truth_table.tsv > truth_table-with_header.tsv
-        paste truth_table-with_header.tsv *-truth-table-annotated.bed > truth-table_intervals-final.bed
+        paste truth_table-with_header.tsv *-truth-table-full-annotated.bed > truth-table_intervals-final.bed
 
         cat header.txt query_table.tsv > query_table-with_header.tsv
-        paste query_table-with_header.tsv *-query-table-annotated.bed > query-table_intervals-final.bed
+        paste query_table-with_header.tsv *-query-table-full-annotated.bed > query-table_intervals-final.bed
 
     >>>
 

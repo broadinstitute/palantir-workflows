@@ -265,7 +265,7 @@ interval_labels = [c.split('-count')[0] for c in truvari_fn_intervals_df.columns
 # In[14]:
 
 
-interval_columns = [f'{interval}-count' for interval in interval_labels] + [f'{interval}-overlap' for interval in interval_labels]
+interval_columns = [f'{x}-{s}' for x in interval_labels for s in ('count', 'overlap')]
 
 
 # In[15]:
@@ -280,12 +280,6 @@ query_interval_df = pd.concat([
 ]).drop_duplicates()
 
 qc_df = pd.merge(qc_df, query_interval_df, on=['CHROM', 'POS', 'END'])
-
-
-# In[ ]:
-
-
-
 
 
 # In[ ]:
@@ -421,7 +415,7 @@ def make_hwe_plot(df, interval, min_pct_overlap):
     # Get interval info
     # interval = df['Interval'].iloc[0] if len(df['Interval']) > 0 else "Empty df"
     df = df[(df[f'{interval}-overlap'] >= min_pct_overlap[0]) & (df[f'{interval}-overlap'] <= min_pct_overlap[1])]
-    title = title + f' over {interval} (w/ >={min_pct_overlap}% overlap) and<br></br> type {type(min_pct_overlap[0])}<br></br>'
+    title = title + f' over {interval} (w/ {100*min_pct_overlap[0]}-{100*min_pct_overlap[1]}% overlap)<br></br>'
         
     # Apply filters
     filter_value = df['FILTER'].iloc[0] if len(df['FILTER']) > 0 else "Empty df"
@@ -626,13 +620,16 @@ def add_precision(df):
 # In[27]:
 
 
-def make_adv_wittyer_plot(df, interval, min_pct_overlap, gt_match):
+def make_adv_wittyer_plot(df, interval, min_pct_overlap, gt_match, sv_type):
     title = 'Advanced Plot of Wittyer Stats'
     df = df[(df[f'{interval}-overlap'] >= min_pct_overlap[0]) & (df[f'{interval}-overlap'] <= min_pct_overlap[1])]
     title = title + f' over {interval} (w/ {int(100*min_pct_overlap[0])}-{int(100*min_pct_overlap[1])}% overlap)<br></br>'
     
     if gt_match == 'True':
         df = df[df['WHY'] != 'GtMismatch']
+        
+    if sv_type != 'ALL':
+        df = df[df['SVTYPE'] == sv_type]
         
     counts_df = df.groupby(['TruthSample', 'QuerySample', 'VCF'])['WIT'].value_counts().reset_index(name='count')
     
@@ -687,7 +684,11 @@ adv_wittyer_tab = qbb.BaseTab(
             plot_input='interval',
             data_values=interval_labels
         ),
-        make_type_selector(adv_wittyer_df),
+        plg.PlotInputRadioButtons(
+            header="Variant Type",
+            plot_input='sv_type',
+            data_values=['ALL'] + list(adv_wittyer_df['SVTYPE'].unique())
+        ),
         plg.PlotInputRadioButtons(
             header='Force Match GT',
             plot_input='gt_match',
@@ -871,6 +872,28 @@ board = qbb.Quickboard(
 
 
 start_app(board, debug=False, app_title='SVisualizer', mode='external', port=8050)
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
 
 
 
