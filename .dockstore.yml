@@ -57,6 +57,9 @@ workflows:
   - name: TrainAncestryAdjustmentModel
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/TrainAncestryAdjustmentModel.wdl
+  - name: Glimpse1Imputation
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse1Imputation.wdl
   - name: Glimpse2Imputation
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2Imputation.wdl
