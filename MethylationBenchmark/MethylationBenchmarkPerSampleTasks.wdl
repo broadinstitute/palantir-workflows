@@ -15,7 +15,6 @@ task DownsampleReads {
 
     command <<<
         gunzip -c ~{fqgz} > ~{fqBasename}.fastq
-
         seqtk sample -2 -s ~{rngSeed} ~{fqBasename}.fastq ~{finalTotalReads} > ~{fqBasename}.downsampled.fastq
     >>>
 
@@ -47,8 +46,6 @@ task TrimAdapters {
 
     command <<<
         trim_galore --gzip --cores ~{numThreads} --output_dir . --2colour 20 --paired ~{fq1} ~{fq2}
-
-        ls -lha
     >>>
 
     output {
@@ -117,10 +114,10 @@ task BWAMethAlign {
         cp ~{amb} ~{ann} ~{bwt} ~{pac} ~{sa} .
 
         bwameth.py \
-            --reference ~{ref} \
-            --threads ~{numThreads} \
-            --read-group '@RG\tSAMPLE_ID:1\tPL:illumina\tLB:SAMPLE\tSM:SAMPLE' \
-            ~{fq1} ~{fq2} > ~{sampleId}.bam
+        --reference ~{ref} \
+        --threads ~{numThreads} \
+        --read-group '@RG\tSAMPLE_ID:1\tPL:illumina\tLB:SAMPLE\tSM:SAMPLE' \
+        ~{fq1} ~{fq2} > ~{sampleId}.bam
     >>>
 
     output {
