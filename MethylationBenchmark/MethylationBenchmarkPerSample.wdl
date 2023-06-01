@@ -64,7 +64,7 @@ workflow MethylationBenchmarkPerSample {
         File fq2Trimmed = TrimAdapters.fq2Trimmed
         File fastqcReportFq1 = FastQC.htmlReportFq1
         File fastqcReportFq2 = FastQC.htmlReportFq2
-#        File bam = BWAMethAlign.bam
+        File bam = BWAMethAlign.bam
 #        File sortedBam = SAMBamba.sortedBam
     }
 }
