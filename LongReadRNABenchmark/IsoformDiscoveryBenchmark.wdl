@@ -207,7 +207,7 @@ workflow LongReadRNABenchmark {
         File analysisSummaryDenovoKnown = SummarizeDenovoAnalysis.denovoSummaryKnown
         File analysisSummaryDenovoNovel = SummarizeDenovoAnalysis.denovoSummaryNovel
         File analysisSummaryPlot = PlotAnalysisSummary.analysisSummaryPlot
-        File referenceFreeAnalysisSummaryPlot = PlotAnalysisSummary.analysisSummaryPlot
+        File referenceFreeAnalysisSummaryPlot = PlotAnalysisSummaryReferenceFree.analysisSummaryPlot
         File denovoAnalysisSummaryPlotKnown = PlotDenovoAnalysisSummaryKnown.denovoAnalysisSummaryPlot
         File denovoAnalysisSummaryPlotNovel = PlotDenovoAnalysisSummaryNovel.denovoAnalysisSummaryPlot
     }
