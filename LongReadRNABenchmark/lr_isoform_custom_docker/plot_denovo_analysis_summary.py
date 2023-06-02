@@ -55,7 +55,7 @@ for key, value in transcript_stats.items():
 	multiplier += 1
 
 ax.set_ylabel("Count")
-ax.set_title("Denovo Analysis Summary: " + args.input)
+ax.set_title("Denovo Analysis Summary: " + args.dataset_name)
 ax.set_xticks(x + width, tools)
 ax.legend(loc = "upper left", ncols = len(tools))
 

@@ -33,7 +33,7 @@ colors = sns.color_palette("bright")
 
 fig, ax = plt.subplots(nrows = 3, ncols = 1, figsize = (12, 8), tight_layout = True)
 
-fig.suptitle("Accuracy Metrics: " + args.input)
+fig.suptitle("Analysis Summary: " + args.dataset_name)
 
 ax[0].set_ylim(0.0, 1.0)
 ax[1].set_ylim(0.0, 1.0)
