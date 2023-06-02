@@ -52,7 +52,6 @@ def process_tracking(input_tracking_file, num_gtfs):
 
 		if matches_transcripts == num_gtfs:
 			reliable_transcripts[prediction_type] += 1
-			print(line.strip())
 		elif matches_transcripts == num_gtfs - 1:
 			for i, e in enumerate(equality_vector):
 				if e == 1:

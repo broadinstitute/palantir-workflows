@@ -60,6 +60,6 @@ ax.set_xticks(x + width, tools)
 ax.legend(loc = "upper left", ncols = len(tools))
 
 if args.save == True:
-	plt.savefig(args.dataset_name + "_denovo_" + args.type + ".png")
+	plt.savefig(args.dataset_name + "_analysis_summary_denovo_" + args.type + ".png")
 else:
 	plt.show()
