@@ -161,7 +161,7 @@ workflow LongReadRNABenchmark {
 
     call IsoformDiscoveryBenchmarkTasks.SummarizeReferenceFreeAnalysis {
         input:
-            trackingFiles = ReferenceFreeAnalysis.stats,
+            inputList = ReferenceFreeAnalysis.stats,
             toolNames = toolNamesReferenceFree,
             datasetName = datasetName
     }
