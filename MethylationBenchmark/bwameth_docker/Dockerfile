@@ -18,7 +18,7 @@ RUN apt-get -qq -y install python3-setuptools
 RUN apt-get -qq -y install unzip
 
 # toolshed
-RUN pip3 install toolshed==0.4.0
+RUN pip3 install toolshed==0.4.6
 
 ENV SRC=/usr/local/src
 ENV BIN=/usr/local/bin

@@ -72,11 +72,13 @@ task FastQC {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/fastqc@sha256:2a3b6bb1df757557cc6daa4a072931b3cd824c1cad4a43c779e70b448a5b1504"
     }
 
-    String fq1Basename = select_first([basename(fq1gz, ".fastq.gz"), basename(fq1gz, ".fq.gz")])
-    String fq2Basename = select_first([basename(fq2gz, ".fastq.gz"), basename(fq2gz, ".fq.gz")])
+    String fq1Basename = basename(fq1gz, ".fq.gz")
+    String fq2Basename = basename(fq2gz, ".fq.gz")
 
     command <<<
         /usr/local/src/FastQC/fastqc --noextract --threads ~{numThreads} ~{fq1gz} ~{fq2gz}
+
+        ls -lha
     >>>
 
     output {
@@ -102,7 +104,7 @@ task BWAMethAlign {
         Int numThreads = 32
         Int memoryGB = 64
         Int diskSizeGB = 512
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/bwameth@sha256:c2415b900b8aa96d39c0c9e615e6f6eece37bf142bdbfee1ec783434390c34d9"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/bwameth@sha256:20cb5fdf1c1aea1e1209fc0a739d0eec9eef5cb179f5e15887fee83fd7897cc7"
     }
 
     command <<<
