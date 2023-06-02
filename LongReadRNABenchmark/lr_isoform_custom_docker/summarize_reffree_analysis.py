@@ -40,7 +40,6 @@ parser = argparse.ArgumentParser(description = "Parse the main gffcompare output
 parser.add_argument("-i", "--input-list", nargs = '+', help = "List of <outprefix>.stats files that were obtained from the gffcompare output", required = True)
 parser.add_argument("-t", "--tool-names", nargs = '+', help = "List of tool names corresponding to the tools used for input-list. Must be in the same order.", required = True)
 parser.add_argument("-d", "--dataset-name", required = True)
-parser.add_argument("-a", "--analysis-type", choices = ["reduced", "reffree"], required = True)
 args = parser.parse_args()
 
 # Only the length match is checked
@@ -59,7 +58,7 @@ for i in range(len(args.input_list)):
 	f1_score.append(accuracy_metrics[2] / 100.0)
 
 # Open the output file to write the analysis summary
-outfile = open(args.dataset_name + "_" + args.analysis_type + "_analysis_summary.tsv", 'w')
+outfile = open(args.dataset_name + "_analysis_summary_reffree.tsv", 'w')
 
 # Write the header line
 outfile.write("Tool" + "\t" + "Sensitivity" + "\t" + "Precision" + "\t" + "F1-Score\n")

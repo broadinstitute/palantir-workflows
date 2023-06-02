@@ -127,22 +127,21 @@ workflow LongReadRNABenchmark {
         File gtf = gtfAndTool.left
         String tool = gtfAndTool.right
 
-        call IsoformDiscoveryBenchmarkTasks.SplitGTF {
+        call IsoformDiscoveryBenchmarkTasks.GffCompareTrack {
             input:
-                inputGTF = gtf,
-                inputCounts = Bambu.bambuCounts,
-                toolName = tool
-        }
-
-        call IsoformDiscoveryBenchmarkTasks.ReducedAnnotationAnalysis {
-            input:
-                inputFullGTF = SplitGTF.full,
-                inputKnownGTF = SplitGTF.known,
-                inputNovelGTF = SplitGTF.novel,
+                datasetName = datasetName,
+                toolName = tool,
+                toolGTF = gtf,
                 expressedGTF = expressedGTF,
-                expressedKeptGTF = expressedKeptGTF,
-                excludedGTF = excludedGTF
+                expressedKeptGTF = expressedKeptGTF
         }
+    }
+
+    call IsoformDiscoveryBenchmarkTasks.GffCompareTrackDenovo {
+        input:
+            datasetName = datasetName,
+            toolGTFs = gtfListReduced,
+            expressedKeptGTF = expressedKeptGTF
     }
 
     scatter(gtf in gtfListReferenceFree) {
@@ -153,137 +152,63 @@ workflow LongReadRNABenchmark {
         }
     }
 
-    call IsoformDiscoveryBenchmarkTasks.DenovoAnalysis as DenovoAnalysisFull {
+    call IsoformDiscoveryBenchmarkTasks.SummarizeAnalysis {
         input:
-            datasetName = datasetName,
-            splitType = "full",
-            gtfList = SplitGTF.full
-    }
-
-    call IsoformDiscoveryBenchmarkTasks.DenovoAnalysis as DenovoAnalysisKnown {
-        input:
-            datasetName = datasetName,
-            splitType = "known",
-            gtfList = SplitGTF.known
-    }
-
-    call IsoformDiscoveryBenchmarkTasks.DenovoAnalysis as DenovoAnalysisNovel {
-        input:
-            datasetName = datasetName,
-            splitType = "novel",
-            gtfList = SplitGTF.novel
-    }
-
-    call IsoformDiscoveryBenchmarkTasks.DenovoStats as DenovoStatsFull {
-        input:
-            datasetName = datasetName,
-            splitType = "full",
-            trackingFile = DenovoAnalysisFull.tracking,
-            numTools = 6,
-            toolNames = toolNamesReduced
-    }
-
-    call IsoformDiscoveryBenchmarkTasks.DenovoStats as DenovoStatsKnown {
-        input:
-            datasetName = datasetName,
-            splitType = "known",
-            trackingFile = DenovoAnalysisKnown.tracking,
-            numTools = 6,
-            toolNames = toolNamesReduced
-    }
-
-    call IsoformDiscoveryBenchmarkTasks.DenovoStats as DenovoStatsNovel {
-        input:
-            datasetName = datasetName,
-            splitType = "novel",
-            trackingFile = DenovoAnalysisNovel.tracking,
-            numTools = 6,
-            toolNames = toolNamesReduced
-    }
-
-    call IsoformDiscoveryBenchmarkTasks.PlotDenovoStats as PlotDenovoStatsFull {
-        input:
-            stats = DenovoStatsFull.denovoStats,
-            datasetName = datasetName,
-            splitType = "full"
-    }
-
-    call IsoformDiscoveryBenchmarkTasks.PlotDenovoStats as PlotDenovoStatsKnown {
-        input:
-            stats = DenovoStatsKnown.denovoStats,
-            datasetName = datasetName,
-            splitType = "known"
-    }
-
-    call IsoformDiscoveryBenchmarkTasks.PlotDenovoStats as PlotDenovoStatsNovel {
-        input:
-            stats = DenovoStatsNovel.denovoStats,
-            datasetName = datasetName,
-            splitType = "novel"
-    }
-
-    call IsoformDiscoveryBenchmarkTasks.SummarizeAnalysis as SummarizeAnalysisReduced {
-        input:
-            inputList = ReducedAnnotationAnalysis.novel,
-            toolNames = toolNamesReduced,
-            datasetName = datasetName,
-            analysisType = "reduced"
-    }
-
-    call IsoformDiscoveryBenchmarkTasks.SummarizeAnalysis as SummarizeAnalysisReffree {
-        input:
-            inputList = ReferenceFreeAnalysis.stats,
-            toolNames = toolNamesReferenceFree,
-            datasetName = datasetName,
-            analysisType = "reffree"
-    }
-
-    call IsoformDiscoveryBenchmarkTasks.PlotAnalysisSummary as PlotAnalysisSummaryReduced {
-        input:
-            summary = SummarizeAnalysisReduced.summary,
-            datasetName = datasetName,
-            analysisType = "reduced"
-    }
-
-    call IsoformDiscoveryBenchmarkTasks.PlotAnalysisSummary as PlotAnalysisSummaryReffree {
-        input:
-            summary = SummarizeAnalysisReffree.summary,
-            datasetName = datasetName,
-            analysisType = "reffree"
-    }
-
-    scatter(gtf in gtfListReduced) {
-        call IsoformDiscoveryBenchmarkTasks.GenerateSplitFreeTracking {
-            input:
-                datasetName = datasetName,
-                toolGTF = gtf,
-                expressedGTF = expressedGTF,
-                expressedKeptGTF = expressedKeptGTF
-        }
-    }
-
-    call IsoformDiscoveryBenchmarkTasks.SplitFreeStats {
-        input:
-            trackingFiles = GenerateSplitFreeTracking.tracking,
+            trackingFiles = GffCompareTrack.tracking,
             toolNames = toolNamesReduced,
             datasetName = datasetName
     }
 
-    call IsoformDiscoveryBenchmarkTasks.GenerateSplitFreeTrackingDenovo {
+    call IsoformDiscoveryBenchmarkTasks.SummarizeReferenceFreeAnalysis {
         input:
+            trackingFiles = ReferenceFreeAnalysis.stats,
+            toolNames = toolNamesReferenceFree,
+            datasetName = datasetName
+    }
+
+    call IsoformDiscoveryBenchmarkTasks.SummarizeDenovoAnalysis {
+        input:
+            trackingFile = GffCompareTrackDenovo.tracking,
+            toolNames = toolNamesReduced,
+            datasetName = datasetName
+    }
+
+    call IsoformDiscoveryBenchmarkTasks.PlotAnalysisSummary as PlotAnalysisSummary {
+        input:
+            summary = SummarizeAnalysis.summary,
             datasetName = datasetName,
-            toolGTFs = gtfListReduced,
-            expressedKeptGTF = expressedKeptGTF
+            type = "reduced"
+    }
+
+    call IsoformDiscoveryBenchmarkTasks.PlotAnalysisSummary as PlotAnalysisSummaryReferenceFree {
+        input:
+            summary = SummarizeReferenceFreeAnalysis.summary,
+            datasetName = datasetName,
+            type = "reffree"
+    }
+
+    call IsoformDiscoveryBenchmarkTasks.PlotDenovoAnalysisSummary as PlotDenovoAnalysisSummaryKnown {
+        input:
+            denovoSummary = SummarizeDenovoAnalysis.denovoSummaryKnown,
+            datasetName = datasetName,
+            type = "known"
+    }
+
+    call IsoformDiscoveryBenchmarkTasks.PlotDenovoAnalysisSummary as PlotDenovoAnalysisSummaryNovel {
+        input:
+            denovoSummary = SummarizeDenovoAnalysis.denovoSummaryNovel,
+            datasetName = datasetName,
+            type = "novel"
     }
 
     output {
-        File reducedAnalysisSummary = SummarizeAnalysisReduced.summary
-        File referenceFreeAnalysisSummary = SummarizeAnalysisReffree.summary
-        File reducedAnalysisSummaryPlots = PlotAnalysisSummaryReduced.analysisSummaryPlots
-        File referenceFreeAnalysisSummaryPlots = PlotAnalysisSummaryReffree.analysisSummaryPlots
-        File fullDenovoStatsPlot = PlotDenovoStatsFull.denovoStatsPlot
-        File knownDenovoStatsPlot = PlotDenovoStatsKnown.denovoStatsPlot
-        File novelDenovoStatsPlot = PlotDenovoStatsNovel.denovoStatsPlot
-        File splitFreeStats = SplitFreeStats.splitFreeStats
+        File analysisSummary = SummarizeAnalysis.summary
+        File analysisSummaryReferenceFree = SummarizeReferenceFreeAnalysis.summary
+        File analysisSummaryDenovoKnown = SummarizeDenovoAnalysis.denovoSummaryKnown
+        File analysisSummaryDenovoNovel = SummarizeDenovoAnalysis.denovoSummaryNovel
+        File analysisSummaryPlot = PlotAnalysisSummary.analysisSummaryPlot
+        File referenceFreeAnalysisSummaryPlot = PlotAnalysisSummary.analysisSummaryPlot
+        File denovoAnalysisSummaryPlotKnown = PlotDenovoAnalysisSummaryKnown.denovoAnalysisSummaryPlot
+        File denovoAnalysisSummaryPlotNovel = PlotDenovoAnalysisSummaryNovel.denovoAnalysisSummaryPlot
     }
 }

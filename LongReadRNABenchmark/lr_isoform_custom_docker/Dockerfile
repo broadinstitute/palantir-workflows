@@ -19,11 +19,10 @@ RUN pip install seaborn
 ENV SRC=/usr/local/src
 ENV BIN=/usr/local/bin
 
-COPY split_gtf.py $SRC/split_gtf.py
-COPY summarize_results.py $SRC/summarize_results.py
-COPY extract_denovo_model_stats.py $SRC/extract_denovo_model_stats.py
-COPY plot_summary_results.py $SRC/plot_summary_results.py
-COPY plot_denovo_stats.py $SRC/plot_denovo_stats.py
-COPY generate_split_free_benchmark_stats.py $SRC/generate_split_free_benchmark_stats.py
+COPY summarize_analysis.py $SRC/summarize_analysis.py
+COPY summarize_reffree_analysis.py $SRC/summarize_reffree_analysis.py
+COPY summarize_denovo_analysis.py $SRC/summarize_denovo_analysis.py
+COPY plot_analysis_summary.py $SRC/plot_analysis_summary.py
+COPY plot_denovo_analysis_summary.py $SRC/plot_denovo_analysis_summary.py
 
 WORKDIR $SRC

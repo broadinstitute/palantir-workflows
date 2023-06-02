@@ -1,263 +1,9 @@
 version 1.0
 
-task SplitGTF {
+task GffCompareTrack {
     input {
-        File inputGTF
-        File? inputCounts
+        String datasetName
         String toolName
-        Int cpu = 1
-        Int memoryGB = 32
-        Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:3b3e48a2360ae12dc3f015cb94932388b62dae2e1098f5c86f29946d0f45b75b"
-    }
-
-    String base = if toolName == "flames" then basename(inputGTF, ".gff3") else basename(inputGTF, ".gtf")
-
-    command <<<
-        python3 /usr/local/src/split_gtf.py \
-        --input-gtf ~{inputGTF} \
-        --tool ~{toolName} \
-        ~{"--input-bambu-counts " + inputCounts}
-    >>>
-
-    output {
-        File full = "~{base}.full.gtf"
-        File known = "~{base}.known.gtf"
-        File novel = "~{base}.novel.gtf"
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memoryGB} GiB"
-        disks: "local-disk ~{diskSizeGB} HDD"
-        docker: docker
-    }
-}
-
-task ReducedAnnotationAnalysis {
-    input {
-        File inputFullGTF
-        File inputKnownGTF
-        File inputNovelGTF
-        File expressedGTF
-        File expressedKeptGTF
-        File excludedGTF
-        Int cpu = 1
-        Int memoryGB = 32
-        Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare@sha256:b7208e67cb52ef41f0b9f9182414b8f12617a079546bbc2a4dbd826590ec63d2"
-    }
-
-    String baseFull = basename(inputFullGTF, ".gtf")
-    String baseKnown = basename(inputKnownGTF, ".gtf")
-    String baseNovel = basename(inputNovelGTF, ".gtf")
-
-    command <<<
-        gffcompare -r ~{expressedGTF} -o ~{baseFull} ~{inputFullGTF}
-        gffcompare -r ~{expressedKeptGTF} -o ~{baseKnown} ~{inputKnownGTF}
-        gffcompare -r ~{excludedGTF} -o ~{baseNovel} ~{inputNovelGTF}
-    >>>
-
-    output {
-        File full = "~{baseFull}"
-        File known = "~{baseKnown}"
-        File novel = "~{baseNovel}"
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memoryGB} GiB"
-        disks: "local-disk ~{diskSizeGB} HDD"
-        docker: docker
-    }
-}
-
-task ReferenceFreeAnalysis {
-    input {
-        File inputGTF
-        File expressedGTF
-        Int cpu = 1
-        Int memoryGB = 32
-        Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare@sha256:b7208e67cb52ef41f0b9f9182414b8f12617a079546bbc2a4dbd826590ec63d2"
-    }
-
-    String base = basename(inputGTF, ".gtf")
-
-    command <<<
-        gffcompare -r ~{expressedGTF} -o ~{base}.denovo ~{inputGTF}
-    >>>
-
-    output {
-        File stats = "~{base}.denovo"
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memoryGB} GiB"
-        disks: "local-disk ~{diskSizeGB} HDD"
-        docker: docker
-    }
-}
-
-task DenovoAnalysis {
-    input {
-        String datasetName
-        String splitType
-        Array[File]+ gtfList
-        Int cpu = 1
-        Int memoryGB = 32
-        Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare@sha256:b7208e67cb52ef41f0b9f9182414b8f12617a079546bbc2a4dbd826590ec63d2"
-    }
-
-    command <<<
-        gffcompare -o ~{datasetName}_~{splitType} ~{sep=" " gtfList}
-    >>>
-
-    output {
-        File tracking = "~{datasetName}_~{splitType}.tracking"
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memoryGB} GiB"
-        disks: "local-disk ~{diskSizeGB} HDD"
-        docker: docker
-    }
-}
-
-task DenovoStats {
-    input {
-        String datasetName
-        String splitType
-        File trackingFile
-        Int numTools = 6
-        Array[String]+ toolNames
-        Int cpu = 1
-        Int memoryGB = 32
-        Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:3b3e48a2360ae12dc3f015cb94932388b62dae2e1098f5c86f29946d0f45b75b"
-    }
-
-    command <<<
-        python3 /usr/local/src/extract_denovo_model_stats.py \
-        --dataset-name ~{datasetName} \
-        --split-type ~{splitType} \
-        --tracking ~{trackingFile} \
-        --tool-names ~{sep=" " toolNames} \
-        --num-tools ~{numTools}
-    >>>
-
-    output {
-        File denovoStats = "~{datasetName}_~{splitType}_denovo_model_stats.tsv"
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memoryGB} GiB"
-        disks: "local-disk ~{diskSizeGB} HDD"
-        docker: docker
-    }
-}
-
-task SummarizeAnalysis {
-    input {
-        Array[File]+ inputList
-        Array[String]+ toolNames
-        String datasetName
-        String analysisType
-        Int cpu = 1
-        Int memoryGB = 32
-        Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:3b3e48a2360ae12dc3f015cb94932388b62dae2e1098f5c86f29946d0f45b75b"
-    }
-
-    command <<<
-        python3 /usr/local/src/summarize_results.py \
-        --input-list ~{sep=" " inputList} \
-        --tool-names ~{sep=" " toolNames} \
-        --dataset-name ~{datasetName} \
-        --analysis-type ~{analysisType}
-    >>>
-
-    output {
-        File summary = "~{datasetName}_~{analysisType}_analysis_summary.tsv"
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memoryGB} GiB"
-        disks: "local-disk ~{diskSizeGB} HDD"
-        docker: docker
-    }
-}
-
-task PlotAnalysisSummary {
-    input {
-        File summary
-        String datasetName
-        String analysisType
-        Int cpu = 1
-        Int memoryGB = 32
-        Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:3b3e48a2360ae12dc3f015cb94932388b62dae2e1098f5c86f29946d0f45b75b"
-    }
-
-    command <<<
-        python3 /usr/local/src/plot_summary_results.py \
-        --input ~{summary} \
-        --dataset-name ~{datasetName} \
-        --analysis-type ~{analysisType} \
-        --save
-    >>>
-
-    output {
-        File analysisSummaryPlots = "~{datasetName}_~{analysisType}_analysis_summary.png"
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memoryGB} GiB"
-        disks: "local-disk ~{diskSizeGB} HDD"
-        docker: docker
-    }
-}
-
-task PlotDenovoStats {
-    input {
-        File stats
-        String datasetName
-        String splitType
-        Int cpu = 1
-        Int memoryGB = 32
-        Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:3b3e48a2360ae12dc3f015cb94932388b62dae2e1098f5c86f29946d0f45b75b"
-    }
-
-    command <<<
-        python3 /usr/local/src/plot_denovo_stats.py \
-        --input ~{stats} \
-        --dataset-name ~{datasetName} \
-        --split-type ~{splitType} \
-        --save
-    >>>
-
-    output {
-        File denovoStatsPlot = "~{datasetName}_~{splitType}_denovo.png"
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memoryGB} GiB"
-        disks: "local-disk ~{diskSizeGB} HDD"
-        docker: docker
-    }
-}
-
-task GenerateSplitFreeTracking {
-    input {
-        String datasetName
         File toolGTF
         File expressedGTF
         File expressedKeptGTF
@@ -268,11 +14,11 @@ task GenerateSplitFreeTracking {
     }
 
     command <<<
-        gffcompare -o ~{datasetName} ~{expressedGTF} ~{expressedKeptGTF} ~{toolGTF}
+        gffcompare -o ~{datasetName}.~{toolName} ~{expressedGTF} ~{expressedKeptGTF} ~{toolGTF}
     >>>
 
     output {
-        File tracking = "~{datasetName}.tracking"
+        File tracking = "~{datasetName}.~{toolName}.tracking"
     }
 
     runtime {
@@ -283,7 +29,7 @@ task GenerateSplitFreeTracking {
     }
 }
 
-task GenerateSplitFreeTrackingDenovo {
+task GffCompareTrackDenovo {
     input {
         String datasetName
         Array[File]+ toolGTFs
@@ -310,26 +56,179 @@ task GenerateSplitFreeTrackingDenovo {
     }
 }
 
-task SplitFreeStats {
+task ReferenceFreeAnalysis {
     input {
-        Array[File]+ trackingFiles
-        Array[String]+ toolNames
-        String datasetName
+        File inputGTF
+        File expressedGTF
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 100
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:3b3e48a2360ae12dc3f015cb94932388b62dae2e1098f5c86f29946d0f45b75b"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare@sha256:b7208e67cb52ef41f0b9f9182414b8f12617a079546bbc2a4dbd826590ec63d2"
+    }
+
+    String base = select_first([basename(inputGTF, ".gtf"), basename(inputGTF, ".gff")])
+
+    command <<<
+        gffcompare -r ~{expressedGTF} -o ~{base}.reffree ~{inputGTF}
+    >>>
+
+    output {
+        File stats = "~{base}.reffree"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task SummarizeAnalysis {
+    input {
+        String datasetName
+        Array[File]+ trackingFiles
+        Array[String]+ toolNames
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:d40a2a4a3fcaf872107d5a7e897e1f900e4b588bba374bbabd0f2a8314a166e4"
     }
 
     command <<<
-        python3 /usr/local/src/generate_split_free_benchmark_stats.py \
+        python3 /usr/local/src/summarize_analysis.py \
         --tracking ~{sep=" " trackingFiles} \
-        --tool-name ~{sep=" " toolNames} \
+        --tool-names ~{sep=" " toolNames} \
         --dataset-name ~{datasetName}
     >>>
 
     output {
-        File splitFreeStats = "~{datasetName}_accuracy_stats.tsv"
+        File summary = "~{datasetName}_analysis_summary.tsv"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task SummarizeReferenceFreeAnalysis {
+    input {
+        String datasetName
+        Array[File]+ inputList
+        Array[String]+ toolNames
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:d40a2a4a3fcaf872107d5a7e897e1f900e4b588bba374bbabd0f2a8314a166e4"
+    }
+
+    command <<<
+        python3 /usr/local/src/summarize_reffree_analysis.py \
+        --input-list ~{sep=" " inputList} \
+        --tool-names ~{sep=" " toolNames} \
+        --dataset-name ~{datasetName}
+    >>>
+
+    output {
+        File summary = "~{datasetName}_analysis_summary_reffree.tsv"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task SummarizeDenovoAnalysis {
+    input {
+        String datasetName
+        File trackingFile
+        Array[String]+ toolNames
+        Int numTools = 6
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:d40a2a4a3fcaf872107d5a7e897e1f900e4b588bba374bbabd0f2a8314a166e4"
+    }
+
+    command <<<
+        python3 /usr/local/src/summarize_denovo_analysis.py \
+        --dataset-name ~{datasetName} \
+        --tracking ~{trackingFile} \
+        --tool-names ~{sep=" " toolNames} \
+        --num-tools ~{numTools}
+    >>>
+
+    output {
+        File denovoSummaryNovel = "~{datasetName}_denovo_analysis_summary_novel.tsv"
+        File denovoSummaryKnown = "~{datasetName}_denovo_analysis_summary_known.tsv"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task PlotAnalysisSummary {
+    input {
+        File summary
+        String datasetName
+        String type
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:d40a2a4a3fcaf872107d5a7e897e1f900e4b588bba374bbabd0f2a8314a166e4"
+    }
+
+    command <<<
+        python3 /usr/local/src/plot_analysis_summary.py \
+        --input ~{summary} \
+        --dataset-name ~{datasetName} \
+        --type ~{type} \
+        --save
+    >>>
+
+    output {
+        File analysisSummaryPlot = "~{datasetName}_analysis_summary_~{type}.png"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task PlotDenovoAnalysisSummary {
+    input {
+        File denovoSummary
+        String datasetName
+        String type
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 100
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/lr-isoform-reconstruction-benchmarking-custom@sha256:d40a2a4a3fcaf872107d5a7e897e1f900e4b588bba374bbabd0f2a8314a166e4"
+    }
+
+    command <<<
+        python3 /usr/local/src/plot_denovo_analysis_summary.py \
+        --input ~{denovoSummary} \
+        --dataset-name ~{datasetName} \
+        --type ~{type} \
+        --save
+    >>>
+
+    output {
+        File denovoAnalysisSummaryPlot = "~{datasetName}_analysis_summary_denovo_~{type}.png"
     }
 
     runtime {

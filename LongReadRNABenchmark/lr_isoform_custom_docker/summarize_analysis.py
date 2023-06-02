@@ -85,7 +85,7 @@ for i in range(len(args.tracking)):
 	f1_score.append(accuracy_stats[2])
 
 # Open output file
-outfile = open(args.dataset_name + "_accuracy_stats.tsv", "w")
+outfile = open(args.dataset_name + "_analysis_summary.tsv", "w")
 
 # Write the header row
 outfile.write("Tool" + "\t" + "Sensitivity(Novel)" + "\t" + "Precision(Novel)" + "\t" + "F1-Score(Novel)" + "\t")

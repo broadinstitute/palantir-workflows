@@ -7,7 +7,7 @@ import sys
 parser = argparse.ArgumentParser(description = "Generate plot for the isoform reconstruction analysis summary.")
 parser.add_argument("-i", "--input", required = True)
 parser.add_argument("-d", "--dataset-name", required = True)
-parser.add_argument("-a", "--analysis-type", choices = ["reduced", "reffree"], required = True)
+parser.add_argument("-t", "--type", required = True)
 parser.add_argument("-s", "--save", action = "store_true", required = False)
 parser.add_argument("-n", "--no-save", dest = "save", action = "store_false", required = False)
 parser.set_defaults(save = True)
@@ -48,6 +48,6 @@ ax[1].bar(tools, precision_list, color = colors[1:7])
 ax[2].bar(tools, f1_score_list, color = colors[1:7])
 
 if args.save == True:
-	plt.savefig(args.dataset_name + "_" + args.analysis_type + "_analysis_summary.png")
+	plt.savefig(args.dataset_name + "_analysis_summary_" + args.type + ".png")
 else:
 	plt.show()

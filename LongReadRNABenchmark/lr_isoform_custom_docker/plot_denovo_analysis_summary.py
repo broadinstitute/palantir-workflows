@@ -8,7 +8,7 @@ import sys
 parser = argparse.ArgumentParser(description = "Generate plot for the isoform reconstruction denovo analysis statistics.")
 parser.add_argument("-i", "--input", required = True)
 parser.add_argument("-d", "--dataset-name", required = True)
-parser.add_argument("-t", "--split-type", choices =["full", "known", "novel"], required = True)
+parser.add_argument("-t", "--type", choices =["known", "novel"], required = True)
 parser.add_argument("-s", "--save", action = "store_true", required = False)
 parser.add_argument("-n", "--no-save", dest = "save", action = "store_false", required = False)
 parser.set_defaults(save = True)
@@ -54,12 +54,12 @@ for key, value in transcript_stats.items():
 	ax.bar_label(rects, padding = 3)
 	multiplier += 1
 
-ax.set_ylabel("count")
-ax.set_title("Denovo Statistics: " + args.input)
+ax.set_ylabel("Count")
+ax.set_title("Denovo Analysis Summary: " + args.input)
 ax.set_xticks(x + width, tools)
 ax.legend(loc = "upper left", ncols = len(tools))
 
 if args.save == True:
-	plt.savefig(args.dataset_name + "_" + args.split_type + "_denovo.png")
+	plt.savefig(args.dataset_name + "_denovo_" + args.type + ".png")
 else:
 	plt.show()
