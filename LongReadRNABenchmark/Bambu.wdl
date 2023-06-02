@@ -11,7 +11,7 @@ task BambuTask {
         String dataType
         Int cpu = 16
         Int numThreads = 32
-        Int memoryGB = 64
+        Int memoryGB = 256
         Int diskSizeGB = 500
         String docker = "us.gcr.io/broad-dsde-methods/kockan/bambu@sha256:109fcdec65637eaca9f465808f3cc2aba3a9d2a0b1f967b4ed1c87989c3969de"
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
