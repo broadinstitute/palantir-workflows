@@ -6,7 +6,7 @@ task CupcakeTask {
         File inputBAMIndex
         String datasetName
         Int cpu = 16
-        Int memoryGB = 256
+        Int memoryGB = 512
         Int diskSizeGB = 500
         String docker = "us.gcr.io/broad-dsde-methods/kockan/cdna-cupcake@sha256:fca085dde170c995b5691d07aae2d56ab4426b7651a913957f029e628a0167c2"
         File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
