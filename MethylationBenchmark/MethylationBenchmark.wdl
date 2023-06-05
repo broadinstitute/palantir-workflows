@@ -52,7 +52,7 @@ workflow MethylationBenchmark {
             fq2 = TrimAdapters.fq2Trimmed
     }
 
-    call MethylationBenchmark.SAMBamba as SAMBamba {
+    call MethylationBenchmarkTasks.SAMBamba as SAMBamba {
         input:
             ref = ref,
             bam = BWAMethAlign.bam
