@@ -139,11 +139,11 @@ task BWAMethAlign {
         --reference ~{ref} \
         --threads ~{numThreads} \
         --read-group '@RG\tID:~{sampleId}\tPL:illumina\tSM:~{sampleId}\tLB:~{sampleId}' \
-        ~{fq1} ~{fq2} > ~{sampleId}.bam
+        ~{fq1} ~{fq2} > ~{sampleId}.sam
     >>>
 
     output {
-        File bam = "~{sampleId}.bam"
+        File sam = "~{sampleId}.sam"
     }
 
     runtime {
@@ -157,7 +157,7 @@ task BWAMethAlign {
 task SAMBamba {
     input {
         File ref
-        File bam
+        File sam
         Int cpu = 8
         Int numThreads = 16
         Int memoryGB = 32
@@ -165,7 +165,7 @@ task SAMBamba {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/sambamba@sha256:a27ab0121ffb3b5a5346ddb0d531a90966923015e8a945de26d2465f3103da73"
     }
 
-    String bamBasename = basename(bam, ".bam")
+    String bamBasename = basename(sam, ".sam")
     #String sortedBAM = bamBasename + ".sorted.bam"
 
     command <<<
@@ -173,9 +173,9 @@ task SAMBamba {
             -t ~{numThreads} \
             -T ~{ref} \
             -F 'not secondary_alignment and not failed_quality_control and not supplementary and proper_pair and mapping_quality > 0' \
-            -f bam \
-            -o ~{bamBasename}.filtered.bam \
-            ~{bam}
+            -f sam \
+            -o ~{bamBasename}.filtered.sam \
+            ~{sam}
     >>>
 
     output {
