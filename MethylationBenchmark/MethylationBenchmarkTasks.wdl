@@ -105,6 +105,8 @@ task BWAMethIndex {
     }
 
     command <<<
+        cp ~{ref} .
+
         bwameth.py index ~{ref}
 
         ls -lha
