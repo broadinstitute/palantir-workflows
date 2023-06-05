@@ -52,10 +52,16 @@ workflow MethylationBenchmark {
             fq2 = TrimAdapters.fq2Trimmed
     }
 
-    call MethylationBenchmarkTasks.SAMBamba as SAMBamba {
+    call MethylationBenchmarkTasks.SAMBambaFilter as SAMBambaFilter {
         input:
             ref = ref,
             sam = BWAMethAlign.sam
+    }
+
+    call MethylationBenchmarkTasks.SAMBambaSort as SAMBambaSort {
+        input:
+            ref = ref,
+            bam = SAMBambaFilter.filteredBam
     }
 
     output {
@@ -66,6 +72,7 @@ workflow MethylationBenchmark {
         File qcFq1 = FastQC.qcFq1
         File qcFq2 = FastQC.qcFq2
         File sam = BWAMethAlign.sam
-        File filteredBam = SAMBamba.filteredBam
+        File filteredBam = SAMBambaFilter.filteredBam
+        File sortedBam = SAMBambaSort.sortedBam
     }
 }

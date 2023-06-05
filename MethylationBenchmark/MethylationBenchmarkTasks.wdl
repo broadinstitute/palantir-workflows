@@ -154,7 +154,7 @@ task BWAMethAlign {
     }
 }
 
-task SAMBamba {
+task SAMBambaFilter {
     input {
         File ref
         File sam
@@ -170,15 +170,15 @@ task SAMBamba {
 
     command <<<
         sambamba view \
-            --with-header \
-            --sam-input \
-            --ref-filename ~{ref} \
-            --nthreads ~{numThreads} \
-            --filter 'not secondary_alignment and not failed_quality_control and not supplementary and proper_pair and mapping_quality > 0' \
-            --format bam \
-            --compression-level 0 \
-            --output-filename ~{samBasename}.filtered.bam \
-            ~{sam}
+        --with-header \
+        --sam-input \
+        --ref-filename ~{ref} \
+        --nthreads ~{numThreads} \
+        --filter 'not secondary_alignment and not failed_quality_control and not supplementary and proper_pair and mapping_quality > 0' \
+        --format bam \
+        --compression-level 0 \
+        --output-filename ~{samBasename}.filtered.bam \
+        ~{sam}
     >>>
 
     output {
@@ -193,12 +193,44 @@ task SAMBamba {
     }
 }
 
-#        sambamba sort \
-#            -t ~{numThreads} \
-#            -m ~{memoryGB}GiB \
-#            --tmpdir . \
-#            -o /dev/stdout \
-#            temp.bam | sambamba view -h -t ~{numThreads} -o ~{sortedBAM} -T ~{ref} -f bam /dev/stdin
+task SAMBambaSort {
+    input {
+        File ref
+        File bam
+        Int cpu = 8
+        Int numThreads = 16
+        Int memoryGB = 32
+        Int diskSizeGB = 256
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/sambamba@sha256:a27ab0121ffb3b5a5346ddb0d531a90966923015e8a945de26d2465f3103da73"
+    }
+
+    String bamBasename = basename(bam, ".bam")
+    String sortedBAM = bamBasename + ".sorted.bam"
+
+    command <<<
+        sambamba sort \
+        --with-header \
+        --ref-filename ~{ref} \
+        --nthreads ~{numThreads} \
+        --memory-limit ~{memoryGB}GiB \
+        --tmpdir . \
+        --format bam \
+        --compression-level 0 \
+        --output-filename ~{bamBasename}.sorted.bam \
+        ~{bam}
+    >>>
+
+    output {
+        File sortedBam = "~{sortedBAM}"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
 
 task IndexBAM {
     input {
