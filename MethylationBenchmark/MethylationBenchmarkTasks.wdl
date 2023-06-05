@@ -94,6 +94,33 @@ task FastQC {
     }
 }
 
+task BWAMethIndex {
+    input {
+        File ref
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 512
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/bwameth@sha256:20cb5fdf1c1aea1e1209fc0a739d0eec9eef5cb179f5e15887fee83fd7897cc7"
+    }
+
+    command <<<
+        bwameth.py index ~{ref}
+
+        ls -lha
+    >>>
+
+    output {
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
 task BWAMethAlign {
     input {
         String sampleId
