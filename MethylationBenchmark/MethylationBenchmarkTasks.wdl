@@ -209,13 +209,11 @@ task SAMBambaSort {
 
     command <<<
         sambamba sort \
-        --ref-filename ~{ref} \
         --nthreads ~{numThreads} \
         --memory-limit ~{memoryGB}GiB \
         --tmpdir . \
-        --format bam \
         --compression-level 0 \
-        --output-filename ~{bamBasename}.sorted.bam \
+        --out ~{bamBasename}.sorted.bam \
         ~{bam}
     >>>
 
