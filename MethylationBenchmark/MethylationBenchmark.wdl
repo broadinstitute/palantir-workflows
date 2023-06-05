@@ -39,19 +39,19 @@ workflow MethylationBenchmark {
             fq2 = TrimAdapters.fq2Trimmed
     }
 
-    call MethylationBenchmarkTasks.BWAMethIndex as BWAMethIndex {
+#    call MethylationBenchmarkTasks.BWAMethIndex as BWAMethIndex {
+#        input:
+#            ref = ref
+#    }
+
+    call MethylationBenchmarkTasks.BWAMethAlign as BWAMethAlign {
         input:
-            ref = ref
+            sampleId = sampleId,
+            ref = ref,
+            fq1 = TrimAdapters.fq1Trimmed,
+            fq2 = TrimAdapters.fq2Trimmed
     }
 
-#    call MethylationBenchmarkPerSampleTasks.BWAMethAlign as BWAMethAlign {
-#        input:
-#            sampleId = sampleId,
-#            ref = ref,
-#            fq1 = TrimAdapters.fq1Trimmed,
-#            fq2 = TrimAdapters.fq2Trimmed
-#    }
-#
 #    call MethylationBenchmarkPerSampleTasks.SAMBamba as SAMBamba {
 #        input:
 #            ref = ref,
@@ -65,7 +65,7 @@ workflow MethylationBenchmark {
         File fq2Trimmed = TrimAdapters.fq2Trimmed
         File qcFq1 = FastQC.qcFq1
         File qcFq2 = FastQC.qcFq2
-        #File bam = BWAMethAlign.bam
+        File bam = BWAMethAlign.bam
         #File sortedBam = SAMBamba.sortedBam
     }
 }

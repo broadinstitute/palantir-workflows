@@ -77,8 +77,6 @@ task FastQC {
 
     command <<<
         /usr/local/src/FastQC/fastqc --noextract --threads ~{numThreads} --outdir . ~{fq1} ~{fq2}
-
-        ls -lha
     >>>
 
     output {
@@ -105,8 +103,6 @@ task BWAMethIndex {
     }
 
     command <<<
-        cp ~{ref} .
-
         bwameth.py index ~{ref}
 
         ls -lha
@@ -142,7 +138,7 @@ task BWAMethAlign {
         bwameth.py \
         --reference ~{ref} \
         --threads ~{numThreads} \
-        --read-group '@RG\tSAMPLE_ID:1\tPL:illumina\tLB:SAMPLE\tSM:SAMPLE' \
+        --read-group '@RG\t~{sampleId}:1\tPL:illumina\tLB:~{sampleId}\tSM:~{sampleId}' \
         ~{fq1} ~{fq2} > ~{sampleId}.bam
     >>>
 
