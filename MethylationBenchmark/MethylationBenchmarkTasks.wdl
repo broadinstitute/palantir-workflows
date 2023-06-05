@@ -138,7 +138,7 @@ task BWAMethAlign {
         bwameth.py \
         --reference ~{ref} \
         --threads ~{numThreads} \
-        --read-group '@RG\t~{sampleId}:1\tPL:illumina\tLB:~{sampleId}\tSM:~{sampleId}' \
+        --read-group '@RG\tID:~{sampleId}\tPL:illumina\tSM:~{sampleId}\tLB:~{sampleId}' \
         ~{fq1} ~{fq2} > ~{sampleId}.bam
     >>>
 
