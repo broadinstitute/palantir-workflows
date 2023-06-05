@@ -169,7 +169,7 @@ task SAMBamba {
     String filteredBAM = samBasename + ".filtered.bam"
 
     command <<<
-        sambamba view
+        sambamba view \
             --with-header \
             --sam-input \
             --ref-filename ~{ref} \
