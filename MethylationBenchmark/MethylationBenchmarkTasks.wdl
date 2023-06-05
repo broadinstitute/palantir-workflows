@@ -180,7 +180,7 @@ task SAMBamba {
         sambamba sort \
             -t ~{numThreads} \
             -m ~{memoryGB}GiB \
-            --tmpdir /tmp/ \
+            --tmpdir . \
             -o /dev/stdout \
             -l temp.bam | sambamba view -h -t ~{numThreads} -o ~{sortedBAM} -T ~{ref} -f bam /dev/stdin
     >>>
