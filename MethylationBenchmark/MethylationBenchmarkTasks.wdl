@@ -165,21 +165,24 @@ task SAMBamba {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/sambamba@sha256:a27ab0121ffb3b5a5346ddb0d531a90966923015e8a945de26d2465f3103da73"
     }
 
-    String bamBasename = basename(sam, ".sam")
-    #String sortedBAM = bamBasename + ".sorted.bam"
+    String samBasename = basename(sam, ".sam")
+    String filteredBAM = samBasename + ".filtered.bam"
 
     command <<<
-        sambamba view -h \
-            -t ~{numThreads} \
-            -T ~{ref} \
-            -F 'not secondary_alignment and not failed_quality_control and not supplementary and proper_pair and mapping_quality > 0' \
-            -f sam \
-            -o ~{bamBasename}.filtered.sam \
+        sambamba view
+            --with-header \
+            --sam-input \
+            --ref-filename ~{ref} \
+            --nthreads ~{numThreads} \
+            --filter 'not secondary_alignment and not failed_quality_control and not supplementary and proper_pair and mapping_quality > 0' \
+            --format bam \
+            --compression-level 0 \
+            --output-filename ~{samBasename}.filtered.bam \
             ~{sam}
     >>>
 
     output {
-        #File sortedBam = "~{sortedBAM}"
+        File filteredBam = "~{filteredBAM}"
     }
 
     runtime {
