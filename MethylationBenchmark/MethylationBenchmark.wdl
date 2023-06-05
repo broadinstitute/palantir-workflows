@@ -66,6 +66,6 @@ workflow MethylationBenchmark {
         File qcFq1 = FastQC.qcFq1
         File qcFq2 = FastQC.qcFq2
         File bam = BWAMethAlign.bam
-        File sortedBam = SAMBamba.sortedBam
+        #File sortedBam = SAMBamba.sortedBam
     }
 }

@@ -166,7 +166,7 @@ task SAMBamba {
     }
 
     String bamBasename = basename(bam, ".bam")
-    String sortedBAM = bamBasename + ".sorted.bam"
+    #String sortedBAM = bamBasename + ".sorted.bam"
 
     command <<<
         sambamba view -h \
@@ -174,19 +174,12 @@ task SAMBamba {
             -T ~{ref} \
             -F 'not secondary_alignment and not failed_quality_control and not supplementary and proper_pair and mapping_quality > 0' \
             -f bam \
-            -o temp.bam \
+            -o ~{bamBasename}.filtered.bam \
             ~{bam}
-
-        sambamba sort \
-            -t ~{numThreads} \
-            -m ~{memoryGB}GiB \
-            --tmpdir . \
-            -o /dev/stdout \
-            temp.bam | sambamba view -h -t ~{numThreads} -o ~{sortedBAM} -T ~{ref} -f bam /dev/stdin
     >>>
 
     output {
-        File sortedBam = "~{sortedBAM}"
+        #File sortedBam = "~{sortedBAM}"
     }
 
     runtime {
@@ -196,6 +189,13 @@ task SAMBamba {
         docker: docker
     }
 }
+
+#        sambamba sort \
+#            -t ~{numThreads} \
+#            -m ~{memoryGB}GiB \
+#            --tmpdir . \
+#            -o /dev/stdout \
+#            temp.bam | sambamba view -h -t ~{numThreads} -o ~{sortedBAM} -T ~{ref} -f bam /dev/stdin
 
 task IndexBAM {
     input {
