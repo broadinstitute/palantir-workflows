@@ -41,8 +41,8 @@ task TrimAdapters {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/trim_galore@sha256:3860476810a6c68c24c504fcaacf0addeca15db3ab207eddf560b86645ae35c5"
     }
 
-    String fq1Basename = basename(fq1, ".fastq")
-    String fq2Basename = basename(fq2, ".fastq")
+    String fq1Basename = select_first([basename(fq1, ".fastq"), basename(fq1, ".fastq.gz")])
+    String fq2Basename = select_first([basename(fq2, ".fastq"), basename(fq2, ".fastq.gz")])
 
     command <<<
         trim_galore --gzip --cores ~{numThreads} --output_dir . --2colour 20 --paired ~{fq1} ~{fq2}
@@ -63,8 +63,8 @@ task TrimAdapters {
 
 task FastQC {
     input {
-        File fq1gz
-        File fq2gz
+        File fq1
+        File fq2
         Int cpu = 8
         Int numThreads = 16
         Int memoryGB = 32
@@ -72,18 +72,18 @@ task FastQC {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/fastqc@sha256:2a3b6bb1df757557cc6daa4a072931b3cd824c1cad4a43c779e70b448a5b1504"
     }
 
-    String fq1Basename = basename(fq1gz, ".fq.gz")
-    String fq2Basename = basename(fq2gz, ".fq.gz")
+    String fq1Basename = basename(fq1, ".fq.gz")
+    String fq2Basename = basename(fq2, ".fq.gz")
 
     command <<<
-        /usr/local/src/FastQC/fastqc --noextract --threads ~{numThreads} ~{fq1gz} ~{fq2gz}
+        /usr/local/src/FastQC/fastqc --noextract --threads ~{numThreads} --outdir . ~{fq1} ~{fq2}
 
         ls -lha
     >>>
 
     output {
-        File htmlReportFq1 = "~{fq1Basename}_fastqc.html"
-        File htmlReportFq2 = "~{fq2Basename}_fastqc.html"
+        File qcFq1 = "~{fq1Basename}_fastqc.html"
+        File qcFq2 = "~{fq2Basename}_fastqc.html"
     }
 
     runtime {
