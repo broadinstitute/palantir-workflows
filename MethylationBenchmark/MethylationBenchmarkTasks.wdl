@@ -41,8 +41,8 @@ task TrimAdapters {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/trim_galore@sha256:3860476810a6c68c24c504fcaacf0addeca15db3ab207eddf560b86645ae35c5"
     }
 
-    String fq1Basename = select_first([basename(fq1, ".fastq"), basename(fq1, ".fastq.gz")])
-    String fq2Basename = select_first([basename(fq2, ".fastq"), basename(fq2, ".fastq.gz")])
+    String fq1Basename = basename(fq1, ".fastq.gz")
+    String fq2Basename = basename(fq2, ".fastq.gz")
 
     command <<<
         trim_galore --gzip --cores ~{numThreads} --output_dir . --2colour 20 --paired ~{fq1} ~{fq2}
