@@ -209,7 +209,6 @@ task SAMBambaSort {
 
     command <<<
         sambamba sort \
-        --with-header \
         --ref-filename ~{ref} \
         --nthreads ~{numThreads} \
         --memory-limit ~{memoryGB}GiB \
