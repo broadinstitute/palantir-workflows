@@ -172,17 +172,17 @@ task SAMBamba {
         sambamba view -h \
             -t ~{numThreads} \
             -T ~{ref} \
-            --filter 'not secondary_alignment and not failed_quality_control and not supplementary and proper_pair and mapping_quality > 0' \
+            -F 'not secondary_alignment and not failed_quality_control and not supplementary and proper_pair and mapping_quality > 0' \
             -f bam \
-            -l 0 ~{bam} \
-            -o temp.bam
+            -o temp.bam \
+            ~{bam}
 
         sambamba sort \
             -t ~{numThreads} \
             -m ~{memoryGB}GiB \
             --tmpdir . \
             -o /dev/stdout \
-            -l temp.bam | sambamba view -h -t ~{numThreads} -o ~{sortedBAM} -T ~{ref} -f bam /dev/stdin
+            temp.bam | sambamba view -h -t ~{numThreads} -o ~{sortedBAM} -T ~{ref} -f bam /dev/stdin
     >>>
 
     output {
