@@ -94,7 +94,14 @@ task GlimpsePhase {
 
         echo -e "~{sep="\n" crams}" > crams.list
 
-        # FIXME deleted because Terra doesn't parse this
+        cram_paths=( ~{sep=" " crams} )
+        cram_index_paths=( ~{sep=" " cram_indices} )
+
+        for i in "${!cram_paths[@]}" ; do
+            if [[ "${cram_index_paths[$i]}" != "${cram_paths[$i]}.crai" ]]; then
+                mv "${cram_index_paths[$i]}" "${cram_paths[$i]}.crai"
+            fi
+        done
 
         /GLIMPSE/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
