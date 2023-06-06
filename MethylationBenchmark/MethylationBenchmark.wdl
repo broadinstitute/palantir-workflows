@@ -96,6 +96,7 @@ workflow MethylationBenchmark {
         input:
             sampleId = sampleId,
             ref = ref,
+            refIdx = refIdx,
             bam = MarkDuplicates.markdupBam,
             intervals = BedToIntervalList.intervalList
     }
@@ -125,6 +126,10 @@ workflow MethylationBenchmark {
         File intervalList = BedToIntervalList.intervalList
         File hsMetrics = CollectHsMetrics.hsMetrics
         File perTargetCoverage = CollectHsMetrics.perTargetCoverage
-        File multipleMetrics = CollectMultipleMetrics.multipleMetrics
+        File gcBiasDetail = CollectMultipleMetrics.gcBiasDetail
+        File gcBiasSummary = CollectMultipleMetrics.gcBiasSummary
+        File gcBiasPdf = CollectMultipleMetrics.gcBiasPdf
+        File insertSizeMetrics = CollectMultipleMetrics.insertSizeMetrics
+        File insertSizeHistogram = CollectMultipleMetrics.insertSizeHistogram
     }
 }

@@ -361,6 +361,7 @@ task CollectHsMetrics {
     input {
         String sampleId
         File ref
+        File refIdx
         File bam
         File intervals
         Int cpu = 4
@@ -373,19 +374,19 @@ task CollectHsMetrics {
     command <<<
         java -Xmx32g -Xms4g -jar /usr/picard/picard.jar CollectHsMetrics \
         INPUT=~{bam} \
-        OUTPUT=~{sampleId}.picard_collecthsmetrics_raw_metrics \
+        OUTPUT=~{sampleId}.picard_collecthsmetrics_raw_metrics.txt \
         REFERENCE_SEQUENCE=~{ref} \
         BAIT_INTERVALS=~{intervals} \
         TARGET_INTERVALS=~{intervals} \
         MINIMUM_MAPPING_QUALITY=20 \
         COVERAGE_CAP=1000 \
-        PER_TARGET_COVERAGE=~{sampleId}.picard_collecthsmetrics_per_target_coverage_raw \
+        PER_TARGET_COVERAGE=~{sampleId}.picard_collecthsmetrics_per_target_coverage_raw.txt \
         NEAR_DISTANCE=500
     >>>
 
     output {
-        File hsMetrics = "~{sampleId}.picard_collecthsmetrics_raw_metrics"
-        File perTargetCoverage = "~{sampleId}.picard_collecthsmetrics_per_target_coverage_raw"
+        File hsMetrics = "~{sampleId}.picard_collecthsmetrics_raw_metrics.txt"
+        File perTargetCoverage = "~{sampleId}.picard_collecthsmetrics_per_target_coverage_raw.txt"
     }
 
     runtime {
@@ -420,7 +421,11 @@ task CollectMultipleMetrics {
     >>>
 
     output {
-        File multipleMetrics = "~{sampleId}.picard_collectmultiplemetrics_raw"
+        File gcBiasDetail = "~{sampleId}.picard_collectmultiplemetrics_raw.gc_bias.detail_metrics"
+        File gcBiasSummary = "~{sampleId}.picard_collectmultiplemetrics_raw.gc_bias.summary_metrics"
+        File gcBiasPdf = "~{sampleId}.picard_collectmultiplemetrics_raw.gc_bias.pdf"
+        File insertSizeMetrics = "~{sampleId}.picard_collectmultiplemetrics_raw.insert_size_metrics"
+        File insertSizeHistogram = "~{sampleId}.picard_collectmultiplemetrics_raw.insert_size_histogram.pdf"
     }
 
     runtime {
