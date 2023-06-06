@@ -27,13 +27,13 @@ workflow MethylationBenchmark {
 #            fqgz = fq2gz,
 #    }
 
-    call MethylationBenchmarkTasks.TrimAdapters as TrimAdapters {
+    call MethylationBenchmarkTasks.TrimAdapters {
         input:
             fq1 = fq1,
             fq2 = fq2
     }
 
-    call MethylationBenchmarkTasks.FastQC as FastQC {
+    call MethylationBenchmarkTasks.FastQC {
         input:
             fq1 = TrimAdapters.fq1Trimmed,
             fq2 = TrimAdapters.fq2Trimmed
@@ -44,7 +44,7 @@ workflow MethylationBenchmark {
 #            ref = ref
 #    }
 
-    call MethylationBenchmarkTasks.BWAMethAlign as BWAMethAlign {
+    call MethylationBenchmarkTasks.BWAMethAlign {
         input:
             sampleId = sampleId,
             ref = ref,
@@ -52,21 +52,33 @@ workflow MethylationBenchmark {
             fq2 = TrimAdapters.fq2Trimmed
     }
 
-    call MethylationBenchmarkTasks.SAMBambaFilter as SAMBambaFilter {
+    call MethylationBenchmarkTasks.SAMBambaFilter {
         input:
             ref = ref,
             sam = BWAMethAlign.sam
     }
 
-    call MethylationBenchmarkTasks.SAMBambaSort as SAMBambaSort {
+    call MethylationBenchmarkTasks.SAMBambaSort {
         input:
             ref = ref,
             bam = SAMBambaFilter.filteredBam
     }
 
-    call MethylationBenchmarkTasks.SamtoolsIndex as SamtoolsIndex {
+    call MethylationBenchmarkTasks.SamtoolsIndex as SamtoolsIndexSortedBam {
         input:
-            sortedBam = SAMBambaSort.sortedBam
+            bam = SAMBambaSort.sortedBam
+    }
+
+    call MethylationBenchmarkTasks.MarkDuplicates {
+        input:
+            sampleId = sampleId,
+            bam = SAMBambaSort.sortedBam,
+            ref = ref
+    }
+
+    call MethylationBenchmarkTasks.SamtoolsIndex as SamtoolsIndexMarkdupBam {
+        input:
+            bam = MarkDuplicates.markdupBam
     }
 
     output {
@@ -79,6 +91,9 @@ workflow MethylationBenchmark {
         File sam = BWAMethAlign.sam
         File filteredBam = SAMBambaFilter.filteredBam
         File sortedBam = SAMBambaSort.sortedBam
-        File bai = SamtoolsIndex.bai
+        File sortedBai = SamtoolsIndexSortedBam.bai
+        File markdupBam = MarkDuplicates.markdupBam
+        File markdupBai = SamtoolsIndexMarkdupBam.bai
+        File markdupMetrics = MarkDuplicates.markdupMetrics
     }
 }

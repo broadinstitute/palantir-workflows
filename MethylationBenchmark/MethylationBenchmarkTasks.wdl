@@ -231,7 +231,7 @@ task SAMBambaSort {
 
 task SamtoolsIndex {
     input {
-        File sortedBam
+        File bam
         Int cpu = 8
         Int numThreads = 16
         Int memoryGB = 64
@@ -240,11 +240,11 @@ task SamtoolsIndex {
     }
 
     command <<<
-        samtools index -@ ~{numThreads} ~{sortedBam} > ~{sortedBam}.bai
+        samtools index -@ ~{numThreads} ~{bam} > ~{bam}.bai
     >>>
 
     output {
-        File bai = "~{sortedBam}.bai"
+        File bai = "~{bam}.bai"
     }
 
     runtime {
@@ -258,8 +258,8 @@ task SamtoolsIndex {
 task MarkDuplicates {
     input {
         String sampleId
-        File ref
         File bam
+        File ref
         Int cpu = 4
         Int numThreads = 8
         Int memoryGB = 32
@@ -270,21 +270,21 @@ task MarkDuplicates {
     String bamBasename = basename(bam, ".bam")
 
     command <<<
-        java -Xmx4g -Xms4g -jar /usr/picard/picard.jar MarkDuplicates \
-            -I ~{bam} \
-            -O ~{bamBasename}.markdup.bam \
-            -R ~{ref} \
-            -M ~{sampleId}.sorted.picard_markdup_raw_metrics \
-            --CREATE_INDEX false \
-            --MAX_RECORDS_IN_RAM 1000 \
-            --SORTING_COLLECTION_SIZE_RATIO 0.15 \
-            --ASSUME_SORT_ORDER coordinate \
-            --OPTICAL_DUPLICATE_PIXEL_DISTANCE 2500
+        java -Xmx32g -Xms4g -jar /usr/picard/picard.jar MarkDuplicates \
+        -I ~{bam} \
+        -O ~{bamBasename}.markdup.bam \
+        -R ~{ref} \
+        -M ~{sampleId}.picard_markdup_raw_metrics \
+        --CREATE_INDEX false \
+        --MAX_RECORDS_IN_RAM 1000 \
+        --SORTING_COLLECTION_SIZE_RATIO 0.15 \
+        --ASSUME_SORT_ORDER coordinate \
+        --OPTICAL_DUPLICATE_PIXEL_DISTANCE 2500
     >>>
 
     output {
-        File outputBam = "~{bamBasename}.markdup.bam"
-        File outputMetrics = "~{sampleId}.sorted.picard_markdup_raw_metrics"
+        File markdupBam = "~{bamBasename}.markdup.bam"
+        File markdupMetrics = "~{sampleId}.picard_markdup_raw_metrics"
     }
 
     runtime {
