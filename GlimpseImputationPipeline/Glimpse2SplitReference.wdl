@@ -25,7 +25,7 @@ workflow Glimpse2SplitReference {
         String genetic_map_path_suffix
 
         Int? seed
-        Array[Int] min_window_cms
+        Array[Float] min_window_cms
         Boolean uniform_number_variants = false
         
         Int preemptible = 1
@@ -73,7 +73,7 @@ task GlimpseSplitReferenceTask {
         File genetic_map
 
         Int? seed
-        Int? min_window_cm
+        Float? min_window_cm
         Boolean uniform_number_variants = false
 
         Int mem_gb = 4
