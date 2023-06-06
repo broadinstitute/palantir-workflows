@@ -295,7 +295,37 @@ task MarkDuplicates {
     }
 }
 
-task ConvertBedToIntervalList {
+task CreateSequenceDictionary {
+    input {
+        File ref
+        Int cpu = 4
+        Int numThreads = 8
+        Int memoryGB = 32
+        Int diskSizeGB = 256
+        String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
+    }
+
+    String refBasename = basename(ref, ".fa")
+
+    command <<<
+        java -Xmx32g -Xms4g -jar /usr/picard/picard.jar CreateSequenceDictionary \
+        REFERENCE=~{ref} \
+        OUTPUT=~{refBasename}.dict
+    >>>
+
+    output {
+        File dict = "~{refBasename}.dict"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task BedToIntervalList {
     input {
         File bed
         File dict
@@ -306,15 +336,17 @@ task ConvertBedToIntervalList {
         String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
     }
 
+    String bedBasename = basename(bed, ".bed")
+
     command <<<
-        java -Xmx4g -Xms4g -jar /usr/picard/picard.jar BedToIntervalList \
-            -I ~{bed} \
-            -O ~{bed}.intervals \
-            -SD ~{dict}
+        java -Xmx32g -Xms4g -jar /usr/picard/picard.jar BedToIntervalList \
+        INPUT=~{bed} \
+        OUTPUT=~{bedBasename}.intervals \
+        SEQUENCE_DICTIONARY=~{dict}
     >>>
 
     output {
-        File intervalList = "~{bed}.intervals"
+        File intervalList = "~{bedBasename}.intervals"
     }
 
     runtime {

@@ -81,6 +81,17 @@ workflow MethylationBenchmark {
             bam = MarkDuplicates.markdupBam
     }
 
+    call MethylationBenchmarkTasks.CreateSequenceDictionary {
+        input:
+            ref = ref
+    }
+
+    call MethylationBenchmarkTasks.BedToIntervalList {
+        input:
+            bed = targets,
+            dict = CreateSequenceDictionary.dict
+    }
+
     output {
         #File fq1Downsampled = DownsampleReadsFq1.fqDownsampled
         #File fq2Downsampled = DownsampleReadsFq2.fqDownsampled
@@ -95,5 +106,7 @@ workflow MethylationBenchmark {
         File markdupBam = MarkDuplicates.markdupBam
         File markdupBai = SamtoolsIndexMarkdupBam.bai
         File markdupMetrics = MarkDuplicates.markdupMetrics
+        File dict = CreateSequenceDictionary.dict
+        File intervalList = BedToIntervalList.intervalList
     }
 }
