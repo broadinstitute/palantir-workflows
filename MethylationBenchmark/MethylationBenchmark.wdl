@@ -64,6 +64,11 @@ workflow MethylationBenchmark {
             bam = SAMBambaFilter.filteredBam
     }
 
+    call MethylationBenchmarkTasks.SamtoolsIndex as SamtoolsIndex {
+        input:
+            sortedBam = SAMBambaSort.sortedBam
+    }
+
     output {
         #File fq1Downsampled = DownsampleReadsFq1.fqDownsampled
         #File fq2Downsampled = DownsampleReadsFq2.fqDownsampled
@@ -74,5 +79,6 @@ workflow MethylationBenchmark {
         File sam = BWAMethAlign.sam
         File filteredBam = SAMBambaFilter.filteredBam
         File sortedBam = SAMBambaSort.sortedBam
+        File bai = SamtoolsIndex.bai
     }
 }

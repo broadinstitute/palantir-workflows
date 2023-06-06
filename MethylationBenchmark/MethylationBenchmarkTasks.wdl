@@ -229,9 +229,9 @@ task SAMBambaSort {
     }
 }
 
-task IndexBAM {
+task SamtoolsIndex {
     input {
-        File bam
+        File sortedBam
         Int cpu = 8
         Int numThreads = 16
         Int memoryGB = 64
@@ -240,11 +240,11 @@ task IndexBAM {
     }
 
     command <<<
-        samtools index -@ ~{numThreads} ~{bam} > ~{bam}.bai
+        samtools index -@ ~{numThreads} ~{sortedBam} > ~{sortedBam}.bai
     >>>
 
     output {
-        File bai = "~{bam}.bai"
+        File bai = "~{sortedBam}.bai"
     }
 
     runtime {
