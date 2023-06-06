@@ -359,6 +359,7 @@ task BedToIntervalList {
 
 task CollectHsMetrics {
     input {
+        String sampleId
         File ref
         File bam
         File intervals
@@ -370,20 +371,21 @@ task CollectHsMetrics {
     }
 
     command <<<
-        java -Xmx4g -Xms4g -jar /usr/picard/picard.jar CollectHsMetrics \
-            -I ~{bam} \
-            -O metrics.txt \
-            -R ~{ref} \
-            --BAIT_INTERVALS ~{intervals} \
-            --TARGET_INTERVALS ~{intervals} \
-            --MINIMUM_MAPPING_QUALITY 20 \
-            --COVERAGE_CAP 1000 \
-            --PER_TARGET_COVERAGE asd.text \
-            --NEAR_DISTANCE 500
+        java -Xmx32g -Xms4g -jar /usr/picard/picard.jar CollectHsMetrics \
+        INPUT=~{bam} \
+        OUTPUT=~{sampleId}.picard_collecthsmetrics_raw_metrics \
+        REFERENCE_SEQUENCE=~{ref} \
+        BAIT_INTERVALS=~{intervals} \
+        TARGET_INTERVALS=~{intervals} \
+        MINIMUM_MAPPING_QUALITY=20 \
+        COVERAGE_CAP=1000 \
+        PER_TARGET_COVERAGE=~{sampleId}.picard_collecthsmetrics_per_target_coverage_raw \
+        NEAR_DISTANCE=500
     >>>
 
     output {
-        File metrics = "metrics.txt"
+        File hsMetrics = "~{sampleId}.picard_collecthsmetrics_raw_metrics"
+        File perTargetCoverage = "~{sampleId}.picard_collecthsmetrics_per_target_coverage_raw"
     }
 
     runtime {
@@ -396,6 +398,7 @@ task CollectHsMetrics {
 
 task CollectMultipleMetrics {
     input {
+        String sampleId
         File ref
         File bam
         Int cpu = 4
@@ -406,18 +409,18 @@ task CollectMultipleMetrics {
     }
 
     command <<<
-        java -Xmx4g -Xms4g -jar /usr/picard/picard.jar CollectMultipleMetrics \
-            -I ~{bam} \
-            -O rawmetrics.txt \
-            -R ~{ref} \
-            --PROGRAM null \
-            --PROGRAM CollectGcBiasMetrics \
-            --PROGRAM CollectInsertSizeMetrics \
-            --PROGRAM CollectAlignmentSummaryMetrics
+        java -Xmx32g -Xms4g -jar /usr/picard/picard.jar CollectMultipleMetrics \
+        INPUT=~{bam} \
+        OUTPUT=~{sampleId}.picard_collectmultiplemetrics_raw \
+        REFERENCE_SEQUENCE=~{ref} \
+        PROGRAM=null \
+        PROGRAM=CollectGcBiasMetrics \
+        PROGRAM=CollectInsertSizeMetrics \
+        PROGRAM=CollectAlignmentSummaryMetrics
     >>>
 
     output {
-        File rawMetrics = "rawmetrics.txt"
+        File multipleMetrics = "~{sampleId}.picard_collectmultiplemetrics_raw"
     }
 
     runtime {

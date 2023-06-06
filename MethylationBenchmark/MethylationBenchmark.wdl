@@ -92,6 +92,21 @@ workflow MethylationBenchmark {
             dict = CreateSequenceDictionary.dict
     }
 
+    call MethylationBenchmarkTasks.CollectHsMetrics {
+        input:
+            sampleId = sampleId,
+            ref = ref,
+            bam = MarkDuplicates.markdupBam,
+            intervals = BedToIntervalList.intervalList
+    }
+
+    call MethylationBenchmarkTasks.CollectMultipleMetrics {
+        input:
+            sampleId = sampleId,
+            ref = ref,
+            bam = MarkDuplicates.markdupBam
+    }
+
     output {
         #File fq1Downsampled = DownsampleReadsFq1.fqDownsampled
         #File fq2Downsampled = DownsampleReadsFq2.fqDownsampled
@@ -108,5 +123,8 @@ workflow MethylationBenchmark {
         File markdupMetrics = MarkDuplicates.markdupMetrics
         File dict = CreateSequenceDictionary.dict
         File intervalList = BedToIntervalList.intervalList
+        File hsMetrics = CollectHsMetrics.hsMetrics
+        File perTargetCoverage = CollectHsMetrics.perTargetCoverage
+        File multipleMetrics = CollectMultipleMetrics.multipleMetrics
     }
 }
