@@ -436,11 +436,13 @@ task CollectMultipleMetrics {
     }
 }
 
-task CallMethylation {
+task MethylDackel {
     input {
         String sampleId
         File bam
+        File bai
         File ref
+        File refIdx
         Int cpu = 16
         Int numThreads = 32
         Int memoryGB = 64
@@ -451,22 +453,7 @@ task CallMethylation {
     command <<<
         MethylDackel mbias ~{ref} ~{bam} ~{sampleId}
 
-        MethylDackel extract \
-        --minDepth 10 \
-        --maxVariantFrac 0.25 \
-        --OT X,X,X,X \
-        --OB X,X,X,X \
-        --mergeContext ~{ref} ~{bam} \
-        -o ~{sampleId}
-
-        MethylDackel extract \
-        --minDepth 10 \
-        --maxVariantFrac 0.25 \
-        --OT 0,0,0,98 \
-        --OB 0,0,3,0 \
-        --cytosine_report \
-        --CHH --CHG ~{ref} ~{bam} \
-        -o ~{sampleId}_report
+        ls -lha
     >>>
 
     output {
@@ -480,6 +467,25 @@ task CallMethylation {
     }
 }
 
+#MethylDackel extract \
+#             --minDepth 10 \
+#             --maxVariantFrac 0.25 \
+#               --OT X,X,X,X \
+#                     --OB X,X,X,X \
+#                          --mergeContext ~{ref} ~{bam} \
+#-o ~{sampleId}
+#
+#ls -lha
+#        MethylDackel extract \
+#        --minDepth 10 \
+#        --maxVariantFrac 0.25 \
+#        --OT 0,0,0,98 \
+#        --OB 0,0,3,0 \
+#        --cytosine_report \
+#        --CHH --CHG ~{ref} ~{bam} \
+#        -o ~{sampleId}_report
+#
+#        ls -lha
 #task CollectMethylationStatistics {
 #    input {
 #        File bam
