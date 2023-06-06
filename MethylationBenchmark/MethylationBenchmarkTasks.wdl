@@ -271,15 +271,15 @@ task MarkDuplicates {
 
     command <<<
         java -Xmx32g -Xms4g -jar /usr/picard/picard.jar MarkDuplicates \
-        -I ~{bam} \
-        -O ~{bamBasename}.markdup.bam \
-        -R ~{ref} \
-        -M ~{sampleId}.picard_markdup_raw_metrics \
-        --CREATE_INDEX false \
-        --MAX_RECORDS_IN_RAM 1000 \
-        --SORTING_COLLECTION_SIZE_RATIO 0.15 \
-        --ASSUME_SORT_ORDER coordinate \
-        --OPTICAL_DUPLICATE_PIXEL_DISTANCE 2500
+        INPUT=~{bam} \
+        OUTPUT=~{bamBasename}.markdup.bam \
+        REFERENCE_SEQUENCE=~{ref} \
+        METRICS_FILE=~{sampleId}.picard_markdup_raw_metrics \
+        CREATE_INDEX=false \
+        MAX_RECORDS_IN_RAM=1000 \
+        SORTING_COLLECTION_SIZE_RATIO=0.15 \
+        ASSUME_SORT_ORDER=coordinate \
+        OPTICAL_DUPLICATE_PIXEL_DISTANCE=2500
     >>>
 
     output {
