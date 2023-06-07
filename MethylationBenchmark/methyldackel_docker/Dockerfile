@@ -41,3 +41,5 @@ RUN wget https://github.com/dpryan79/MethylDackel/archive/refs/tags/0.5.3.tar.gz
 	cd MethylDackel-0.5.3 && \
 	make LIBBIGWIG="/usr/local/lib/libBigWig.a" && \
 	make install CFLAGS="-O3 -Wall -I/usr/local/include" LIBS="-L/usr/local/lib" prefix=/usr/local/bin LIBBIGWIG="/usr/local/lib/libBigWig.a"
+
+RUN export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
