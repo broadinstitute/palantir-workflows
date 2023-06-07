@@ -453,11 +453,12 @@ task MethylDackelMbias {
     }
 
     String bamBasename = basename(bam)
-    String refIdxBasename = basename(ref)
+    String refBasename = basename(ref)
 
     command <<<
-        cp ~{bam} ~{bai} .
-        MethylDackel mbias ~{refIdxBasename} ~{bamBasename} ~{sampleId} > ~{sampleId}_params.txt
+        mv ~{bam} ~{bai} ~{ref} ~{refIdx} .
+        ls -lha
+        MethylDackel mbias ~{refBasename} ~{bamBasename} ~{sampleId} > ~{sampleId}_params.txt
         ls -lha
     >>>
 
