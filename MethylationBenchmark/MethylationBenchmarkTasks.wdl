@@ -242,7 +242,7 @@ task SamtoolsIndex {
     String bamBasename = basename(bam)
 
     command <<<
-        samtools index -@ ~{numThreads} ~{bam} > ~{bamBasename}.bai
+        samtools index -@ ~{numThreads} ~{bam} ~{bamBasename}.bai
     >>>
 
     output {
@@ -458,7 +458,7 @@ task MethylDackelMbias {
     command <<<
         mv ~{bam} ~{bai} ~{ref} ~{refIdx} .
         ls -lha
-        MethylDackel mbias ~{refBasename} ~{bamBasename} ~{sampleId} > ~{sampleId}_params.txt
+        MethylDackel mbias ~{refBasename} ~{bamBasename} ~{sampleId} &> ~{sampleId}_params.txt
         ls -lha
     >>>
 
