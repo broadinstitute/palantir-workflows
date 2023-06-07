@@ -449,7 +449,7 @@ task MethylDackel {
         Int numThreads = 32
         Int memoryGB = 64
         Int diskSizeGB = 512
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/methyldackel@sha256:20a1deb8c7f65c6e901e369f7235dbbd81c57334c8939ea0cf51f33f9dbd4c60"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/methyldackel@sha256:a31c09d35b4427659da600c6c5e506fce99ad2d95919538b5e6d49d2802d8537"
     }
 
     command <<<
