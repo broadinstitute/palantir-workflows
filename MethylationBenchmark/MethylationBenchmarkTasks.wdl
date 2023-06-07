@@ -457,9 +457,8 @@ task MethylDackelMbias {
 
     command <<<
         mv ~{bam} ~{bai} ~{ref} ~{refIdx} .
-        ls -lha
+        touch ~{bamBasename}.bai
         MethylDackel mbias ~{refBasename} ~{bamBasename} ~{sampleId} &> ~{sampleId}_params.txt
-        ls -lha
     >>>
 
     output {
