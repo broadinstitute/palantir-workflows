@@ -108,7 +108,7 @@ workflow MethylationBenchmark {
             bam = MarkDuplicates.markdupBam
     }
 
-    call MethylationBenchmarkTasks.MethylDackel {
+    call MethylationBenchmarkTasks.MethylDackelMbias {
         input:
             sampleId = sampleId,
             bam = MarkDuplicates.markdupBam,
@@ -140,5 +140,8 @@ workflow MethylationBenchmark {
         File gcBiasPdf = CollectMultipleMetrics.gcBiasPdf
         File insertSizeMetrics = CollectMultipleMetrics.insertSizeMetrics
         File insertSizeHistogram = CollectMultipleMetrics.insertSizeHistogram
+        File OB = MethylDackelMbias.OB
+        File OT = MethylDackelMbias.OT
+        File mbiasParams = MethylDackelMbias.mbiasParams
     }
 }
