@@ -454,11 +454,14 @@ task MethylDackel {
 
     command <<<
         cp ~{bam} ~{bai} .
-        MethylDackel mbias ~{ref} ~{bam} ~{sampleId}
+        MethylDackel mbias ~{ref} ~{bam} ~{sampleId} > ~{sampleId}_params.txt
         ls -lha
     >>>
 
     output {
+        File OB = "~{sampleId}_OB.svg"
+        File OT = "~{sampleId}_OT.svg"
+        File outParams = "~{sampleId}_params.txt"
     }
 
     runtime {
