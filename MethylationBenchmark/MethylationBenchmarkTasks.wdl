@@ -453,8 +453,8 @@ task MethylDackel {
     }
 
     command <<<
+        cp ~{bam} ~{bai} .
         MethylDackel mbias ~{ref} ~{bam} ~{sampleId}
-
         ls -lha
     >>>
 
