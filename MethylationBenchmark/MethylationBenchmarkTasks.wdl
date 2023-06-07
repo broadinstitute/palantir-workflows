@@ -452,9 +452,12 @@ task MethylDackel {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/methyldackel@sha256:a31c09d35b4427659da600c6c5e506fce99ad2d95919538b5e6d49d2802d8537"
     }
 
+    String bamBasename = basename(bam)
+    String refIdxBasename = basename(ref)
+
     command <<<
         cp ~{bam} ~{bai} .
-        MethylDackel mbias ~{ref} ~{bam} ~{sampleId} > ~{sampleId}_params.txt
+        MethylDackel mbias ~{refIdxBasename} ~{bamBasename} ~{sampleId} > ~{sampleId}_params.txt
         ls -lha
     >>>
 
