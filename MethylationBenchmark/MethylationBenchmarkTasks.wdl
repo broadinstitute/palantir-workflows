@@ -239,12 +239,14 @@ task SamtoolsIndex {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/samtools@sha256:b0f4520282c18967e279071615dcc7685ee9457649928664d68728add6f01156"
     }
 
+    String bamBasename = basename(bam)
+
     command <<<
-        samtools index -@ ~{numThreads} ~{bam} > ~{bam}.bai
+        samtools index -@ ~{numThreads} ~{bam} > ~{bamBasename}.bai
     >>>
 
     output {
-        File bai = "~{bam}.bai"
+        File bai = "~{bamBasename}.bai"
     }
 
     runtime {
