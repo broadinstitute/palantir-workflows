@@ -475,15 +475,51 @@ task MethylDackelMbias {
     }
 }
 
-#MethylDackel extract \
-#             --minDepth 10 \
-#             --maxVariantFrac 0.25 \
-#               --OT X,X,X,X \
-#                     --OB X,X,X,X \
-#                          --mergeContext ~{ref} ~{bam} \
-#-o ~{sampleId}
-#
-#ls -lha
+task MethylDackelCallCpG {
+    input {
+        String sampleId
+        File bam
+        File bai
+        File ref
+        File refIdx
+        File mbiasParams
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 512
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/methyldackel@sha256:a31c09d35b4427659da600c6c5e506fce99ad2d95919538b5e6d49d2802d8537"
+    }
+
+    String bamBasename = basename(bam)
+    String refBasename = basename(ref)
+
+    command <<<
+        mv ~{bam} ~{bai} ~{ref} ~{refIdx} .
+        touch ~{bamBasename}.bai
+
+        MethylDackel extract \
+        --minDepth 10 \
+        --maxVariantFrac 0.25 \
+        --OT $(awk '{print $5}' ~{mbiasParams}) \
+        --OB $(awk '{print $7}' ~{mbiasParams}) \
+        --mergeContext ~{refBasename} ~{bamBasename} \
+        -o ~{sampleId}
+
+        ls -lha
+    >>>
+
+    output {
+
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
 #        MethylDackel extract \
 #        --minDepth 10 \
 #        --maxVariantFrac 0.25 \
