@@ -500,8 +500,8 @@ task MethylDackelCallCpG {
         MethylDackel extract \
         --minDepth 10 \
         --maxVariantFrac 0.25 \
-        --OT $(awk '{print $5}' ~{mbiasParams}) \
-        --OB $(awk '{print $7}' ~{mbiasParams}) \
+        --OT 1,1,1,1 \
+        --OB 1,1,1,1 \
         --mergeContext ~{refBasename} ~{bamBasename} \
         -o ~{sampleId}
 
@@ -519,7 +519,8 @@ task MethylDackelCallCpG {
         docker: docker
     }
 }
-
+#--OT $(awk '{print $5}' ~{mbiasParams}) \
+#--OB $(awk '{print $7}' ~{mbiasParams}) \
 #        MethylDackel extract \
 #        --minDepth 10 \
 #        --maxVariantFrac 0.25 \
