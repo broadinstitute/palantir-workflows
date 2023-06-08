@@ -6,16 +6,17 @@ workflow CollectBGEImputationMetrics {
         Boolean collect_af_0_1_single_number = false
 
         Array[String] sample_ids
-		File eval_vcf
+        File eval_vcf
         Array[String] truth_sample_ids
-		File truth_vcf
+        File truth_vcf
         String configuration_label
-		File annotation_vcf
+        File annotation_vcf
         Map[String, String] ancestry_to_af_annotation_map
         String? intervals
+        Int? n_calibration_bins
 
         Int preemptible = 1
-	}
+    }
 
     call PearsonCorrelationByAF as PearsonByAF {
         input:
@@ -76,6 +77,7 @@ task PearsonCorrelationByAF {
         Float? min_af_for_accuracy_metrics
         Int mem_gb = 16
         Int preemptible = 1
+        Int? n_calibration_bins
     }
 
     parameter_meta {
@@ -117,7 +119,8 @@ EOF
 
         gatk --java-options "-Xmx~{mem_gb - 2}G" EvaluateGenotypingPerformance -eval ~{evalVcf} -truth ~{truthVcf} --af-annotations af_expressions.list --resource ~{af_resource} \
         ~{"--ids " + sites} ~{"-L " + intervals} --sample-map sample_map.list ~{"--dosage-field " + dosage_field} -O ~{output_basename}.correlations.tsv \
-        -OA ~{output_basename}.accuracy.tsv ~{"-nbins " + n_bins} ~{"-first-bin-right-edge " + right_edge_first_bin} ~{"--min-af-for-accuracy-metrics " + min_af_for_accuracy_metrics} --allow-differing-ploidies
+        -OA ~{output_basename}.accuracy.tsv ~{"-nbins " + n_bins} ~{"-first-bin-right-edge " + right_edge_first_bin} ~{"--min-af-for-accuracy-metrics " + min_af_for_accuracy_metrics} --allow-differing-ploidies \
+        --output-gp-calibration ~{output_basename}.gp_calibration.tsv ~{"--n-calibration-bins " + n_calibration_bins}
 
         python <<'EOF'
 ancestries = ['~{sep="', '" ancestries}']
@@ -136,7 +139,7 @@ EOF
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-array-correlation@sha256:5910defbc137d43145e6cf1f9c3539ae418b6e465250d55465e19e77773445c4"
+        docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-array-correlation@sha256:c5eb54fdc4a9dabe4a6dda25af1ad1fe1f10f93c91bd0653ec2a49e4253c1f2e"
         disks: "local-disk 100 HDD"
         memory: mem_gb + " GB"
         preemptible: preemptible
@@ -146,5 +149,6 @@ EOF
         File correlations = "~{output_basename}.correlations.tsv"
         File correlations_with_info = "~{output_basename}.correlations_with_info.tsv"
         File accuracy = "~{output_basename}.accuracy.tsv"
+        File gp_calibration = "~{output_basename}.gp_calibration.tsv"
     }
 }
