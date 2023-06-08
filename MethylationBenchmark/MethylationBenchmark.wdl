@@ -117,6 +117,16 @@ workflow MethylationBenchmark {
             refIdx = refIdx
     }
 
+    call MethylationBenchmarkTasks.MethylDackelCallCpG {
+        input:
+            sampleId = sampleId,
+            bam = MarkDuplicates.markdupBam,
+            bai = SamtoolsIndexMarkdupBam.bai,
+            ref = ref,
+            refIdx = refIdx,
+            mbiasParams = MethylDackelMbias.mbiasParams
+    }
+
     output {
         #File fq1Downsampled = DownsampleReadsFq1.fqDownsampled
         #File fq2Downsampled = DownsampleReadsFq2.fqDownsampled
