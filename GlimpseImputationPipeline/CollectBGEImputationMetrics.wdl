@@ -52,6 +52,11 @@ workflow CollectBGEImputationMetrics {
                 preemptible = preemptible
         }
     }
+
+    output {
+        File correlations = PearsonByAF.correlations
+    }
+
 }
 
 task PearsonCorrelationByAF {
