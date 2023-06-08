@@ -499,9 +499,9 @@ task MethylDackelCallCpG {
 
         MethylDackel extract \
         --minDepth 10 \
-        --nOT 0,0,0,0 \
-        --nOB 0,0,0,0 \
-        --mergeContext ~{refBasename} ~{bamBasename} \
+        --OT 0,0,0,0 \
+        --OB 0,0,0,0 \
+        ~{refBasename} ~{bamBasename} \
         -o ~{sampleId}
 
         ls -lha
