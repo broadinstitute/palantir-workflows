@@ -120,7 +120,7 @@ EOF
         gatk --java-options "-Xmx~{mem_gb - 2}G" EvaluateGenotypingPerformance -eval ~{evalVcf} -truth ~{truthVcf} --af-annotations af_expressions.list --resource ~{af_resource} \
         ~{"--ids " + sites} ~{"-L " + intervals} --sample-map sample_map.list ~{"--dosage-field " + dosage_field} -O ~{output_basename}.correlations.tsv \
         -OA ~{output_basename}.accuracy.tsv ~{"-nbins " + n_bins} ~{"-first-bin-right-edge " + right_edge_first_bin} ~{"--min-af-for-accuracy-metrics " + min_af_for_accuracy_metrics} --allow-differing-ploidies \
-        --output-gp-calibration ~{output_basename}.gp_calibration.tsv ~{"--n-calibration-bins " + n_calibration_bins}
+        --output-gp-calibration ~{output_basename}.gp_calibration.tsv ~{"--n-calibration-bins " + n_calibration_bins} --output-accuracy-af ~{output_basename}.accuracy_af.tsv
 
         python <<'EOF'
 ancestries = ['~{sep="', '" ancestries}']
@@ -149,6 +149,7 @@ EOF
         File correlations = "~{output_basename}.correlations.tsv"
         File correlations_with_info = "~{output_basename}.correlations_with_info.tsv"
         File accuracy = "~{output_basename}.accuracy.tsv"
+        File accuracy_af = "~{output_basename}.accuracy_af.tsv"
         File gp_calibration = "~{output_basename}.gp_calibration.tsv"
     }
 }
