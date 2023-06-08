@@ -153,5 +153,6 @@ workflow MethylationBenchmark {
         File OB = MethylDackelMbias.OB
         File OT = MethylDackelMbias.OT
         File mbiasParams = MethylDackelMbias.mbiasParams
+        File cpgBedGraph = MethylDackelCallCpG.cpgBedGraph
     }
 }

@@ -509,7 +509,7 @@ task MethylDackelCallCpG {
     >>>
 
     output {
-
+        File cpgBedGraph = "~{sampleId}_CpG.bedGraph"
     }
 
     runtime {
