@@ -107,12 +107,13 @@ own purposes. It also makes it easier to see what variables/settings can be togg
 ### Optional Data Gathering Script
 
 Because there are a lot of files output by the workflow, you might want to use the provided `gather_terra_data.py` script
-to automatically set up your environment. This works using the Firecloud API to grab your files from a Terra workflow
-and put them in the right location. To use it, you need to:
+to automatically set up your environment. This works using the Firecloud API to grab your files from a Terra submission
+and put them in the right location, combining outputs from separate workflows run under the same submission. 
+To use it, you need to:
 
 1. Make sure you have the Firecloud API Python package installed, e.g. `pip install firecloud`.
 2. Make sure you have `gsutil` installed and configured with the correct permissions relative to your Terra workspace.
-3. Run `python gather_outputs.py <TERRA_NAMESPACE> <TERRA_WORKSPACE_NAME> <SUBMISSION_ID> <WORKFLOW_ID>`.
+3. Run `python gather_outputs.py <TERRA_NAMESPACE> <TERRA_WORKSPACE_NAME> <SUBMISSION_ID>`.
 
 This will create the `wdl_outputs` directory with the right files inside. You can find the command arguments by navigating
 to the Job History tab and clicking on your desired run. You can use e.g. the Terra URL to figure out most of the arguments.
@@ -120,6 +121,9 @@ For example, the URL should look like:
 ```
 app.terra.bio/#workspaces/<TERRA_NAMESPACE>/<TERRA_WORKSPACE_NAME>/job_history/<SUBMISSION_ID>
 ```
-The `<WORKFLOW_ID>` should be located in the table on the page corresponding to your submission. Note the script will not
-work if the `wdl_outputs` dir already exists, so if you want to refresh your data with a new run, remember to delete
-the old dir first.
+
+The script works by downloading the combined files `.tar` directory output from the workflow, extracting it to a local
+temp directory, and then combining these outputs across all successful workflow runs under the same submission. Note
+separate "Experiment" label inputs can be used to distinguish parts of the output tables corresponding to different runs.
+The script naively concatenates the files across the runs, so doing this for a large number of workflows inside the same
+submission could result in large tables, which may not be ideal for the dynamic SVisualizer.

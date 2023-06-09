@@ -34,6 +34,7 @@ workflow BenchmarkSVs {
             input:
                 comp_vcf=comp_vcf,
                 comp_vcf_index=comp_vcf_index,
+                experiment=experiment
         }
     }
 
@@ -191,6 +192,16 @@ workflow BenchmarkSVs {
         }
     }
 
+    call CombineFiles {
+        input:
+            qc_files=select_all([CollectQcMetrics.stats]),
+            truvari_files=select_all([CombineBenchStats.combined_file, CombineIntervalMetricsFPClosest.combined_file, CombineIntervalMetricsFNClosest.combined_file,
+                CombineIntervalMetricsTPBaseIntervals.combined_file, CombineIntervalMetricsTPCompIntervals.combined_file, CombineIntervalMetricsFPIntervals.combined_file,
+                CombineIntervalMetricsFNIntervals.combined_file]),
+            wittyer_files=select_all([CleanBasicWittyerStats.wittyer_stats_cleaned, CombineWittierTruthOverlapStats.combined_file, CombineWittierQueryOverlapStats.combined_file,
+                CombineWittierNoGtOverlapStats.combined_file])
+    }
+
     output {
         # QC outputs
         File? qc_summary = CollectQcMetrics.stats
@@ -209,6 +220,9 @@ workflow BenchmarkSVs {
         File? wittyer_truth_intervals = CombineWittierTruthOverlapStats.combined_file
         File? wittyer_query_intervals = CombineWittierQueryOverlapStats.combined_file
         File? wittyer_nogt_intervals = CombineWittierNoGtOverlapStats.combined_file
+
+        # Compressed/combined outputs
+        File? combined_files = CombineFiles.combined_files
     }
 }
 
@@ -216,6 +230,8 @@ task CollectQcMetrics {
     input {
         File comp_vcf
         File comp_vcf_index
+
+        String experiment = ""
 
         # Runtime parameters
         Int disk_size = ceil(2 * size(comp_vcf, "GB")) + 100
@@ -231,7 +247,7 @@ task CollectQcMetrics {
         bcftools index -t -f tagged.vcf.gz
 
         # Main query formatting
-        MAIN_HEADER="CHROM\tPOS\tFILTER\tEND\tSVTYPE\tSVLEN\tAC\tAC_Het\tAC_Hom\tAN\tExcHet\tHWE\tAF\tMAF\tNS"
+        MAIN_HEADER="CHROM\tPOS\tFILTER\tEND\tSVTYPE\tSVLEN\tAC\tAC_Het\tAC_Hom\tAN\tExcHet\tHWE\tAF\tMAF\tNS\tExperiment"
         MAIN_QUERY="%CHROM\t%POS\t%FILTER\t%INFO/END\t%INFO/SVTYPE\t%INFO/SVLEN\t%AC\t%AC_Het\t%AC_Hom\t%AN\t%ExcHet\t%HWE\t%AF\t%MAF\t%NS"
 
         # Add newline to query expression
@@ -242,7 +258,7 @@ task CollectQcMetrics {
         echo -e "${MAIN_HEADER}" > qc_stats.tsv
         bcftools query \
             -f"${MAIN_QUERY}" \
-            tagged.vcf.gz >> qc_stats.tsv
+            tagged.vcf.gz | awk -v OFS='\t' '{ print $0, "~{experiment}" }' >> qc_stats.tsv
 
     >>>
 
@@ -552,6 +568,80 @@ task CollectIntervalComparisonMetrics {
     }
 }
 
+# Base for this task was originally written by Yueyao Gao here:
+# https://github.com/broadinstitute/TAG-public/blob/yg_subset_callset/BenchmarkCNV/BenchmarkCNV/BenchmarkCNV.wdl
+task WittyerEval {
+    input {
+        File truth_vcf
+        Array[String]? truth_sample_names
+
+        File eval_vcf
+        Array[String]? query_sample_names
+
+        File? bedfile
+
+        File? wittyer_config
+        String wittyer_evaluation_mode = "CrossTypeAndSimpleCounting"
+        String wittyer_docker = "us.gcr.io/broad-dsde-methods/wittyer:v1.0"
+
+        Int? mem
+        Int? disk_space
+    }
+
+    # If mem and disk size were not specified, use 4GB and 100 GB as default
+    Int mem_size = select_first([mem, 4])
+    Int disk_size = select_first([disk_space,100])
+
+    command <<<
+        set -ex
+
+        ### Create sample pair list
+        TRUTH_SAMPLES=(~{sep=' ' truth_sample_names})
+        QUERY_SAMPLES=(~{sep=' ' query_sample_names})
+
+        # Zip names together
+        unset ZIPPED_LIST
+        for (( i=0; i<${#TRUTH_SAMPLES[*]}; ++i)); do
+            ZIPPED_LIST+=( "${TRUTH_SAMPLES[$i]}:${QUERY_SAMPLES[$i]}" )
+        done
+
+        PAIRS_STRING=$(IFS=, ; echo "${ZIPPED_LIST[*]}")
+
+        # Create flag
+        if (( ${#ZIPPED_LIST[@]} )); then
+            SP_FLAG="-sp ${PAIRS_STRING}"
+        else
+            SP_FLAG=""
+        fi
+
+        # Run Benchmarking tool wittyer
+        /opt/Wittyer/Wittyer \
+            -i ~{eval_vcf} \
+            -t ~{truth_vcf} \
+            -em ~{wittyer_evaluation_mode} \
+            ~{"--configFile " + wittyer_config} \
+            ~{'--includeBed ' + bedfile} \
+            -o wittyer_output \
+            $SP_FLAG
+
+    >>>
+
+    runtime {
+        docker: wittyer_docker
+        bootDiskSizeGb: 12
+        memory: mem_size + " GB"
+        disks: "local-disk " + disk_size + " HDD"
+        preemptible: 2
+    }
+
+    output {
+        File wittyer_stats = "wittyer_output/Wittyer.Stats.json"
+        File wittyer_config = "wittyer_output/Wittyer.ConfigFileUsed.json"
+        Array[File] wittyer_annotated_vcf = glob("wittyer_output/Wittyer.*.Vs.*.vcf.gz")
+        Array[File] wittyer_annotated_vcf_index = glob("wittyer_output/Wittyer.*.Vs.*.vcf.gz.tbi")
+    }
+}
+
 task AddIntervalOverlapStatsWittyer {
     input {
         File input_vcf
@@ -681,119 +771,6 @@ task AddIntervalOverlapStatsWittyer {
     }
 }
 
-task CombineSummaries {
-    input {
-        Array[File] tables
-        String output_file_name
-
-        # Runtime parameters
-        Int disk_size = ceil(2 * size(tables, "GB")) + 50
-        Int cpu = 4
-        Int memory_ram = 8
-    }
-
-    command <<<
-        set -xueo pipefail
-
-        python3 << CODE
-
-        import pandas as pd
-
-        full_df = pd.DataFrame()
-        for file in ["~{default="" sep="\", \"" tables}"]:
-            df = pd.read_csv(file, sep='\t')
-            full_df = pd.concat([full_df, df])
-
-        full_df.to_csv('~{output_file_name}', sep='\t', index=False)
-
-        CODE
-    >>>
-
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.3"
-        disks: "local-disk " + disk_size + " HDD"
-        memory: memory_ram + " GB"
-        cpu: cpu
-    }
-
-    output {
-        File combined_file = "~{output_file_name}"
-    }
-}
-
-# Base for this task was originally written by Yueyao Gao here:
-# https://github.com/broadinstitute/TAG-public/blob/yg_subset_callset/BenchmarkCNV/BenchmarkCNV/BenchmarkCNV.wdl
-task WittyerEval {
-    input {
-        File truth_vcf
-        Array[String]? truth_sample_names
-
-        File eval_vcf
-        Array[String]? query_sample_names
-
-        File? bedfile
-
-        File? wittyer_config
-        String wittyer_evaluation_mode = "CrossTypeAndSimpleCounting"
-        String wittyer_docker = "us.gcr.io/broad-dsde-methods/wittyer:v1.0"
-
-        Int? mem
-        Int? disk_space
-    }
-
-    # If mem and disk size were not specified, use 4GB and 100 GB as default
-    Int mem_size = select_first([mem, 4])
-    Int disk_size = select_first([disk_space,100])
-
-    command <<<
-        set -ex
-
-        ### Create sample pair list
-        TRUTH_SAMPLES=(~{sep=' ' truth_sample_names})
-        QUERY_SAMPLES=(~{sep=' ' query_sample_names})
-
-        # Zip names together
-        unset ZIPPED_LIST
-        for (( i=0; i<${#TRUTH_SAMPLES[*]}; ++i)); do
-            ZIPPED_LIST+=( "${TRUTH_SAMPLES[$i]}:${QUERY_SAMPLES[$i]}" )
-        done
-
-        PAIRS_STRING=$(IFS=, ; echo "${ZIPPED_LIST[*]}")
-
-        # Create flag
-        if (( ${#ZIPPED_LIST[@]} )); then
-            SP_FLAG="-sp ${PAIRS_STRING}"
-        else
-            SP_FLAG=""
-        fi
-
-        # Run Benchmarking tool wittyer
-        /opt/Wittyer/Wittyer \
-            -i ~{eval_vcf} \
-            -t ~{truth_vcf} \
-            -em ~{wittyer_evaluation_mode} \
-            ~{"--configFile " + wittyer_config} \
-            ~{'--includeBed ' + bedfile} \
-            -o wittyer_output \
-            $SP_FLAG
-
-    >>>
-
-    runtime {
-        docker: wittyer_docker
-        bootDiskSizeGb: 12
-        memory: mem_size + " GB"
-        disks: "local-disk " + disk_size + " HDD"
-        preemptible: 2
-    }
-
-    output {
-        File wittyer_stats = "wittyer_output/Wittyer.Stats.json"
-        File wittyer_config = "wittyer_output/Wittyer.ConfigFileUsed.json"
-        Array[File] wittyer_annotated_vcf = glob("wittyer_output/Wittyer.*.Vs.*.vcf.gz")
-        Array[File] wittyer_annotated_vcf_index = glob("wittyer_output/Wittyer.*.Vs.*.vcf.gz.tbi")
-    }
-}
 
 task CleanBasicWittyerStats {
     input {
@@ -853,5 +830,81 @@ task CleanBasicWittyerStats {
 
     output {
         File wittyer_stats_cleaned = "wittyer_stats-cleaned.tsv"
+    }
+}
+
+task CombineSummaries {
+    input {
+        Array[File] tables
+        String output_file_name
+
+        # Runtime parameters
+        Int disk_size = ceil(2 * size(tables, "GB")) + 50
+        Int cpu = 4
+        Int memory_ram = 8
+    }
+
+    command <<<
+        set -xueo pipefail
+
+        python3 << CODE
+
+        import pandas as pd
+
+        full_df = pd.DataFrame()
+        for file in ["~{default="" sep="\", \"" tables}"]:
+            df = pd.read_csv(file, sep='\t')
+            full_df = pd.concat([full_df, df])
+
+        full_df.to_csv('~{output_file_name}', sep='\t', index=False)
+
+        CODE
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.3"
+        disks: "local-disk " + disk_size + " HDD"
+        memory: memory_ram + " GB"
+        cpu: cpu
+    }
+
+    output {
+        File combined_file = "~{output_file_name}"
+    }
+}
+
+task CombineFiles {
+    input {
+        Array[File] qc_files
+        Array[File] truvari_files
+        Array[File] wittyer_files
+    }
+
+    command <<<
+        set -xueo pipefail
+
+        mkdir benchmark_outputs
+
+        mkdir benchmark_outputs/qc_files
+        cp ~{sep=" " qc_files} benchmark_outputs/qc_files/
+
+        mkdir benchmark_outputs/truvari_files
+        cp ~{sep=" " truvari_files} benchmark_outputs/truvari_files/
+
+        mkdir benchmark_outputs/wittyer_files
+        cp ~{sep=" " wittyer_files} benchmark_outputs/wittyer_files/
+
+        tar -zcvf benchmark_outputs.tar.gz benchmark_outputs
+    >>>
+
+    runtime {
+        docker: "ubuntu:23.10"
+        disks: "local-disk 250 HDD"
+        memory: "16GB"
+        cpu: 2
+    }
+
+    output {
+        File combined_files = "benchmark_outputs.tar.gz"
     }
 }
