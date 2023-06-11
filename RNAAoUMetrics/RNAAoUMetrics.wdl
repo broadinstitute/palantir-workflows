@@ -23,6 +23,6 @@ workflow RNAAoUMetrics {
     }
 
     output {
-        File rnaMetrics = CollectRNASeqMetrics.rnaMetrics
+        File rnaSeqMetrics = CollectRNASeqMetrics.rnaSeqMetrics
     }
 }
