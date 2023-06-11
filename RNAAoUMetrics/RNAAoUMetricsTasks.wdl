@@ -19,7 +19,7 @@ task CollectRNASeqMetrics {
     command <<<
         java -Xmx32g -Xms4g -jar /usr/picard/picard.jar CollectRnaSeqMetrics \
         --INPUT ~{alignment} \
-        --OUTPUT ~{outputPrefix}.rna_metrics
+        --OUTPUT ~{outputPrefix}.rna_metrics \
         --REF_FLAT ~{refFlat} \
         --STRAND_SPECIFICITY SECOND_READ_TRANSCRIPTION_STRAND \
         --RIBOSOMAL_INTERVALS ~{ribosomalIntervals} \
