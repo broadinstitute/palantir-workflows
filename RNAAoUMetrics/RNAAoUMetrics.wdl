@@ -12,6 +12,20 @@ workflow RNAAoUMetrics {
         File ribosomalIntervals
     }
 
+    call RNAAoUMetricsTasks.CollectInsertSizeMetrics {
+        input:
+            alignment = alignment,
+            alignmentIndex = alignmentIndex
+    }
+
+    call RNAAoUMetricsTasks.CollectAlignmentSummaryMetrics {
+        input:
+            alignment = alignment,
+            alignmentIndex = alignmentIndex,
+            reference = reference,
+            referenceIndex = referenceIndex
+    }
+
     call RNAAoUMetricsTasks.CollectRNASeqMetrics {
         input:
             alignment = alignment,
@@ -23,6 +37,9 @@ workflow RNAAoUMetrics {
     }
 
     output {
+        File insertSizeMetrics = CollectInsertSizeMetrics.insertSizeMetrics
+        File insertSizeHistogram = CollectInsertSizeMetrics.insertSizeHistogram
+        File alignmentSummaryMetrics = CollectAlignmentSummaryMetrics.alignmentSummaryMetrics
         File rnaSeqMetrics = CollectRNASeqMetrics.rnaSeqMetrics
     }
 }
