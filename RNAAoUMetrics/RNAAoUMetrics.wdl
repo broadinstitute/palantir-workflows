@@ -15,7 +15,9 @@ workflow RNAAoUMetrics {
     call RNAAoUMetricsTasks.CollectInsertSizeMetrics {
         input:
             alignment = alignment,
-            alignmentIndex = alignmentIndex
+            alignmentIndex = alignmentIndex,
+            reference = reference,
+            referenceIndex = referenceIndex
     }
 
     call RNAAoUMetricsTasks.CollectAlignmentSummaryMetrics {
