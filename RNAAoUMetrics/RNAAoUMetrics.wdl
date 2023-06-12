@@ -38,10 +38,19 @@ workflow RNAAoUMetrics {
             ribosomalIntervals = ribosomalIntervals
     }
 
+    call RNAAoUMetricsTasks.MarkDuplicates {
+        input:
+            alignment = alignment,
+            alignmentIndex = alignmentIndex,
+            reference = reference,
+            referenceIndex = referenceIndex
+    }
+
     output {
         File insertSizeMetrics = CollectInsertSizeMetrics.insertSizeMetrics
         File insertSizeHistogram = CollectInsertSizeMetrics.insertSizeHistogram
         File alignmentSummaryMetrics = CollectAlignmentSummaryMetrics.alignmentSummaryMetrics
         File rnaSeqMetrics = CollectRNASeqMetrics.rnaSeqMetrics
+        File duplicationMetrics = MarkDuplicates.duplicationMetrics
     }
 }
