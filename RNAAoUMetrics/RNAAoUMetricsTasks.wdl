@@ -4,17 +4,20 @@ task CollectInsertSizeMetrics {
     input {
         File alignment
         File alignmentIndex
+        File reference
+        File referenceIndex
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 256
         String docker =  "us.gcr.io/broad-gotc-prod/picard-cloud:2.27.5"
     }
 
-    String outputPrefix = basename(alignment, ".bam")
+    String outputPrefix = basename(alignment, ".cram")
 
     command <<<
         java -Xmx32g -Xms4g -jar /usr/picard/picard.jar CollectInsertSizeMetrics \
         --INPUT ~{alignment} \
+        --REFERENCE_SEQUENCE ~{reference} \
         --OUTPUT ~{outputPrefix}.insert_size_metrics.txt \
         --Histogram_FILE ~{outputPrefix}.insert_size_histogram.pdf \
         --VALIDATION_STRINGENCY SILENT
@@ -45,7 +48,7 @@ task CollectAlignmentSummaryMetrics {
         String docker =  "us.gcr.io/broad-gotc-prod/picard-cloud:2.27.5"
     }
 
-    String outputPrefix = basename(alignment, ".bam")
+    String outputPrefix = basename(alignment, ".cram")
 
     command <<<
         java -Xmx32g -Xms4g -jar /usr/picard/picard.jar CollectAlignmentSummaryMetrics \
@@ -81,11 +84,12 @@ task CollectRNASeqMetrics {
         String docker =  "us.gcr.io/broad-gotc-prod/picard-cloud:2.27.5"
     }
 
-    String outputPrefix = basename(alignment, ".bam")
+    String outputPrefix = basename(alignment, ".cram")
 
     command <<<
         java -Xmx32g -Xms4g -jar /usr/picard/picard.jar CollectRnaSeqMetrics \
         --INPUT ~{alignment} \
+        --REFERENCE_SEQUENCE ~{reference} \
         --OUTPUT ~{outputPrefix}.rnaseq_metrics.txt \
         --REF_FLAT ~{refFlat} \
         --STRAND_SPECIFICITY SECOND_READ_TRANSCRIPTION_STRAND \
