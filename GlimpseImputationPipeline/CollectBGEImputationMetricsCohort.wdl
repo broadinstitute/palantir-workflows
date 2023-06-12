@@ -96,6 +96,7 @@ workflow CollectBGEImputationMetricsCohort {
         String? intervals10
 
         String output_basename = "cohort"
+        Int? n_calibration_bins
         Int plot_width = 14
         Int plot_height = 5
 
@@ -113,6 +114,7 @@ workflow CollectBGEImputationMetricsCohort {
             output_basename = output_basename,
             eval_sample_ids = sample_ids1,
             truth_sample_ids = truth_sample_ids1,
+            n_calibration_bins = n_calibration_bins,
             preemptible = preemptible
     }
 
@@ -131,6 +133,7 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = sample_ids1,
                 truth_sample_ids = truth_sample_ids1,
+                n_calibration_bins = n_calibration_bins,
                 preemptible = preemptible
         }
     }
@@ -147,6 +150,7 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids2]),
                 truth_sample_ids = select_first([truth_sample_ids2]),
+                n_calibration_bins = n_calibration_bins,
                 preemptible = preemptible
         }
 
@@ -165,6 +169,7 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids2]),
                     truth_sample_ids = select_first([truth_sample_ids2]),
+                    n_calibration_bins = n_calibration_bins,
                     preemptible = preemptible
             }
         }
@@ -182,6 +187,7 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids3]),
                 truth_sample_ids = select_first([truth_sample_ids3]),
+                n_calibration_bins = n_calibration_bins,
                 preemptible = preemptible
         }
 
@@ -200,6 +206,7 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids3]),
                     truth_sample_ids = select_first([truth_sample_ids3]),
+                    n_calibration_bins = n_calibration_bins,
                     preemptible = preemptible
             }
         }
@@ -217,6 +224,7 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids4]),
                 truth_sample_ids = select_first([truth_sample_ids4]),
+                n_calibration_bins = n_calibration_bins,
                 preemptible = preemptible
         }
 
@@ -235,6 +243,7 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids4]),
                     truth_sample_ids = select_first([truth_sample_ids4]),
+                    n_calibration_bins = n_calibration_bins,
                     preemptible = preemptible
             }
         }
@@ -252,6 +261,7 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids5]),
                 truth_sample_ids = select_first([truth_sample_ids5]),
+                n_calibration_bins = n_calibration_bins,
                 preemptible = preemptible
         }
 
@@ -270,6 +280,7 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids5]),
                     truth_sample_ids = select_first([truth_sample_ids5]),
+                    n_calibration_bins = n_calibration_bins,
                     preemptible = preemptible
             }
         }
@@ -287,6 +298,7 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids6]),
                 truth_sample_ids = select_first([truth_sample_ids6]),
+                n_calibration_bins = n_calibration_bins,
                 preemptible = preemptible
         }
 
@@ -305,6 +317,7 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids6]),
                     truth_sample_ids = select_first([truth_sample_ids6]),
+                    n_calibration_bins = n_calibration_bins,
                     preemptible = preemptible
             }
         }
@@ -322,6 +335,7 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids7]),
                 truth_sample_ids = select_first([truth_sample_ids7]),
+                n_calibration_bins = n_calibration_bins,
                 preemptible = preemptible
         }
 
@@ -340,6 +354,7 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids7]),
                     truth_sample_ids = select_first([truth_sample_ids7]),
+                    n_calibration_bins = n_calibration_bins,
                     preemptible = preemptible
             }
         }
@@ -357,6 +372,7 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids8]),
                 truth_sample_ids = select_first([truth_sample_ids8]),
+                n_calibration_bins = n_calibration_bins,
                 preemptible = preemptible
         }
 
@@ -375,6 +391,7 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids8]),
                     truth_sample_ids = select_first([truth_sample_ids8]),
+                    n_calibration_bins = n_calibration_bins,
                     preemptible = preemptible
             }
         }
@@ -392,6 +409,7 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids9]),
                 truth_sample_ids = select_first([truth_sample_ids9]),
+                n_calibration_bins = n_calibration_bins,
                 preemptible = preemptible
         }
 
@@ -410,6 +428,7 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids9]),
                     truth_sample_ids = select_first([truth_sample_ids9]),
+                    n_calibration_bins = n_calibration_bins,
                     preemptible = preemptible
             }
         }
@@ -427,6 +446,7 @@ workflow CollectBGEImputationMetricsCohort {
                 output_basename = output_basename,
                 eval_sample_ids = select_first([sample_ids10]),
                 truth_sample_ids = select_first([truth_sample_ids10]),
+                n_calibration_bins = n_calibration_bins,
                 preemptible = preemptible
         }
 
@@ -445,6 +465,7 @@ workflow CollectBGEImputationMetricsCohort {
                     output_basename = output_basename,
                     eval_sample_ids = select_first([sample_ids10]),
                     truth_sample_ids = select_first([truth_sample_ids10]),
+                    n_calibration_bins = n_calibration_bins,
                     preemptible = preemptible
             }
         }
@@ -501,6 +522,16 @@ workflow CollectBGEImputationMetricsCohort {
         File? correlation_file8_0_1 = PearsonByAF01_8.correlations
         File? correlation_file9_0_1 = PearsonByAF01_9.correlations
         File? correlation_file10_0_1 = PearsonByAF01_10.correlations
+        File gp_calibration_1 = PearsonByAF.gp_calibration
+        File? gp_calibration_2 = PearsonByAF_2.gp_calibration
+        File? gp_calibration_3 = PearsonByAF_3.gp_calibration
+        File? gp_calibration_4 = PearsonByAF_4.gp_calibration
+        File? gp_calibration_5 = PearsonByAF_5.gp_calibration
+        File? gp_calibration_6 = PearsonByAF_6.gp_calibration
+        File? gp_calibration_7 = PearsonByAF_7.gp_calibration
+        File? gp_calibration_8 = PearsonByAF_8.gp_calibration
+        File? gp_calibration_9 = PearsonByAF_9.gp_calibration
+        File? gp_calibration_10 = PearsonByAF_10.gp_calibration
     }
 }
 
@@ -744,6 +775,7 @@ task PearsonCorrelationByAF {
         Int? n_bins
         Float? right_edge_first_bin
         Float? min_af_for_accuracy_metrics
+        Int? n_calibration_bins
         Int mem_gb = 16
         Int preemptible = 1
     }
@@ -787,11 +819,12 @@ EOF
 
         gatk --java-options "-Xmx~{mem_gb - 2}G" EvaluateGenotypingPerformance -eval ~{evalVcf} -truth ~{truthVcf} --af-annotations af_expressions.list --resource ~{af_resource} \
         ~{"--ids " + sites} ~{"-L " + intervals} --sample-map sample_map.list ~{"--dosage-field " + dosage_field} -O ~{output_basename}.correlations.tsv \
-        -OA ~{output_basename}.accuracy.tsv ~{"-nbins " + n_bins} ~{"-first-bin-right-edge " + right_edge_first_bin} ~{"--min-af-for-accuracy-metrics " + min_af_for_accuracy_metrics} --allow-differing-ploidies
+        -OA ~{output_basename}.accuracy.tsv ~{"-nbins " + n_bins} ~{"-first-bin-right-edge " + right_edge_first_bin} ~{"--min-af-for-accuracy-metrics " + min_af_for_accuracy_metrics} --allow-differing-ploidies \
+        --output-gp-calibration ~{output_basename}.gp_calibration.tsv ~{"--n-calibration-bins " + n_calibration_bins} --output-accuracy-af ~{output_basename}.accuracy_af.tsv
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-array-correlation@sha256:5910defbc137d43145e6cf1f9c3539ae418b6e465250d55465e19e77773445c4"
+        docker: "us.gcr.io/broad-dsde-methods/ckachulis/gatk-array-correlation@sha256:c5eb54fdc4a9dabe4a6dda25af1ad1fe1f10f93c91bd0653ec2a49e4253c1f2e"
         disks: "local-disk 100 HDD"
         memory: mem_gb + " GB"
         preemptible: preemptible
@@ -800,5 +833,7 @@ EOF
     output {
         File correlations = "~{output_basename}.correlations.tsv"
         File accuracy = "~{output_basename}.accuracy.tsv"
+        File accuracy_af = "~{output_basename}.accuracy_af.tsv"
+        File gp_calibration = "~{output_basename}.gp_calibration.tsv"
     }
 }
