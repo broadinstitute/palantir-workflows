@@ -10,6 +10,7 @@ workflow RNAAoUMetrics {
         File referenceIndex
         File refFlat
         File ribosomalIntervals
+        File annotation
     }
 
     call RNAAoUMetricsTasks.CollectInsertSizeMetrics {
@@ -46,11 +47,21 @@ workflow RNAAoUMetrics {
             referenceIndex = referenceIndex
     }
 
+    call RNAAoUMetricsTasks.RNASeQC {
+        input:
+            alignment = alignment,
+            alignmentIndex = alignmentIndex,
+            reference = reference,
+            referenceIndex = referenceIndex,
+            annotation = annotation
+    }
+
     output {
         File insertSizeMetrics = CollectInsertSizeMetrics.insertSizeMetrics
         File insertSizeHistogram = CollectInsertSizeMetrics.insertSizeHistogram
         File alignmentSummaryMetrics = CollectAlignmentSummaryMetrics.alignmentSummaryMetrics
         File rnaSeqMetrics = CollectRNASeqMetrics.rnaSeqMetrics
         File duplicationMetrics = MarkDuplicates.duplicationMetrics
+        File rnaseqcMetrics = RNASeQC.rnaseqcMetrics
     }
 }

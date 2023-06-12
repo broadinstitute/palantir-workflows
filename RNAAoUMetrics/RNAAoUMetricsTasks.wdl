@@ -116,8 +116,8 @@ task MarkDuplicates {
         File reference
         File referenceIndex
         Int cpu = 1
-        Int memoryGB = 32
-        Int diskSizeGB = 256
+        Int memoryGB = 64
+        Int diskSizeGB = 512
         String docker =  "us.gcr.io/broad-gotc-prod/picard-cloud:2.27.5"
     }
 
@@ -129,6 +129,7 @@ task MarkDuplicates {
         --REFERENCE_SEQUENCE ~{reference} \
         --METRICS_FILE ~{outputPrefix}.markdup_metrics.txt \
         --OUTPUT /dev/null \
+        --SORTING_COLLECTION_SIZE_RATIO 0.15 \
         --VALIDATION_STRINGENCY SILENT
     >>>
 
@@ -141,5 +142,43 @@ task MarkDuplicates {
 
     output {
         File duplicationMetrics = outputPrefix + ".markdup_metrics.txt"
+    }
+}
+
+task RNASeQC {
+    input {
+        File alignment
+        File alignmentIndex
+        File reference
+        File referenceIndex
+        File annotation
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 256
+        String docker = "gcr.io/broad-cga-aarong-gtex/rnaseqc@sha256:627feb33609357a81b5d8aadfed562d60d1292fe364aaec8c86f4d39e1e11417"
+    }
+
+    String sampleId = basename(alignment, ".cram")
+
+    command <<<
+        rnaseqc \
+        --sample ~{sampleId} \
+        --fasta ~{reference} \
+        --mapping-quality 20 \
+        --verbose \
+        ~{annotation} \
+        ~{alignment} \
+        .
+    >>>
+
+    output {
+        File rnaseqcMetrics = "~{sampleId}.metrics.tsv"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
     }
 }
