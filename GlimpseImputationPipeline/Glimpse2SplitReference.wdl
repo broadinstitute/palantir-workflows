@@ -27,6 +27,7 @@ workflow Glimpse2SplitReference {
         Int? seed
         Array[Float] min_window_cms
         Boolean uniform_number_variants = false
+        Array[Float] multipliers = [0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3]
         
         Int preemptible = 1
         String docker = "us.gcr.io/broad-dsde-methods/glimpse:2.0.0"
@@ -40,27 +41,28 @@ workflow Glimpse2SplitReference {
 
         String reference_filename = reference_panel_prefix + contig_name_in_reference_panel + reference_panel_suffix
         String genetic_map_filename = genetic_map_path_prefix + contig_name_in_genetic_maps + genetic_map_path_suffix
-
-        call GlimpseSplitReferenceTask {
-            input:
-                reference_panel = reference_filename,
-                reference_panel_index = reference_filename + reference_panel_index_suffix,
-                contig = contig_region,
-                i_contig = i_contig,
-                genetic_map = genetic_map_filename,
-                seed = seed,
-                min_window_cm = min_window_cms[i_contig],
-                uniform_number_variants = uniform_number_variants,
-                preemptible = preemptible,
-                docker = docker,
-                monitoring_script = monitoring_script
+        scatter (multiplier in multipliers) {
+            call GlimpseSplitReferenceTask {
+                input:
+                    reference_panel = reference_filename,
+                    reference_panel_index = reference_filename + reference_panel_index_suffix,
+                    contig = contig_region,
+                    i_contig = i_contig,
+                    genetic_map = genetic_map_filename,
+                    seed = seed,
+                    min_window_cm = min_window_cms[i_contig] * multiplier,
+                    uniform_number_variants = uniform_number_variants,
+                    preemptible = preemptible,
+                    docker = docker,
+                    monitoring_script = monitoring_script
+            }
         }
     }
 
     output {
-        Array[File] chunks = GlimpseSplitReferenceTask.chunks
-        Array[File] reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks)
-        Array[File?] split_reference_monitoring = GlimpseSplitReferenceTask.monitoring
+        Array[Array[File]] chunks = GlimpseSplitReferenceTask.chunks
+        Array[Array[Array[File]]] reference_chunks = GlimpseSplitReferenceTask.split_reference_chunks
+        Array[Array[File?]] split_reference_monitoring = GlimpseSplitReferenceTask.monitoring
     }
 }
 
