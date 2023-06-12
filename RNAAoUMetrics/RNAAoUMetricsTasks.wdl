@@ -109,7 +109,7 @@ task CollectRNASeqMetrics {
     }
 }
 
-task MarkDuplicates {
+task CollectDuplicateMetrics {
     input {
         File alignment
         File alignmentIndex
@@ -124,12 +124,10 @@ task MarkDuplicates {
     String outputPrefix = basename(alignment, ".cram")
 
     command <<<
-        java -Xmx32g -Xms4g -jar /usr/picard/picard.jar MarkDuplicates \
+        java -Xmx32g -Xms4g -jar /usr/picard/picard.jar CollectDuplicateMetrics \
         --INPUT ~{alignment} \
         --REFERENCE_SEQUENCE ~{reference} \
-        --METRICS_FILE ~{outputPrefix}.markdup_metrics.txt \
-        --OUTPUT /dev/null \
-        --SORTING_COLLECTION_SIZE_RATIO 0.15 \
+        --METRICS_FILE ~{outputPrefix}.duplicate_metrics.txt \
         --VALIDATION_STRINGENCY SILENT
     >>>
 
@@ -141,7 +139,7 @@ task MarkDuplicates {
     }
 
     output {
-        File duplicationMetrics = outputPrefix + ".markdup_metrics.txt"
+        File duplicateMetrics = outputPrefix + ".duplicate_metrics.txt"
     }
 }
 
