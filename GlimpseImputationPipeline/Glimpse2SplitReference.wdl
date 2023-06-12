@@ -24,7 +24,6 @@ workflow Glimpse2SplitReference {
         String genetic_map_path_prefix
         String genetic_map_path_suffix
 
-        Int? seed
         Array[Float] min_window_cms
         Boolean uniform_number_variants = false
         Array[Float] multipliers = [0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3]
@@ -49,7 +48,6 @@ workflow Glimpse2SplitReference {
                     contig = contig_region,
                     i_contig = i_contig,
                     genetic_map = genetic_map_filename,
-                    seed = seed,
                     min_window_cm = min_window_cms[i_contig] * multiplier,
                     uniform_number_variants = uniform_number_variants,
                     preemptible = preemptible,
@@ -74,7 +72,6 @@ task GlimpseSplitReferenceTask {
         File reference_panel_index
         File genetic_map
 
-        Int? seed
         Float? min_window_cm
         Boolean uniform_number_variants = false
 
@@ -102,7 +99,7 @@ task GlimpseSplitReferenceTask {
 
         /GLIMPSE/GLIMPSE2_chunk --input ~{reference_panel} --region ~{contig} --map ~{genetic_map} --sequential \
             --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt \
-            ~{"--seed "+seed} ~{"--window-cm "+min_window_cm} ~{uniform_number_variants_string}
+            ~{"--window-cm "+min_window_cm} ~{uniform_number_variants_string}
 
         if [ -f chunks_contigindex_${CONTIGINDEX}.txt_uniform ]; then
             mv chunks_contigindex_${CONTIGINDEX}.txt_uniform chunks_contigindex_${CONTIGINDEX}.txt
