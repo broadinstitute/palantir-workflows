@@ -28,6 +28,8 @@ def process_tracking(input_tracking_file):
 			novel_tp += 1
 		elif transcript_columns[4] == '-' and transcript_columns[5] == '-' and transcript_columns[6] != '-':
 			novel_fp += 1
+		else:
+			print("WARNING: This should not have happened! Current line: " + str(transcript_columns))
 
 	return (novel_tp, novel_fp, novel_fn, known_tp, known_fn)
 
