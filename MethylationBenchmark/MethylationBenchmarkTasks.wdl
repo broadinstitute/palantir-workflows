@@ -483,6 +483,8 @@ task MethylDackelCallCpG {
         File ref
         File refIdx
         File mbiasParams
+        Int minDepth = 10
+        Float maxVariantFrac = 0.25
         Int cpu = 16
         Int numThreads = 32
         Int memoryGB = 64
@@ -498,8 +500,8 @@ task MethylDackelCallCpG {
         touch ~{bamBasename}.bai
 
         MethylDackel extract \
-        --minDepth 10 \
-        --maxVariantFrac 0.25 \
+        --minDepth ~{minDepth} \
+        --maxVariantFrac ~{maxVariantFrac} \
         --OT $(awk '{print $5}' ~{mbiasParams}) \
         --OB $(awk '{print $7}' ~{mbiasParams}) \
         --mergeContext \
