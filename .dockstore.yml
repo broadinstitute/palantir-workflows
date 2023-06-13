@@ -60,6 +60,9 @@ workflows:
   - name: RNAMetrics
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/RNAMetrics.wdl
+  - name: IsoformDiscoveryBenchmark
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/IsoformDiscoveryBenchmark.wdl
   - name: IsoQuant
     subclass: WDL
     primaryDescriptorPath: /LongReadRNABenchmark/IsoQuant.wdl
@@ -84,6 +87,4 @@ workflows:
   - name: Cupcake
     subclass: WDL
     primaryDescriptorPath: /LongReadRNABenchmark/Cupcake.wdl
-  - name: IsoformDiscoveryBenchmark
-    subclass: WDL
-    primaryDescriptorPath: /LongReadRNABenchmark/IsoformDiscoveryBenchmark.wdl
+    
