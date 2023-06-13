@@ -9,6 +9,7 @@ workflow Glimpse2Imputation {
         File? input_vcf_index
         Array[String]? crams
         Array[String]? cram_indices
+        Array[String] sample_ids
         File? fasta
         File? fasta_index
         String output_basename
@@ -32,6 +33,7 @@ workflow Glimpse2Imputation {
                 input_vcf_index = input_vcf_index,
                 crams = crams,
                 cram_indices = cram_indices,
+                sample_ids = sample_ids,
                 fasta = fasta,
                 fasta_index = fasta_index,
                 preemptible = preemptible,
@@ -69,6 +71,7 @@ task GlimpsePhase {
         File? input_vcf_index
         Array[String]? crams
         Array[String]? cram_indices
+        Array[String] sample_ids
         File? fasta
         File? fasta_index
         File reference_chunk
@@ -95,6 +98,7 @@ task GlimpsePhase {
 
         cram_paths=( ~{sep=" " crams} )
         cram_index_paths=( ~{sep=" " cram_indices} )
+        sample_ids=( ~{sep=" " sample_ids} )
 
         chunk_region=$(echo "~{reference_chunk}"|sed 's/^.*chr/chr/'|sed 's/\.bin//'|sed 's/_/:/1'|sed 's/_/-/1')
 
@@ -102,7 +106,7 @@ task GlimpsePhase {
         for i in "${!cram_paths[@]}" ; do
             samtools view -h -C -X -T ~{fasta} -o cram${i}.cram "${cram_paths[$i]}" "${cram_index_paths[$i]}" ${chunk_region}
             samtools index cram${i}.cram
-            echo -e "cram${i}.cram" >> crams.list
+            echo -e "cram${i}.cram ${sample_ids[$i]}" >> crams.list
             echo "Processed CRAM ${i}: ${cram_paths[$i]} -> cram${i}.cram"
         done
 
