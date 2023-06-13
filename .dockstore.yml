@@ -87,4 +87,3 @@ workflows:
   - name: Cupcake
     subclass: WDL
     primaryDescriptorPath: /LongReadRNABenchmark/Cupcake.wdl
-    
