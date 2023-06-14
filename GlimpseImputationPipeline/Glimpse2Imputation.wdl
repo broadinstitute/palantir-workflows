@@ -80,6 +80,8 @@ task GlimpsePhase {
         Int max_retries = 3
         String docker
         File? monitoring_script
+        Int? n_burnin
+        Int? n_main
     }
 
     parameter_meta {
@@ -117,7 +119,7 @@ task GlimpsePhase {
         --output phase_output.bcf \
         --threads ~{cpu} \
         ~{bam_file_list_input} \
-        ~{"--fasta " + fasta}
+        ~{"--fasta " + fasta} ~{"--burn-in " + n_burnin} ~{"--main " + n_main}
     >>>
 
     runtime {
