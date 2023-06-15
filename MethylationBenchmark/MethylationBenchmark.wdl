@@ -147,7 +147,8 @@ workflow MethylationBenchmark {
             sampleId = sampleId,
             originalSam = BWAMethAlign.sam,
             filteredBam = SAMBambaSort.sortedBam,
-            filteredBai = SamtoolsIndexSortedBam.bai
+            filteredBai = SamtoolsIndexSortedBam.bai,
+            cytosineReport = MethylDackelGenerateCytosineReport.cytosineReport
     }
 
     output {

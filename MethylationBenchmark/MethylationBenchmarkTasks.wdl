@@ -620,6 +620,19 @@ task CollectMethylationStatistics {
     String originalSamBasename = basename(originalSam)
     String filteredBamBasename = basename(filteredBam)
 
+    # Extracting called CpG ratio
+    # TODO: From the MethylDackel cytosine report
+    # S1_methylome_report.txt
+    # x = Number of called methylated CpG sites, y = Number of called unmethylated CpG sites
+    # called_cpg = (x / (x + y)) * 100
+
+    # Extracting non-CpG conversion ratio (percent)
+    # TODO: From the MethylDackel cytosine report:
+    # S1_methylome_report.txt
+    # a = Number of called unmethylated non-CpG sites
+    # b = Number of called methylated non-CpG sites
+    # non_cpg_conversion = (a / (a + b)) * 100
+
     command <<<
         mv ~{originalSam} ~{filteredBam} ~{filteredBai} .
         touch ~{filteredBamBasename}.bai
