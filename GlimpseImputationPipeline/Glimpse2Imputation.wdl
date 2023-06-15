@@ -119,7 +119,7 @@ task GlimpsePhase {
         --output phase_output.bcf \
         --threads ~{cpu} \
         ~{bam_file_list_input} \
-        ~{"--fasta " + fasta} ~{"--burn-in " + n_burnin} ~{"--main " + n_main}
+        ~{"--fasta " + fasta} ~{"--burnin " + n_burnin} ~{"--main " + n_main}
     >>>
 
     runtime {
