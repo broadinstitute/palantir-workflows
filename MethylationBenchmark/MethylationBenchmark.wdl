@@ -129,7 +129,7 @@ workflow MethylationBenchmark {
 
     call MethylationBenchmarkTasks.CreateMoreSignificantFiguresForPercentMethylation {
         input:
-            cgpBedGraph = MethylDackelCallCpG.cpgBedGraph
+            cpgBedGraph = MethylDackelCallCpG.cpgBedGraph
     }
 
     call MethylationBenchmarkTasks.MethylDackelGenerateCytosineReport {
