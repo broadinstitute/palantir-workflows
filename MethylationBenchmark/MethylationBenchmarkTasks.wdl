@@ -602,3 +602,39 @@ task MethylDackelGenerateCytosineReport {
         docker: docker
     }
 }
+
+task CollectMethylationStatistics {
+    input {
+        String sampleId
+        File originalSam
+        File filteredBam
+        File filteredBai
+        File cytosineReport
+        Int cpu = 4
+        Int numThreads = 8
+        Int memoryGB = 32
+        Int diskSizeGB = 256
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/samtools@sha256:b0f4520282c18967e279071615dcc7685ee9457649928664d68728add6f01156"
+    }
+
+    String originalSamBasename = basename(originalSam)
+    String filteredBamBasename = basename(filteredBam)
+
+    command <<<
+        mv ~{originalSam} ~{filteredBam} ~{filteredBai} .
+        touch ~{filteredBamBasename}.bai
+
+        (samtools stats ~{originalSam} | grep ^SN | cut -f 2-) / (samtools stats ~{filteredBam} | grep ^SN | cut -f 2-) > ~{sampleId}.mapping_efficiency.txt
+    >>>
+
+    output {
+        File mappingEfficiency = "~{sampleId}.mapping_efficiency.txt"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
