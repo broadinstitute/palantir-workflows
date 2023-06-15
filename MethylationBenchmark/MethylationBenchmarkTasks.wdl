@@ -637,7 +637,7 @@ task CollectMethylationStatistics {
         mv ~{originalSam} ~{filteredBam} ~{filteredBai} .
         touch ~{filteredBamBasename}.bai
 
-        (samtools stats ~{originalSam} | grep ^SN | cut -f 2-) / (samtools stats ~{filteredBam} | grep ^SN | cut -f 2-) > ~{sampleId}.mapping_efficiency.txt
+        (samtools stats ~{originalSam} | grep ^SN | cut -f 2- | awk 'NR==1 {print $4}') / (samtools stats ~{filteredBam} | grep ^SN | cut -f 2- | awk 'NR==1 {print $4}') > ~{sampleId}.mapping_efficiency.txt
     >>>
 
     output {
