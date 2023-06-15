@@ -589,12 +589,10 @@ task MethylDackelGenerateCytosineReport {
         --CHG \
         ~{refBasename} ~{bamBasename} \
         -o ~{sampleId}
-
-        ls -lha
     >>>
 
     output {
-        File cytosineReport = "~{sampleId}_cytosine_report.txt"
+        File cytosineReport = "~{sampleId}.cytosine_report.txt"
     }
 
     runtime {
