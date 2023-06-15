@@ -458,6 +458,8 @@ task MethylDackelMbias {
     command <<<
         mv ~{bam} ~{bai} ~{ref} ~{refIdx} .
         touch ~{bamBasename}.bai
+        touch ~{refBasename}.fai
+
         MethylDackel mbias ~{refBasename} ~{bamBasename} ~{sampleId} &> ~{sampleId}_params.txt
     >>>
 
@@ -498,6 +500,7 @@ task MethylDackelCallCpG {
     command <<<
         mv ~{bam} ~{bai} ~{ref} ~{refIdx} .
         touch ~{bamBasename}.bai
+        touch ~{refBasename}.fai
 
         MethylDackel extract \
         --minDepth ~{minDepth} \
@@ -521,37 +524,81 @@ task MethylDackelCallCpG {
     }
 }
 
-#        MethylDackel extract \
-#        --minDepth 10 \
-#        --maxVariantFrac 0.25 \
-#        --OT 0,0,0,98 \
-#        --OB 0,0,3,0 \
-#        --cytosine_report \
-#        --CHH --CHG ~{ref} ~{bam} \
-#        -o ~{sampleId}_report
-#
-#        ls -lha
-#task CollectMethylationStatistics {
-#    input {
-#        File bam
-#        Int cpu = 4
-#        Int numThreads = 8
-#        Int memoryGB = 32
-#        Int diskSizeGB = 256
-#        String docker = "us.gcr.io/broad-dsde-methods/kockan/samtools@sha256:b0f4520282c18967e279071615dcc7685ee9457649928664d68728add6f01156"
-#    }
-#
-#    command <<<
-#        samtools stats ~{bam} | grep ^SN | cut -f 2-
-#    >>>
-#
-#    output {
-#    }
-#
-#    runtime {
-#        cpu: cpu
-#        memory: "~{memoryGB} GiB"
-#        disks: "local-disk ~{diskSizeGB} HDD"
-#        docker: docker
-#    }
-#}
+task CreateMoreSignificantFiguresForPercentMethylation {
+    input {
+        File cpgBedGraph
+        Int cpu = 1
+        Int numThreads = 1
+        Int memoryGB = 8
+        Int diskSizeGB = 128
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/base-docker@sha256:5928c4b854be7ba120cdd2361f4e51cea0805e0c9565438c83e598d889f1fdf4"
+    }
+
+    String basename = basename(cpgBedGraph, ".bedGraph")
+
+    command <<<
+        awk 'BEGIN {FS=OFS="\t"} NR == 1 {print $0} \
+        NR > 1 {print $1,$2,$3,(($5/($5+$6)*100)+0),$5,$6;}' OFMT="%.2f" \
+        ~{cpgBedGraph} > ~{basename}.processed.bedGraph
+    >>>
+
+    output {
+        File processedCpGBedGraph = "~{basename}.processed.bedGraph"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task MethylDackelGenerateCytosineReport {
+    input {
+        String sampleId
+        File bam
+        File bai
+        File ref
+        File refIdx
+        File mbiasParams
+        Int minDepth = 10
+        Float maxVariantFrac = 0.25
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 512
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/methyldackel@sha256:a31c09d35b4427659da600c6c5e506fce99ad2d95919538b5e6d49d2802d8537"
+    }
+
+    String bamBasename = basename(bam)
+    String refBasename = basename(ref)
+
+    command <<<
+        mv ~{bam} ~{bai} ~{ref} ~{refIdx} .
+        touch ~{bamBasename}.bai
+        touch ~{refBasename}.fai
+
+        MethylDackel extract \
+        --minDepth ~{minDepth} \
+        --maxVariantFrac ~{maxVariantFrac} \
+        --OT $(awk '{print $5}' ~{mbiasParams}) \
+        --OB $(awk '{print $7}' ~{mbiasParams}) \
+        --cytosine_report \
+        --CHH \
+        --CHG \
+        ~{refBasename} ~{bamBasename} \
+        -o ~{sampleId}_cytosine_report
+    >>>
+
+    output {
+        File cytosineReport = "~{sampleId}_cytosine_report.txt"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}

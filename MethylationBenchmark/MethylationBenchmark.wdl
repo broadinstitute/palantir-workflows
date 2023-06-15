@@ -127,6 +127,21 @@ workflow MethylationBenchmark {
             mbiasParams = MethylDackelMbias.mbiasParams
     }
 
+    call MethylationBenchmarkTasks.CreateMoreSignificantFiguresForPercentMethylation {
+        input:
+            cgpBedGraph = MethylDackelCallCpG.cpgBedGraph
+    }
+
+    call MethylationBenchmarkTasks.MethylDackelGenerateCytosineReport {
+        input:
+            sampleId = sampleId,
+            bam = MarkDuplicates.markdupBam,
+            bai = SamtoolsIndexMarkdupBam.bai,
+            ref = ref,
+            refIdx = refIdx,
+            mbiasParams = MethylDackelMbias.mbiasParams
+    }
+
     output {
         #File fq1Downsampled = DownsampleReadsFq1.fqDownsampled
         #File fq2Downsampled = DownsampleReadsFq2.fqDownsampled
@@ -154,5 +169,7 @@ workflow MethylationBenchmark {
         File OT = MethylDackelMbias.OT
         File mbiasParams = MethylDackelMbias.mbiasParams
         File cpgBedGraph = MethylDackelCallCpG.cpgBedGraph
+        File processedCpGBedGraph = CreateMoreSignificantFiguresForPercentMethylation.processedCpGBedGraph
+        File cytosineReport = MethylDackelGenerateCytosineReport.cytosineReport
     }
 }
