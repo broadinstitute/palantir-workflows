@@ -589,6 +589,8 @@ task MethylDackelGenerateCytosineReport {
         --CHG \
         ~{refBasename} ~{bamBasename} \
         -o ~{sampleId}_cytosine_report
+
+        ls -lha
     >>>
 
     output {
