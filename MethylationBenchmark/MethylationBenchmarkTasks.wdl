@@ -11,7 +11,7 @@ task DownsampleReads {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/seqtk@sha256:eb2e9af13f0836fe7652725db4fc82a0e5708778c706bca3fd1f556ecbaba69b"
     }
 
-    String fqBasename = select_first([basename(fqgz, ".fastq.gz"), basename(fqgz, ".fq.gz")])
+    String fqBasename = basename(fqgz, ".fastq.gz")
 
     command <<<
         gunzip -c ~{fqgz} > ~{fqBasename}.fastq
@@ -410,7 +410,7 @@ task CollectMultipleMetrics {
         java -Xmx32g -Xms4g -jar /usr/picard/picard.jar CollectMultipleMetrics \
         INPUT=~{bam} \
         OUTPUT=~{sampleId}.picard_collectmultiplemetrics_raw \
-        REFERENCE_SEQUENCE=~{ref} \
+        REFERENCE_SEQUENCE=~{refBasename} \
         PROGRAM=null \
         PROGRAM=CollectGcBiasMetrics \
         PROGRAM=CollectInsertSizeMetrics \
