@@ -176,6 +176,6 @@ workflow MethylationBenchmark {
         File cpgBedGraph = MethylDackelCallCpG.cpgBedGraph
         File processedCpGBedGraph = CreateMoreSignificantFiguresForPercentMethylation.processedCpGBedGraph
         File cytosineReport = MethylDackelGenerateCytosineReport.cytosineReport
-        File mappingEfficiency = CollectMethylationStatistics.mappingEfficiency
+        Float mappingEfficiency = CollectMethylationStatistics.mappingEfficiency
     }
 }
