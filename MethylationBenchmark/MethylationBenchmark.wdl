@@ -35,11 +35,6 @@ workflow MethylationBenchmark {
             fq2 = TrimAdapters.fq2Trimmed
     }
 
-#    call MethylationBenchmarkTasks.BWAMethIndex as BWAMethIndex {
-#        input:
-#            ref = ref
-#    }
-
     call MethylationBenchmarkTasks.BWAMethAlign {
         input:
             sampleId = sampleId,

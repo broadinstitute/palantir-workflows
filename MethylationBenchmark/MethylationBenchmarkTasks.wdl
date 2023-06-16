@@ -92,39 +92,14 @@ task FastQC {
     }
 }
 
-task BWAMethIndex {
-    input {
-        File ref
-        Int cpu = 16
-        Int numThreads = 32
-        Int memoryGB = 64
-        Int diskSizeGB = 512
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/bwameth@sha256:20cb5fdf1c1aea1e1209fc0a739d0eec9eef5cb179f5e15887fee83fd7897cc7"
-    }
-
-    command <<<
-        bwameth.py index ~{ref}
-
-        ls -lha
-    >>>
-
-    output {
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memoryGB} GiB"
-        disks: "local-disk ~{diskSizeGB} HDD"
-        docker: docker
-    }
-}
-
 task BWAMethAlign {
     input {
         String sampleId
-        File ref
         File fq1
         File fq2
+        File ref
+        File refIdx
+        File bwamethIdx
         Int cpu = 16
         Int numThreads = 32
         Int memoryGB = 64
@@ -132,11 +107,18 @@ task BWAMethAlign {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/bwameth@sha256:20cb5fdf1c1aea1e1209fc0a739d0eec9eef5cb179f5e15887fee83fd7897cc7"
     }
 
+    String refBasename = basename(ref)
+    String bwamethIdxBasename = basename(bwamethIdx)
+    String bwamethIdxBaseDir = basename(bwamethIdx, ".tar.gz")
+
     command <<<
-        bwameth.py index ~{ref}
+        mv ~{ref} ~{refIdx} .
+        mv ~{bwamethIdx} .
+        tar -xzvf ~{bwamethIdxBasename}
+        mv ~{bwamethIdxBaseDir}/* .
 
         bwameth.py \
-        --reference ~{ref} \
+        --reference ~{refBasename} \
         --threads ~{numThreads} \
         --read-group '@RG\tID:~{sampleId}\tPL:illumina\tSM:~{sampleId}\tLB:~{sampleId}' \
         ~{fq1} ~{fq2} > ~{sampleId}.sam
