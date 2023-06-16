@@ -66,7 +66,8 @@ workflow MethylationBenchmark {
         input:
             sampleId = sampleId,
             bam = SAMBambaSort.sortedBam,
-            ref = ref
+            ref = ref,
+            refIdx = refIdx
     }
 
     call MethylationBenchmarkTasks.SamtoolsIndex as SamtoolsIndexMarkdupBam {
@@ -98,6 +99,7 @@ workflow MethylationBenchmark {
         input:
             sampleId = sampleId,
             ref = ref,
+            refIdx = refIdx,
             bam = MarkDuplicates.markdupBam
     }
 

@@ -244,6 +244,7 @@ task MarkDuplicates {
         String sampleId
         File bam
         File ref
+        File refIdx
         Int cpu = 4
         Int numThreads = 8
         Int memoryGB = 32
@@ -251,13 +252,16 @@ task MarkDuplicates {
         String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
     }
 
+    String refBasename = basename(ref)
     String bamBasename = basename(bam, ".bam")
 
     command <<<
+        mv ~{ref} ~{refIdx} .
+
         java -Xmx32g -Xms4g -jar /usr/picard/picard.jar MarkDuplicates \
         INPUT=~{bam} \
         OUTPUT=~{bamBasename}.markdup.bam \
-        REFERENCE_SEQUENCE=~{ref} \
+        REFERENCE_SEQUENCE=~{refBasename} \
         METRICS_FILE=~{sampleId}.picard_markdup_raw_metrics \
         CREATE_INDEX=false \
         MAX_RECORDS_IN_RAM=1000 \
@@ -355,11 +359,15 @@ task CollectHsMetrics {
         String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
     }
 
+    String refBasename = basename(ref)
+
     command <<<
+        mv ~{ref} ~{refIdx} .
+
         java -Xmx32g -Xms4g -jar /usr/picard/picard.jar CollectHsMetrics \
         INPUT=~{bam} \
         OUTPUT=~{sampleId}.picard_collecthsmetrics_raw_metrics.txt \
-        REFERENCE_SEQUENCE=~{ref} \
+        REFERENCE_SEQUENCE=~{refBasename} \
         BAIT_INTERVALS=~{intervals} \
         TARGET_INTERVALS=~{intervals} \
         MINIMUM_MAPPING_QUALITY=20 \
@@ -385,6 +393,7 @@ task CollectMultipleMetrics {
     input {
         String sampleId
         File ref
+        File refIdx
         File bam
         Int cpu = 4
         Int numThreads = 8
@@ -393,7 +402,11 @@ task CollectMultipleMetrics {
         String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
     }
 
+    String refBasename = basename(ref)
+
     command <<<
+        mv ~{ref} ~{refIdx} .
+
         java -Xmx32g -Xms4g -jar /usr/picard/picard.jar CollectMultipleMetrics \
         INPUT=~{bam} \
         OUTPUT=~{sampleId}.picard_collectmultiplemetrics_raw \
