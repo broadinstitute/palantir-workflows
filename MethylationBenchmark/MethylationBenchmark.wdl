@@ -9,12 +9,8 @@ workflow MethylationBenchmark {
         File fq2
         File ref
         File refIdx
+        File bwamethIdx
         File targets
-        #File amb
-        #File ann
-        #File bwt
-        #File pac
-        #File sa
     }
 
 #    call MethylationBenchmarkPerSampleTasks.DownsampleReads as DownsampleReadsFq1 {

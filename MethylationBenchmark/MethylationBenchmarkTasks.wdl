@@ -614,7 +614,7 @@ task CollectMethylationStatistics {
         Int numThreads = 8
         Int memoryGB = 32
         Int diskSizeGB = 256
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/samtools@sha256:b0f4520282c18967e279071615dcc7685ee9457649928664d68728add6f01156"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/custom-methylation-docker@sha256:e2c8d116f6bdbf5430501e2209cd775f042edebebf0e44108bbe037b2605dfeb"
     }
 
     String originalSamBasename = basename(originalSam)
@@ -641,7 +641,7 @@ task CollectMethylationStatistics {
     >>>
 
     output {
-        Float mapping_efficiency = read_float("mapping_efficiency.txt")
+        Float mappingEfficiency = read_float("mapping_efficiency.txt")
     }
 
     runtime {
