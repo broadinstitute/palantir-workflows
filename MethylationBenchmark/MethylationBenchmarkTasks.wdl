@@ -632,7 +632,7 @@ task CollectMethylationStatistics {
         mv ~{originalSam} ~{filteredBam} ~{filteredBai} .
         touch ~{filteredBamBasename}.bai
 
-        bash mapping_efficiency_statistics.sh > mapping_efficiency.txt
+        bash /usr/local/src/mapping_efficiency_statistics.sh > mapping_efficiency.txt
     >>>
 
     output {
