@@ -637,11 +637,11 @@ task CollectMethylationStatistics {
         mv ~{originalSam} ~{filteredBam} ~{filteredBai} .
         touch ~{filteredBamBasename}.bai
 
-        (samtools stats ~{originalSam} | grep ^SN | cut -f 2- | awk 'NR==1 {print $4}') / (samtools stats ~{filteredBam} | grep ^SN | cut -f 2- | awk 'NR==1 {print $4}') > ~{sampleId}.mapping_efficiency.txt
+        bash mapping_efficiency_statistics.sh > mapping_efficiency.txt
     >>>
 
     output {
-        File mappingEfficiency = "~{sampleId}.mapping_efficiency.txt"
+        Float mapping_efficiency = read_float("mapping_efficiency.txt")
     }
 
     runtime {

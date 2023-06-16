@@ -1,5 +1,38 @@
 version 1.0
 
+task GenerateBWAMethIndex {
+    input {
+        File ref
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 512
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/bwameth@sha256:20cb5fdf1c1aea1e1209fc0a739d0eec9eef5cb179f5e15887fee83fd7897cc7"
+    }
+
+    String refBasename = basename(ref)
+
+    command <<<
+        mv ~{ref} .
+
+        ls -lha
+
+        bwameth.py index ~{refBasename}
+
+        ls -lha
+    >>>
+
+    output {
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
 task GenerateBWAIndex {
     input {
         File ref
@@ -66,7 +99,7 @@ task CreateSequenceDictionary {
         String docker = "us.gcr.io/broad-gotc-prod/picard-cloud@sha256:61880f4b6190a955d30ef61b3e3d48b1889974765dea64ee793450bf97144389"
     }
 
-    String refBasename = select_first([basename(ref, ".fa"), basename(ref, ".fasta")])
+    String refBasename = basename(ref, ".fa")
 
     command <<<
         java -Xmx4g -Xms4g -jar /usr/picard/picard.jar CreateSequenceDictionary \
