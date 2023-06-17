@@ -609,7 +609,7 @@ task CollectMethylationStatistics {
         Int numThreads = 8
         Int memoryGB = 32
         Int diskSizeGB = 256
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/custom-methylation-docker@sha256:e2c8d116f6bdbf5430501e2209cd775f042edebebf0e44108bbe037b2605dfeb"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/custom-methylation-docker@sha256:a47beeaedc9459109da680eb0afac64100d118a9e9d9722b62608fff4955a59f"
     }
 
     String originalSamBasename = basename(originalSam)

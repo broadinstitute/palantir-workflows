@@ -3,6 +3,7 @@ FROM ubuntu:20.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get -qq update
+RUN apt-get -qq -y install bc
 RUN apt-get -qq -y install build-essential
 RUN apt-get -qq -y install wget
 RUN apt-get -qq -y install python3
