@@ -18,12 +18,12 @@ workflow MethylationBenchmark {
     {
         call MethylationBenchmarkTasks.DownsampleReads as DownsampleReadsFq1 {
             input:
-                fq = fq1,
+                fq = fq1
         }
 
         call MethylationBenchmarkTasks.DownsampleReads as DownsampleReadsFq2 {
             input:
-                fq = fq2,
+                fq = fq2
         }
     }
 
@@ -180,5 +180,7 @@ workflow MethylationBenchmark {
         File processedCpGBedGraph = CreateMoreSignificantFiguresForPercentMethylation.processedCpGBedGraph
         File cytosineReport = MethylDackelGenerateCytosineReport.cytosineReport
         Float mappingEfficiency = CollectMethylationStatistics.mappingEfficiency
+        Float calledCpG = CollectMethylationStatistics.calledCpG
+        Float nonCpGConversion = CollectMethylationStatistics.nonCpGConversion
     }
 }

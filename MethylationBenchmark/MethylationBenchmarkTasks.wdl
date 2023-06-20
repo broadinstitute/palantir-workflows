@@ -664,34 +664,25 @@ task CollectMethylationStatistics {
         Int numThreads = 8
         Int memoryGB = 32
         Int diskSizeGB = 256
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/custom-methylation-docker@sha256:a47beeaedc9459109da680eb0afac64100d118a9e9d9722b62608fff4955a59f"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/custom-methylation-docker@sha256:602636c3d1ebd88f76f8c7e198b1d3d3e958b0d171fc8dd54a1645ecc3dfea76"
     }
 
     String originalSamBasename = basename(originalSam)
     String filteredBamBasename = basename(filteredBam)
-
-    # Extracting called CpG ratio
-    # TODO: From the MethylDackel cytosine report
-    # S1_methylome_report.txt
-    # x = Number of called methylated CpG sites, y = Number of called unmethylated CpG sites
-    # called_cpg = (x / (x + y)) * 100
-
-    # Extracting non-CpG conversion ratio (percent)
-    # TODO: From the MethylDackel cytosine report:
-    # S1_methylome_report.txt
-    # a = Number of called unmethylated non-CpG sites
-    # b = Number of called methylated non-CpG sites
-    # non_cpg_conversion = (a / (a + b)) * 100
 
     command <<<
         mv ~{originalSam} ~{filteredBam} ~{filteredBai} .
         touch ~{filteredBamBasename}.bai
 
         bash /usr/local/src/mapping_efficiency_statistics.sh ~{originalSamBasename} ~{filteredBamBasename} > mapping_efficiency.txt
+        python /usr/local/src/extract_called_cpg_ratio.py ~{cytosineReport} > called_cpg.txt
+        python /usr/local/src/extract_non_cpg_conversion_ratio.py ~{cytosineReport} > non_cpg_conversion.txt
     >>>
 
     output {
         Float mappingEfficiency = read_float("mapping_efficiency.txt")
+        Float calledCpG = read_float("called_cpg.txt")
+        Float nonCpGConversion = read_float("non_cpg_conversion.txt")
     }
 
     runtime {

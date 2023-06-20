@@ -26,6 +26,8 @@ ENV SRC=/usr/local/src
 ENV BIN=/usr/local/bin
 
 COPY mapping_efficiency_statistics.sh $SRC/mapping_efficiency_statistics.sh
+COPY extract_called_cpg_ratio.py $SRC/extract_called_cpg_ratio.py
+COPY extract_non_cpg_conversion_ratio.py $SRC/extract_non_cpg_conversion_ratio.py
 
 WORKDIR $SRC
 
