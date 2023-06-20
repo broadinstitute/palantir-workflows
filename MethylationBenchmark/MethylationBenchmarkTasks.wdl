@@ -675,8 +675,8 @@ task CollectMethylationStatistics {
         touch ~{filteredBamBasename}.bai
 
         bash /usr/local/src/mapping_efficiency_statistics.sh ~{originalSamBasename} ~{filteredBamBasename} > mapping_efficiency.txt
-        python /usr/local/src/extract_called_cpg_ratio.py ~{cytosineReport} > called_cpg.txt
-        python /usr/local/src/extract_non_cpg_conversion_ratio.py ~{cytosineReport} > non_cpg_conversion.txt
+        python3 /usr/local/src/extract_called_cpg_ratio.py ~{cytosineReport} > called_cpg.txt
+        python3 /usr/local/src/extract_non_cpg_conversion_ratio.py ~{cytosineReport} > non_cpg_conversion.txt
     >>>
 
     output {
