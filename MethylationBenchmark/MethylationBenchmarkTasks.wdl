@@ -1,8 +1,62 @@
 version 1.0
 
+task CalculateTotalTargetedRegionSize {
+    input {
+        File targets
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 128
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/base-docker@sha256:5928c4b854be7ba120cdd2361f4e51cea0805e0c9565438c83e598d889f1fdf4"
+    }
+
+    command <<<
+        awk '{SUM += $3-$2} END {print SUM}' ~{targets} > "total_targeted_region_size.txt"
+    >>>
+
+    output {
+        Int totalTargetedRegionSize = read_int("total_targeted_region_size.txt")
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task CalculateTotalWantedReads {
+    input {
+        Int totalTargetedRegionSize
+        Int downsampleAmount = 250
+        Int readLength = 200
+        Int cpu = 1
+        Int memoryGB = 32
+        Int diskSizeGB = 128
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/base-docker@sha256:5928c4b854be7ba120cdd2361f4e51cea0805e0c9565438c83e598d889f1fdf4"
+    }
+
+    Int totalWantedReads = totalTargetedRegionSize / (downsampleAmount * readLength)
+
+    command <<<
+        echo ~{totalWantedReads} > "total_wanted_reads.txt"
+    >>>
+
+    output {
+        Int totalWantedReads = read_int("total_wanted_reads.txt")
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
 task DownsampleReads {
     input {
-        File fqgz
+        File fq
         Int finalTotalReads = 153930409
         Int rngSeed = 42
         Int cpu = 8
@@ -11,15 +65,16 @@ task DownsampleReads {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/seqtk@sha256:eb2e9af13f0836fe7652725db4fc82a0e5708778c706bca3fd1f556ecbaba69b"
     }
 
-    String fqBasename = basename(fqgz, ".fastq.gz")
+    String fqBasename = basename(fq, ".fastq.gz")
 
     command <<<
-        gunzip -c ~{fqgz} > ~{fqBasename}.fastq
+        gunzip -c ~{fq} > ~{fqBasename}.fastq
         seqtk sample -2 -s ~{rngSeed} ~{fqBasename}.fastq ~{finalTotalReads} > ~{fqBasename}.downsampled.fastq
+        gzip ~{fqBasename}.downsampled.fastq
     >>>
 
     output {
-        File fqDownsampled = "~{fqBasename}.downsampled.fastq"
+        File fqDownsampled = "~{fqBasename}.downsampled.fastq.gz"
     }
 
     runtime {

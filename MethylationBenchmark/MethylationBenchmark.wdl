@@ -11,22 +11,26 @@ workflow MethylationBenchmark {
         File refIdx
         File bwamethIdx
         File targets
+        Boolean downsample
     }
 
-#    call MethylationBenchmarkPerSampleTasks.DownsampleReads as DownsampleReadsFq1 {
-#        input:
-#            fqgz = fq1gz,
-#    }
-#
-#    call MethylationBenchmarkPerSampleTasks.DownsampleReads as DownsampleReadsFq2 {
-#        input:
-#            fqgz = fq2gz,
-#    }
+    if(downsample)
+    {
+        call MethylationBenchmarkPerSampleTasks.DownsampleReads as DownsampleReadsFq1 {
+            input:
+                fq = fq1,
+        }
+
+        call MethylationBenchmarkPerSampleTasks.DownsampleReads as DownsampleReadsFq2 {
+            input:
+                fq = fq2,
+        }
+    }
 
     call MethylationBenchmarkTasks.TrimAdapters {
         input:
-            fq1 = fq1,
-            fq2 = fq2
+            fq1 = select_first([DownsampleReadsFq1.fqDownsampled, fq1]),
+            fq2 = select_first([DownsampleReadsFq2.fqDownsampled, fq2])
     }
 
     call MethylationBenchmarkTasks.FastQC {
@@ -147,8 +151,8 @@ workflow MethylationBenchmark {
     }
 
     output {
-        #File fq1Downsampled = DownsampleReadsFq1.fqDownsampled
-        #File fq2Downsampled = DownsampleReadsFq2.fqDownsampled
+        File? fq1Downsampled = DownsampleReadsFq1.fqDownsampled
+        File? fq2Downsampled = DownsampleReadsFq2.fqDownsampled
         File fq1Trimmed = TrimAdapters.fq1Trimmed
         File fq2Trimmed = TrimAdapters.fq2Trimmed
         File qcFq1 = FastQC.qcFq1
