@@ -16,12 +16,12 @@ workflow MethylationBenchmark {
 
     if(downsample)
     {
-        call MethylationBenchmarkPerSampleTasks.DownsampleReads as DownsampleReadsFq1 {
+        call MethylationBenchmarkTasks.DownsampleReads as DownsampleReadsFq1 {
             input:
                 fq = fq1,
         }
 
-        call MethylationBenchmarkPerSampleTasks.DownsampleReads as DownsampleReadsFq2 {
+        call MethylationBenchmarkTasks.DownsampleReads as DownsampleReadsFq2 {
             input:
                 fq = fq2,
         }
