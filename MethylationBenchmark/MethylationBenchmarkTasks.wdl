@@ -36,10 +36,10 @@ task CalculateTotalWantedReads {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/base-docker@sha256:5928c4b854be7ba120cdd2361f4e51cea0805e0c9565438c83e598d889f1fdf4"
     }
 
-    Int totalWantedReads = totalTargetedRegionSize / (downsampleAmount * readLength)
+    Int totalReads = totalTargetedRegionSize / (downsampleAmount * readLength)
 
     command <<<
-        echo ~{totalWantedReads} > "total_wanted_reads.txt"
+        echo ~{totalReads} > "total_wanted_reads.txt"
     >>>
 
     output {
