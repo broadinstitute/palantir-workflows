@@ -1,3 +1,4 @@
+print("Importing tools for script...")
 import sys, os, shutil
 import json
 import tarfile
@@ -11,6 +12,7 @@ WORKSPACE = sys.argv[2]
 SUBMISSION_ID = sys.argv[3]
 
 # Query for workflow output data
+print("Querying Terra API for workflow outputs...")
 response = fapi.get_submission(
     namespace=NAMESPACE,
     workspace=WORKSPACE,
@@ -18,6 +20,7 @@ response = fapi.get_submission(
 )
 
 # Make output dir location
+print("Creating directory for WDL outputs...")
 try:
     os.mkdir('./wdl_outputs')
 except FileExistsError:
@@ -30,6 +33,7 @@ file_basenames = {}
 os.mkdir('./wdl_outputs/workflows/')
 
 # Parse and download output files
+print("Parsing outputs and organizing data...")
 output_json = json.loads(response.content)
 for workflow in output_json['workflows']:
     wf_response = fapi.get_workflow_outputs(
@@ -51,15 +55,6 @@ for workflow in output_json['workflows']:
         with tarfile.open(f'{wf_path}/benchmark_outputs.tar.gz') as tar:
             tar.extractall(path=wf_path)
         os.remove(f'{wf_path}/benchmark_outputs.tar.gz')
-        # output_file_dict = wf_json['tasks']['BenchmarkSVs']['outputs']
-    
-        # Save each output file locally
-        # for k in output_file_dict:
-        #     basename = output_file_dict[k].split('/')[-1]
-        #     file_basenames[k] = basename
-        #     os.system(f'gsutil cp {output_file_dict[k]} wdl_outputs/{basename}')
-        #     df = pd.read_csv(f'wdl_outputs/{basename}', sep='\t')
-        #     file_df_dict[k] = pd.concat([file_df_dict[k], df]) if k in file_df_dict.keys() else df
     else:
         print(f"WARNING: Workflow {wf_json['workflowId']} seems to have failed... Skipping data collection for this run.")
 
@@ -67,7 +62,6 @@ for workflow in output_json['workflows']:
 #     file_df_dict[k].to_csv(f'wdl_outputs/{file_basenames[k]}', sep='\t', index=False)
 
 print('Combining files across workflow runs...')
-
 # Get list of file names across the different stat categories
 workflows = os.listdir('./wdl_outputs/workflows/')
 dir_names = os.listdir(f"./wdl_outputs/workflows/{workflows[0]}/benchmark_outputs/")
@@ -87,3 +81,4 @@ for file_name in file_names:
     full_df.to_csv(f"./wdl_outputs/{file_name}", sep='\t', index=False)
 
 shutil.rmtree('./wdl_outputs/workflows/')
+print("Finished!")

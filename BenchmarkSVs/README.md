@@ -33,20 +33,24 @@ or using the provided [SVisualizer](#svisualizer).
 
 ### Inputs
 
-- `base_vcf` - (optional) proxy for "truth" VCF to use
+- `base_vcf` - (optional) proxy for "truth" VCF to use; must contain `END`, `SVTYPE`, and `SVLEN` INFO fields.
 - `base_vcf_index` - (optional) index for `base_vcf`
 - `base_sample_names` - (optional) list of sample names to use when comparing via a cohort VCF. Note the order must match
 the order of `comp_sample_names` to get the correct matches. If not provided, only the first sample will be used.
-- `comp_vcf` - the main input VCF you want to QC/benchmark
+- `comp_vcf` - the main input VCF you want to QC/benchmark; must contain `END`, `SVTYPE`, and `SVLEN` INFO fields.
 - `comp_vcf_index` - the index for `comp_vcf`
 - `comp_sample_names` - (optional) list of sample names to use when comparing via cohort VCF. Note the order must match
   the order of `base_sample_names` to get the correct matches. If not provided, only the first sample will be used.
 - `experiment` - (optional) label to populate output tables with. Useful for running multiple iterations of the workflow,
 and then concatenating outputs to use this label for downstream clustering in plots.
 - `perform_qc` - (default = true) decides whether to run QC task
+- `split_MA` - (default = false) split multiallelic sites in input VCFs; analysis otherwise assumes all sites are biallelic
 - `run_wittyer` - (default = true) decides whether to run witty.er; note that witty.er expects certain types of SVs only
 to be present, so make sure your VCF is compliant before running through this task. The types supported by witty.er are:
 DEL, INS, DUP, INV, IntraChrBND, TranslBND. 
+- `evaluation_bed` - (optional) a bed to subset both inputs VCFs to before performing any of the following analysis
+- `evaluation_pct` - (default 1) a float between 0 and 1 for the percent overlap with `evaluation_bed` required when subsetting 
+to keep
 - `bed_regions` - (optional) bed files to collect stats relative to
 - `bed_labels` - (optional) labels to use in output tables for corresponding `bed_regions` files
 - `sv_types` - (optional) types of SVs to use for running Truvari comparisons across. Note an "ALL" type is automatically
@@ -76,6 +80,7 @@ overlapping stats with provided bed files
 - `wittyer_truth_intervals` - table of variants in base with various labels annotated by witty.er
 - `wittyer_query_intervals` - table of variants in comp with various labels annotated by witty.er
 - `wittyer_nogt_intervals` - table of variants that were reported without GT for both base and comp according to witty.er
+- `combined_files` - a zip file containing all the above packaged into one file
 
 
 ## SVisualizer

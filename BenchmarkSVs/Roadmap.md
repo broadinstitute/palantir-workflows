@@ -5,22 +5,40 @@ This file contains a "to do" list for planned changes and improvements to the WD
 ## BenchmarkSVs WDL
 
 - [x] Add interval list overlap stats for breakpoints (with padding) of SVs rather than full spanning interval.
-- [ ] QC: Add optional .ped file for collecting Mendelian concordance stats.
 - [ ] Collect QUAL scores for downstream analysis (as some tools use interpretable measurement).
-- [ ] Add CNV-aware methods for collecting GT info (since CNVs have variable ploidy -- use CN field?).
 - [ ] Fix bed file "off by one" error -- currently use bed and VCF coordinates together, so need to shift bed coords by one.
+- [x] Add optional bed file for global restriction of variants.
+- [ ] Update `query` statements to filter out entries without required INFO fields.
 
 ## SVisualizer
 
 - [x] Allow for basic counts plots to filter by interval overlap percents, lengths, etc. (More control).
-- [ ] Add plots for SVLEN distributions.
+- [ ] Add plots for SVLEN and QUAL distributions.
 - [x] Add more interval list overlap sliders (esp. to Basic Wittyer Tab), and for breakpoint overlaps after collecting data.
 - [x] Add `ALL` for SVTYPE option in Adv Wittyer Plots.
 - [x] Allow user to control fixed vs dynamic axes in Prec/Recall plots.
-- [ ] Update HWE plots to use density rather than one dot per variant.
+- [ ] Update HWE plots to use density rather than one dot per variant to prevent crashing with large files.
 - [ ] Add toggle for Truvari plots to force GT match.
 
+## Backlog
+
+Some tasks that are lower priority at the moment but might get picked up in the future. 
+
+- [ ] QC: Add optional .ped file for collecting Mendelian concordance stats.
+- [ ] Add CNV-aware methods for collecting GT info (since CNVs have variable ploidy -- use CN field?).
+- [ ] Allow for custom site-level padding around breakpoints when collecting intersection stats.
+
+
 ## CHANGELOG
+
+### v0.4
+
+- Allow for `evaluation_bed` input along with `evaluation_pct` to restrict to variants intersecting a percentage of eval regions globally
+- Added toggle to WDL for splitting MA sites to ensure only biallelic sites are used downstream
+- Added QC collection for baseline VCF as well, with experiment label separating the two in combined output
+- Added overlap stats from `bed_regions` files into QC output files as well (previously inferred in plotting script w/ error-prone logic)
+- Changed the Truvari code to fix bug where sample pair stats were not being properly computed
+- Made a few tweaks to SVisualizer script (e.g. ensuring categorical orders for binning in counts tab, etc)
 
 ### v0.3
 

@@ -14,8 +14,13 @@ workflow BenchmarkSVs {
 
         File ref_dict
 
+        Boolean split_MA = false    # toggle true unless you're sure VCF only has biallelic sites
+        Boolean add_annotations = false    # toggle true if VCF missing SVTYPE, SVLEN, END fields for large INDELs
         Boolean perform_qc = true
         Boolean run_wittyer = true
+
+        File? evaluation_bed
+        Float? evaluation_pct    # Defaults to checking at least one base overlap evaluation_bed
 
         Array[File] bed_regions = []
         Array[String] bed_labels = []
@@ -28,29 +33,96 @@ workflow BenchmarkSVs {
 
     Array[String] all_sv_types = flatten([["ALL"], sv_types])
 
+    # Subset to evaluation regions
+    if (defined(evaluation_bed)) {
+        call SubsetEvaluation as SubsetComp {
+            input:
+                input_vcf=comp_vcf,
+                input_vcf_index=comp_vcf_index,
+                evaluation_bed=select_first([evaluation_bed]),
+                evaluation_pct=evaluation_pct
+        }
+
+        if (defined(base_vcf)) {
+            call SubsetEvaluation as SubsetBase {
+                input:
+                    input_vcf=select_first([base_vcf]),
+                    input_vcf_index=select_first([base_vcf_index]),
+                    evaluation_bed=select_first([evaluation_bed]),
+                    evaluation_pct=evaluation_pct
+            }
+        }
+    }
+
+    if (split_MA) {
+        call SplitMASites as SplitComp {
+            input:
+                input_vcf=select_first([SubsetComp.output_vcf, comp_vcf]),
+                input_vcf_index=select_first([SubsetComp.output_vcf_index, comp_vcf_index])
+        }
+
+        if (defined(base_vcf)) {
+            call SplitMASites as SplitBase {
+                input:
+                    input_vcf=select_first([SubsetBase.output_vcf, base_vcf]),
+                    input_vcf_index=select_first([SubsetBase.output_vcf_index, base_vcf_index])
+            }
+        }
+    }
+
+    # Replace input files with subset versions
+    File subset_comp_vcf = select_first([SplitComp.output_vcf, SubsetComp.output_vcf, comp_vcf])
+    File subset_comp_vcf_index = select_first([SplitComp.output_vcf_index, SubsetComp.output_vcf_index, comp_vcf_index])
+    File subset_base_vcf = select_first([SplitBase.output_vcf, SubsetBase.output_vcf, base_vcf])
+    File subset_base_vcf_index = select_first([SplitBase.output_vcf_index, SubsetBase.output_vcf_index, base_vcf_index])
+
+
     # QC Tasks
     if (perform_qc) {
-        call CollectQcMetrics {
+        call CollectQcMetrics as CompQcMetrics {
             input:
-                comp_vcf=comp_vcf,
-                comp_vcf_index=comp_vcf_index,
-                experiment=experiment
+                input_vcf=subset_comp_vcf,
+                input_vcf_index=subset_comp_vcf_index,
+                experiment=experiment,
+                label_suffix="Comp",
+                ref_dict=ref_dict,
+                bed_regions=bed_regions,
+                bed_labels=bed_labels
+        }
+
+        if (defined(base_vcf)) {
+            call CollectQcMetrics as BaseQcMetrics {
+                input:
+                    input_vcf=subset_base_vcf,
+                    input_vcf_index=subset_base_vcf_index,
+                    experiment=experiment,
+                    label_suffix="Base",
+                    ref_dict=ref_dict,
+                    bed_regions=bed_regions,
+                    bed_labels=bed_labels
+            }
+
+            call CombineSummaries as CombineQcMetrics {
+                input:
+                    tables=[CompQcMetrics.stats, BaseQcMetrics.stats],
+                    output_file_name="combined_qc_stats.tsv"
+            }
         }
     }
 
 
     # Benchmarking - Truvari tasks
     ## Run Truvari over different SV types for each sample name pair
-    scatter(sample_pair in zip(base_sample_names, comp_sample_names)) {
-        scatter(sv_type in all_sv_types) {
-            if (defined(base_vcf)) {
+    if (defined(base_vcf)) {
+        scatter(sample_pair in zip(base_sample_names, comp_sample_names)) {
+            scatter(sv_type in all_sv_types) {
                 call RunTruvari {
                     input:
-                        base_vcf=select_first([base_vcf]),
-                        base_vcf_index=select_first([base_vcf_index]),
+                        base_vcf=subset_base_vcf,
+                        base_vcf_index=subset_base_vcf_index,
                         base_vcf_sample_name=sample_pair.left,
-                        comp_vcf=comp_vcf,
-                        comp_vcf_index=comp_vcf_index,
+                        comp_vcf=subset_comp_vcf,
+                        comp_vcf_index=subset_comp_vcf_index,
                         comp_vcf_sample_name=sample_pair.right,
                         experiment=experiment,
                         bed_regions=bed_regions,
@@ -58,34 +130,27 @@ workflow BenchmarkSVs {
                         sv_type=sv_type,
                 }
             }
-        }
-    }
-
-    ## Collect Interval stats for Truvari FN/FP outputs
-    if (defined(base_vcf)) {
-        if (length(select_all(comp_sample_names)) > 0) {
-            scatter(sample_pair in zip(select_first([base_sample_names]), select_first([comp_sample_names]))) {
-                call CollectIntervalComparisonMetrics {
-                    input:
-                        base_vcf=select_first([base_vcf]),
-                        base_vcf_index=select_first([base_vcf_index]),
-                        base_sample_name=sample_pair.left,
-                        comp_vcf=comp_vcf,
-                        comp_vcf_index=comp_vcf_index,
-                        comp_sample_name=sample_pair.right,
-                        tp_base=select_first(select_first(RunTruvari.tp_base)),
-                        tp_base_index=select_first(select_first(RunTruvari.tp_base_index)),
-                        tp_comp=select_first(select_first(RunTruvari.tp_comp)),
-                        tp_comp_index=select_first(select_first(RunTruvari.tp_comp_index)),
-                        fp=select_first(select_first(RunTruvari.fp)),
-                        fp_index=select_first(select_first(RunTruvari.fp_index)),
-                        fn=select_first(select_first(RunTruvari.fn)),
-                        fn_index=select_first(select_first(RunTruvari.fn_index)),
-                        bed_regions=bed_regions,
-                        bed_labels=bed_labels,
-                        breakpoint_padding=breakpoint_padding,
-                        ref_dict=ref_dict
-                }
+            ## Collect Interval stats for Truvari FN/FP outputs
+            call CollectIntervalComparisonMetrics {
+                input:
+                base_vcf=subset_base_vcf,
+                base_vcf_index=subset_base_vcf_index,
+                base_sample_name=sample_pair.left,
+                comp_vcf=subset_comp_vcf,
+                comp_vcf_index=subset_comp_vcf_index,
+                comp_sample_name=sample_pair.right,
+                tp_base=select_first(RunTruvari.tp_base),
+                tp_base_index=select_first(RunTruvari.tp_base_index),
+                tp_comp=select_first(RunTruvari.tp_comp),
+                tp_comp_index=select_first(RunTruvari.tp_comp_index),
+                fp=select_first(RunTruvari.fp),
+                fp_index=select_first(RunTruvari.fp_index),
+                fn=select_first(RunTruvari.fn),
+                fn_index=select_first(RunTruvari.fn_index),
+                bed_regions=bed_regions,
+                bed_labels=bed_labels,
+                breakpoint_padding=breakpoint_padding,
+                ref_dict=ref_dict
             }
         }
     }
@@ -134,7 +199,7 @@ workflow BenchmarkSVs {
             # Finally: collect all basic Truvari stats
             call CombineSummaries as CombineBenchStats {
                 input:
-                    tables=select_all(flatten(RunTruvari.summary)),
+                    tables=select_all(flatten(select_first([RunTruvari.summary]))),
                     output_file_name="truvari_bench_summary.tsv"
             }
         }
@@ -146,8 +211,8 @@ workflow BenchmarkSVs {
         if (length(select_all(comp_sample_names)) > 0) {
             call WittyerEval as Wittyer {
                 input:
-                    truth_vcf=select_first([base_vcf]),
-                    eval_vcf=comp_vcf,
+                    truth_vcf=subset_base_vcf,
+                    eval_vcf=subset_comp_vcf,
                     truth_sample_names=base_sample_names,
                     query_sample_names=comp_sample_names
             }
@@ -194,7 +259,7 @@ workflow BenchmarkSVs {
 
     call CombineFiles {
         input:
-            qc_files=select_all([CollectQcMetrics.stats]),
+            qc_files=[select_first([CombineQcMetrics.combined_file, CompQcMetrics.stats])],
             truvari_files=select_all([CombineBenchStats.combined_file, CombineIntervalMetricsFPClosest.combined_file, CombineIntervalMetricsFNClosest.combined_file,
                 CombineIntervalMetricsTPBaseIntervals.combined_file, CombineIntervalMetricsTPCompIntervals.combined_file, CombineIntervalMetricsFPIntervals.combined_file,
                 CombineIntervalMetricsFNIntervals.combined_file]),
@@ -204,7 +269,7 @@ workflow BenchmarkSVs {
 
     output {
         # QC outputs
-        File? qc_summary = CollectQcMetrics.stats
+        File? qc_summary = select_first([CombineQcMetrics.combined_file, CompQcMetrics.stats])
 
         # Truvari outputs
         File? truvari_bench_summary = CombineBenchStats.combined_file
@@ -226,15 +291,92 @@ workflow BenchmarkSVs {
     }
 }
 
-task CollectQcMetrics {
+task SubsetEvaluation {
     input {
-        File comp_vcf
-        File comp_vcf_index
+        File input_vcf
+        File input_vcf_index
 
-        String experiment = ""
+        File evaluation_bed
+        Float? evaluation_pct
 
         # Runtime parameters
-        Int disk_size = ceil(2 * size(comp_vcf, "GB")) + 100
+        Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
+        Int cpu = 4
+        Int memory_ram = 16
+    }
+
+    command <<<
+        set -xueo pipefail
+
+        # Subset input VCF to only sites which intersect evaluation regions over pct overlap threshold
+        bcftools view -h ~{input_vcf} > header.txt
+        bedtools intersect -a ~{input_vcf} -b ~{evaluation_bed} ~{"-f" + evaluation_pct} -u > variants.vcf
+
+        cat header.txt variants.vcf | gzip > output.vcf.gz
+        bcftools index -t output.vcf.gz
+
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.3"
+        disks: "local-disk " + disk_size + " HDD"
+        memory: memory_ram + " GB"
+        cpu: cpu
+    }
+
+    output {
+        File output_vcf = "output.vcf.gz"
+        File output_vcf_index = "output.vcf.gz.tbi"
+    }
+}
+
+task SplitMASites {
+    input {
+        File input_vcf
+        File input_vcf_index
+
+        # Runtime parameters
+        Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
+        Int cpu = 4
+        Int memory_ram = 16
+    }
+
+    command <<<
+        set -xueo pipefail
+
+        bcftools norm -m -any ~{input_vcf} > split.vcf.gz
+        bcftools index -t split.vcf.gz
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.3"
+        disks: "local-disk " + disk_size + " HDD"
+        memory: memory_ram + " GB"
+        cpu: cpu
+    }
+
+    output {
+        File output_vcf = "split.vcf.gz"
+        File output_vcf_index = "split.vcf.gz.tbi"
+    }
+}
+
+task CollectQcMetrics {
+    input {
+        File input_vcf
+        File input_vcf_index
+
+        String experiment = ""
+        String label_suffix = "Comp"
+
+        File? ref_dict
+
+        Array[File] bed_regions = []
+        Array[String] bed_labels = []
+        Int? breakpoint_padding = 20
+
+        # Runtime parameters
+        Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
         Int cpu = 4
         Int memory_ram = 16
     }
@@ -243,12 +385,12 @@ task CollectQcMetrics {
         set -xueo pipefail
 
         # Add allele count annotations, in case they're missing
-        bcftools +fill-tags -o tagged.vcf.gz "~{comp_vcf}"
+        bcftools +fill-tags -o tagged.vcf.gz "~{input_vcf}"
         bcftools index -t -f tagged.vcf.gz
 
         # Main query formatting
-        MAIN_HEADER="CHROM\tPOS\tFILTER\tEND\tSVTYPE\tSVLEN\tAC\tAC_Het\tAC_Hom\tAN\tExcHet\tHWE\tAF\tMAF\tNS\tExperiment"
-        MAIN_QUERY="%CHROM\t%POS\t%FILTER\t%INFO/END\t%INFO/SVTYPE\t%INFO/SVLEN\t%AC\t%AC_Het\t%AC_Hom\t%AN\t%ExcHet\t%HWE\t%AF\t%MAF\t%NS"
+        MAIN_HEADER="CHROM\tPOS\tEND\tFILTER\tSVTYPE\tSVLEN\tAC\tAC_Het\tAC_Hom\tAN\tExcHet\tHWE\tAF\tMAF\tNS\tExperiment"
+        MAIN_QUERY="%CHROM\t%POS\t%INFO/END\t%FILTER\t%INFO/SVTYPE\t%INFO/SVLEN\t%AC\t%AC_Het\t%AC_Hom\t%AN\t%ExcHet\t%HWE\t%AF\t%MAF\t%NS"
 
         # Add newline to query expression
         MAIN_QUERY="${MAIN_QUERY}\n"
@@ -258,7 +400,58 @@ task CollectQcMetrics {
         echo -e "${MAIN_HEADER}" > qc_stats.tsv
         bcftools query \
             -f"${MAIN_QUERY}" \
-            tagged.vcf.gz | awk -v OFS='\t' '{ print $0, "~{experiment}" }' >> qc_stats.tsv
+            tagged.vcf.gz | awk -v OFS='\t' '{ print $0, "~{experiment}-~{label_suffix}" }' >> qc_stats-pre_intervals.tsv
+
+        # Add interval overlap data
+        # Clean ref_dict into genome file for bedtools
+        tail -n +2 ~{ref_dict} | cut -f2,3 - | sed 's/SN://g' - | sed 's/LN://g' - > ref.genome
+
+        # Collect interval bed overlap stats
+        generate_interval_stats () {
+            CURRENT_LABEL=$1
+            INTERVAL_FILE=$2
+            INPUT_LABEL=$3
+            VCF_FILE=$4
+
+            echo -e "${CURRENT_LABEL}-count\t${CURRENT_LABEL}-overlap" > header.txt
+            # WARNING: annotate does not preserve order of input bed regions!
+            cut -f1-3 $VCF_FILE > vcf.bed
+            bedtools annotate -both -i vcf.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-preheader.bed"
+            cat header.txt "${CURRENT_LABEL}-${INPUT_LABEL}-preheader.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-annotated.bed"
+
+            # Also add in breakpoint overlap stats using POS and END values
+            echo -e "${CURRENT_LABEL}-LBEND-count\t${CURRENT_LABEL}-LBEND-overlap" > pos-header.txt
+            echo -e "${CURRENT_LABEL}-RBEND-count\t${CURRENT_LABEL}-RBEND-overlap" > end-header.txt
+            awk '{OFS="\t"; print $1, $2, $2}' vcf.bed | bedtools slop -b ~{breakpoint_padding} -i - -g ref.genome > pos.bed
+            awk '{OFS="\t"; print $1, $3, $3}' vcf.bed | bedtools slop -b ~{breakpoint_padding} -i - -g ref.genome > end.bed
+            bedtools annotate -both -i pos.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-pos-preheader.bed"
+            bedtools annotate -both -i end.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-end-preheader.bed"
+            cat pos-header.txt "${CURRENT_LABEL}-${INPUT_LABEL}-pos-preheader.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-pos-annotated.bed"
+            cat end-header.txt "${CURRENT_LABEL}-${INPUT_LABEL}-end-preheader.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-end-annotated.bed"
+
+            # Paste together three overlap stats files
+            paste "${CURRENT_LABEL}-${INPUT_LABEL}-annotated.bed" "${CURRENT_LABEL}-${INPUT_LABEL}-pos-annotated.bed" "${CURRENT_LABEL}-${INPUT_LABEL}-end-annotated.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-full-annotated.bed"
+        }
+
+        if [ ~{length(bed_regions)} -gt 0 ]
+        then
+            INTERVAL_FILES=(~{sep=' ' bed_regions})
+            INTERVAL_LABELS=(~{sep=' ' bed_labels})
+
+            for i in {0..~{length(bed_regions)-1}}
+            do
+                CURRENT_LABEL="${INTERVAL_LABELS[$i]}"
+                CURRENT_FILE="${INTERVAL_FILES[$i]}"
+                generate_interval_stats $CURRENT_LABEL $CURRENT_FILE "qc" qc_stats-pre_intervals.tsv
+            done
+
+            # Combine across interval beds
+            echo -e $MAIN_HEADER > header.txt
+            cat header.txt qc_stats-pre_intervals.tsv > qc_stats-header.tsv
+            paste qc_stats-header.tsv *-qc-full-annotated.bed > qc_stats.tsv
+        else
+            mv qc_stats-pre_header.tsv qc_stats.tsv
+        fi
 
     >>>
 
@@ -322,16 +515,31 @@ task RunTruvari {
         # Subset VCFs by SV type
         if [ "~{sv_type}" = "ALL" ]
         then
-            ln -s ~{base_vcf} base.vcf.gz
-            ln -s ~{base_vcf_index} base.vcf.gz.tbi
-            ln -s ~{comp_vcf} comp.vcf.gz
-            ln -s ~{comp_vcf_index} comp.vcf.gz.tbi
+            ln -s ~{base_vcf} base-subset.vcf.gz
+            ln -s ~{base_vcf_index} base-subset.vcf.gz.tbi
+            ln -s ~{comp_vcf} comp-subset.vcf.gz
+            ln -s ~{comp_vcf_index} comp-subset.vcf.gz.tbi
         else
-            bcftools view -i 'INFO/SVTYPE == "~{sv_type}"' -o base.vcf.gz ~{base_vcf}
-            bcftools index -t -f base.vcf.gz
-            bcftools view -i 'INFO/SVTYPE == "~{sv_type}"' -o comp.vcf.gz ~{comp_vcf}
-            bcftools index -t -f comp.vcf.gz
+            bcftools view -i 'INFO/SVTYPE == "~{sv_type}"' -o base-subset.vcf.gz ~{base_vcf}
+            bcftools index -t -f base-subset.vcf.gz
+            bcftools view -i 'INFO/SVTYPE == "~{sv_type}"' -o comp-subset.vcf.gz ~{comp_vcf}
+            bcftools index -t -f comp-subset.vcf.gz
         fi
+
+        # Subset to sites for given sample names since Truvari flags don't seem to work right
+        if [ -z "~{base_vcf_sample_name}~{comp_vcf_sample_name}" ]
+        then
+            mv base-subset.vcf.gz base.vcf.gz
+            mv base-subset.vcf.gz.tbi base.vcf.gz.tbi
+            mv comp-subset.vcf.gz comp.vcf.gz
+            mv comp-subset.vcf.gz.tbi comp.vcf.gz.tbi
+        else
+            bcftools view ~{"-s" + base_vcf_sample_name} --min-ac 1 -o base.vcf.gz base-subset.vcf.gz
+            bcftools index -t base.vcf.gz
+            bcftools view ~{"-s" + comp_vcf_sample_name} --min-ac 1 -o comp.vcf.gz comp-subset.vcf.gz
+            bcftools index -t comp.vcf.gz
+        fi
+
 
         # Function for running Truvari over a subset cut out from intervals
         run_truvari_on_subset() {
@@ -593,7 +801,7 @@ task WittyerEval {
     Int disk_size = select_first([disk_space,100])
 
     command <<<
-        set -ex
+        set -x
 
         ### Create sample pair list
         TRUTH_SAMPLES=(~{sep=' ' truth_sample_names})
