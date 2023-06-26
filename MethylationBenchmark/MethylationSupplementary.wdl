@@ -16,12 +16,7 @@ workflow MethylationSupplementary {
             chromSizes = chromSizes
     }
 
-    call MethylationSupplementaryTasks.MultiBigWigSummary {
-
-    }
-
     output {
         File bigWig = CreateBigWigFromBedGraph.bigWig
-        File multiBigWigSummary = MultiBigWigSummary.multiBigWigSummary
     }
 }
