@@ -63,6 +63,6 @@ workflows:
   - name: MethylationBenchmark
     subclass: WDL
     primaryDescriptorPath: /MethylationBenchmark/MethylationBenchmark.wdl
-  - name: MethylationBenchmarkSupplementary
+  - name: MethylationSupplementary
     subclass: WDL
-    primaryDescriptorPath: /MethylationBenchmark/MethylationBenchmarkSupplementary.wdl
+    primaryDescriptorPath: /MethylationBenchmark/MethylationSupplementary.wdl
