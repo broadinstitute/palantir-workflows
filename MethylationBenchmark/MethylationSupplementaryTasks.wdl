@@ -8,7 +8,7 @@ task CreateBigWigFromBedGraph {
         Int cpu = 1
         Int memoryGB = 32
         Int diskSizeGB = 128
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/bedgraphtobigwig@sha256:36c0eae4e020eb065228bd6a92ed4c67ee293f36f276527f9b6ffa73616d2a99"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/bedgraphtobigwig@sha256:4d57ab760cf6f79df1f07b7cfb12c93afd4dcff9ae20dfe767d16dd958a157e9"
     }
 
     command <<<

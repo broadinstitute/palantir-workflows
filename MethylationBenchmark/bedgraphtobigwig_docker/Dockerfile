@@ -1,9 +1,12 @@
-FROM ubuntu:20.04
+FROM ubuntu:18.04
 
 ENV PATH="/root/miniconda3/bin:${PATH}"
 ARG PATH="/root/miniconda3/bin:${PATH}"
 
 RUN apt-get update
+
+RUN apt-get install -y libssl1.0.0
+RUN apt-get install -y libssl-dev
 
 RUN apt-get install -y wget
 RUN rm -rf /var/lib/apt/lists/*
