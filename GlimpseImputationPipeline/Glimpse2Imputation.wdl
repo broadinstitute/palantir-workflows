@@ -157,7 +157,9 @@ task GlimpseLigate {
 
         # Set correct reference dictionary
         ~{"mv " + picard_jar_override + " /picard.jar"}
-        java -jar /picard.jar UpdateVcfSequenceDictionary -I ligated.vcf.gz --SD ~{ref_dict} -O ~{output_basename}.imputed.vcf.gz
+        bcftools view -h --no-version ligated.vcf.gz > old_header.vcf        
+        java -jar /picard.jar UpdateVcfSequenceDictionary -I old_header.vcf --SD ~{ref_dict} -O new_header.vcf        
+        bcftools reheader -h new_header.vcf -o ~{output_basename}.imputed.vcf.gz ligated.vcf.gz
         tabix ~{output_basename}.imputed.vcf.gz
     >>>
 
