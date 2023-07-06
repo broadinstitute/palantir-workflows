@@ -1,6 +1,6 @@
 FROM ubuntu:22.10
 RUN apt update
-RUN apt install -y git python3 python3-pip wget libbz2-dev liblzma-dev libcurl4-openssl-dev
+RUN apt install -y git python3 python-is-python3 python3-pip wget libbz2-dev liblzma-dev libcurl4-openssl-dev
 
 RUN pip install pandas
 

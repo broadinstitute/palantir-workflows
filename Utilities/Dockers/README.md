@@ -14,11 +14,12 @@ the fields are populated:
 * Directory: BCFTools
 * Description: A docker image containing an installation of [bcftools](https://samtools.github.io/bcftools/bcftools.html).
 Also includes some minimal Python tools (pandas) for data processing.
-* Location: `us.gcr.io/broad-dsde-methods/bcftools:v1.0`
+* Location: `us.gcr.io/broad-dsde-methods/bcftools:v1.1`
 * Used By: [SimpleBenchmark](../../BenchmarkVCFs/SimpleBenchmark.wdl)
 * Usage: `bcftools [COMMAND]`
 * Version Notes:
   * 1.0: Versions are `bcftools` 1.16.
+  * 1.1: Added the `python-is-python3` package so that `python` is a valid command.
 
 ## samtools
 
