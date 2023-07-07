@@ -101,6 +101,8 @@ task CountSamples { # really?
     }
 
     command <<<
+        set -xeuo pipefail
+        export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
         bcftools query -l ~{imputed_vcf} | wc -l > "num_samples.txt"
     >>>
 
