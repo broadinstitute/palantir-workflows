@@ -12,3 +12,5 @@ RUN ./configure
 RUN make
 RUN make install
 RUN export PATH=/bcftools-1.16/bcftools:$PATH
+
+RUN curl -sSL https://sdk.cloud.google.com | bash

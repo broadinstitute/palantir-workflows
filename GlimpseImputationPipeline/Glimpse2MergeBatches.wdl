@@ -9,7 +9,7 @@ workflow Glimpse2MergeBatches {
 
         String docker_extract_annotations = "us.gcr.io/broad-gatk/gatk:4.3.0.0"
         String docker_count_samples = "us.gcr.io/broad-dsde-methods/bcftools:v1.1"
-        String docker_merge = "us.gcr.io/broad-dsde-methods/bcftools:v1.1"
+        String docker_merge = "us.gcr.io/broad-dsde-methods/bcftools:v1.2"
     }
 
     scatter(batch_index in range(length(imputed_vcfs))) {
