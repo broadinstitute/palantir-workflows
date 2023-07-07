@@ -72,7 +72,6 @@ task ExtractAnnotations {
 
     output {
         File annotations = "annotations_batch_~{batch_index}.tsv.gz"
-        Int num_samples = read_int("num_samples.txt")
     }
 }
 
