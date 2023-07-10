@@ -133,10 +133,26 @@ task MergeAndRecomputeAndAnnotate {
         Int preemptible = 1
     }
 
+
+    parameter_meta {
+        imputed_vcfs:
+            {
+                localization_optional: true
+            }
+        imputed_vcf_indices:
+            {
+                localization_optional: true
+            }
+    }
+
     command <<<
+        set -xeuo pipefail
+        export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
+
         bcftools merge -O z -o ~{output_basename}.merged.vcf.gz ~{sep=" " imputed_vcfs}
 
         cat <<EOF > script.py
+import gzip
 from contextlib import ExitStack
 
 input_filenames = ['~{sep="', '" annotations}']
@@ -151,7 +167,7 @@ num_batches = len(input_filenames)
 
 with open('aggregated_annotations.tsv', 'w') as output_file:
     with ExitStack() as exit_stack:
-        input_files = [exit_stack.enter_context(open(filename)) for filename in input_filenames]
+        input_files = [exit_stack.enter_context(gzip.open(filename, 'rt')) for filename in input_filenames]
 
         lines_iterator = iter(zip(*input_files))
         next(lines_iterator)
