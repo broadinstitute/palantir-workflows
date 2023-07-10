@@ -8,7 +8,7 @@ workflow Glimpse2MergeBatches {
         String output_basename
 
         String docker_extract_annotations = "us.gcr.io/broad-gatk/gatk:4.3.0.0"
-        String docker_count_samples = "us.gcr.io/broad-dsde-methods/bcftools:v1.1"
+        String docker_count_samples = "us.gcr.io/broad-dsde-methods/bcftools:v1.2"
         String docker_merge = "us.gcr.io/broad-dsde-methods/bcftools:v1.2"
     }
 
@@ -50,7 +50,7 @@ task ExtractAnnotations {
         File imputed_vcf_index
         Int batch_index
         
-        String docker_extract_annotations = "us.gcr.io/broad-gatk/gatk:4.3.0.0"
+        String docker_extract_annotations
         Int disk_size_gb = ceil(2 * size(imputed_vcf, "GiB") + 50)
         Int mem_gb = 2
         Int cpu = 2
@@ -80,7 +80,7 @@ task CountSamples { # really?
         File imputed_vcf
         File imputed_vcf_index
         
-        String docker_count_samples = "us.gcr.io/broad-dsde-methods/bcftools:v1.1"
+        String docker_count_samples
         Int disk_size_gb = ceil(1 * size(imputed_vcf, "GiB") + 10)
         Int mem_gb = 2
         Int cpu = 2
@@ -126,7 +126,7 @@ task MergeAndRecomputeAndAnnotate {
         Array[Int] num_samples
         String output_basename
 
-        String docker_merge = "us.gcr.io/broad-dsde-methods/bcftools:v1.1"
+        String docker_merge
         Int disk_size_gb = ceil(2.2 * size(imputed_vcfs, "GiB") + 50)
         Int mem_gb = 2
         Int cpu = 2
