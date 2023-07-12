@@ -34,6 +34,15 @@ from upset_plot_utils import create_upset, make_disqualified_df
 # Must be numeric to plot along x-axis, e.g. average coverage
 COVARIATE_X = None
 
+# Option to skip second HWE plot for variant in Comp VCFs
+# Useful to skip for single sample vs panel (Base) comparisons
+SKIP_COMP_HWE = True
+
+# Coerice missing FILTER to PASS
+# Ensure '.' is interpreted as PASS FILTER in case base/comp have different conventions
+# (Though this should be done before running through Wittyer...)
+MAKE_MISSING_PASS_FILTER = True
+
 
 # In[ ]:
 
@@ -70,6 +79,15 @@ WITTYER_QUERY_PATH = 'wdl_outputs/wittyer_query_intervals.tsv'
 WITTYER_NOGT_PATH = 'wdl_outputs/wittyer_nogt_intervals.tsv'
 
 
+# In[4]:
+
+
+# PATHS = [
+#     QC_DATA_PATH, TRUVARI_BENCH_PATH, TRUVARI_FN_CLOSEST_PATH, TRUVARI_FP_CLOSEST_PATH, TRUVARI_FN_INTERVALS_PATH, TRUVARI_FP_INTERVALS_PATH,
+#     TRUVARI_TP_BASE_INTERVALS_PATH, TRUVARI_TP_COMP_INTERVALS_PATH, WITTYER_STATS_PATH, WITTYER_TRUTH_PATH, WITTYER_QUERY_PATH, WITTYER_NOGT_PATH
+# ]
+
+
 # In[ ]:
 
 
@@ -78,20 +96,28 @@ WITTYER_NOGT_PATH = 'wdl_outputs/wittyer_nogt_intervals.tsv'
 
 # ## QC Data
 
-# In[4]:
+# In[7]:
 
 
 qc_df = pd.read_csv(QC_DATA_PATH, sep='\t')
 
 
-# In[5]:
+# In[8]:
+
+
+# Separate base vs comp experiment groups
+qc_df['Experiment_Suffix'] = qc_df['Experiment'].apply(lambda x: x.split('-')[-1])
+qc_num_exp_groups = len(qc_df['Experiment'].unique())
+
+
+# In[9]:
 
 
 # Add AC_Ref counts
 qc_df['AC_Ref'] = qc_df['NS'] - qc_df['AC_Het'] - qc_df['AC_Hom'] / 2
 
 
-# In[6]:
+# In[10]:
 
 
 # Bin lengths
@@ -122,7 +148,7 @@ qc_df['SVLEN'] = qc_df['SVLEN'].replace('.', 0).astype(int)
 qc_df['SVLEN_Bin'] = qc_df['SVLEN'].apply(bin_length)
 
 
-# In[7]:
+# In[11]:
 
 
 # Bin AFs
@@ -155,7 +181,7 @@ qc_df['AF_Bin'] = qc_df['AF'].apply(bin_af)
 qc_df['AF_Bin'] = qc_df.apply(lambda x: 'AC=1' if x['AC'] == 1 else x['AF_Bin'], axis=1)
 
 
-# In[8]:
+# In[12]:
 
 
 qc_df['SVLEN_Bin'] = pd.Categorical(qc_df['SVLEN_Bin'], ordered=True, categories=qc_length_bins)
@@ -178,7 +204,7 @@ qc_df['AF_Bin'] = pd.Categorical(qc_df['AF_Bin'], ordered=True, categories=qc_af
 
 # ### Bench Data
 
-# In[10]:
+# In[13]:
 
 
 truvari_bench_df = pd.read_csv(TRUVARI_BENCH_PATH, sep='\t')
@@ -194,7 +220,7 @@ truvari_bench_df = truvari_bench_df.rename(columns={'SV_Type': 'SVTYPE'})
 
 # ### Closest Data
 
-# In[11]:
+# In[14]:
 
 
 truvari_fn_closest_df = pd.read_csv(TRUVARI_FN_CLOSEST_PATH, sep='\t')
@@ -206,7 +232,7 @@ truvari_fp_closest_df['LLEN'] = truvari_fp_closest_df['LLEN'].replace('.', 0).as
 truvari_fp_closest_df['RLEN'] = truvari_fp_closest_df['RLEN'].replace('.', 0).astype(int)
 
 
-# In[12]:
+# In[15]:
 
 
 # Add SIZE_RATIO fields
@@ -214,7 +240,7 @@ truvari_fp_closest_df['SIZE_RATIO'] = truvari_fp_closest_df[['LLEN', 'RLEN']].mi
 truvari_fn_closest_df['SIZE_RATIO'] = truvari_fn_closest_df[['LLEN', 'RLEN']].min(axis=1) / truvari_fn_closest_df[['LLEN', 'RLEN']].max(axis=1)
 
 
-# In[13]:
+# In[16]:
 
 
 # Add kth closest labels
@@ -232,7 +258,7 @@ truvari_fn_closest_df['kth_closest'] = truvari_fn_closest_df.index % k + 1
 
 # ### Intervals Data
 
-# In[14]:
+# In[17]:
 
 
 truvari_fn_intervals_df = pd.read_csv(TRUVARI_FN_INTERVALS_PATH, sep='\t')
@@ -249,7 +275,7 @@ truvari_tpcomp_intervals_df = pd.read_csv(TRUVARI_TP_COMP_INTERVALS_PATH, sep='\
 
 # ## Wittyer Data
 
-# In[15]:
+# In[18]:
 
 
 wittyer_stats_df = pd.read_csv(WITTYER_STATS_PATH, sep='\t')
@@ -258,7 +284,7 @@ wittyer_query_df = pd.read_csv(WITTYER_QUERY_PATH, sep='\t')
 wittyer_nogt_df = pd.read_csv(WITTYER_NOGT_PATH, sep='\t')
 
 
-# In[16]:
+# In[19]:
 
 
 wittyer_query_df['VCF'] = 'query'
@@ -275,7 +301,7 @@ adv_wittyer_df = pd.concat([wittyer_query_df, wittyer_truth_df])
 
 # ## Add BBEND Info
 
-# In[17]:
+# In[20]:
 
 
 # Add BBEND stats
@@ -295,11 +321,41 @@ add_bbend_stats(adv_wittyer_df)
 
 
 
+# ## Change Missing to PASS for FILTERs
+
+# In[21]:
+
+
+if MAKE_MISSING_PASS_FILTER:
+    for df in [qc_df, truvari_bench_df, truvari_fp_closest_df, truvari_fn_closest_df, truvari_fn_intervals_df, truvari_fp_intervals_df,
+               truvari_tpbase_intervals_df, truvari_tpcomp_intervals_df, wittyer_stats_df, adv_wittyer_df]:
+        if 'FILTER' in df.columns:
+            df['FILTER'] = df['FILTER'].replace('.', 'PASS')
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
 # # Quickboard
 
 # ## Plugin Methods
 
-# In[18]:
+# In[22]:
 
 
 # Interval Plugins
@@ -409,7 +465,7 @@ def make_stat_selector(data_values):
 
 # ## Decorators
 
-# In[19]:
+# In[23]:
 
 
 def interval_filter(plotter):
@@ -436,7 +492,7 @@ def interval_filter(plotter):
     return interval_plotter
 
 
-# In[20]:
+# In[24]:
 
 
 def axes_mode(plotter):
@@ -452,7 +508,7 @@ def axes_mode(plotter):
     return axes_plotter
 
 
-# In[21]:
+# In[25]:
 
 
 def filter_or_all_factory(col_name):
@@ -469,7 +525,7 @@ def filter_or_all_factory(col_name):
     return filter_or_all
 
 
-# In[22]:
+# In[26]:
 
 
 def gt_match(plotter):
@@ -500,26 +556,36 @@ def gt_match(plotter):
 
 # ### Counts Tab
 
-# In[23]:
+# In[27]:
 
 
-# TODO: Make sure x-axis is sorted appropriately for various categories, e.g. AF
 @interval_filter
 def make_bar_counts(df, x, interval_name, breakpoint, pct_overlap):
-    counts_df = df.groupby('Experiment')[[x, 'Experiment']].value_counts().reset_index(name='count').rename(columns={'index': x}).sort_values(by=x)
-    fig = px.bar(counts_df, x=x, y='count', barmode='group', color='Experiment', title=f'Count of {x}') # text_auto='.2s'
+    plot_args = {
+        'x': x,
+        'y': 'Mean_Count',
+        'title': f'Mean Count of {x}',
+        'error_y': 'std',
+        'color': 'Experiment',
+        'barmode': 'group',
+    }
+
+    counts_df = df.groupby(['Experiment_Suffix', 'Experiment', 'Sample']).apply(lambda df: df[x].value_counts().reset_index()).reset_index() \
+        .groupby(['Experiment', x]).apply(lambda df: df['count'].describe()).reset_index().rename(columns={'mean': 'Mean_Count'})
+    
+    fig = px.bar(counts_df, **plot_args) # text_auto='.2s'
     fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
     return fig
 
 
-# In[24]:
+# In[28]:
 
 
 count_plot = qbb.PlotPanel(
     header='Counts Bar Chart',
     plotter=make_bar_counts,
     plot_inputs={
-        'x': 'SVTYPE'
+        # 'x': 'SVTYPE'
     },
     data_source=qc_df,
     plugins=[
@@ -532,7 +598,7 @@ count_plot = qbb.PlotPanel(
 )
 
 
-# In[25]:
+# In[29]:
 
 
 counts_tab = qbb.BaseTab(
@@ -542,10 +608,70 @@ counts_tab = qbb.BaseTab(
         count_plot
     ],
     sidebar_plugins=make_interval_plugin_bundle(qc_df) + [
-        # make_interval_selector(qc_df),
         make_length_selector(qc_df),
         make_filter_selector(qc_df)
-        # make_experiment_selector(qc_df)
+    ]
+)
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# ### Counts Distributions
+
+# In[30]:
+
+
+@interval_filter
+def make_qc_histogram(df, x, barmode, interval_name, breakpoint, pct_overlap):
+    fig = px.histogram(df, x=x, barmode=barmode, color='Experiment')
+    return fig
+
+
+# In[31]:
+
+
+histogram_plot = qbb.PlotPanel(
+    header='Histogram of Values',
+    plotter=make_qc_histogram,
+    plot_inputs={},
+    data_source=qc_df,
+    plugins=[
+        plg.PlotInputRadioButtons(
+            header='Value for x',
+            plot_input='x',
+            data_values=['SVLEN', 'QUAL', 'AF']
+        ),
+        plg.PlotInputRadioButtons(
+            header='Bar Mode',
+            plot_input='barmode',
+            data_values=['overlay', 'group', 'relative']
+        )
+    ]
+)
+
+
+# In[32]:
+
+
+histogram_tab = qbb.BaseTab(
+    tab_label='QC Histogram',
+    tab_header='QC Histogram',
+    content_list=[
+        histogram_plot
+    ],
+    sidebar_plugins=make_interval_plugin_bundle(qc_df) + [
+        make_length_selector(qc_df),
+        make_filter_selector(qc_df)
     ]
 )
 
@@ -564,7 +690,15 @@ counts_tab = qbb.BaseTab(
 
 # ### HWE Tab
 
-# In[26]:
+# In[33]:
+
+
+def check_single_sample_hwe(df):
+    # Check to see if HWE related stats are likely from single sample, i.e should not waste time creating plot
+    pass
+
+
+# In[34]:
 
 
 @interval_filter
@@ -580,10 +714,18 @@ def make_hwe_plot(df, interval_name, breakpoint, pct_overlap):
     filter_value = df['FILTER'].iloc[0] if len(df['FILTER']) > 0 else "Empty df"
     title = title + f' (FILTER is {filter_value} only)'
     
+    if df['HWE'].sum() == len(df) and len(df) > 0:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="All HWE values are 1; <br></br>data likely generated from single sample so skipping HWE plot (All points at corners).",
+            xref="paper", yref="paper", x=0,y=1, showarrow=False
+        )
+        return fig
+    
     # Create plot
     fig = px.scatter_ternary(df, 
                    a='AC_Het', b='AC_Ref', c='AC_Hom', color='HWE', color_continuous_scale="haline",
-                   width=800, height=800, title=title)
+                   width=700, height=700, title=title)
 
     fig.update_layout(coloraxis_colorbar_x=1.15)
     
@@ -622,26 +764,51 @@ def make_hwe_plot(df, interval_name, breakpoint, pct_overlap):
     return fig
 
 
-# In[27]:
+# In[35]:
 
 
-hwe_plot = qbb.PlotPanel(
-    header='HWE Plot',
+hwe_base_plot = qbb.PlotPanel(
+    header='HWE Plot for Base Variants',
     plotter=make_hwe_plot,
     plot_inputs={},
-    data_source=qc_df,
+    data_source=qc_df[qc_df['Experiment_Suffix'] == 'Base'],
     plugins=[]
 )
 
 
-# In[28]:
+# In[36]:
+
+
+hwe_comp_plot = qbb.PlotPanel(
+    header='HWE Plot for Comp Variants',
+    plotter=make_hwe_plot,
+    plot_inputs={},
+    data_source=qc_df[qc_df['Experiment_Suffix'] == 'Comp'],
+    plugins=[]
+)
+
+
+# In[37]:
+
+
+hwe_cg_list = [hwe_base_plot]
+if not SKIP_COMP_HWE:
+    hwe_cg_list += [hwe_comp_plot]
+
+hwe_cg = qbb.ContentGrid(
+    header='HWE Plots',
+    content_list=hwe_cg_list
+)
+
+
+# In[38]:
 
 
 hwe_tab = qbb.BaseTab(
     tab_label='HWE Plots',
     tab_header='Hardy-Weinberg Equilibrium Plots',
     content_list=[
-        hwe_plot
+        hwe_cg
     ],
     sidebar_plugins=make_interval_plugin_bundle(qc_df) + [
         make_type_selector(qc_df),
@@ -659,13 +826,13 @@ hwe_tab = qbb.BaseTab(
 
 # ### Basic Wittyer Tab
 
-# In[29]:
+# In[39]:
 
 
 wittyer_bins = ['All'] + sorted([str(x) for x in wittyer_stats_df['Bin'].unique() if (x != 'All') & (str(x) != 'nan')]) + ['nan']
 
 
-# In[30]:
+# In[40]:
 
 
 @axes_mode
@@ -678,11 +845,11 @@ def make_basic_wittyer_plot(df, axes_mode, stat='Precision'):
         x = 'Recall'
         y = 'Precision'
         title = 'Precision vs Recall Plot'
-    hover_data = ['QueryName', 'TruthName', 'TruthTpCount', 'TruthFnCount', 'QueryTpCount', 'QueryFpCount']
-    return px.scatter(df, x=x, y=y, color='Experiment', title=title, hover_data=hover_data, marginal_x='box', marginal_y='box')
+    hover_data = ['TruthName', 'TruthTpCount', 'TruthFnCount', 'QueryTpCount', 'QueryFpCount']
+    return px.scatter(df, x=x, y=y, color='Experiment', title=title, hover_name='QueryName', hover_data=hover_data, marginal_x='box', marginal_y='box')
 
 
-# In[31]:
+# In[41]:
 
 
 plugins = [
@@ -704,7 +871,7 @@ basic_wittyer_plot = qbb.PlotPanel(
 )
 
 
-# In[32]:
+# In[42]:
 
 
 sidebar_plugins = [
@@ -741,7 +908,7 @@ basic_wittyer_tab = qbb.BaseTab(
 
 # ### Adv Wittyer Tab
 
-# In[33]:
+# In[43]:
 
 
 def add_recall(df):
@@ -779,7 +946,7 @@ def add_f1(df):
     return df
 
 
-# In[34]:
+# In[44]:
 
 
 @axes_mode
@@ -812,12 +979,12 @@ def make_adv_wittyer_plot(df, interval_name, breakpoint, pct_overlap, gt_match, 
         fig.update_layout(title='No variants found with given conditions')
         return fig
     
-    hover_data = ['QuerySample', 'TruthSample', 'TP-Base', 'FN', 'TP-Comp', 'FP']
-    fig = px.scatter(counts_df, x=x, y=y, title=title, color='Experiment', hover_data=hover_data, marginal_x='box', marginal_y='box')
+    hover_data = ['TruthSample', 'TP-Base', 'FN', 'TP-Comp', 'FP']
+    fig = px.scatter(counts_df, x=x, y=y, title=title, color='Experiment', hover_name='QuerySample', hover_data=hover_data, marginal_x='box', marginal_y='box')
     return fig
 
 
-# In[35]:
+# In[45]:
 
 
 plugins = [
@@ -839,7 +1006,7 @@ adv_wittyer_plot = qbb.PlotPanel(
 )
 
 
-# In[36]:
+# In[46]:
 
 
 sidebar_plugins = make_interval_plugin_bundle(adv_wittyer_df) + [
@@ -876,7 +1043,7 @@ adv_wittyer_tab = qbb.BaseTab(
 
 # ### Truvari Bench Tab
 
-# In[37]:
+# In[47]:
 
 
 @axes_mode
@@ -896,12 +1063,22 @@ def make_truvari_bench_plot(df, axes_mode, stat='precision'):
     interval = df['Interval'].iloc[0] if len(df) > 0 else "Empty df"
     title += f' over {interval}'
     
-    hover_data = ['Comp_Name', 'Base_Name', 'TP-base', 'FN', 'TP-comp', 'FP']
-    return px.scatter(df, x=x, y=y, color='Experiment', title=title, hover_data=hover_data, marginal_x='box', marginal_y='box')
+    hover_data = ['Base_Name', 'TP-base', 'FN', 'TP-comp', 'FP']
+    return px.scatter(df, x=x, y=y, color='Experiment', title=title, hover_name='Comp_Name', hover_data=hover_data, marginal_x='box', marginal_y='box')
     # return px.scatter(df, x='recall', y='precision', color='Comp_Name')
 
 
-# In[38]:
+# In[49]:
+
+
+def make_gt_concordance_plot(df, axes_mode):
+    fig = px.box(df[df['TP-comp_TP-gt'] > 0], x='SVTYPE', y='gt_concordance', color='Experiment', title='GT Concordance')
+    if axes_mode == 'Fixed':
+        fig.update_layout(yaxis_range=[0, 1])
+    return fig
+
+
+# In[50]:
 
 
 truvari_bench_plot = qbb.PlotPanel(
@@ -909,22 +1086,33 @@ truvari_bench_plot = qbb.PlotPanel(
     plotter=make_truvari_bench_plot,
     plot_inputs={},
     data_source=truvari_bench_df,
-    plugins=[make_stat_selector(['precision', 'recall', 'f1'])] if COVARIATE_X is not None else []
+    plugins=[make_type_selector(truvari_bench_df), make_stat_selector(['precision', 'recall', 'f1'])] if COVARIATE_X is not None \
+        else [make_type_selector(truvari_bench_df)]
+)
+
+truvari_gt_concordance_plot = qbb.PlotPanel(
+    header='GT Concordance',
+    plotter=make_gt_concordance_plot,
+    plot_inputs={},
+    data_source=truvari_bench_df,
+    plugins=[
+        
+    ]
 )
 
 
-# In[39]:
+# In[51]:
 
 
 truvari_bench_tab = qbb.BaseTab(
     tab_label='Truvari Bench',
     tab_header='',
     content_list=[
-        truvari_bench_plot
+        truvari_bench_plot,
+        truvari_gt_concordance_plot
     ],
     sidebar_plugins=[
         make_interval_selector(truvari_bench_df),
-        make_type_selector(truvari_bench_df),
         make_axes_mode_selector()
     ]
 )
@@ -938,18 +1126,24 @@ truvari_bench_tab = qbb.BaseTab(
 
 # ### Truvari Errors Tab
 
-# In[40]:
+# In[52]:
+
+
+# truvari_fp_closest_df['Experiment'] = truvari_fp_closest_df['COMPNAME'] + '~' + truvari_fp_closest_df['Experiment']
+
+
+# In[53]:
 
 
 def make_closest_plot(df, sort_by, asc, mode):
     title = f'Counts of Disqualified (FP) Sites (N = {len(df)})'
     asc = asc == 'Ascending'
-    disq_df = make_disqualified_df(df, dist_threshold=500, size_ratio_threshold=0.7, color='kth_closest')
-    fig = create_upset(disq_df, title=title, sort_by=sort_by, asc=asc, mode=mode, color='kth_closest')
+    disq_df = make_disqualified_df(df, dist_threshold=500, size_ratio_threshold=0.7, color='Experiment')
+    fig = create_upset(disq_df, title=title, sort_by=sort_by, asc=asc, mode=mode, color='Experiment')
     return fig
 
 
-# In[41]:
+# In[54]:
 
 
 fp_plot = qbb.PlotPanel(
@@ -1007,7 +1201,7 @@ fn_plot = qbb.PlotPanel(
 )
 
 
-# In[42]:
+# In[55]:
 
 
 truvari_errors_tab = qbb.BaseTab(
@@ -1018,7 +1212,11 @@ truvari_errors_tab = qbb.BaseTab(
         fn_plot
     ],
     sidebar_plugins=[
-        
+        plg.DataFilterChecklist(
+            header='kth Closest',
+            data_col='kth_closest',
+            data_values=[1, 2, 3]
+        )
     ]
 )
 
@@ -1031,12 +1229,13 @@ truvari_errors_tab = qbb.BaseTab(
 
 # ## Main Board
 
-# In[43]:
+# In[56]:
 
 
 board = qbb.Quickboard(
     tab_list=[
         counts_tab,
+        histogram_tab,
         hwe_tab,
         basic_wittyer_tab,
         adv_wittyer_tab,
@@ -1046,7 +1245,7 @@ board = qbb.Quickboard(
 )
 
 
-# In[44]:
+# In[57]:
 
 
 start_app(board, debug=False, app_title='SVisualizer', mode='external', port=8050)
@@ -1056,18 +1255,6 @@ start_app(board, debug=False, app_title='SVisualizer', mode='external', port=805
 
 
 
-
-
-# In[ ]:
-
-
-
-
-
-# In[45]:
-
-
-# adv_wittyer_df
 
 
 # In[ ]:

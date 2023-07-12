@@ -5,7 +5,7 @@ This file contains a "to do" list for planned changes and improvements to the WD
 ## BenchmarkSVs WDL
 
 - [x] Add interval list overlap stats for breakpoints (with padding) of SVs rather than full spanning interval.
-- [ ] Collect QUAL scores for downstream analysis (as some tools use interpretable measurement).
+- [x] Collect QUAL scores for downstream analysis (as some tools use interpretable measurement).
 - [ ] Fix bed file "off by one" error -- currently use bed and VCF coordinates together, so need to shift bed coords by one.
 - [x] Add optional bed file for global restriction of variants.
 - [ ] Update `query` statements to filter out entries without required INFO fields.
@@ -13,7 +13,7 @@ This file contains a "to do" list for planned changes and improvements to the WD
 ## SVisualizer
 
 - [x] Allow for basic counts plots to filter by interval overlap percents, lengths, etc. (More control).
-- [ ] Add plots for SVLEN and QUAL distributions.
+- [x] Add plots for SVLEN and QUAL distributions.
 - [x] Add more interval list overlap sliders (esp. to Basic Wittyer Tab), and for breakpoint overlaps after collecting data.
 - [x] Add `ALL` for SVTYPE option in Adv Wittyer Plots.
 - [x] Allow user to control fixed vs dynamic axes in Prec/Recall plots.
@@ -30,6 +30,18 @@ Some tasks that are lower priority at the moment but might get picked up in the 
 
 
 ## CHANGELOG
+
+### v0.5
+
+- Added a `CleanSVs.wdl` script which can take a VCF with large INDELs (including sequences) and clean to optionally split MA sites, 
+add annotations/remove short variants, and replace with abstract alleles/convert missing `.` to `PASS` filters (for Wittyer)
+- Small bug fixes/tweaks to the `BenchmarkSVs.wdl` workflow
+- Improved logic for rendering HWE plots to allow exclusion of second copy if requested at top of script (for case where comparing
+single sample VCFs against a panel)
+- Refactored SVisualizer code to plot Counts tab plots as averages with error bars when multiple Base/Comp experiment sample labels exist
+- Now collect `QUAL` stats and plot distributions (plus `SVLEN` distributions)
+- Added some extra labels for `Experiment` in output to allow for plotting averages across different groups in plots
+
 
 ### v0.4
 

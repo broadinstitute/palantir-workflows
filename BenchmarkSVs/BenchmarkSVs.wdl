@@ -14,8 +14,6 @@ workflow BenchmarkSVs {
 
         File ref_dict
 
-        Boolean split_MA = false    # toggle true unless you're sure VCF only has biallelic sites
-        Boolean add_annotations = false    # toggle true if VCF missing SVTYPE, SVLEN, END fields for large INDELs
         Boolean perform_qc = true
         Boolean run_wittyer = true
 
@@ -54,27 +52,11 @@ workflow BenchmarkSVs {
         }
     }
 
-    if (split_MA) {
-        call SplitMASites as SplitComp {
-            input:
-                input_vcf=select_first([SubsetComp.output_vcf, comp_vcf]),
-                input_vcf_index=select_first([SubsetComp.output_vcf_index, comp_vcf_index])
-        }
-
-        if (defined(base_vcf)) {
-            call SplitMASites as SplitBase {
-                input:
-                    input_vcf=select_first([SubsetBase.output_vcf, base_vcf]),
-                    input_vcf_index=select_first([SubsetBase.output_vcf_index, base_vcf_index])
-            }
-        }
-    }
-
     # Replace input files with subset versions
-    File subset_comp_vcf = select_first([SplitComp.output_vcf, SubsetComp.output_vcf, comp_vcf])
-    File subset_comp_vcf_index = select_first([SplitComp.output_vcf_index, SubsetComp.output_vcf_index, comp_vcf_index])
-    File subset_base_vcf = select_first([SplitBase.output_vcf, SubsetBase.output_vcf, base_vcf])
-    File subset_base_vcf_index = select_first([SplitBase.output_vcf_index, SubsetBase.output_vcf_index, base_vcf_index])
+    File subset_comp_vcf = select_first([SubsetComp.output_vcf, comp_vcf])
+    File subset_comp_vcf_index = select_first([SubsetComp.output_vcf_index, comp_vcf_index])
+    File subset_base_vcf = select_first([SubsetBase.output_vcf, base_vcf])
+    File subset_base_vcf_index = select_first([SubsetBase.output_vcf_index, base_vcf_index])
 
 
     # QC Tasks
@@ -83,6 +65,7 @@ workflow BenchmarkSVs {
             input:
                 input_vcf=subset_comp_vcf,
                 input_vcf_index=subset_comp_vcf_index,
+                sample_name=comp_sample_names[0],
                 experiment=experiment,
                 label_suffix="Comp",
                 ref_dict=ref_dict,
@@ -95,6 +78,7 @@ workflow BenchmarkSVs {
                 input:
                     input_vcf=subset_base_vcf,
                     input_vcf_index=subset_base_vcf_index,
+                    sample_name=base_sample_names[0],
                     experiment=experiment,
                     label_suffix="Base",
                     ref_dict=ref_dict,
@@ -147,6 +131,7 @@ workflow BenchmarkSVs {
                 fp_index=select_first(RunTruvari.fp_index),
                 fn=select_first(RunTruvari.fn),
                 fn_index=select_first(RunTruvari.fn_index),
+                experiment=experiment,
                 bed_regions=bed_regions,
                 bed_labels=bed_labels,
                 breakpoint_padding=breakpoint_padding,
@@ -318,7 +303,7 @@ task SubsetEvaluation {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.3"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -349,7 +334,7 @@ task SplitMASites {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.3"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -366,6 +351,7 @@ task CollectQcMetrics {
         File input_vcf
         File input_vcf_index
 
+        String sample_name = ""
         String experiment = ""
         String label_suffix = "Comp"
 
@@ -389,18 +375,15 @@ task CollectQcMetrics {
         bcftools index -t -f tagged.vcf.gz
 
         # Main query formatting
-        MAIN_HEADER="CHROM\tPOS\tEND\tFILTER\tSVTYPE\tSVLEN\tAC\tAC_Het\tAC_Hom\tAN\tExcHet\tHWE\tAF\tMAF\tNS\tExperiment"
-        MAIN_QUERY="%CHROM\t%POS\t%INFO/END\t%FILTER\t%INFO/SVTYPE\t%INFO/SVLEN\t%AC\t%AC_Het\t%AC_Hom\t%AN\t%ExcHet\t%HWE\t%AF\t%MAF\t%NS"
-
-        # Add newline to query expression
-        MAIN_QUERY="${MAIN_QUERY}\n"
+        MAIN_HEADER="CHROM\tPOS\tEND\tQUAL\tFILTER\tSVTYPE\tSVLEN\tAC\tAC_Het\tAC_Hom\tAN\tExcHet\tHWE\tAF\tMAF\tNS\tSample\tExperiment"
+        MAIN_QUERY="%CHROM\t%POS\t%INFO/END\t%QUAL\t%FILTER\t%INFO/SVTYPE\t%INFO/SVLEN\t%AC\t%AC_Het\t%AC_Hom\t%AN\t%ExcHet\t%HWE\t%AF\t%MAF\t%NS\n"
 
         # Create table of relevant stats from variant annotations
         # Requires input to have INFO fields: END, SVTYPE, SVLEN
-        echo -e "${MAIN_HEADER}" > qc_stats.tsv
+        # echo -e "${MAIN_HEADER}" > qc_stats-pre_intervals.tsv
         bcftools query \
             -f"${MAIN_QUERY}" \
-            tagged.vcf.gz | awk -v OFS='\t' '{ print $0, "~{experiment}-~{label_suffix}" }' >> qc_stats-pre_intervals.tsv
+            tagged.vcf.gz | awk -v OFS='\t' '{ print $0, "~{sample_name}-~{label_suffix}", "~{experiment}-~{label_suffix}" }' > qc_stats-pre_intervals.tsv
 
         # Add interval overlap data
         # Clean ref_dict into genome file for bedtools
@@ -456,7 +439,7 @@ task CollectQcMetrics {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.3"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -617,7 +600,7 @@ task RunTruvari {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.3"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -656,6 +639,8 @@ task CollectIntervalComparisonMetrics {
         File fn
         File fn_index
 
+        String experiment = ""
+
         Array[File] bed_regions = []
         Array[String] bed_labels = []
         Int breakpoint_padding = 20
@@ -681,14 +666,14 @@ task CollectIntervalComparisonMetrics {
         bcftools view ~{"-s" + comp_sample_name} --min-ac 1 "~{fp}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > fp.bed
 
         # Generate "closest" data
-        echo -e "BASENAME\tCOMPNAME\tLCHROM\tLPOS\tLEND\tLLEN\tLTYPE\tLFILTER\tRCHROM\tRPOS\tREND\tRLEN\tRTYPE\tRFILTER\tDIST" > header.txt
+        echo -e "BASENAME\tCOMPNAME\tExperiment\tLCHROM\tLPOS\tLEND\tLLEN\tLTYPE\tLFILTER\tRCHROM\tRPOS\tREND\tRLEN\tRTYPE\tRFILTER\tDIST" > header.txt
 
         bedtools closest -a fp.bed -b base.bed -k ~{k_closest} -D ref > fp-closest.bed
-        awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", $0 }' fp-closest.bed > fp-closest-samples.bed
+        awk -v OFS='\t' '{ print "~{base_sample_name}-Base", "~{comp_sample_name}-Comp", "~{experiment}", $0 }' fp-closest.bed > fp-closest-samples.bed
         cat header.txt fp-closest-samples.bed > fp-closest-final.bed
 
         bedtools closest -a fn.bed -b comp.bed -k ~{k_closest} -D ref > fn-closest.bed
-        awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", $0 }' fn-closest.bed > fn-closest-samples.bed
+        awk -v OFS='\t' '{ print "~{base_sample_name}-Base", "~{comp_sample_name}-Comp", "~{experiment}", $0 }' fn-closest.bed > fn-closest-samples.bed
         cat header.txt fn-closest-samples.bed > fn-closest-final.bed
 
         # Clean ref_dict into genome file for bedtools
@@ -737,21 +722,21 @@ task CollectIntervalComparisonMetrics {
             done
 
             # Combine across interval beds and add sample names
-            echo -e "BASENAME\tCOMPNAME\tCHROM\tPOS\tEND\tSVLEN\tSVTYPE\tFILTER" > header.txt
+            echo -e "BASENAME\tCOMPNAME\tExperiment\tCHROM\tPOS\tEND\tSVLEN\tSVTYPE\tFILTER" > header.txt
 
-            awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", $0 }' tp-base.bed > tp-base_samples.bed
+            awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", "~{experiment}", $0 }' tp-base.bed > tp-base_samples.bed
             cat header.txt tp-base_samples.bed > tp-base_header.bed
             paste tp-base_header.bed *-tp-base-full-annotated.bed > tp-base_intervals-final.bed
 
-            awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", $0 }' tp-comp.bed > tp-comp_samples.bed
+            awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", "~{experiment}", $0 }' tp-comp.bed > tp-comp_samples.bed
             cat header.txt tp-comp_samples.bed > tp-comp_header.bed
             paste tp-comp_header.bed *-tp-comp-full-annotated.bed > tp-comp_intervals-final.bed
 
-            awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", $0 }' fp.bed > fp_samples.bed
+            awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", "~{experiment}", $0 }' fp.bed > fp_samples.bed
             cat header.txt fp_samples.bed > fp_header.bed
             paste fp_header.bed *-fp-full-annotated.bed > fp_intervals-final.bed
 
-            awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", $0 }' fn.bed > fn_samples.bed
+            awk -v OFS='\t' '{ print "~{base_sample_name}", "~{comp_sample_name}", "~{experiment}", $0 }' fn.bed > fn_samples.bed
             cat header.txt fn_samples.bed > fn_header.bed
             paste fn_header.bed *-fn-full-annotated.bed > fn_intervals-final.bed
         fi
@@ -759,7 +744,7 @@ task CollectIntervalComparisonMetrics {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.3"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -966,7 +951,7 @@ task AddIntervalOverlapStatsWittyer {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.3"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -1030,7 +1015,7 @@ task CleanBasicWittyerStats {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.3"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
         disks: "local-disk " + 50 + " HDD"
         memory: 4 + " GB"
         cpu: 2
@@ -1070,7 +1055,7 @@ task CombineSummaries {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.3"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu

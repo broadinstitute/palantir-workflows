@@ -11,13 +11,6 @@ NAMESPACE = sys.argv[1]
 WORKSPACE = sys.argv[2]
 SUBMISSION_ID = sys.argv[3]
 
-# Query for workflow output data
-print("Querying Terra API for workflow outputs...")
-response = fapi.get_submission(
-    namespace=NAMESPACE,
-    workspace=WORKSPACE,
-    submission_id=SUBMISSION_ID,
-)
 
 # Make output dir location
 print("Creating directory for WDL outputs...")
@@ -26,6 +19,14 @@ try:
 except FileExistsError:
     print("ERROR: The directory wdl_outputs already exists. Please delete or archive it before rerunning.")
     sys.exit(1)
+
+# Query for workflow output data
+print("Querying Terra API for workflow outputs...")
+response = fapi.get_submission(
+    namespace=NAMESPACE,
+    workspace=WORKSPACE,
+    submission_id=SUBMISSION_ID,
+)
     
 file_df_dict = {}
 file_basenames = {}
