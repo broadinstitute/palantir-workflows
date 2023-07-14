@@ -10,6 +10,7 @@ workflow runDipcall {
         Boolean isMaleSample
         File? custom_PAR_bed
         String sample_name = "dipcall"
+        String output_file_name = "cleaned-indexed"
     }
 
 	call dipcall {
@@ -34,7 +35,8 @@ workflow runDipcall {
     call IndexVCF {
         input:
             input_vcf=select_first([CleanHaploidCalls.cleaned_vcf, dipcall.outputVCF]),
-            sample_name=sample_name
+            sample_name=sample_name,
+            output_file_name=output_file_name
     }
 
     output{
@@ -73,46 +75,46 @@ task dipcall {
         PATH="/root/bin/samtools_1.9:$PATH"
 
         # get output base
-        PREFIX=$(basename ~{assemblyFastaPat} | sed 's/.gz$//' | sed 's/.fa\(sta\)*$//' | sed 's/[._][pm]at\(ernal\)*//')
-        mkdir $PREFIX.dipcall
+        PREFIX=$(basename "~{assemblyFastaPat}" | sed 's/.gz$//' | sed 's/.fa\(sta\)*$//' | sed 's/[._][pm]at\(ernal\)*//')
+        mkdir "$PREFIX.dipcall"
 
         # prep paternal
         PAT_FILENAME=$(basename -- "~{assemblyFastaPat}")
         if [[ $PAT_FILENAME =~ \.gz$ ]]; then
-            cp ~{assemblyFastaPat} .
-            gunzip $PAT_FILENAME
+            cp "~{assemblyFastaPat}" .
+            gunzip "$PAT_FILENAME"
             PAT_FILENAME="${PAT_FILENAME%.gz}"
         else
-            ln -s ~{assemblyFastaPat}
+            ln -s "~{assemblyFastaPat}" "$PAT_FILENAME"
         fi
 
         # prep maternal
         MAT_FILENAME=$(basename -- "~{assemblyFastaMat}")
         if [[ $MAT_FILENAME =~ \.gz$ ]]; then
-            cp ~{assemblyFastaMat} .
-            gunzip $MAT_FILENAME
+            cp "~{assemblyFastaMat}" .
+            gunzip "$MAT_FILENAME"
             MAT_FILENAME="${MAT_FILENAME%.gz}"
         else
-            ln -s ~{assemblyFastaMat}
+            ln -s "~{assemblyFastaMat}" "$MAT_FILENAME"
         fi
 
         # prep reference
         REF_FILENAME=$(basename -- "~{referenceFasta}")
         if [[ $REF_FILENAME =~ \.gz$ ]]; then
             cp ~{referenceFasta} .
-            gunzip $REF_FILENAME
+            gunzip "$REF_FILENAME"
             REF_FILENAME="${REF_FILENAME%.gz}"
         else
-            ln -s ~{referenceFasta}
+            ln -s "~{referenceFasta}" "$REF_FILENAME"
         fi
-        samtools faidx $REF_FILENAME
+        samtools faidx "$REF_FILENAME"
 
         # initialize script
         cmd=( /opt/dipcall/dipcall.kit/run-dipcall )
 
         # male samples need PAR region excluded
         if [[ ~{isMaleSample} == true ]]; then
-            if [[ ~{referenceIsHS38} ]]; then
+            if [[ "~{referenceIsHS38}" ]]; then
                 cmd+=( -x /opt/dipcall/dipcall.kit/hs38.PAR.bed )
             elif [ -f "~{custom_PAR_bed}" ]; then
                 cmd+=( -x "~{custom_PAR_bed}" )
@@ -125,27 +127,22 @@ task dipcall {
         fi
 
         # finalize script
-        cmd+=( $PREFIX.dipcall/$PREFIX )
-        cmd+=( $REF_FILENAME )
-        cmd+=( $PAT_FILENAME )
-        cmd+=( $MAT_FILENAME )
+        cmd+=( "${PREFIX}.dipcall/${PREFIX}" )
+        cmd+=( "$REF_FILENAME" )
+        cmd+=( "$PAT_FILENAME" )
+        cmd+=( "$MAT_FILENAME" )
 
         # generate makefile
-        "${cmd[@]}" >$PREFIX.mak
+        "${cmd[@]}" > "${PREFIX}.mak"
 
         # run dipcall
-        make -j 2 -f $PREFIX.mak
+        make -j 2 -f "${PREFIX}.mak"
 
         # finalize
-        rm $PREFIX.dipcall/*sam.gz
-        tar czvf $PREFIX.dipcall.tar.gz $PREFIX.dipcall/
-        cp $PREFIX.dipcall/$PREFIX.dip.bed $PREFIX.dipcall.bed
-        cp $PREFIX.dipcall/$PREFIX.dip.vcf.gz $PREFIX.dipcall.vcf.gz
-
-        # cleanup
-        rm $REF_FILENAME
-        rm $MAT_FILENAME
-        rm $PAT_FILENAME
+        rm "${PREFIX}.dipcall/*sam.gz"
+        tar czvf "${PREFIX}.dipcall.tar.gz" "${PREFIX}.dipcall/"
+        cp "${PREFIX}.dipcall/${PREFIX}.dip.bed" "${PREFIX}.dipcall.bed"
+        cp "${PREFIX}.dipcall/${PREFIX}.dip.vcf.gz" "${PREFIX}.dipcall.vcf.gz"
 
 	>>>
 	output {
@@ -181,36 +178,49 @@ task CleanHaploidCalls {
         python << CODE
 
         import pysam
+        import csv
         from cyvcf2 import VCF, Writer
 
 
         input_file = "~{dipcall_vcf}"
         bed_file = "~{PAR_bed}"
 
-        pysam.tabix_index(input_file, preset='vcf', force=True)
-
         vcf = VCF(input_file)
         vcf_out = Writer('cleaned.vcf.gz', vcf)
 
         # Function for formatting variants with missing genotypes in haploid regions
         def make_haploid_var(variant):
+            chrom_string = variant.CHROM
+            pos_string = str(variant.POS)
+            id_string = str(variant.ID)
+            ref_string = variant.REF
+            alt_string = ','.join(variant.ALT)
+            qual_string = f"{variant.QUAL:g}"
+            filter_string = variant.FILTER if variant.FILTER is not None else '.'
+            info_string = '.'
+            format_string = ':'.join(variant.FORMAT)
+
             gt_string = [x for x in variant.genotypes[0][:2] if (x != -1)]   # Grab non-missing entries; uses diploid assumption
             if len(gt_string) == 0:
                 gt_string = '.'
             else:
                 gt_string = gt_string[0]
-            filter_string = variant.FILTER if variant.FILTER is not None else '.'
-            var_string = '\t'.join([variant.CHROM, str(variant.POS), str(variant.ID), variant.REF,
-                   ','.join(variant.ALT), f"{variant.QUAL:g}", filter_string, '.',
-                   ':'.join(variant.FORMAT), f"{gt_string}:{','.join([str(x) for x in variant.format('AD').tolist()[0]])}"])
+            ad_string = ','.join([str(x) for x in variant.format('AD').tolist()[0]])
+
+            var_array = [chrom_string, pos_string, id_string, ref_string, alt_string, qual_string, filter_string,
+                        info_string, format_string, f"{gt_string}:{ad_string}"]
+            var_string = '\t'.join(var_array)
 
             return vcf_out.variant_from_string(var_string)
 
         # Process PAR bed file
+        regions = []
         with open(bed_file) as bed:
-            bed_text = bed.read().splitlines()
+            bed_rows = csv.reader(bed, delimiter='\t')
+            for row in bed_rows:
+                regions += [row]
 
-        regions = [x.split('\t') for x in bed_text]
+        # Computes complement using assumption on PAR region structure
         non_PAR = {}
         for i in range(0, len(regions), 2):
             non_PAR[regions[i][0]] = (regions[i][2], regions[i+1][1])
@@ -246,14 +256,15 @@ task IndexVCF {
     input {
         File input_vcf
         String sample_name = "dipcall"
+        String output_file_name = "cleaned-indexed"
     }
 
     command <<<
         set -xe
 
         echo "~{sample_name}" > samples.txt
-        bcftools reheader -s samples.txt -o cleaned-indexed.vcf.gz ~{input_vcf}
-        bcftools index -t -f cleaned-indexed.vcf.gz
+        bcftools reheader -s samples.txt -o "~{output_file_name}.vcf.gz" ~{input_vcf}
+        bcftools index -t -f "~{output_file_name}.vcf.gz"
     >>>
 
     runtime {
@@ -264,7 +275,7 @@ task IndexVCF {
     }
 
     output {
-        File vcf = "cleaned-indexed.vcf.gz"
-        File vcf_index = "cleaned-indexed.vcf.gz.tbi"
+        File vcf = "~{output_file_name}.vcf.gz"
+        File vcf_index = "~{output_file_name}.vcf.gz.tbi"
     }
 }
