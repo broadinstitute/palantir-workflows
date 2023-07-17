@@ -40,8 +40,8 @@ task run_vcfdist_task{
     command <<<
 
         docker run -i -t ubuntu:vcfdist_dill /bin/bash
-        cd htslib-1.17/vcfdist
-        ../src/vcfdist \
+        cd htslib-1.17/vcfdist/src
+        vcfdist \
             ~{eval_vcf} \
             ~{truth_vcf} \
             ~{fasta_file} \
