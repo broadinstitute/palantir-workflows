@@ -46,7 +46,6 @@ task run_vcfdist_task{
             ~{truth_vcf} \
             ~{fasta_file} \
             -b ~{bed_file} \
-            -p results/ \
             -v 0
         exit
     >>>
@@ -60,6 +59,6 @@ task run_vcfdist_task{
     }
 
     output {
-        File prs_tsv = "/results/precision-recall-summary.tsv"
+        File prs_tsv = "precision-recall-summary.tsv"
     }
 }
