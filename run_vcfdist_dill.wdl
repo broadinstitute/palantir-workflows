@@ -39,8 +39,8 @@ task run_vcfdist_task{
 
     command <<<
 
-        docker run -i -t -v /Users/desilva/Documents/shared-docker-data:/htslib-1.17/vcfdist/shared_data ubuntu:vcfdist_dill /bin/bash
-        cd htslib-1.17/vcfdist/shared_data
+        docker run -i -t ubuntu:vcfdist_dill /bin/bash
+        cd htslib-1.17/vcfdist
         ../src/vcfdist \
             ~{eval_vcf} \
             ~{truth_vcf} \
@@ -59,6 +59,6 @@ task run_vcfdist_task{
     }
 
     output {
-        File prs_tsv = "precision-recall-summary.tsv"
+        File prs_tsv = "/precision-recall-summary.tsv"
     }
 }
