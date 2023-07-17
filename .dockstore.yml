@@ -87,3 +87,6 @@ workflows:
   - name: Cupcake
     subclass: WDL
     primaryDescriptorPath: /LongReadRNABenchmark/Cupcake.wdl
+  - name: vcfdist
+    subclass: WDL
+    primaryDescriptorPath: /run_vcfdist_dill.wdl
