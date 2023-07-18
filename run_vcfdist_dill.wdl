@@ -38,7 +38,7 @@ task run_vcfdist_task{
     }
 
     command <<<
-        /htslib-1.17/vcfdist/src vcfdist \
+        /htslib-1.17/vcfdist/src/vcfdist \
             ~{eval_vcf} \
             ~{truth_vcf} \
             ~{fasta_file} \
