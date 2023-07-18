@@ -56,6 +56,6 @@ task run_vcfdist_task{
     }
 
     output {
-        File prs_tsv = "htslib-1.17/vcfdist/src/precision-recall-summary.tsv"
+        File prs_tsv = "precision-recall-summary.tsv"
     }
 }
