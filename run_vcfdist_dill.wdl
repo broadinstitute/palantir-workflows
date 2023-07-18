@@ -32,7 +32,7 @@ task run_vcfdist_task{
         
         String docker
         Int disk_size_gb = ceil(1 * size(truth_vcf, "GiB") + 10)
-        Int mem_gb = 2
+        Int mem_gb = 8
         Int cpu = 2
         Int preemptible = 1
     }
