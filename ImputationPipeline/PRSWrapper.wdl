@@ -174,7 +174,6 @@ task SelectValuesOfInterest {
                                                  ~{condition_name}_risk = risk_output,
                                                  ~{condition_name}_reason_not_resulted = reason_not_resulted)
     write_csv(result, "results.csv")
-    write(abs(adjusted_score) > ~{z_score_reportable_range}, "out_of_reportable_range.bool")
     EOF
   >>>
 
