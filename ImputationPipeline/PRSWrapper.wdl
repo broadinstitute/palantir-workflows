@@ -117,6 +117,7 @@ task CheckZScoreAgainstReportableRange {
 
     adjusted_score <- (score %>% pull(adjusted_score))[[1]]
     write(abs(adjusted_score) > ~{z_score_reportable_range}, "out_of_reportable_range.bool")
+    EOF
   >>>
 
   runtime {
