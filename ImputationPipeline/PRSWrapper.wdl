@@ -45,6 +45,11 @@ workflow PRSWrapper {
         }
       }
 
+      call CheckZScoreAgainstReportableRange {
+        input:
+          score_result = select_first([ScoringImputedDataset.adjusted_array_scores]),
+          z_score_reportable_range = z_score_reportable_range
+      }
 
       call SelectValuesOfInterest {
         input:
@@ -52,7 +57,8 @@ workflow PRSWrapper {
           sample_id = sample_id,
           condition_name = condition_resource.named_weight_set.condition_name,
           threshold = condition_resource.percentile_threshold,
-          z_score_reportable_range = z_score_reportable_range
+          z_score_reportable_range = z_score_reportable_range,
+          out_of_reportable_range = CheckZScoreAgainstReportableRange.out_of_reportable_range
       }
     }
 
@@ -94,12 +100,43 @@ workflow PRSWrapper {
 }
 
 
+task CheckZScoreAgainstReportableRange {
+  input {
+    File score_result
+    Float z_score_reportable_range
+  }
+
+  command <<<
+    Rscript - <<- "EOF"
+    library(dplyr)
+    library(readr)
+    score <- read_tsv("~{score_result}")
+    if (nrow(score) != 1) {
+    quit(status=1)
+    }
+
+    adjusted_score <- (score %>% pull(adjusted_score))[[1]]
+    write(abs(adjusted_score) > ~{z_score_reportable_range}, "out_of_reportable_range.bool")
+  >>>
+
+  runtime {
+    docker: "rocker/tidyverse@sha256:aaace6c41a258e13da76881f0b282932377680618fcd5d121583f9455305e727"
+    disks: "local-disk 100 HDD"
+    memory: "4 GB"
+  }
+
+  output {
+    Boolean out_of_reportable_range = read_boolean("out_of_reportable_range.bool")
+  }
+}
+
 task SelectValuesOfInterest {
   input {
     File score_result
     String sample_id
     String condition_name
     Float threshold
+    Boolean out_of_reportable_range
     Float z_score_reportable_range
   }
 
@@ -120,11 +157,11 @@ task SelectValuesOfInterest {
     percentile <- (score %>% pull(percentile))[[1]]
     risk <- ifelse(percentile > ~{threshold}, "HIGH", "NOT_HIGH")
 
-    raw_score_output <- ifelse(abs(adjusted_score) > ~{z_score_reportable_range}, "NOT_RESULTED", raw_score)
-    adjusted_score_output <- ifelse(abs(adjusted_score) > ~{z_score_reportable_range}, "NOT_RESULTED", adjusted_score)
-    percentile_output <- ifelse(abs(adjusted_score) > ~{z_score_reportable_range}, "NOT_RESULTED", percentile)
-    risk_output <- ifelse(abs(adjusted_score) > ~{z_score_reportable_range}, "NOT_RESULTED", risk)
-    reason_not_resulted <- ifelse(abs(adjusted_score) > ~{z_score_reportable_range},
+    raw_score_output <- ifelse(~{out_of_reportable_range}, "NOT_RESULTED", raw_score)
+    adjusted_score_output <- ifelse(~{out_of_reportable_range}, "NOT_RESULTED", adjusted_score)
+    percentile_output <- ifelse(~{out_of_reportable_range}, "NOT_RESULTED", percentile)
+    risk_output <- ifelse(~{out_of_reportable_range}, "NOT_RESULTED", risk)
+    reason_not_resulted <- ifelse(~{out_of_reportable_range},
                                 ifelse(adjusted_score > 0, paste("Z-SCORE ABOVE + ", ~{z_score_reportable_range}),
                                                            paste("Z-SCORE BELOW - ", ~{z_score_reportable_range})
                                       ),
@@ -137,7 +174,7 @@ task SelectValuesOfInterest {
                                                  ~{condition_name}_risk = risk_output,
                                                  ~{condition_name}_reason_not_resulted = reason_not_resulted)
     write_csv(result, "results.csv")
-
+    write(abs(adjusted_score) > ~{z_score_reportable_range}, "out_of_reportable_range.bool")
     EOF
   >>>
 
