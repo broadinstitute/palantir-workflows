@@ -108,12 +108,9 @@ task AggregateResults {
     write_tsv(results %>% filter(is_control_sample), "~{output_prefix}_control_results.tsv")
 
     results_pivoted <- results %>% select(-starts_with("pc")) %>% filter(!is_control_sample) %>% pivot_longer(!c(sample_id, lab_batch, is_control_sample), names_to=c("condition",".value"), names_pattern="(.+)(?<!not)(?<!reason)_(.+)$")
-    results_pivoted <- results_pivoted %T>% {options(warn=-1)} %>% mutate(adjusted = as.numeric(adjusted),
-                                                                          raw = as.numeric(raw),
-                                                                          percentile = as.numeric(percentile)) %T>% {options(warn=0)}
 
     results_summarised <- results_pivoted %>% group_by(condition) %>%
-                                              summarise(across(c(adjusted,percentile), ~mean(.x, na.rm=TRUE), .names = "mean_{.col}"),
+                                              summarise(across(c(adjusted,percentile), ~mean(as.numeric(.x), na.rm=TRUE), .names = "mean_{.col}"),
                                                         num_samples=n(),
                                                         num_scored = sum(!is.na(risk)),
                                                         num_high = sum(risk=="HIGH", na.rm=TRUE),
