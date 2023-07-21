@@ -1,6 +1,6 @@
 version 1.0
 import "ScoringPart.wdl" as Score
-import "CKDRiskAdjustment.wdl" as CKDRiskAdjustment
+import "CKDRiskAdjustment.wdl" as CKDRiskAdjustmentWF
 import "Structs.wdl"
 
 workflow PRSWrapper {
@@ -37,7 +37,7 @@ workflow PRSWrapper {
       }
 
       if (condition_resource.named_weight_set.condition_name == "ckd") {
-        call CKDRiskAdjustment.CKDRiskAdjustment {
+        call CKDRiskAdjustmentWF.CKDRiskAdjustment {
           input:
             adjustedScores = select_first([ScoringImputedDataset.adjusted_array_scores]),
             vcf = vcf,
@@ -158,16 +158,16 @@ task SelectValuesOfInterest {
     percentile <- (score %>% pull(percentile))[[1]]
     risk <- ifelse(percentile > ~{threshold}, "HIGH", "NOT_HIGH")
 
-    raw_score_output <- ifelse(~{out_of_reportable_range}, "NOT_RESULTED", raw_score)
-    adjusted_score_output <- ifelse(~{out_of_reportable_range}, "NOT_RESULTED", adjusted_score)
-    percentile_output <- ifelse(~{out_of_reportable_range}, "NOT_RESULTED", percentile)
-    risk_output <- ifelse(~{out_of_reportable_range}, "NOT_RESULTED", risk)
-    reason_not_resulted <- ifelse(~{out_of_reportable_range},
-                                ifelse(adjusted_score > 0, paste("Z-SCORE ABOVE + ", ~{z_score_reportable_range}),
-                                                           paste("Z-SCORE BELOW - ", ~{z_score_reportable_range})
-                                      ),
+    raw_score_output <- ~{if out_of_reportable_range then '"NOT_RESULTED"' else 'raw_score'}
+    adjusted_score_output <- ~{if out_of_reportable_range then '"NOT_RESULTED"' else 'adjusted_score'}
+    percentile_output <- ~{if out_of_reportable_range then '"NOT_RESULTED"' else 'percentile'}
+    risk_output <- ~{if out_of_reportable_range then '"NOT_RESULTED"' else 'risk'}
+    reason_not_resulted <- ~{if out_of_reportable_range then
+                                'ifelse(adjusted_score > 0, "Z-SCORE ABOVE + "' + z_score_reportable_range +'),
+                                                           "Z-SCORE BELOW - "' + z_score_reportable_range +')
+                                      )' else
                                 "NA"
-                                )
+                           }
 
     result <- tibble(sample_id = "~{sample_id}", ~{condition_name}_raw = raw_score_output,
                                                  ~{condition_name}_adjusted = adjusted_score_output,
