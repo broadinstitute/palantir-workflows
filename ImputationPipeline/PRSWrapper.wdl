@@ -163,9 +163,7 @@ task SelectValuesOfInterest {
     percentile_output <- ~{if out_of_reportable_range then '"NOT_RESULTED"' else 'percentile'}
     risk_output <- ~{if out_of_reportable_range then '"NOT_RESULTED"' else 'risk'}
     reason_not_resulted <- ~{if out_of_reportable_range then
-                                'ifelse(adjusted_score > 0, "Z-SCORE ABOVE + "' + z_score_reportable_range +'),
-                                                           "Z-SCORE BELOW - "' + z_score_reportable_range +')
-                                      )' else
+                                'ifelse(adjusted_score > 0, "Z-SCORE ABOVE + "' + z_score_reportable_range +', "Z-SCORE BELOW - "' + z_score_reportable_range +')' else
                                 "NA"
                            }
 
