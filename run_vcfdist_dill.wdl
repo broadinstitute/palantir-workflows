@@ -20,6 +20,7 @@ workflow vcfdist_eval {
 
     output {
         File prs_tsv = run_vcfdist_task.prs_tsv
+        File vcfdistsummary = run_vcfdist_task.summary
     }
 }
 
@@ -57,5 +58,6 @@ task run_vcfdist_task{
 
     output {
         File prs_tsv = "precision-recall-summary.tsv"
+        File summary = "summary.vcf"
     }
 }
