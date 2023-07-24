@@ -330,10 +330,10 @@ task BuildHTMLReport {
     p_dist <- ggplot()
     if (n_density > 0) {
       p_dist <- p_dist + stat_density(data = batch_pivoted_results %>% filter(condition %in% conditions_with_more_than_4_samples),
-      aes(color=condition, text=condition, x = adjusted), geom="line", position = "identity")
+      aes(color=condition, text=condition, x = as.numeric(adjusted)), geom="line", position = "identity")
     }
     if (n_point > 0) {
-      p_dist <- p_dist + geom_point(data = batch_pivoted_results %>% filter(!(condition %in% conditions_with_more_than_4_samples)), aes(color=condition, x = adjusted, text=condition), y=0)
+      p_dist <- p_dist + geom_point(data = batch_pivoted_results %>% filter(!(condition %in% conditions_with_more_than_4_samples)), aes(color=condition, x = as.numeric(adjusted), text=condition), y=0)
     }
     p_dist <- p_dist + xlim(-5,5) + theme_bw() + geom_line(data=normal_dist, aes(x=x, y=y), color="black") + xlab("z-score") + ylab("density")
 
