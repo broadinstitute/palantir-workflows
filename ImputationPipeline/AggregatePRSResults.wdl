@@ -119,7 +119,7 @@ task AggregateResults {
 
     write_tsv(results_summarised, "~{output_prefix}_summarised_results.tsv")
 
-    ggplot(results_pivoted, aes(x=adjusted)) +
+    ggplot(results_pivoted, aes(x=as.numeric(adjusted))) +
       geom_density(aes(color=condition), fill=NA, position = "identity") +
       xlim(-5,5) + theme_bw() + xlab("z-score") + geom_function(fun=dnorm) +
       ylab("density")
