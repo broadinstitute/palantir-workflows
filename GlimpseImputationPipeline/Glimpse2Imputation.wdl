@@ -106,15 +106,6 @@ task GlimpsePhase {
             echo "Processed CRAM ${i}: ${cram_paths[$i]} -> cram${i}.cram"
         done
 
-        cram_paths=( ~{sep=" " crams} )
-        cram_index_paths=( ~{sep=" " cram_indices} )
-
-        for i in "${!cram_paths[@]}" ; do
-            if [[ "${cram_index_paths[$i]}" != "${cram_paths[$i]}.crai" ]]; then
-                mv "${cram_index_paths[$i]}" "${cram_paths[$i]}.crai"
-            fi
-        done
-
         /GLIMPSE/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
         --reference ~{reference_chunk} \
