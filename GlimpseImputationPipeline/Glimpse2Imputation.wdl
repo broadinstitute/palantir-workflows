@@ -69,8 +69,8 @@ task GlimpsePhase {
     input {
         File? input_vcf
         File? input_vcf_index
-        Array[String]? crams
-        Array[String]? cram_indices
+        Array[File]? crams
+        Array[File]? cram_indices
         Array[String] sample_ids
         File? fasta
         File? fasta_index
@@ -78,11 +78,20 @@ task GlimpsePhase {
 
         Int mem_gb = 4
         Int cpu = 4
-        Int disk_size_gb = ceil(200)
+        Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + 1.5 * size(select_first([crams, []]), "GiB") + size(reference_chunk, "GiB") + 100)
         Int preemptible = 1
         Int max_retries = 3
         String docker
         File? monitoring_script
+    }
+
+    parameter_meta {
+        crams: {
+                        localization_optional: true
+                    }
+        cram_indices: {
+                        localization_optional: true
+                    }
     }
 
     String bam_file_list_input = if defined(crams) then "--bam-list crams.list" else ""
