@@ -69,8 +69,8 @@ task GlimpsePhase {
     input {
         File? input_vcf
         File? input_vcf_index
-        Array[String]? crams
-        Array[String]? cram_indices
+        Array[File]? crams
+        Array[File]? cram_indices
         Array[String] sample_ids
         File? fasta
         File? fasta_index
@@ -83,6 +83,15 @@ task GlimpsePhase {
         Int max_retries = 3
         String docker
         File? monitoring_script
+    }
+
+    parameter_meta {
+        crams: {
+                        localization_optional: true
+                    }
+        cram_indices: {
+                        localization_optional: true
+                    }
     }
 
     String bam_file_list_input = if defined(crams) then "--bam-list crams.list" else ""
