@@ -102,7 +102,12 @@ task GlimpsePhase {
 
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
-        echo -e "~{sep="\n" crams}" > crams.list
+        cram_paths=( ~{sep=" " crams} )
+        sample_ids=( ~{sep=" " sample_ids} )
+
+        for i in "${!cram_paths[@]}" ; do
+            echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
+        done
 
         /GLIMPSE/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \

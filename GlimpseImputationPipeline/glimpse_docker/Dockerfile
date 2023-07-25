@@ -61,7 +61,7 @@ rm -r GLIMPSE
 RUN wget https://github.com/broadinstitute/picard/releases/download/2.26.11/picard.jar && \
 mv picard.jar /
 
-RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y curl python3 samtools
+RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y curl python3
 RUN curl -sSL https://sdk.cloud.google.com | bash
 
 WORKDIR /
