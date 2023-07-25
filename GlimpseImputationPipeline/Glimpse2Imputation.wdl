@@ -20,7 +20,7 @@ workflow Glimpse2Imputation {
         Boolean call_indels
         
         Int preemptible = 1
-        String docker = "us.gcr.io/broad-dsde-methods/glimpse:2.0.0"
+        String docker = "us.gcr.io/broad-dsde-methods/glimpse:palantir-workflows_94a0cdd"
         Int cpu_phase = 4
         Int mem_gb_phase = 64
         Int cpu_ligate = 4
