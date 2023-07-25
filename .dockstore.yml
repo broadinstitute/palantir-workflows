@@ -66,6 +66,9 @@ workflows:
   - name: Glimpse2SplitReference
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2SplitReference.wdl
+  - name: Glimpse2MergeBatches
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2MergeBatches.wdl
   - name: ReduceAndMergeForGlimpse
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/ReduceAndMergeForGlimpse.wdl

@@ -1,12 +1,18 @@
-version 1.0 
+version 1.0
 
 workflow Glimpse2Imputation {
     input {
         # List of files, one per line
         File reference_chunks
 
-        File input_vcf
-        File input_vcf_index
+        File? input_vcf
+        File? input_vcf_index
+        Array[File]? crams
+        Array[File]? cram_indices
+        Array[String] sample_ids
+        File? fasta
+        File? fasta_index
+        String output_basename
 
         File ref_dict
 
@@ -30,6 +36,11 @@ workflow Glimpse2Imputation {
                 input_vcf_index = input_vcf_index,
                 impute_reference_only_variants = impute_reference_only_variants,
                 call_indels = call_indels,
+                crams = crams,
+                cram_indices = cram_indices,
+                sample_ids = sample_ids,
+                fasta = fasta,
+                fasta_index = fasta_index,
                 preemptible = preemptible,
                 docker = docker,
                 cpu = cpu_phase,
@@ -42,7 +53,7 @@ workflow Glimpse2Imputation {
         input:
             imputed_chunks = GlimpsePhase.imputed_vcf,
             imputed_chunks_indices = GlimpsePhase.imputed_vcf_index,
-            output_basename = basename(input_vcf, ".vcf.gz"),
+            output_basename = output_basename,
             ref_dict = ref_dict,
             preemptible = preemptible,
             docker = docker,
@@ -61,8 +72,13 @@ workflow Glimpse2Imputation {
 
 task GlimpsePhase {
     input {
-        File input_vcf
-        File input_vcf_index
+        File? input_vcf
+        File? input_vcf_index
+        Array[File]? crams
+        Array[File]? cram_indices
+        Array[String] sample_ids
+        File? fasta
+        File? fasta_index
         File reference_chunk
 
         Boolean impute_reference_only_variants
@@ -70,22 +86,45 @@ task GlimpsePhase {
 
         Int mem_gb = 4
         Int cpu = 4
-        Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + size(reference_chunk, "GiB") + 100)
+        Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + 1.5 * size(select_first([crams, []]), "GiB") + size(reference_chunk, "GiB") + 100)
         Int preemptible = 1
         Int max_retries = 3
         String docker
         File? monitoring_script
     }
 
+    parameter_meta {
+        crams: {
+                        localization_optional: true
+                    }
+        cram_indices: {
+                        localization_optional: true
+                    }
+    }
+
+    String bam_file_list_input = if defined(crams) then "--bam-list crams.list" else ""
     command <<<
-        set -xeuo pipefail
+        set -euo pipefail
+
+        export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
 
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
-        #NPROC=$(nproc)
-        #echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
+        cram_paths=( ~{sep=" " crams} )
+        sample_ids=( ~{sep=" " sample_ids} )
 
-        /GLIMPSE/GLIMPSE2_phase --input-gl ~{input_vcf} --reference ~{reference_chunk} ~{if impute_reference_only_variants then "--impute-reference-only-variants" else ""} ~{if call_indels then "--call-indels" else ""} --output phase_output.bcf --threads ~{cpu} #${NPROC}
+        for i in "${!cram_paths[@]}" ; do
+            echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
+        done
+
+        /GLIMPSE/GLIMPSE2_phase \
+        ~{"--input-gl " + input_vcf} \
+        --reference ~{reference_chunk} \
+        --output phase_output.bcf \
+        --threads ~{cpu} \
+        ~{if impute_reference_only_variants then "--impute-reference-only-variants" else ""} ~{if call_indels then "--call-indels" else ""} \
+        ~{bam_file_list_input} \
+        ~{"--fasta " + fasta}
     >>>
 
     runtime {
@@ -133,7 +172,9 @@ task GlimpseLigate {
 
         # Set correct reference dictionary
         ~{"mv " + picard_jar_override + " /picard.jar"}
-        java -jar /picard.jar UpdateVcfSequenceDictionary -I ligated.vcf.gz --SD ~{ref_dict} -O ~{output_basename}.imputed.vcf.gz
+        bcftools view -h --no-version ligated.vcf.gz > old_header.vcf        
+        java -jar /picard.jar UpdateVcfSequenceDictionary -I old_header.vcf --SD ~{ref_dict} -O new_header.vcf        
+        bcftools reheader -h new_header.vcf -o ~{output_basename}.imputed.vcf.gz ligated.vcf.gz
         tabix ~{output_basename}.imputed.vcf.gz
     >>>
 
