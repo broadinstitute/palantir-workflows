@@ -7,8 +7,8 @@ workflow Glimpse2Imputation {
 
         File? input_vcf
         File? input_vcf_index
-        Array[String]? crams
-        Array[String]? cram_indices
+        Array[File]? crams
+        Array[File]? cram_indices
         Array[String] sample_ids
         File? fasta
         File? fasta_index
