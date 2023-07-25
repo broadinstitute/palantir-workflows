@@ -18,6 +18,8 @@ workflow Glimpse2Imputation {
 
         Boolean impute_reference_only_variants
         Boolean call_indels
+        Int? n_burnin
+        Int? n_main
         
         Int preemptible = 1
         String docker = "us.gcr.io/broad-dsde-methods/glimpse:palantir-workflows_94a0cdd"
@@ -35,6 +37,8 @@ workflow Glimpse2Imputation {
                 input_vcf = input_vcf,
                 input_vcf_index = input_vcf_index,
                 impute_reference_only_variants = impute_reference_only_variants,
+                n_burnin = n_burnin,
+                n_main = n_main,
                 call_indels = call_indels,
                 crams = crams,
                 cram_indices = cram_indices,
@@ -83,6 +87,8 @@ task GlimpsePhase {
 
         Boolean impute_reference_only_variants
         Boolean call_indels
+        Int? n_burnin
+        Int? n_main
 
         Int mem_gb = 4
         Int cpu = 4
@@ -123,6 +129,7 @@ task GlimpsePhase {
         --output phase_output.bcf \
         --threads ~{cpu} \
         ~{if impute_reference_only_variants then "--impute-reference-only-variants" else ""} ~{if call_indels then "--call-indels" else ""} \
+        ~{"--burnin " + n_burnin} ~{"--main " + n_main} \
         ~{bam_file_list_input} \
         ~{"--fasta " + fasta}
     >>>
