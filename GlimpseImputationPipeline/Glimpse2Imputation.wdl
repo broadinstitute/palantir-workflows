@@ -102,22 +102,7 @@ task GlimpsePhase {
 
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
-        #NPROC=$(nproc)
-        #echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
-
-        cram_paths=( ~{sep=" " crams} )
-        cram_index_paths=( ~{sep=" " cram_indices} )
-        sample_ids=( ~{sep=" " sample_ids} )
-
-        chunk_region=$(echo "~{reference_chunk}"|sed 's/^.*chr/chr/'|sed 's/\.bin//'|sed 's/_/:/1'|sed 's/_/-/1')
-
-        echo "Region for CRAM extraction: ${chunk_region}"
-        for i in "${!cram_paths[@]}" ; do
-            samtools view -h -C -X -T ~{fasta} -o cram${i}.cram "${cram_paths[$i]}" "${cram_index_paths[$i]}" ${chunk_region}
-            samtools index cram${i}.cram
-            echo -e "cram${i}.cram ${sample_ids[$i]}" >> crams.list
-            echo "Processed CRAM ${i}: ${cram_paths[$i]} -> cram${i}.cram"
-        done
+        echo -e "~{sep="\n" crams}" > crams.list
 
         /GLIMPSE/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
