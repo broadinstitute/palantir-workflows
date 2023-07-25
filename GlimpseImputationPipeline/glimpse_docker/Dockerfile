@@ -10,7 +10,7 @@ LABEL org.opencontainers.image.authors="simone.rubinacci@unil.ch"
 WORKDIR /docker_build/
 
 # Install required packages
-RUN apt-get update && apt-get install -y build-essential libbz2-dev libcurl4-openssl-dev autoconf libssl-dev wget zlib1g-dev liblzma-dev git openjdk-8-jre-headless
+RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y build-essential libbz2-dev libcurl4-openssl-dev autoconf libssl-dev wget zlib1g-dev liblzma-dev git openjdk-8-jre-headless curl python3
 
 # Download and build boost program_options and iostreams
 RUN wget https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.gz && \
@@ -36,6 +36,7 @@ make install && \
 cd .. && \
 rm -r htslib-1.16
 
+# Download and build bcftools
 RUN wget https://github.com/samtools/bcftools/releases/download/1.16/bcftools-1.16.tar.bz2 && \
 tar -xf bcftools-1.16.tar.bz2 && \
 rm bcftools-1.16.tar.bz2 && \
@@ -46,7 +47,6 @@ autoconf && \
 make install && \
 cd .. && \
 rm -r bcftools-1.16
-#RUN export PATH=/bcftools-1.16/bcftools:$PATH
 
 # Download and build GLIMPSE
 RUN git clone --depth 1 --branch mg_fix_makefile https://github.com/michaelgatzen/GLIMPSE.git && \
@@ -62,7 +62,6 @@ RUN wget https://github.com/broadinstitute/picard/releases/download/2.26.11/pica
 mv picard.jar /
 
 # Install gcloud
-RUN apt-get update && DEBIAN_FRONTEND="noninteractive" apt-get install -y curl python3 samtools
 RUN curl -sSL https://sdk.cloud.google.com | bash
 
 WORKDIR /

@@ -9,6 +9,7 @@ workflow Glimpse2Imputation {
         File? input_vcf_index
         Array[File]? crams
         Array[File]? cram_indices
+        Array[String] sample_ids
         File? fasta
         File? fasta_index
         String output_basename
@@ -32,6 +33,7 @@ workflow Glimpse2Imputation {
                 input_vcf_index = input_vcf_index,
                 crams = crams,
                 cram_indices = cram_indices,
+                sample_ids = sample_ids,
                 fasta = fasta,
                 fasta_index = fasta_index,
                 preemptible = preemptible,
@@ -69,6 +71,7 @@ task GlimpsePhase {
         File? input_vcf_index
         Array[File]? crams
         Array[File]? cram_indices
+        Array[String] sample_ids
         File? fasta
         File? fasta_index
         File reference_chunk
@@ -82,25 +85,28 @@ task GlimpsePhase {
         File? monitoring_script
     }
 
+    parameter_meta {
+        crams: {
+                        localization_optional: true
+                    }
+        cram_indices: {
+                        localization_optional: true
+                    }
+    }
+
     String bam_file_list_input = if defined(crams) then "--bam-list crams.list" else ""
     command <<<
-        set -xeuo pipefail
+        set -euo pipefail
+
+        export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
 
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
-
-        #NPROC=$(nproc)
-        #echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
-
-        echo -e "~{sep="\n" crams}" > crams.list
-
         cram_paths=( ~{sep=" " crams} )
-        cram_index_paths=( ~{sep=" " cram_indices} )
+        sample_ids=( ~{sep=" " sample_ids} )
 
         for i in "${!cram_paths[@]}" ; do
-            if [[ "${cram_index_paths[$i]}" != "${cram_paths[$i]}.crai" ]]; then
-                mv "${cram_index_paths[$i]}" "${cram_paths[$i]}.crai"
-            fi
+            echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
         done
 
         /GLIMPSE/GLIMPSE2_phase \
