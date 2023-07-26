@@ -89,7 +89,7 @@ task CollectWgsMetrics {
     Int disk_size = ceil(size(input_cram, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB")) + 50
 
     String output_basename = sub(sub(basename(input_cram), "\\.bam$", ""), "\\.cram$", "")
-    String command_line = if defined(picard_jar_override) then "java -Xms2000m -Xmx2500m -jar " + picard_jar_override else "gatk"
+    String command_line = if defined(picard_jar_override) then "java -Xms2000m -Xmx2500m -jar " + picard_jar_override else 'gatk --java-options "-Xms2000m -Xmx2500m"'
 
     command <<<
         set -e -o pipefail
@@ -135,7 +135,7 @@ task Downsample {
     Int disk_size = ceil(3.5 * size(input_cram, "GiB") + 20 + additional_disk_gb)
 
     String output_basename = sub(sub(basename(input_cram), "\\.bam$", ""), "\\.cram$", "")
-    String command_line = if defined(picard_jar_override) then "java -Xms10000m -Xmx10000m -jar " + picard_jar_override else "gatk"
+    String command_line = if defined(picard_jar_override) then "java -Xms10000m -Xmx10000m -jar " + picard_jar_override else 'gatk --java-options "-Xms10000m -Xmx10000m"'
 
 
     command {
