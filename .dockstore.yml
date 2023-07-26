@@ -81,9 +81,6 @@ workflows:
   - name: CollectBGEImputationMetricsCohort
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/CollectBGEImputationMetricsCohort.wdl
-  - name: CollectBGEImputationMetricsCohortScattered
-    subclass: WDL
-    primaryDescriptorPath: /GlimpseImputationPipeline/CollectBGEImputationMetricsCohortScattered.wdl
   - name: GlimpseReferencePanelDev
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/ReferencePanelDev.wdl
