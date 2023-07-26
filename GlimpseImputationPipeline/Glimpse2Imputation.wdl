@@ -23,7 +23,7 @@ workflow Glimpse2Imputation {
         Int? effective_population_size
         
         Int preemptible = 1
-        String docker = "us.gcr.io/broad-dsde-methods/glimpse:palantir-workflows_94a0cdd"
+        String docker = "us.gcr.io/broad-dsde-methods/glimpse:official_repo_dbd7401"
         Int cpu_phase = 4
         Int mem_gb_phase = 64
         Int cpu_ligate = 4
@@ -126,7 +126,7 @@ task GlimpsePhase {
             echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
         done
 
-        /GLIMPSE/GLIMPSE2_phase \
+        /bin/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
         --reference ~{reference_chunk} \
         --output phase_output.bcf \
@@ -179,7 +179,7 @@ task GlimpseLigate {
         NPROC=$(nproc)
         echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
         
-        /GLIMPSE/GLIMPSE2_ligate --input ~{write_lines(imputed_chunks)} --output ligated.vcf.gz --threads ${NPROC}
+        /bin/GLIMPSE2_ligate --input ~{write_lines(imputed_chunks)} --output ligated.vcf.gz --threads ${NPROC}
 
         # Set correct reference dictionary
         ~{"mv " + picard_jar_override + " /picard.jar"}

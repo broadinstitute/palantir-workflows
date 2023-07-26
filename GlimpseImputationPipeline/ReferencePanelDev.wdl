@@ -118,7 +118,7 @@ task GlimpseSplitReferenceTask {
         # Print chunk index to variable
         CONTIGINDEX=$(printf "%04d" ~{i_contig})
 
-        /GLIMPSE/GLIMPSE2_chunk --input ~{reference_panel} --region ~{contig} --map ~{genetic_map} --sequential --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt ~{"--seed "+seed} ~{"--window-cm "+min_window_cm}
+        /bin/GLIMPSE2_chunk --input ~{reference_panel} --region ~{contig} --map ~{genetic_map} --sequential --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt ~{"--seed "+seed} ~{"--window-cm "+min_window_cm}
 
         mkdir -p ~{reference_output_dir}
 
@@ -133,7 +133,7 @@ task GlimpseSplitReferenceTask {
             # Print chunk index to variable
             CHUNKINDEX=$(printf "%04d" $I_CHUNK)
 
-            /GLIMPSE/GLIMPSE2_split_reference --threads ${NPROC} --reference ~{reference_panel} --map ~{genetic_map} --input-region ${IRG} --output-region ${ORG} --output ~{reference_output_dir}/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} ~{"--seed "+seed}
+            /bin/GLIMPSE2_split_reference --threads ${NPROC} --reference ~{reference_panel} --map ~{genetic_map} --input-region ${IRG} --output-region ${ORG} --output ~{reference_output_dir}/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} ~{"--seed "+seed}
 
             # Increase i (and make sure the exit code is zero)
             (( I_CHUNK++ )) || true
