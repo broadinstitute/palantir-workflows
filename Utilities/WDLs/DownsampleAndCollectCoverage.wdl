@@ -7,7 +7,7 @@ workflow DownsampleAndCollectCoverage {
         File ref_fasta
         File ref_fasta_index
 
-        Int? target_coverage
+        Float? target_coverage
         Float? downsample_probability
 
         File? coverage_intervals
@@ -21,7 +21,7 @@ workflow DownsampleAndCollectCoverage {
         Int preemptible = 1
     }
 
-    if (!defined(target_coverage)) {
+    if (!defined(downsample_probability)) {
         call CollectWgsMetrics as CollectOriginalCoverage {
             input:
                 input_cram = input_cram,
