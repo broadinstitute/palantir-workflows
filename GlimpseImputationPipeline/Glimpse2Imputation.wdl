@@ -9,7 +9,7 @@ workflow Glimpse2Imputation {
         File? input_vcf_index
         Array[File]? crams
         Array[File]? cram_indices
-        Array[String] sample_ids
+        Array[String]? sample_ids
         File? fasta
         File? fasta_index
         String output_basename
@@ -31,6 +31,31 @@ workflow Glimpse2Imputation {
     }
 
     scatter (reference_chunk in read_lines(reference_chunks)) {
+        call GetNumberOfSitesInChunk {
+            input:
+                reference_chunk = reference_chunk
+        }
+
+        Int n_rare = GetNumberOfSitesInChunk.n_rare
+        Int n_common = GetNumberOfSitesInChunk.n_common
+        Int n_sites = n_rare + n_common
+
+        if (defined(input_vcf)) {
+            call CountSamples {
+                input:
+                    vcf = select_first([input_vcf])
+            }
+        }
+
+        Int n_samples = select_first([CountSamples.nSamples, length(select_first([crams]))])
+
+        call SelectResourceParameters {
+            input:
+                n_rare = n_rare,
+                n_common = n_common,
+                n_samples = n_samples
+        }
+
         call GlimpsePhase {
             input:
                 reference_chunk = reference_chunk,
@@ -47,8 +72,9 @@ workflow Glimpse2Imputation {
                 fasta_index = fasta_index,
                 preemptible = preemptible,
                 docker = docker,
-                cpu = cpu_phase,
-                mem_gb = mem_gb_phase,
+                cpu = SelectResourceParameters.request_cpus,
+                mem_gb = SelectResourceParameters.memory_gb,
+                allowable_number_of_threads = SelectResourceParameters.allow_threads,
                 monitoring_script = monitoring_script
         }
     }
@@ -80,7 +106,7 @@ task GlimpsePhase {
         File? input_vcf_index
         Array[File]? crams
         Array[File]? cram_indices
-        Array[String] sample_ids
+        Array[String]? sample_ids
         File? fasta
         File? fasta_index
         File reference_chunk
@@ -90,6 +116,7 @@ task GlimpsePhase {
         Int? n_burnin
         Int? n_main
 
+        Int allowable_number_of_threads = 4
         Int mem_gb = 4
         Int cpu = 4
         Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + size(reference_chunk, "GiB") + 100)
@@ -123,11 +150,15 @@ task GlimpsePhase {
             echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
         done
 
+        NPROC=$(nproc)
+        NTHREADS=$((NPROC<~{allowable_number_of_threads} ? NPROC : ~{allowable_number_of_threads}))
+        echo "nproc reported ${NPROC} cpus, will use ${NTHREADS} threads for GLIMPSE"
+
         /GLIMPSE/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
         --reference ~{reference_chunk} \
         --output phase_output.bcf \
-        --threads ~{cpu} \
+        --threads $NTHREADS \
         ~{if impute_reference_only_variants then "--impute-reference-only-variants" else ""} ~{if call_indels then "--call-indels" else ""} \
         ~{"--burnin " + n_burnin} ~{"--main " + n_main} \
         ~{bam_file_list_input} \
@@ -198,5 +229,109 @@ task GlimpseLigate {
         File imputed_vcf = "~{output_basename}.imputed.vcf.gz"
         File imputed_vcf_index = "~{output_basename}.imputed.vcf.gz.tbi"
         File? monitoring = "monitoring.log"
+    }
+}
+
+task GetNumberOfSitesInChunk {
+    input {
+        File reference_chunk
+
+        String docker = "us.gcr.io/broad-dsde-methods/glimpse:extract_num_sites_from_reference_chunk"
+        Int mem_gb = 4
+        Int cpu = 4
+        Int disk_size_gb = ceil(size(reference_chunk, "GiB") + 100)
+        Int preemptible = 1
+        Int max_retries = 3
+    }
+
+    command <<<
+        set -xeuo pipefail
+        /GLIMPSE/GLIMPSE2_extract_num_sites_from_reference_chunk ~{reference_chunk} > n_sites.txt
+        grep "Lrare" n_sites.txt | sed 's/Lrare=//' > n_rare.txt
+        grep "Lcommon" n_sites.txt | sed 's/Lcommon=//' > n_common.txt
+    >>>
+
+    runtime {
+        docker: docker
+        disks: "local-disk " + disk_size_gb + " HDD"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        preemptible: preemptible
+        maxRetries: max_retries
+    }
+
+    output {
+        Int n_rare = read_int("n_rare.txt")
+        Int n_common = read_int("n_common.txt")
+    }
+}
+
+task CountSamples {
+  input {
+    File vcf
+
+    String bcftools_docker = "us.gcr.io/broad-gotc-prod/imputation-bcf-vcf:1.0.7-1.10.2-0.1.16-1669908889"
+    Int cpu = 1
+    Int memory_mb = 3000
+    Int disk_size_gb = 100 + ceil(size(vcf, "GiB"))
+  }
+
+  command <<<
+    bcftools query -l ~{vcf} | wc -l
+  >>>
+
+  runtime {
+    docker: bcftools_docker
+    disks: "local-disk ${disk_size_gb} HDD"
+    memory: "${memory_mb} MiB"
+    cpu: cpu
+  }
+  output {
+    Int nSamples = read_int(stdout())
+  }
+}
+
+task SelectResourceParameters {
+    input {
+        Int n_rare
+        Int n_common
+        Int n_samples
+    }
+
+    command <<<
+        python3 << EOF
+        import math
+        n_rare = ~{n_rare}
+        n_common = ~{n_common}
+        n_samples = ~{n_samples}
+
+        # try to keep expected runtime under 4 hours, but don't ask for more than 32 cpus, or 256 GB memory
+        estimated_needed_threads = min(math.ceil(5e-6*n_sites*n_samples/240), 32)
+        estimated_needed_memory_gb = min(math.ceil(800e-3 + 0.97e-6 * n_rare * estimated_needed_threads + 14.6e-6 * n_common * estimated_needed_threads + 6.5e-9 * (n_rare + n_common) * n_samples + 13.7e-3 * n_samples + 1.8e-6*(n_rare + n_common)*math.log(n_samples)), 256)
+        # round memory up to nearest power of 2
+        estimated_needed_memory_gb = 2**math.ceil(math.log(estimated_needed_memory_gb,2))
+        # how many threads can we use with that memory, with 10 GB allowance
+        allowable_number_of_threads = (estimated_needed_memory_gb - 10 - (800e-3 + 6.5e-9 * (n_rare + n_common) * n_samples + 13.7e-3 * n_samples + 1.8e-6*(n_rare + n_common)*math.log(n_samples)))/(0.97e-6 * n_rare + 14.6e-6 * n_common)
+        request_cpus = max(min(allowable_number_of_threads, math.floor(estimated_needed_memory_gb/4)), 1)
+
+        with open("n_threads_allowed.txt", "w") as f_threads_allowed:
+            f_threads_allowed.write(allowable_number_of_threads)
+
+        with open("n_cpus_request.txt", "w") as f_cpus_request:
+            f_cpus_request.write(request_cpus)
+
+        with open("memory_gb.txt", "w") as f_mem:
+            f_mem.write(estimated_needed_memory_gb)
+        EOF
+    >>>
+
+    runtime {
+        docker : "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
+    }
+
+    output {
+        Int memory_gb = read_int("memory_gb.txt")
+        Int request_cpus = read_int("n_cpus_request.txt")
+        Int allow_threads = read_int("n_threads_allowed.txt")
     }
 }
