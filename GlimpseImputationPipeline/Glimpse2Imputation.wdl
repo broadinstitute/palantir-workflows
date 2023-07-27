@@ -143,6 +143,14 @@ task GlimpsePhase {
     command <<<
         set -euo pipefail
 
+        function check_for_oom {
+            if [ $? -eq 137]; then
+                echo 'OutOfMemory' 1>&2
+            fi
+        }
+
+        trap check_for_oom EXIT
+
         export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
 
         ~{"bash " + monitoring_script + " > monitoring.log &"}
@@ -163,6 +171,7 @@ task GlimpsePhase {
         ~{"--burnin " + n_burnin} ~{"--main " + n_main} \
         ~{bam_file_list_input} \
         ~{"--fasta " + fasta}
+
     >>>
 
     runtime {
