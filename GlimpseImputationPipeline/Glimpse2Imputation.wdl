@@ -316,13 +316,13 @@ task SelectResourceParameters {
         request_cpus = max(min(allowable_number_of_threads, math.floor(estimated_needed_memory_gb/4)), 1)
 
         with open("n_threads_allowed.txt", "w") as f_threads_allowed:
-            f_threads_allowed.write(allowable_number_of_threads)
+            f_threads_allowed.write(f'{int(allowable_number_of_threads)}')
 
         with open("n_cpus_request.txt", "w") as f_cpus_request:
-            f_cpus_request.write(request_cpus)
+            f_cpus_request.write(f'{int(request_cpus)}')
 
         with open("memory_gb.txt", "w") as f_mem:
-            f_mem.write(estimated_needed_memory_gb)
+            f_mem.write(f'{int(estimated_needed_memory_gb)}')
         EOF
     >>>
 
