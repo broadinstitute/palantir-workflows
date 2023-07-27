@@ -101,7 +101,7 @@ task CollectWgsMetrics {
         -INPUT ~{input_cram} \
         -VALIDATION_STRINGENCY SILENT \
         -REFERENCE_SEQUENCE ~{ref_fasta} \
-        -~{"INTERVALS " + coverage_intervals} \
+        ~{"-INTERVALS " + coverage_intervals} \
         -OUTPUT ~{output_basename}.wgs_metrics \
         -READ_LENGTH ~{read_length} \
         -USE_FAST_ALGORITHM ~{use_fast_algorithm}
