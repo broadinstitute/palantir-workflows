@@ -311,8 +311,9 @@ task SelectResourceParameters {
         estimated_needed_memory_gb = min(math.ceil(800e-3 + 0.97e-6 * n_rare * estimated_needed_threads + 14.6e-6 * n_common * estimated_needed_threads + 6.5e-9 * (n_rare + n_common) * n_samples + 13.7e-3 * n_samples + 1.8e-6*(n_rare + n_common)*math.log(n_samples)), 256)
         # round memory up to nearest power of 2
         estimated_needed_memory_gb = 2**math.ceil(math.log(estimated_needed_memory_gb,2))
-        # how many threads can we use with that memory, with 10 GB allowance
-        allowable_number_of_threads = (estimated_needed_memory_gb - 10 - (800e-3 + 6.5e-9 * (n_rare + n_common) * n_samples + 13.7e-3 * n_samples + 1.8e-6*(n_rare + n_common)*math.log(n_samples)))/(0.97e-6 * n_rare + 14.6e-6 * n_common)
+        # how many threads can we use with that memory, with 10 GB or 20% buffer
+        allowable_number_of_threads = math.floor((max(estimated_needed_memory_gb - 10, 0.8*estimated_needed_memory_gb) - (800e-3 + 6.5e-9 * (n_rare + n_common) * n_samples + 13.7e-3 * n_samples + 1.8e-6*(n_rare + n_common)*math.log(n_samples)))/(0.97e-6 * n_rare + 14.6e-6 * n_common))
+        allowable_number_of_threads = max(allowable_number_of_threads, 1)
         request_cpus = max(min(allowable_number_of_threads, math.floor(estimated_needed_memory_gb/4)), 1)
 
         with open("n_threads_allowed.txt", "w") as f_threads_allowed:
