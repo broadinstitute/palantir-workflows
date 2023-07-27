@@ -44,6 +44,8 @@ workflow DownsampleAndCollectCoverage {
             target_coverage = target_coverage,
             original_coverage = CollectOriginalCoverage.mean_coverage,
             downsample_strategy = downsample_strategy,
+            ref_fasta = ref_fasta,
+            ref_fasta_index = ref_fasta_index,
             docker = docker,
             picard_jar_override = picard_jar_override,
             preemptible = preemptible
@@ -126,6 +128,8 @@ task Downsample {
         Float? original_coverage
 
         String downsample_strategy
+        File ref_fasta
+        File ref_fasta_index
 
         String docker
         File? picard_jar_override
@@ -149,7 +153,8 @@ task Downsample {
             -O ~{output_basename}.downsampled.cram \
             -STRATEGY ~{downsample_strategy} \
             -P $PROBABILITY \
-            -CREATE_INDEX true
+            -CREATE_INDEX true \
+            -R ~{ref_fasta}
             
     }
 
