@@ -304,6 +304,7 @@ task SelectResourceParameters {
         n_rare = ~{n_rare}
         n_common = ~{n_common}
         n_samples = ~{n_samples}
+        n_sites = n_common + n_rare
 
         # try to keep expected runtime under 4 hours, but don't ask for more than 32 cpus, or 256 GB memory
         estimated_needed_threads = min(math.ceil(5e-6*n_sites*n_samples/240), 32)
