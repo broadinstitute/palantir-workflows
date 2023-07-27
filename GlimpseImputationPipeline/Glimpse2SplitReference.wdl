@@ -108,6 +108,9 @@ task GlimpseSplitReferenceTask {
             mv chunks_contigindex_${CONTIGINDEX}.txt_uniform chunks_contigindex_${CONTIGINDEX}.txt
         fi
 
+        echo debug1
+        cat chunks_contigindex_${CONTIGINDEX}.txt
+
         touch num_sites.txt
         touch num_sites_uniform.txt
         output_filename="num_sites.txt"
@@ -122,7 +125,12 @@ task GlimpseSplitReferenceTask {
             fi
         done < split_log.txt
 
+        echo debug2
+
         mkdir -p ~{reference_output_dir}
+
+        echo debug3
+        ls
 
         I_CHUNK=0
         while IFS="" read -r LINE || [ -n "$LINE" ];
