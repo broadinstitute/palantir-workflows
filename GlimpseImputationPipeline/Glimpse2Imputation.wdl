@@ -79,7 +79,8 @@ workflow Glimpse2Imputation {
                 preemptible = preemptible,
                 docker = docker,
                 cpu = select_first([safety_check_memory_gb, SelectResourceParameters.request_n_cpus]),
-                mem_gb = select_first([safety_check_n_cpu, SelectResourceParameters.memory_gb]),
+                #mem_gb = select_first([safety_check_n_cpu, SelectResourceParameters.memory_gb]),
+                mem_gb = 1, #just for testing
                 monitoring_script = monitoring_script
         }
     }
