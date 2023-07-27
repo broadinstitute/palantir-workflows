@@ -144,15 +144,20 @@ task GlimpsePhase {
     command <<<
         set -euo pipefail
 
+        touch glimpse_stderr.log
+
         function check_for_oom {
-            if [ $? -eq 137 ]; then
+            exit_code=$?
+            if [ $exit_code -eq 137 ] || [ $exit_code -eq 139 ] ||  grep -q "Destination address required" glimpse_stderr.log ; then
                 echo 'OutOfMemory' 1>&2
             fi
+
         }
 
         trap check_for_oom EXIT
 
-        export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
+        GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
+        export GCS_OAUTH_TOKEN
 
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
@@ -171,7 +176,7 @@ task GlimpsePhase {
         ~{if impute_reference_only_variants then "--impute-reference-only-variants" else ""} ~{if call_indels then "--call-indels" else ""} \
         ~{"--burnin " + n_burnin} ~{"--main " + n_main} \
         ~{bam_file_list_input} \
-        ~{"--fasta " + fasta}
+        ~{"--fasta " + fasta} 2> >(tee glimpse_stderr.log >&2) 
 
     >>>
 
