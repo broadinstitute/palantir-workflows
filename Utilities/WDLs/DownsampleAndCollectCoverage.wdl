@@ -167,6 +167,6 @@ task Downsample {
     }
     output {
         File downsampled_cram = output_basename + ".downsampled.cram"
-        File downsampled_cram_index = output_basename + ".downsampled.cram.crai"
+        File downsampled_cram_index = output_basename + ".downsampled.crai"
     }
 }
