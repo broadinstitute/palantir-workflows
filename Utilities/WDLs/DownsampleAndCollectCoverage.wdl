@@ -154,7 +154,7 @@ task Downsample {
             -STRATEGY ~{downsample_strategy} \
             -P $PROBABILITY \
             -CREATE_INDEX true \
-            -R ~{ref_fasta}
+            -REFERENCE_SEQUENCE ~{ref_fasta}
             
     }
 
