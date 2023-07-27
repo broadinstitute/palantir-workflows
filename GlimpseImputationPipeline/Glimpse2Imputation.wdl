@@ -145,7 +145,7 @@ task GlimpsePhase {
         set -euo pipefail
 
         function check_for_oom {
-            if [ $? -eq 137]; then
+            if [ $? -eq 137 ]; then
                 echo 'OutOfMemory' 1>&2
             fi
         }
