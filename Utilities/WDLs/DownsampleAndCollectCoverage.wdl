@@ -153,9 +153,10 @@ task Downsample {
             -O ~{output_basename}.downsampled.cram \
             -STRATEGY ~{downsample_strategy} \
             -P $PROBABILITY \
-            -CREATE_INDEX true \
+            -CREATE_INDEX false \
             -REFERENCE_SEQUENCE ~{ref_fasta}
-            
+        
+        samtools index ~{output_basename}.downsampled.cram
     }
 
     runtime {
@@ -167,6 +168,6 @@ task Downsample {
     }
     output {
         File downsampled_cram = output_basename + ".downsampled.cram"
-        File downsampled_cram_index = output_basename + ".downsampled.crai"
+        File downsampled_cram_index = output_basename + ".downsampled.cram.crai"
     }
 }
