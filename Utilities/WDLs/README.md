@@ -1,21 +1,11 @@
 # Utility WDLs
 
-This directory contains a collection of miscellaneous WDLs useful for some small tasks. Check below for documentation
-on each.
+This directory contains a collection of miscellaneous WDLs useful for some small tasks. Check below for documentation on each.
 
-- [Utility WDLs](#utility-wdls)
-  - [CollectBenchmarkSucceeded](#collectbenchmarksucceeded)
-    - [Summary](#summary)
-    - [Inputs](#inputs)
-  - [Dipcall](#dipcall)
-    - [Summary](#summary-1)
-    - [Inputs](#inputs-1)
-  - [IndexCramOrBam](#indexcramorbam)
-    - [Summary](#summary-2)
-  - [DownsampleAndCollectCoverage](#downsampleandcollectcoverage)
-    - [Summary](#summary-3)
-    - [Inputs](#inputs-2)
-    - [Outputs](#outputs)
+* [CollectBenchmarkSucceeded](#collectbenchmarksucceeded)
+* [Dipcall](#dipcall)
+* [IndexCramOrBam](#indexcramorbam)
+* [DownsampleAndCollectCoverage](#downsampleandcollectcoverage)
 
 ## CollectBenchmarkSucceeded
 
