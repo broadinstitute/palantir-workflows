@@ -92,12 +92,11 @@ task CollectWgsMetrics {
     Int disk_size = ceil(size(input_cram, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB")) + 50
 
     String output_basename = sub(sub(basename(input_cram), "\\.bam$", ""), "\\.cram$", "")
-    String command_line = if defined(picard_jar_override) then "java -Xms2000m -Xmx2500m -jar " + picard_jar_override else 'gatk --java-options "-Xms2000m -Xmx2500m"'
 
     command <<<
         set -e -o pipefail
 
-        ~{command_line} \
+        ~{if defined(picard_jar_override) then "java -Xms2000m -Xmx2500m -jar " + picard_jar_override else 'gatk --java-options "-Xms2000m -Xmx2500m"'} \
         CollectWgsMetrics \
         -INPUT ~{input_cram} \
         -VALIDATION_STRINGENCY SILENT \
