@@ -69,6 +69,7 @@ workflow DownsampleAndCollectCoverage {
         File downsampled_cram = Downsample.downsampled_cram
         File downsampled_cram_index = Downsample.downsampled_cram_index
         Float downsampled_mean_coverage = CollectDownsampledCoverage.mean_coverage
+        Float? original_mean_coverage = CollectOriginalCoverage.mean_coverage
     }
 }
 
