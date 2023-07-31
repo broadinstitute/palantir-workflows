@@ -139,7 +139,6 @@ task Downsample {
     Int disk_size = ceil(3.5 * size(input_cram, "GiB") + 20 + additional_disk_gb)
 
     String output_basename = sub(sub(basename(input_cram), "\\.bam$", ""), "\\.cram$", "")
-    String command_line = if defined(picard_jar_override) then "java -Xms10000m -Xmx10000m -jar " + picard_jar_override else 'gatk --java-options "-Xms10000m -Xmx10000m"'
 
 
     command {
@@ -147,7 +146,7 @@ task Downsample {
 
         PROBABILITY=~{if defined(downsample_probability) then downsample_probability else "$(bc -l <<< 'scale=2; " + target_coverage + "/" + original_coverage + "')"}
         
-        ~{command_line} \
+        ~{if defined(picard_jar_override) then "java -Xms2000m -Xmx2500m -jar " + picard_jar_override else 'gatk --java-options "-Xms2000m -Xmx2500m"'} \
             DownsampleSam \
             -I ~{input_cram} \
             -O ~{output_basename}.downsampled.cram \
