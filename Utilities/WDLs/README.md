@@ -3,9 +3,19 @@
 This directory contains a collection of miscellaneous WDLs useful for some small tasks. Check below for documentation
 on each.
 
-* [CollectBenchmarkSucceeded](#collectbenchmarksucceeded)
-* [Dipcall](#dipcall)
-* [IndexCramOrBam](#indexcramorbam)
+- [Utility WDLs](#utility-wdls)
+  - [CollectBenchmarkSucceeded](#collectbenchmarksucceeded)
+    - [Summary](#summary)
+    - [Inputs](#inputs)
+  - [Dipcall](#dipcall)
+    - [Summary](#summary-1)
+    - [Inputs](#inputs-1)
+  - [IndexCramOrBam](#indexcramorbam)
+    - [Summary](#summary-2)
+  - [DownsampleAndCollectCoverage](#downsampleandcollectcoverage)
+    - [Summary](#summary-3)
+    - [Inputs](#inputs-2)
+    - [Outputs](#outputs)
 
 ## CollectBenchmarkSucceeded
 
@@ -49,3 +59,30 @@ when appropriate. Some data cleaning and indexing of the output VCF is also perf
 
 Use this WDL to index a CRAM or BAM file, using `samtools`. The type is inferred using the file extension (either `.cram` or `.bam`). 
 
+
+## DownsampleAndCollectCoverage
+
+### Summary
+
+The idea of this WDL is to do everything you need for a standard downsampling experiment. It takes in either CRAM or BAM files and downsamples them either according to a defined downsampling ratio or to a desired target coverage. If no downsampling ratio is defined then it will run `ColectWgsMetrics` to get the original mean coverage and determine the downsampling ratio based on that coverage and the desired target coverage. After downsampling the workflow will run CollectWgsMetrics once more and output the mean coverage of the downsampled CRAM file. This provides feedback with respect to the target coverage, because downsampling is always associated with some uncertainty.
+
+### Inputs 
+* `File input_cram`: Input BAM or CRAM
+* `File input_cram_index`: Index file for input BAM or CRAM
+* `File ref_fasta`: Reference FASTA
+* `File ref_fasta_index`: Reference FASTA index
+* `Float? downsample_probability`: Downsampling ratio. If not provided, the ratio will be determined based on the `target_coverage`.
+* `Float? target_coverage`: Target mean coverage for the downsampled CRAM file. **In order to use this input, do not provide `downsample_probability`, otherwise, that value will be used for downsampling.** 
+* `File? coverage_intervals`: If provided, the output downsampled mean coverage will be calculated based on these intervals. Additionally, these intervals will be used to calculate the original coverage if `target_coverage` is used.
+* `String downsample_strategy = "ConstantMemory"`: See [DownsampleSam documentation](https://gatk.broadinstitute.org/hc/en-us/articles/13832708637467-DownsampleSam-Picard-).
+* `Int read_length = 150`: See [CollectWgsMetrics documentation](https://gatk.broadinstitute.org/hc/en-us/articles/13832707851035-CollectWgsMetrics-Picard-).
+* `Boolean use_fast_algorithm = true`: See [CollectWgsMetrics documentation](https://gatk.broadinstitute.org/hc/en-us/articles/13832707851035-CollectWgsMetrics-Picard-).
+* `String docker = "us.gcr.io/broad-gatk/gatk:4.4.0.0"`: Docker to use for both CollectWgsMetrics and DownsampleSam
+* `File? picard_jar_override`: If provided, a Picard JAR file to use for both CollectWgsMetrics and DownsampleSam instead of the `gatk` command.
+* `Int preemptible = 1
+
+### Outputs
+`File downsampled_cram`: Downsampled CRAM
+`File downsampled_cram_index`: Downsampled CRAM index
+`Float downsampled_mean_coverage`: Mean coverage over the `coverage_intervals` (or the whole genome if not provided) for the downsampled CRAM file
+`Float? original_mean_coverage`: The original mean coverage over the `coverage_intervals` (or the whole genome if not provided) of the input CRAM file, if `target_coverage` was used
