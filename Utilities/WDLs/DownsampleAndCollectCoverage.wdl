@@ -9,6 +9,7 @@ workflow DownsampleAndCollectCoverage {
 
         Float? target_coverage
         Float? downsample_probability
+        Float? fail_if_below_coverage
 
         File? coverage_intervals
         String downsample_strategy = "ConstantMemory"
@@ -56,6 +57,7 @@ workflow DownsampleAndCollectCoverage {
             input_cram = Downsample.downsampled_cram,
             input_cram_index = Downsample.downsampled_cram_index,
             coverage_intervals = coverage_intervals,
+            fail_if_below_coverage = fail_if_below_coverage,
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
             read_length = read_length,
@@ -83,6 +85,7 @@ task CollectWgsMetrics {
         File ref_fasta_index
         Int read_length
         Boolean use_fast_algorithm
+        Float? fail_if_below_coverage
 
         String docker
         File? picard_jar_override
@@ -111,6 +114,8 @@ task CollectWgsMetrics {
         COL_NUM=$(sed 's/\t/\n/g' | grep -n 'MEAN_COVERAGE' | cut -d':' -f1)
         awk -v col=$COL_NUM ' { print $col }' wgs.tsv | tail -1 > "~{output_basename}.mean_coverage"
 
+        mean_coverage=$(cat ~{output_basename}.mean_coverage)
+        ~{"if (( $(echo '$mean_coverage < " + fail_if_below_coverage + "' |bc -l) )); then echo Downsampled coverage below minimum threshold. && exit 1; fi"}
     >>>
 
     runtime {
