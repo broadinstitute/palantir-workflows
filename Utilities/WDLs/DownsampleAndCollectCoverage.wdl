@@ -157,7 +157,7 @@ task Downsample {
 
         ~{if !defined(downsample_probability) && !defined(target_coverage) then "echo Must define either downsample_probability or target_coverage. && exit 1" else ""}
 
-        PROBABILITY=~{if defined(downsample_probability) then downsample_probability else (if select_first([target_coverage]) > select_first([original_coverage]) then "1" else "$(bc -l <<< 'scale=2; " + target_coverage + "/" + original_coverage + "')")}
+        PROBABILITY=~{if defined(downsample_probability) then downsample_probability else (if select_first([target_coverage, 0]) > select_first([original_coverage, 0]) then "1" else "$(bc -l <<< 'scale=2; " + target_coverage + "/" + original_coverage + "')")}
         
         ~{if defined(picard_jar_override) then "java -Xms2000m -Xmx2500m -jar " + picard_jar_override else 'gatk --java-options "-Xms2000m -Xmx2500m"'} \
             DownsampleSam \
