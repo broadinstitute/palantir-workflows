@@ -160,7 +160,7 @@ task Downsample {
     String output_extension = if output_bam_instead_of_cram then "bam" else "cram"
     String output_index_extension = if output_bam_instead_of_cram then "bam.bai" else "cram.crai"
 
-    command {
+    command <<<
         set -e -o pipefail
 
         ~{if !defined(downsample_probability) && !defined(target_coverage) then "echo -e '\nERROR: Must define either downsample_probability or target_coverage.\n'; exit 1" else ""}
@@ -177,7 +177,7 @@ task Downsample {
             -REFERENCE_SEQUENCE ~{ref_fasta}
         
         samtools index ~{output_basename}.downsampled.~{output_extension}
-    }
+    >>>
 
     runtime {
         docker: docker
