@@ -69,6 +69,7 @@ workflow DownsampleAndCollectCoverage {
         File downsampled_cram = Downsample.downsampled_cram
         File downsampled_cram_index = Downsample.downsampled_cram_index
         Float downsampled_mean_coverage = CollectDownsampledCoverage.mean_coverage
+        File downsampled_wgs_metrics = CollectDownsampledCoverage.wgs_metrics
         Float? original_mean_coverage = CollectOriginalCoverage.mean_coverage
     }
 }
@@ -90,7 +91,6 @@ task CollectWgsMetrics {
     }
 
     Int disk_size = ceil(size(input_cram, "GiB") + size(ref_fasta, "GiB") + size(ref_fasta_index, "GiB")) + 50
-
     String output_basename = sub(sub(basename(input_cram), "\\.bam$", ""), "\\.cram$", "")
 
     command <<<
@@ -104,18 +104,25 @@ task CollectWgsMetrics {
         ~{"-INTERVALS " + coverage_intervals} \
         -OUTPUT ~{output_basename}.wgs_metrics \
         -READ_LENGTH ~{read_length} \
-        -USE_FAST_ALGORITHM ~{use_fast_algorithm}
+        -USE_FAST_ALGORITHM ~{use_fast_algorithm} \
+        -COUNT_UNPAIRED true
 
-        cat ~{output_basename}.wgs_metrics | grep -v -e "^#" -e "^$" -e "^GENOME_TERRITORY" | head -n 1 | awk '{ print $2 }' > ~{output_basename}.mean_coverage
+        cat ~{output_basename}.wgs_metrics | grep -v -e '^#' -e "^$" "~{output_basename}.wgs_metrics" | head -2 > wgs.tsv
+        COL_NUM=$(sed 's/\t/\n/g' | grep -n 'MEAN_COVERAGE' | cut -d':' -f1)
+        awk -v col=$COL_NUM ' { print $col }' wgs.tsv | tail -1 > "~{output_basename}.mean_coverage"
+
     >>>
+
     runtime {
         docker: docker
         preemptible: preemptible
         memory: "3000 MiB"
         disks: "local-disk " + disk_size + " HDD"
     }
+
     output {
         Float mean_coverage = read_float("~{output_basename}.mean_coverage")
+        File wgs_metrics = "~{output_basename}.wgs_metrics"
     }
 }
 
@@ -136,15 +143,16 @@ task Downsample {
         Int preemptible
         Int additional_disk_gb = 200
     }
+
     Int disk_size = ceil(3.5 * size(input_cram, "GiB") + 20 + additional_disk_gb)
-
     String output_basename = sub(sub(basename(input_cram), "\\.bam$", ""), "\\.cram$", "")
-
 
     command {
         set -e -o pipefail
 
-        PROBABILITY=~{if defined(downsample_probability) then downsample_probability else "$(bc -l <<< 'scale=2; " + target_coverage + "/" + original_coverage + "')"}
+        ~{if !defined(downsample_probability) && !defined(target_coverage) then "echo Must define either downsample_probability or target_coverage. && exit 1" else ""}
+
+        PROBABILITY=~{if defined(downsample_probability) then downsample_probability else (if select_first([target_coverage]) > select_first([original_coverage]) then "1" else "$(bc -l <<< 'scale=2; " + target_coverage + "/" + original_coverage + "')")}
         
         ~{if defined(picard_jar_override) then "java -Xms2000m -Xmx2500m -jar " + picard_jar_override else 'gatk --java-options "-Xms2000m -Xmx2500m"'} \
             DownsampleSam \
@@ -159,12 +167,13 @@ task Downsample {
     }
 
     runtime {
-        docker: docker # TODO: update docker to use the new Picard options
+        docker: docker
         preemptible: preemptible
         memory: "14 GiB"
         cpu: "16"
         disks: "local-disk " + disk_size + " HDD"
     }
+
     output {
         File downsampled_cram = output_basename + ".downsampled.cram"
         File downsampled_cram_index = output_basename + ".downsampled.cram.crai"
