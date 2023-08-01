@@ -62,6 +62,7 @@ The idea of this WDL is to do everything you need for a standard downsampling ex
 * `File ref_fasta`: Reference FASTA
 * `File ref_fasta_index`: Reference FASTA index
 * `Float? downsample_probability`: Downsampling ratio. If not provided, the ratio will be determined based on the `target_coverage`.
+* `Float? fail_if_below_coverage`: Fail the workflow if the downsampled mean coverage is below this value.
 * `Float? target_coverage`: Target mean coverage for the downsampled CRAM file. **In order to use this input, do not provide `downsample_probability`, otherwise, that value will be used for downsampling.** 
 * `File? coverage_intervals`: If provided, the output downsampled mean coverage will be calculated based on these intervals. Additionally, these intervals will be used to calculate the original coverage if `target_coverage` is used.
 * `String downsample_strategy = "ConstantMemory"`: See [DownsampleSam documentation](https://gatk.broadinstitute.org/hc/en-us/articles/13832708637467-DownsampleSam-Picard-).
