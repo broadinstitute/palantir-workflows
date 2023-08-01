@@ -22,7 +22,10 @@ workflow DownsampleAndCollectCoverage {
         Int preemptible = 1
     }
 
-    if (!defined(downsample_probability)) {
+    # If downsample_probability is defined, use that. Otherwise, use target_coverage.
+    # If target_coverage isn't defined either, skip this task too. The Downsample task
+    # contains the input validation and will output an error if neither are defined.
+    if (!defined(downsample_probability) && defined(target_coverage)) {
         call CollectWgsMetrics as CollectOriginalCoverage {
             input:
                 input_cram = input_cram,
@@ -111,7 +114,7 @@ task CollectWgsMetrics {
         -COUNT_UNPAIRED true
 
         grep -v -e '^#' -e "^$" "~{output_basename}.wgs_metrics" | head -2 > wgs.tsv
-        COL_NUM=$(sed 's/\t/\n/g' "~{output_basename}.wgs_metrics" | grep -n 'MEAN_COVERAGE' | cut -d':' -f1)
+        COL_NUM=$(sed 's/\t/\n/g' wgs.tsv | grep -n 'MEAN_COVERAGE' | cut -d':' -f1)
         awk -v col=$COL_NUM ' { print $col }' wgs.tsv | tail -1 > "~{output_basename}.mean_coverage"
 
         mean_coverage=$(cat ~{output_basename}.mean_coverage)
