@@ -54,7 +54,7 @@ Use this WDL to index a CRAM or BAM file, using `samtools`. The type is inferred
 
 ### Summary
 
-The idea of this WDL is to do everything you need for a standard downsampling experiment. It takes in either CRAM or BAM files and downsamples them either according to a defined downsampling ratio or to a desired target coverage. If no downsampling ratio is defined then it will run `ColectWgsMetrics` to get the original mean coverage and determine the downsampling ratio based on that coverage and the desired target coverage. After downsampling the workflow will run CollectWgsMetrics once more and output the mean coverage of the downsampled CRAM file. This provides feedback with respect to the target coverage, because downsampling is always associated with some uncertainty.
+The idea of this WDL is to do everything you need for a standard downsampling experiment. It takes in either CRAM or BAM files and downsamples them either according to a defined downsampling ratio or to a desired target coverage. If no downsampling ratio is defined then it will run `ColectWgsMetrics` to get the original mean coverage and determine the downsampling ratio based on that coverage and the desired target coverage. After downsampling using `DownsampleSam` the workflow will run `CollectWgsMetrics` once more and output the mean coverage of the downsampled CRAM (or BAM) file. This provides feedback with respect to the target coverage, because downsampling is always associated with some uncertainty. If `fail_if_below_coverage` is set, the workflow will fail if that downsampled mean coverage is below the provided threshold.
 
 ### Inputs 
 * `File input_cram`: Input BAM or CRAM
@@ -74,7 +74,8 @@ The idea of this WDL is to do everything you need for a standard downsampling ex
 * `Int preemptible = 1`: Preemptible attempts
 
 ### Outputs
-`File downsampled_cram`: Downsampled CRAM
-`File downsampled_cram_index`: Downsampled CRAM index
-`Float downsampled_mean_coverage`: Mean coverage over the `coverage_intervals` (or the whole genome if not provided) for the downsampled CRAM file
-`Float? original_mean_coverage`: The original mean coverage over the `coverage_intervals` (or the whole genome if not provided) of the input CRAM file, if `target_coverage` was used
+* `File downsampled_cram`: Downsampled CRAM
+* `File downsampled_cram_index`: Downsampled CRAM index
+* `Float downsampled_mean_coverage`: Mean coverage over the `coverage_intervals` (or the whole genome if not provided) for the downsampled CRAM file
+* `File downsampled_wgs_metrics`: Output of CollectWgsMetrics run on the downsampled file
+* `Float? original_mean_coverage`: The original mean coverage over the `coverage_intervals` (or the whole genome if not provided) of the input CRAM file, if `target_coverage` was used
