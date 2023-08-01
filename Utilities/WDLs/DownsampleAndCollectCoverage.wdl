@@ -15,6 +15,7 @@ workflow DownsampleAndCollectCoverage {
         String downsample_strategy = "ConstantMemory"
         Int read_length = 150
         Boolean use_fast_algorithm = true
+        Boolean output_bam_instead_of_cram = false
 
         String docker = "us.gcr.io/broad-gatk/gatk:4.4.0.0"
         File? picard_jar_override
@@ -48,6 +49,7 @@ workflow DownsampleAndCollectCoverage {
             target_coverage = target_coverage,
             original_coverage = CollectOriginalCoverage.mean_coverage,
             downsample_strategy = downsample_strategy,
+            output_bam_instead_of_cram = output_bam_instead_of_cram,
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
             docker = docker,
@@ -118,7 +120,7 @@ task CollectWgsMetrics {
         awk -v col=$COL_NUM ' { print $col }' wgs.tsv | tail -1 > "~{output_basename}.mean_coverage"
 
         mean_coverage=$(cat ~{output_basename}.mean_coverage)
-        ~{"if (( $(echo '$mean_coverage < " + fail_if_below_coverage + "' |bc -l) )); then echo Downsampled coverage below minimum threshold. && exit 1; fi"}
+        ~{"if (( $(echo '$mean_coverage < " + fail_if_below_coverage + "' |bc -l) )); then echo -e '\nERROR: Downsampled coverage below minimum threshold.\n'; exit 1; fi"}
     >>>
 
     runtime {
@@ -143,6 +145,7 @@ task Downsample {
         Float? original_coverage
 
         String downsample_strategy
+        Boolean output_bam_instead_of_cram
         File ref_fasta
         File ref_fasta_index
 
@@ -154,24 +157,26 @@ task Downsample {
 
     Int disk_size = ceil(3.5 * size(input_cram, "GiB") + 20 + additional_disk_gb)
     String output_basename = sub(sub(basename(input_cram), "\\.bam$", ""), "\\.cram$", "")
+    String output_extension = if output_bam_instead_of_cram then "bam" else "cram"
+    String output_index_extension = if output_bam_instead_of_cram then "bam.bai" else "cram.crai"
 
     command {
         set -e -o pipefail
 
-        ~{if !defined(downsample_probability) && !defined(target_coverage) then "echo Must define either downsample_probability or target_coverage. && exit 1" else ""}
+        ~{if !defined(downsample_probability) && !defined(target_coverage) then "echo -e '\nERROR: Must define either downsample_probability or target_coverage.\n'; exit 1" else ""}
 
         PROBABILITY=~{if defined(downsample_probability) then downsample_probability else (if select_first([target_coverage, 0]) > select_first([original_coverage, 0]) then "1" else "$(bc -l <<< 'scale=2; " + target_coverage + "/" + original_coverage + "')")}
         
         ~{if defined(picard_jar_override) then "java -Xms2000m -Xmx2500m -jar " + picard_jar_override else 'gatk --java-options "-Xms2000m -Xmx2500m"'} \
             DownsampleSam \
             -I ~{input_cram} \
-            -O ~{output_basename}.downsampled.cram \
+            -O ~{output_basename}.downsampled.~{output_extension} \
             -STRATEGY ~{downsample_strategy} \
             -P $PROBABILITY \
             -CREATE_INDEX false \
             -REFERENCE_SEQUENCE ~{ref_fasta}
         
-        samtools index ~{output_basename}.downsampled.cram
+        samtools index ~{output_basename}.downsampled.~{output_extension}
     }
 
     runtime {
@@ -183,7 +188,7 @@ task Downsample {
     }
 
     output {
-        File downsampled_cram = output_basename + ".downsampled.cram"
-        File downsampled_cram_index = output_basename + ".downsampled.cram.crai"
+        File downsampled_cram = output_basename + ".downsampled." +output_extension
+        File downsampled_cram_index = output_basename + ".downsampled." + output_index_extension
     }
 }
