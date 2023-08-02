@@ -165,6 +165,10 @@ task Downsample {
 
         ~{if !defined(downsample_probability) && !defined(target_coverage) then "echo -e '\nERROR: Must define either downsample_probability or target_coverage.\n'; exit 1" else ""}
 
+        # If downsample_probability defined then use that, otherwise use min(1, target_coverage / original coverage).
+        # Note that we have to use select_first with a default of zero to be able to evaluate the input validation above.
+        # If we wouldn't default to zero then the script evaluation would fail in Cromwell already and the error message
+        # above would not be printed.
         PROBABILITY=~{if defined(downsample_probability) then downsample_probability else (if select_first([target_coverage, 0]) > select_first([original_coverage, 0]) then "1" else "$(bc -l <<< 'scale=2; " + target_coverage + "/" + original_coverage + "')")}
         
         ~{if defined(picard_jar_override) then "java -Xms2000m -Xmx2500m -jar " + picard_jar_override else 'gatk --java-options "-Xms2000m -Xmx2500m"'} \
@@ -188,7 +192,7 @@ task Downsample {
     }
 
     output {
-        File downsampled_cram = output_basename + ".downsampled." +output_extension
+        File downsampled_cram = output_basename + ".downsampled." + output_extension
         File downsampled_cram_index = output_basename + ".downsampled." + output_index_extension
     }
 }
