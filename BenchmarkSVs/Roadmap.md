@@ -18,7 +18,7 @@ This file contains a "to do" list for planned changes and improvements to the WD
 - [x] Add `ALL` for SVTYPE option in Adv Wittyer Plots.
 - [x] Allow user to control fixed vs dynamic axes in Prec/Recall plots.
 - [ ] Update HWE plots to use density rather than one dot per variant to prevent crashing with large files.
-- [ ] Add toggle for Truvari plots to force GT match.
+- [x] Add toggle for Truvari plots to force GT match. (Added GT Concordance plot instead.)
 
 ## Backlog
 
@@ -30,6 +30,15 @@ Some tasks that are lower priority at the moment but might get picked up in the 
 
 
 ## CHANGELOG
+
+### v0.6
+
+- Added auto-generated `README.txt` to the directory created by `gather_terra_data.py` script.
+- Fixed `CleanSVs.wdl` to remove records where len(REF) - len(ALT) is not above threshold to avoid weird Truvari annotations
+if the sequences are large but only have small variants. Also switch negative length to positive (e.g. from sniffles2).
+- Fixed bug in `BenchmarkSVs.wdl` with compression when subsetting to an evaluation region.
+- Allow user to manually fix order of Experiment categories for coloring plots in SVisualizer.
+- Added GT Concordance plots in Truvari benchmarking tab (below main plot), which represents "precision" for genotypes.
 
 ### v0.5
 

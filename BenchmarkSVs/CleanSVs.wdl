@@ -7,6 +7,8 @@ workflow CleanSVs {
 
         String? output_name
 
+        Int min_size = 50    # Minimum size of SV events
+
         Boolean split_MA = true
         Boolean add_annotations = true
         Boolean convert_to_abstract = true
@@ -26,6 +28,7 @@ workflow CleanSVs {
             input:
                 input_vcf=select_first([SplitMASites.output_vcf, input_vcf]),
                 input_vcf_index=select_first([SplitMASites.output_vcf_index, input_vcf_index]),
+                min_size=min_size,
                 output_name=output_name
         }
     }
@@ -113,8 +116,10 @@ task AddAnnotations {
         import numpy as np
 
         df = pd.read_csv('query.tsv', sep='\t', names=['CHROM', 'POS', 'POS2', 'SVLEN', 'SVTYPE'])
-        df['DIST'] = df.apply(lambda x: 1 if x['SVTYPE'] == 'INS' else np.abs(x['SVLEN']), axis=1)
-        df['END'] = df['POS'] + df['DIST']
+        df['SVLEN'] = df['SVLEN'].replace('.', 0).astype(int).apply(np.abs)
+        # df['DIST'] = df.apply(lambda x: 1 if x['SVTYPE'] == 'INS' else x['SVLEN'], axis=1)
+        # df['END'] = df['POS'] + df['DIST']
+        df['END'] = df['POS'] + df['SVLEN']
         df[['CHROM', 'POS', 'POS2', 'END']].to_csv('annotations.tsv', sep='\t', index=False, header=False)
         CODE
 
@@ -148,6 +153,8 @@ task ConvertToAbstract {
 
         String output_name = "converted"
 
+        Int min_size = 50
+
         # Runtime parameters
         Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
         Int cpu = 4
@@ -159,17 +166,22 @@ task ConvertToAbstract {
 
         python3 << CODE
         import pysam
+        import numpy as np
 
         with pysam.VariantFile("~{input_vcf}") as vcf:
             with pysam.VariantFile("~{output_name}.vcf.gz", "w", header=vcf.header) as output_vcf:
                 for record in vcf:
-                    # Remove alt sequence to use abstract alleles; assumes split MA sites already
-                    # Replace REF with its first char, and ALT with abstraction
-                    record.alleles = (record.alleles[0][0], f'<{record.info["SVTYPE"]}>')
-                    if len(record.filter.values()) == 0:
-                        record.filter.clear()
-                        record.filter.add('PASS')
-                    output_vcf.write(record)
+                    ## Remove alt sequence to use abstract alleles; assumes split MA sites already
+                    ref = record.alleles[0]
+                    alt = record.alleles[1]
+                    # Check relative difference in size meets size threshold
+                    if np.abs(len(ref) - len(alt)) >= ~{min_size}:
+                        # Replace REF with its first char, and ALT with abstraction
+                        record.alleles = (record.alleles[0][0], f'<{record.info["SVTYPE"]}>')
+                        if len(record.filter.values()) == 0:
+                            record.filter.clear()
+                            record.filter.add('PASS')
+                        output_vcf.write(record)
         CODE
 
         bcftools index -t -f "~{output_name}.vcf.gz"

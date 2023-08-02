@@ -297,7 +297,7 @@ task SubsetEvaluation {
         bcftools view -h ~{input_vcf} > header.txt
         bedtools intersect -a ~{input_vcf} -b ~{evaluation_bed} ~{"-f" + evaluation_pct} -u > variants.vcf
 
-        cat header.txt variants.vcf | gzip > output.vcf.gz
+        cat header.txt variants.vcf | bcftools view -o output.vcf.gz -
         bcftools index -t output.vcf.gz
 
     >>>
