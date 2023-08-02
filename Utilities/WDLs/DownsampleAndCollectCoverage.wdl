@@ -120,7 +120,7 @@ task CollectWgsMetrics {
         awk -v col=$COL_NUM ' { print $col }' wgs.tsv | tail -1 > "~{output_basename}.mean_coverage"
 
         mean_coverage=$(cat ~{output_basename}.mean_coverage)
-        ~{'if (( $(echo "$mean_coverage < ' + fail_if_below_coverage + '" |bc -l) )); then echo -e "\nERROR: Downsampled coverage below minimum threshold.\n"; exit 1; fi'}
+        ~{'if (( $(echo "$mean_coverage < ' + fail_if_below_coverage + '" | bc -l) )); then echo -e "\nERROR: Downsampled coverage below minimum threshold.\n"; exit 1; fi'}
     >>>
 
     runtime {
