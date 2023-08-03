@@ -36,6 +36,7 @@ workflow DownsampleAndCollectCoverage {
                 ref_fasta_index = ref_fasta_index,
                 read_length = read_length,
                 use_fast_algorithm = use_fast_algorithm,
+                fail_if_below_coverage = fail_if_below_coverage, # pass this here too to fail early if we can't get to the minimum coverage
                 docker = docker,
                 picard_jar_override = picard_jar_override,
                 preemptible = preemptible
@@ -62,6 +63,7 @@ workflow DownsampleAndCollectCoverage {
             input_cram = Downsample.downsampled_cram,
             input_cram_index = Downsample.downsampled_cram_index,
             coverage_intervals = coverage_intervals,
+            fail_if_below_coverage = fail_if_below_coverage,
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
             read_length = read_length,
@@ -170,7 +172,7 @@ task Downsample {
         # above would not be printed.
         PROBABILITY=~{if defined(downsample_probability) then downsample_probability else (if select_first([target_coverage, 0]) > select_first([original_coverage, 0]) then "1" else "$(bc -l <<< 'scale=2; " + target_coverage + "/" + original_coverage + "')")}
         
-        ~{if defined(picard_jar_override) then "java -Xms2000m -Xmx2500m -jar " + picard_jar_override else 'gatk --java-options "-Xms2000m -Xmx2500m"'} \
+        ~{if defined(picard_jar_override) then "java -Xms10000m -Xmx10000m -jar " + picard_jar_override else 'gatk --java-options "-Xms10000m -Xmx10000m"'} \
             DownsampleSam \
             -I ~{input_cram} \
             -O ~{output_basename}.downsampled.~{output_extension} \
