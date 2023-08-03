@@ -242,6 +242,9 @@ task VCFEval {
         # Interval File to Subset Analysis on given actual truth data
         File? evaluation_bed
 
+        # Par File
+        File? par_bed
+
         # String for VCF field to use as ROC score
         String score_field
 
@@ -263,6 +266,8 @@ task VCFEval {
 
     command <<<
         set -xeuo pipefail
+
+        if [ -z ~{par_bed}]; then
 
         rtg format -o rtg_ref ~{reference.fasta}
         rtg vcfeval \
@@ -315,10 +320,118 @@ task VCFEval {
 
         CODE
 
+        else
+
+        grep -E '^@SQ' ~{reference.dict} | awk 'BEGIN{OFS="\t"} {gsub(/SN:/,"",$2); gsub(/LN:/,"",$3); print $2, $3}' > 'genome_file.txt'
+
+        bedtools complement -i ~{par_bed} -g genome_file.txt -L > 'par.bed'
+
+        bedtools complement -i par.bed -g genome_file.txt > 'reg.bed'
+
+        rtg format -o rtg_ref ~{reference.fasta}
+
+        rtg vcfeval \
+            ~{false="--all-records" true="" passing_only} \
+            ~{true="--ref-overlap" false="" enable_ref_overlap} \
+            --squash-ploidy \
+            -b ~{base_vcf} \
+            -c ~{call_vcf} \
+            --bed-regions par.bed \
+            ~{"-e " + evaluation_bed} \
+            --vcf-score-field="~{score_field}" \
+            --output-mode split \
+            --decompose \
+            --roc-subset snp,mnp,indel \
+            -t rtg_ref \
+            -o par
+
+        rtg vcfeval \
+            ~{false="--all-records" true="" passing_only} \
+            ~{false="--squash-ploidy" true="" require_matching_genotypes} \
+            ~{true="--ref-overlap" false="" enable_ref_overlap} \
+            -b ~{base_vcf} \
+            -c ~{call_vcf} \
+            --bed-regions reg.bed \
+            ~{"-e " + evaluation_bed} \
+            --vcf-score-field="~{score_field}" \
+            --output-mode split \
+            --decompose \
+            --roc-subset snp,mnp,indel \
+            -t rtg_ref \
+            -o reg
+
+        python3 << CODE
+        import gzip
+        import pandas as pd
+
+        roc_summary = pd.DataFrame()
+        for Type in ['snp', 'mnp', 'indel']:
+            file_path_reg = f'reg/{Type}_roc.tsv.gz'
+            file_path_par = f'par/{Type}_roc.tsv.gz'
+
+            header_lines_reg = []
+            header_lines_par = []
+            # Read through file lines until hitting one without leading '#'
+            with gzip.open(file_path_reg, 'rt') as file_reg:
+                for line in file_reg:
+                    if line[0] == '#':
+                        header_lines_reg += [line]
+                    else:
+                        break
+
+            with gzip.open(file_path_par, 'rt') as file_par:
+                for line in file_par:
+                    if line[0] == '#':
+                        header_lines_par += [line]
+                    else:
+                        break
+
+            header_names_reg = header_lines_reg[-1].replace('#', '').replace('\n', '').split('\t')
+            df_reg = pd.read_csv(file_path_reg, sep='\t', comment='#', header=None, names=header_names_reg)
+            header_names_par = header_lines_par[-1].replace('#', '').replace('\n', '').split('\t')
+            df_par = pd.read_csv(file_path_par, sep='\t', comment='#', header=None, names=header_names_par)
+
+            rename_columns = {'score': 'Score', 'true_positives_baseline': 'TP_Base',
+                  'false_positives': 'FP', 'true_positives_call': 'TP_Call', 'false_negatives': 'FN'}
+
+            df_reg = df_reg.rename(columns=rename_columns)
+            df_par = df_par.rename(columns=rename_columns)
+
+            combined_df = pd.concat([df_par, df_reg], ignore_index=True).groupby("Score", as_index=False).sum()
+            combined_df['Type'] = Type.upper()
+            if not combined_df.empty:
+                combined_df["Precision"] = combined_df["TP_Call"] / (combined_df["TP_Call"] + combined_df["FP"])
+                combined_df["Recall"] = combined_df["TP_Base"] / (combined_df["TP_Base"] + combined_df["FN"])
+                combined_df["F1_Score"] = combined_df["Precision"] * combined_df["Recall"] / (combined_df["Precision"] + combined_df["Recall"])
+                combined_df['Type'] = Type.upper()
+                combined_df['Stratifier'] = "~{strat_label}"
+                combined_df['Score_Field'] = "~{score_field}"
+                combined_df['Call_Name'] = "~{call_output_sample_name}"
+                combined_df['Base_Name'] = "~{base_output_sample_name}"
+
+            roc_summary = pd.concat([roc_summary, combined_df])
+
+        roc_summary.to_csv('ROC_summary.tsv', sep='\t', index=False)
+        CODE
+
+        #do i need to create this directory?? Also above I use eval.bed twice which is excessive
+        mkdir output_dir
+        bcftools merge --force-samples par/tp-baseline.vcf.gz reg/tp-baseline.vcf.gz | bcftools sort -Oz -o output_dir/tp-baseline.vcf.gz
+        bcftools merge --force-samples par/tp.vcf.gz reg/tp.vcf.gz | bcftools sort -Oz -o output_dir/tp.vcf.gz
+        bcftools merge --force-samples par/fp.vcf.gz reg/fp.vcf.gz | bcftools sort -Oz -o output_dir/fp.vcf.gz
+        bcftools merge --force-samples par/fn.vcf.gz reg/fn.vcf.gz | bcftools sort -Oz -o output_dir/fn.vcf.gz
+
+        # do i need to save the output?
+        bcftools tabix -p vcf output_dir/tp-baseline.vcf.gz
+        bcftools tabix -p vcf output_dir/tp.vcf.gz
+        bcftools tabix -p vcf output_dir/fp.vcf.gz
+        bcftools tabix -p vcf output_dir/fn.vcf.gz
+
+        fi
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/rtg:" + rtg_docker_version
+        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:" + rtg_docker_version
         preemptible: select_first([preemptible, 0])
         disks: "local-disk " + disk_size + " HDD"
         cpu: cpu
