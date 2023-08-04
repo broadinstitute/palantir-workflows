@@ -181,6 +181,11 @@ task Downsample {
             -CREATE_INDEX false \
             -REFERENCE_SEQUENCE ~{ref_fasta}
         
+        # Create reference cache for indexing CRAM file
+        seq_cache_populate.pl -root ./ref/cache ~{ref_fasta}
+        export REF_PATH=:
+        export REF_CACHE=./ref/cache/%2s/%2s/%s
+
         samtools index ~{output_basename}.downsampled.~{output_extension}
     >>>
 
