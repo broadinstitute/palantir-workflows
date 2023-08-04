@@ -98,6 +98,10 @@ workflow ScoringImputedDataset {
 		}
 	}
 
+	if (defined(ExtractIDsPopulation.ids) || defined(sites_used_in_scoring_for_model)) {
+		File sites_to_use_in_scoring = select_first([ExtractIDsPopulation.ids, sites_used_in_scoring_for_model])
+	}
+
 	call ScoringTasks.ScoreVcf as ScoreImputedArray {
 		input:
 		vcf = imputed_array_vcf,
@@ -105,7 +109,7 @@ workflow ScoringImputedDataset {
 		weights = named_weight_set.weight_set.linear_weights,
 		base_mem = scoring_mem,
 		extra_args = columns_for_scoring,
-		sites = select_first([ExtractIDsPopulation.ids, sites_used_in_scoring_for_model])
+		sites = sites_to_use_in_scoring
 	}
 
 	if (defined(named_weight_set.weight_set.interaction_weights)) {
@@ -114,7 +118,7 @@ workflow ScoringImputedDataset {
 				vcf = imputed_array_vcf,
 				interaction_weights = select_first([named_weight_set.weight_set.interaction_weights]),
 				scores = ScoreImputedArray.score,
-				sites = select_first([ExtractIDsPopulation.ids, sites_used_in_scoring_for_model]),
+				sites = sites_to_use_in_scoring,
 				basename = basename,
 				self_exclusive_sites = named_weight_set.weight_set.interaction_self_exclusive_sites
 		}
