@@ -11,6 +11,7 @@ task ScoreVcf {
     Int base_mem = 8
     String? extra_args
     File? sites
+    String? chromosome_encoding
   }
 
   Int runtime_mem = base_mem + 2
@@ -20,7 +21,7 @@ task ScoreVcf {
   command {
     /plink2 --score ~{weights} header ignore-dup-ids list-variants no-mean-imputation \
     cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --set-all-var-ids @:#:\$1:\$2 --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
-    --new-id-max-allele-len 1000 missing ~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem}
+    --new-id-max-allele-len 1000 missing ~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem} ~{"--output-chr " + chromosome_encoding}
   }
 
   output {
