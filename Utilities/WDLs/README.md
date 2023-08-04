@@ -68,7 +68,7 @@ The idea of this WDL is to do everything you need for a standard downsampling ex
 * `String downsample_strategy = "ConstantMemory"`: See [DownsampleSam documentation](https://gatk.broadinstitute.org/hc/en-us/articles/13832708637467-DownsampleSam-Picard-).
 * `Int read_length = 150`: See [CollectWgsMetrics documentation](https://gatk.broadinstitute.org/hc/en-us/articles/13832707851035-CollectWgsMetrics-Picard-).
 * `Boolean use_fast_algorithm = true`: See [CollectWgsMetrics documentation](https://gatk.broadinstitute.org/hc/en-us/articles/13832707851035-CollectWgsMetrics-Picard-).
-* `Boolean output_bam_instead_of_cram`: If set to true, the workflow will produce a downsampled output BAM (the default is CRAM). *Note: The DownsampleSam step is about 4x slower on CRAMs than on BAMs.*
+* `Boolean output_bam_instead_of_cram`: If set to true, the workflow will produce a downsampled output BAM (the default is CRAM).
 * `String docker = "us.gcr.io/broad-gatk/gatk:4.4.0.0"`: Docker to use for both CollectWgsMetrics and DownsampleSam
 * `File? picard_jar_override`: If provided, a Picard JAR file to use for both CollectWgsMetrics and DownsampleSam instead of the `gatk` command.
 * `Int preemptible = 1`: Preemptible attempts
