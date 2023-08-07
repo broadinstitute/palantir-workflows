@@ -61,7 +61,7 @@ workflow Glimpse2SplitReference {
         Array[File] chunks = GlimpseSplitReferenceTask.chunks
         Array[File] reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks)
         Array[String] num_sites = flatten(GlimpseSplitReferenceTask.num_sites)
-        Array[String] num_sites_uniform = write_lines(flatten(GlimpseSplitReferenceTask.num_sites_uniform))
+        Array[String] num_sites_uniform = flatten(GlimpseSplitReferenceTask.num_sites_uniform)
         Array[File?] split_reference_monitoring = GlimpseSplitReferenceTask.monitoring
     }
 }
