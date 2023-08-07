@@ -18,7 +18,7 @@ task ScoreVcf {
   Int runtime_mem = base_mem + 2
   Int plink_mem = ceil(base_mem * 0.75 * 1000)
   Int disk_space =  3*ceil(size(vcf, "GB")) + 20
-  String var_ids_string = "@:#:" + if use_ref_alt_for_ids then "\$r:\$a" else "\$1:\$2"
+  String var_ids_string = "@:#:" + if use_ref_alt_for_ids then "\\$r:\\$a" else "\\$1:\\$2"
 
   command {
     /plink2 --score ~{weights} header ignore-dup-ids list-variants no-mean-imputation \
