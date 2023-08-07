@@ -12,15 +12,17 @@ task ScoreVcf {
     String? extra_args
     File? sites
     String? chromosome_encoding
+    Boolean use_ref_alt_for_ids = false
   }
 
   Int runtime_mem = base_mem + 2
   Int plink_mem = ceil(base_mem * 0.75 * 1000)
   Int disk_space =  3*ceil(size(vcf, "GB")) + 20
+  String var_ids_string = "@:#:" + if use_ref_alt_for_ids then "\$r:\$a" else "\$1:\$2"
 
   command {
     /plink2 --score ~{weights} header ignore-dup-ids list-variants no-mean-imputation \
-    cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --set-all-var-ids @:#:\$1:\$2 --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
+    cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --set-all-var-ids ~{var_ids_string} --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
     --new-id-max-allele-len 1000 missing ~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem} ~{"--output-chr " + chromosome_encoding}
   }
 
