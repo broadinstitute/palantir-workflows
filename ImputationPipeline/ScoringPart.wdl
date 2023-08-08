@@ -115,7 +115,7 @@ workflow ScoringImputedDataset {
 			base_mem = scoring_mem,
 			extra_args = columns_for_scoring,
 			sites = sites_to_use_in_scoring,
-			chromosome_encoding = DetermineChromosomeEnoding.chromosome_encoding
+			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
 	}
 
 	if (defined(named_weight_set.weight_set.interaction_weights)) {
