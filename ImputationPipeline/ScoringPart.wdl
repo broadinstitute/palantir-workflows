@@ -102,14 +102,20 @@ workflow ScoringImputedDataset {
 		File sites_to_use_in_scoring = select_first([ExtractIDsPopulation.ids, sites_used_in_scoring_for_model])
 	}
 
+	call ScoringTasks.DetermineChromosomeEncoding {
+		input:
+			weights = named_weight_set.weight_set.linear_weights
+	}
+
 	call ScoringTasks.ScoreVcf as ScoreImputedArray {
 		input:
-		vcf = imputed_array_vcf,
-		basename = basename,
-		weights = named_weight_set.weight_set.linear_weights,
-		base_mem = scoring_mem,
-		extra_args = columns_for_scoring,
-		sites = sites_to_use_in_scoring
+			vcf = imputed_array_vcf,
+			basename = basename,
+			weights = named_weight_set.weight_set.linear_weights,
+			base_mem = scoring_mem,
+			extra_args = columns_for_scoring,
+			sites = sites_to_use_in_scoring,
+			chromosome_encoding = DetermineChromosomeEnoding.chromosome_encoding
 	}
 
 	if (defined(named_weight_set.weight_set.interaction_weights)) {

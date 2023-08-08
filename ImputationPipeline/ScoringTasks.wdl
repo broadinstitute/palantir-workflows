@@ -648,3 +648,36 @@ task ExtractIDsPlink {
     memory: mem + " GB"
   }
 }
+
+#plink chromosome encoding rules: https://www.cog-genomics.org/plink/2.0/data#irreg_output
+task DetermineChromosomeEncoding {
+  input {
+    File weights
+  }
+
+  command <<<
+    python3 << "EOF"
+      with open(~{weights}) as weights_file:
+      chroms = {s.split("\t")[0].split(":")[0] for s in weights_file if ":" in s}
+      code = 'MT'
+      if any('chr' in c for c in chroms):
+          if 'chrM' in chroms:
+              code = 'chrM'
+          else:
+              code = 'chrMT'
+      elif 'M' in chroms:
+          code = 'M'
+
+      with open('chr_encode_out.txt', 'w') as write_code_file:
+          write_code_file.write(f'{code}\n')
+    EOF
+  >>>
+
+  runtime {
+    docker : "python:3.9.10"
+  }
+
+  output {
+    String chromosome_encoding = read_string("chr_encode_out.txt")
+  }
+}
