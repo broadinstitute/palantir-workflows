@@ -659,7 +659,7 @@ task DetermineChromosomeEncoding {
     python3 << "EOF"
     code = 'MT'
     with open("~{weights}") as weights_file:
-      chroms = {s.split("\t")[0].split(":")[0] for i, s in weights_file if i > 0}
+      chroms = {s.split("\t")[0].split(":")[0] for i, s in enumerate(weights_file) if i > 0}
       if any('chr' in c for c in chroms):
           if 'chrM' in chroms:
               code = 'chrM'
