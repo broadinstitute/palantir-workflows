@@ -90,3 +90,6 @@ workflows:
   - name: DownsampleAndCollectCoverage
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/DownsampleAndCollectCoverage.wdl
+  - name: Dipcall
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/Dipcall.wdl
