@@ -1,6 +1,5 @@
 FROM ubuntu:22.10
-RUN apt update
-RUN apt install -y git python3 python3-pip wget libbz2-dev liblzma-dev libcurl4-openssl-dev libncurses-dev
+RUN apt-get update && apt-get install -y git python3 python3-pip wget libbz2-dev liblzma-dev libcurl4-openssl-dev libncurses-dev curl
 
 RUN pip install pandas
 
@@ -12,3 +11,5 @@ RUN ./configure
 RUN make
 RUN make install
 RUN export PATH=/samtools-1.16.1/samtools:$PATH
+
+RUN curl -sSL https://sdk.cloud.google.com | bash
