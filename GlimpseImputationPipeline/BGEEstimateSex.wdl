@@ -36,7 +36,7 @@ task BGEEstimateSexTask {
     Int disk_size = 20
 
     command <<<
-        set -e -o pipefail
+        set -xe -o pipefail
 
         export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
         
