@@ -38,7 +38,7 @@ task BGEEstimateSexTask {
     command <<<
         set -e -o pipefail
 
-        export GCS_OAUTH_TOKEN=$(gcloud auth application-default print-access-token)
+        export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
         
         cov_x=$(samtools view -h ~{input_cram} chrX | samtools idxstats - | grep "chrX" | head -n 1 | awk '{printf "%.5f\n", $3/$2}')
         cov_y=$(samtools view -h ~{input_cram} chrY | samtools idxstats - | grep "chrY" | head -n 1 | awk '{printf "%.5f\n", $3/$2}')
