@@ -11,16 +11,19 @@ task ScoreVcf {
     Int base_mem = 8
     String? extra_args
     File? sites
+    String? chromosome_encoding
+    Boolean use_ref_alt_for_ids = false
   }
 
   Int runtime_mem = base_mem + 2
   Int plink_mem = ceil(base_mem * 0.75 * 1000)
   Int disk_space =  3*ceil(size(vcf, "GB")) + 20
+  String var_ids_string = "@:#:" + if use_ref_alt_for_ids then "\\$r:\\$a" else "\\$1:\\$2"
 
   command {
     /plink2 --score ~{weights} header ignore-dup-ids list-variants no-mean-imputation \
-    cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --set-all-var-ids @:#:\$1:\$2 --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
-    --new-id-max-allele-len 1000 missing ~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem}
+    cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --set-all-var-ids ~{var_ids_string} --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
+    --new-id-max-allele-len 1000 missing ~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem} ~{"--output-chr " + chromosome_encoding}
   }
 
   output {
@@ -643,5 +646,38 @@ task ExtractIDsPlink {
     docker: "us.gcr.io/broad-dsde-methods/plink2_docker@sha256:4455bf22ada6769ef00ed0509b278130ed98b6172c91de69b5bc2045a60de124"
     disks: "local-disk " + disk_size + " HDD"
     memory: mem + " GB"
+  }
+}
+
+#plink chromosome encoding rules: https://www.cog-genomics.org/plink/2.0/data#irreg_output
+task DetermineChromosomeEncoding {
+  input {
+    File weights
+  }
+
+  command <<<
+    python3 << "EOF"
+    code = 'MT'
+    with open("~{weights}") as weights_file:
+      chroms = {s.split("\t")[0].split(":")[0] for i, s in enumerate(weights_file) if i > 0}
+      if any('chr' in c for c in chroms):
+          if 'chrM' in chroms:
+              code = 'chrM'
+          else:
+              code = 'chrMT'
+      elif 'M' in chroms:
+          code = 'M'
+
+    with open('chr_encode_out.txt', 'w') as write_code_file:
+        write_code_file.write(f'{code}\n')
+    EOF
+  >>>
+
+  runtime {
+    docker : "python:3.9.10"
+  }
+
+  output {
+    String chromosome_encoding = read_string("chr_encode_out.txt")
   }
 }
