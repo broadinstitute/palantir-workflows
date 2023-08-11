@@ -3,6 +3,7 @@ version 1.0
 workflow BGEEstimateSex {
     input {
         File input_cram
+        File input_cram_index
         String docker = "us.gcr.io/broad-dsde-methods/samtools:v1"
         Int preemptible = 1
     }
@@ -10,6 +11,7 @@ workflow BGEEstimateSex {
     call BGEEstimateSexTask {
         input:
             input_cram = input_cram,
+            input_cram_index = input_cram_index,
             docker = docker,
             preemptible = preemptible
     }
@@ -22,6 +24,7 @@ workflow BGEEstimateSex {
 task BGEEstimateSexTask {
     input {
         File input_cram
+        File input_cram_index
 
         String docker
         Int preemptible
@@ -29,6 +32,9 @@ task BGEEstimateSexTask {
 
     parameter_meta {
         input_cram: {
+            localization_optional: true
+        }
+        input_cram_index: {
             localization_optional: true
         }
     }
@@ -40,8 +46,8 @@ task BGEEstimateSexTask {
 
         export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
         
-        cov_x=$(samtools view -h ~{input_cram} chrX | samtools idxstats - | grep "chrX" | head -n 1 | awk '{printf "%.5f\n", $3/$2}')
-        cov_y=$(samtools view -h ~{input_cram} chrY | samtools idxstats - | grep "chrY" | head -n 1 | awk '{printf "%.5f\n", $3/$2}')
+        cov_x=$(samtools view -h -X ~{input_cram} ~{input_cram_index} chrX | samtools idxstats - | grep "chrX" | head -n 1 | awk '{printf "%.5f\n", $3/$2}')
+        cov_y=$(samtools view -h -X ~{input_cram} ~{input_cram_index} chrY | samtools idxstats - | grep "chrY" | head -n 1 | awk '{printf "%.5f\n", $3/$2}')
 
         python3 -c "print(${cov_y}/${cov_x})" > sex_ratio.txt
     >>>
