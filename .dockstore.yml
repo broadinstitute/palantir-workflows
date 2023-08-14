@@ -93,3 +93,6 @@ workflows:
   - name: Dipcall
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/Dipcall.wdl
+  - name: ProGRESSMultivariateRiskModel
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/ProGRESSMultivariateRiskModel.wdl
