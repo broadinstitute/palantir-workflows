@@ -24,14 +24,14 @@ workflow ProGRESSMultivariateRiskModel {
 
     call ScoringTasks.DetermineChromosomeEncoding {
 		input:
-			weights = named_weight_set.weight_set.linear_weights
+			weights = prs_weights
 	}
 
 	call ScoringTasks.ScoreVcf as ScoreImputedArray {
 		input:
-			vcf = imputed_array_vcf,
+			vcf = vcf,
 			basename = basename,
-			weights = named_weight_set.weight_set.linear_weights,
+			weights = prs_weights,
 			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
             use_ref_alt_for_ids = use_ref_alt_for_ids
 	}
