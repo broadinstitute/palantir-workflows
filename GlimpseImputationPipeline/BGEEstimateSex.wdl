@@ -52,8 +52,8 @@ task BGEEstimateSexTask {
 
         export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
         
-        reads_x=$(samtools view -h -T ~{ref_fasta} -X ~{input_cram} ~{input_cram_index} chrX | samtools idxstats - | grep "chrX" | head -n 1 | awk '{ print $3 }')
-        reads_y=$(samtools view -h -T ~{ref_fasta} -X ~{input_cram} ~{input_cram_index} chrY | samtools idxstats - | grep "chrY" | head -n 1 | awk '{ print $3 }')
+        reads_x=$(samtools view -h -T ~{ref_fasta} -F 0x0400 -q 20 -X ~{input_cram} ~{input_cram_index} chrX | samtools idxstats - | grep "chrX" | head -n 1 | awk '{ print $3 }')
+        reads_y=$(samtools view -h -T ~{ref_fasta} -F 0x0400 -q 20 -X ~{input_cram} ~{input_cram_index} chrY | samtools idxstats - | grep "chrY" | head -n 1 | awk '{ print $3 }')
 
         python3 -c "print(${reads_y}/${reads_x})" > sex_ratio.txt
     >>>

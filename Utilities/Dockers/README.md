@@ -41,6 +41,7 @@ includes some minimal Python tools (pandas) for data processing.
 * Usage: `samtools [COMMAND]`
 * Version Notes:
   * 1.0: Versions are `samtools` 1.16.1.
+  * 1.1: Added gcloud SDK
 
 ## pysam
 
