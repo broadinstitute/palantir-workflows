@@ -79,6 +79,7 @@ for file_name in file_names:
         for d in dir_names:
             if file_name in os.listdir(f"./wdl_outputs/workflows/{wf}/benchmark_outputs/{d}/"):
                 df = pd.read_csv(f"./wdl_outputs/workflows/{wf}/benchmark_outputs/{d}/{file_name}", sep='\t', low_memory=False)
+                df['Terra_workflow_id'] = wf
                 full_df = pd.concat([full_df, df])
     full_df.to_csv(f"./wdl_outputs/{file_name}", sep='\t', index=False)
 

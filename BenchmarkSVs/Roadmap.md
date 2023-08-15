@@ -31,6 +31,12 @@ Some tasks that are lower priority at the moment but might get picked up in the 
 
 ## CHANGELOG
 
+### v0.7
+
+- Added column for Terra workflow id when using `gather_terra_data` script to help disambiguate data across runs when using
+similar Experiment labels between runs.
+- Minor changes to the main WDL.
+
 ### v0.6
 
 - Added auto-generated `README.txt` to the directory created by `gather_terra_data.py` script.

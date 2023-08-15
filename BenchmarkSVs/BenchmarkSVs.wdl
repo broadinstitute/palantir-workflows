@@ -315,37 +315,6 @@ task SubsetEvaluation {
     }
 }
 
-task SplitMASites {
-    input {
-        File input_vcf
-        File input_vcf_index
-
-        # Runtime parameters
-        Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
-        Int cpu = 4
-        Int memory_ram = 16
-    }
-
-    command <<<
-        set -xueo pipefail
-
-        bcftools norm -m -any ~{input_vcf} > split.vcf.gz
-        bcftools index -t split.vcf.gz
-    >>>
-
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
-        disks: "local-disk " + disk_size + " HDD"
-        memory: memory_ram + " GB"
-        cpu: cpu
-    }
-
-    output {
-        File output_vcf = "split.vcf.gz"
-        File output_vcf_index = "split.vcf.gz.tbi"
-    }
-}
-
 task CollectQcMetrics {
     input {
         File input_vcf
@@ -517,9 +486,9 @@ task RunTruvari {
             mv comp-subset.vcf.gz comp.vcf.gz
             mv comp-subset.vcf.gz.tbi comp.vcf.gz.tbi
         else
-            bcftools view ~{"-s" + base_vcf_sample_name} --min-ac 1 -o base.vcf.gz base-subset.vcf.gz
+            bcftools view ~{"-s " + base_vcf_sample_name} --min-ac 1 -o base.vcf.gz base-subset.vcf.gz
             bcftools index -t base.vcf.gz
-            bcftools view ~{"-s" + comp_vcf_sample_name} --min-ac 1 -o comp.vcf.gz comp-subset.vcf.gz
+            bcftools view ~{"-s " + comp_vcf_sample_name} --min-ac 1 -o comp.vcf.gz comp-subset.vcf.gz
             bcftools index -t comp.vcf.gz
         fi
 
@@ -658,12 +627,12 @@ task CollectIntervalComparisonMetrics {
         set -xueo pipefail
 
         # Transform VCFs into bed files for more convenient analysis
-        bcftools view ~{"-s" + base_sample_name} --min-ac 1 "~{base_vcf}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > base.bed
-        bcftools view ~{"-s" + base_sample_name} --min-ac 1 "~{tp_base}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > tp-base.bed
-        bcftools view ~{"-s" + base_sample_name} --min-ac 1 "~{fn}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > fn.bed
-        bcftools view ~{"-s" + comp_sample_name} --min-ac 1 "~{comp_vcf}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > comp.bed
-        bcftools view ~{"-s" + comp_sample_name} --min-ac 1 "~{tp_comp}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > tp-comp.bed
-        bcftools view ~{"-s" + comp_sample_name} --min-ac 1 "~{fp}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > fp.bed
+        bcftools view ~{"-s " + base_sample_name} --min-ac 1 "~{base_vcf}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > base.bed
+        bcftools view ~{"-s " + base_sample_name} --min-ac 1 "~{tp_base}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > tp-base.bed
+        bcftools view ~{"-s " + base_sample_name} --min-ac 1 "~{fn}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > fn.bed
+        bcftools view ~{"-s " + comp_sample_name} --min-ac 1 "~{comp_vcf}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > comp.bed
+        bcftools view ~{"-s " + comp_sample_name} --min-ac 1 "~{tp_comp}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > tp-comp.bed
+        bcftools view ~{"-s " + comp_sample_name} --min-ac 1 "~{fp}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > fp.bed
 
         # Generate "closest" data
         echo -e "BASENAME\tCOMPNAME\tExperiment\tLCHROM\tLPOS\tLEND\tLLEN\tLTYPE\tLFILTER\tRCHROM\tRPOS\tREND\tRLEN\tRTYPE\tRFILTER\tDIST" > header.txt
