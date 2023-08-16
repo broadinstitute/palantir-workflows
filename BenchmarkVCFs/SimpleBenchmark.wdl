@@ -267,167 +267,131 @@ task VCFEval {
     command <<<
         set -xeuo pipefail
 
-        if [ -z ~{par_bed}]; then
+        # Normal situation without any PAR bed file
+        if [ -z ~{par_bed} ];
+        then
+            rtg format -o rtg_ref ~{reference.fasta}
+            rtg vcfeval \
+                ~{false="--all-records" true="" passing_only} \
+                ~{false="--squash-ploidy" true="" require_matching_genotypes} \
+                ~{true="--ref-overlap" false="" enable_ref_overlap} \
+                -b ~{base_vcf} \
+                -c ~{call_vcf} \
+                ~{"-e " + evaluation_bed} \
+                --vcf-score-field="~{score_field}" \
+                --output-mode split \
+                --decompose \
+                --roc-subset snp,mnp,indel \
+                -t rtg_ref \
+                -o reg \
 
-        rtg format -o rtg_ref ~{reference.fasta}
-        rtg vcfeval \
-            ~{false="--all-records" true="" passing_only} \
-            ~{false="--squash-ploidy" true="" require_matching_genotypes} \
-            ~{true="--ref-overlap" false="" enable_ref_overlap} \
-            -b ~{base_vcf} \
-            -c ~{call_vcf} \
-            ~{"-e " + evaluation_bed} \
-            --vcf-score-field="~{score_field}" \
-            --output-mode split \
-            --decompose \
-            --roc-subset snp,mnp,indel \
-            -t rtg_ref \
-            -o output_dir \
-
-        python3 << CODE
-        import gzip
-        import pandas as pd
-
-        roc_summary = pd.DataFrame()
-        for Type in ['snp', 'mnp', 'indel']:
-            file_path = f'output_dir/{Type}_roc.tsv.gz'
-
-            header_lines = []
-            # Read through file lines until hitting one without leading '#'
-            with gzip.open(file_path, 'rt') as file:
-                for line in file:
-                    if line[0] == '#':
-                        header_lines += [line]
-                    else:
-                        break
-            header_names = header_lines[-1].replace('#', '').replace('\n', '').split('\t')
-            df = pd.read_csv(file_path, sep='\t', comment='#', header=None, names=header_names)
-
-            rename_columns = {'score': 'Score', 'true_positives_baseline': 'TP_Base',
-                  'false_positives': 'FP', 'true_positives_call': 'TP_Call', 'false_negatives': 'FN',
-                  'precision': 'Precision', 'sensitivity': 'Recall', 'f_measure': 'F1_Score'}
-
-            df = df.rename(columns=rename_columns)
-            df['Type'] = Type.upper()
-            df['Stratifier'] = "~{strat_label}"
-            df['Score_Field'] = "~{score_field}"
-            df['Call_Name'] = "~{call_output_sample_name}"
-            df['Base_Name'] = "~{base_output_sample_name}"
-
-            roc_summary = pd.concat([roc_summary, df])
-
-        roc_summary.to_csv('ROC_summary.tsv', sep='\t', index=False)
-
-        CODE
+            mkdir output_dir
+            cp reg/*.vcf.gz* output_dir/
 
         else
+            # Handle case where user provides PAR bed by running with --squash-ploidy over haploid region
+            grep -E '^@SQ' ~{reference.dict} | awk 'BEGIN{OFS="\t"} {gsub(/SN:/,"",$2); gsub(/LN:/,"",$3); print $2, $3}' > 'genome_file.txt'
+            bedtools complement -i ~{par_bed} -g genome_file.txt -L > 'par.bed'
+            bedtools complement -i par.bed -g genome_file.txt > 'reg.bed'
 
-        grep -E '^@SQ' ~{reference.dict} | awk 'BEGIN{OFS="\t"} {gsub(/SN:/,"",$2); gsub(/LN:/,"",$3); print $2, $3}' > 'genome_file.txt'
+            rtg format -o rtg_ref ~{reference.fasta}
 
-        bedtools complement -i ~{par_bed} -g genome_file.txt -L > 'par.bed'
+            rtg vcfeval \
+                ~{false="--all-records" true="" passing_only} \
+                ~{true="--ref-overlap" false="" enable_ref_overlap} \
+                --squash-ploidy \
+                -b ~{base_vcf} \
+                -c ~{call_vcf} \
+                --bed-regions par.bed \
+                ~{"-e " + evaluation_bed} \
+                --vcf-score-field="~{score_field}" \
+                --output-mode split \
+                --decompose \
+                --roc-subset snp,mnp,indel \
+                -t rtg_ref \
+                -o par
 
-        bedtools complement -i par.bed -g genome_file.txt > 'reg.bed'
+            rtg vcfeval \
+                ~{false="--all-records" true="" passing_only} \
+                ~{false="--squash-ploidy" true="" require_matching_genotypes} \
+                ~{true="--ref-overlap" false="" enable_ref_overlap} \
+                -b ~{base_vcf} \
+                -c ~{call_vcf} \
+                --bed-regions reg.bed \
+                ~{"-e " + evaluation_bed} \
+                --vcf-score-field="~{score_field}" \
+                --output-mode split \
+                --decompose \
+                --roc-subset snp,mnp,indel \
+                -t rtg_ref \
+                -o reg
 
-        rtg format -o rtg_ref ~{reference.fasta}
+            mkdir output_dir
+            for file_name in "tp-baseline" "tp" "fp" "fn";
+            do
+                bcftools merge --force-samples "par/${file_name}.vcf.gz" "reg/${file_name}.vcf.gz" | bcftools sort -Oz -o "output_dir/${file_name}.vcf.gz"
+                bcftools index -t "output_dir/${file_name}.vcf.gz"
+            done
 
-        rtg vcfeval \
-            ~{false="--all-records" true="" passing_only} \
-            ~{true="--ref-overlap" false="" enable_ref_overlap} \
-            --squash-ploidy \
-            -b ~{base_vcf} \
-            -c ~{call_vcf} \
-            --bed-regions par.bed \
-            ~{"-e " + evaluation_bed} \
-            --vcf-score-field="~{score_field}" \
-            --output-mode split \
-            --decompose \
-            --roc-subset snp,mnp,indel \
-            -t rtg_ref \
-            -o par
+        fi
 
-        rtg vcfeval \
-            ~{false="--all-records" true="" passing_only} \
-            ~{false="--squash-ploidy" true="" require_matching_genotypes} \
-            ~{true="--ref-overlap" false="" enable_ref_overlap} \
-            -b ~{base_vcf} \
-            -c ~{call_vcf} \
-            --bed-regions reg.bed \
-            ~{"-e " + evaluation_bed} \
-            --vcf-score-field="~{score_field}" \
-            --output-mode split \
-            --decompose \
-            --roc-subset snp,mnp,indel \
-            -t rtg_ref \
-            -o reg
 
         python3 << CODE
         import gzip
         import pandas as pd
 
-        roc_summary = pd.DataFrame()
-        for Type in ['snp', 'mnp', 'indel']:
-            file_path_reg = f'reg/{Type}_roc.tsv.gz'
-            file_path_par = f'par/{Type}_roc.tsv.gz'
+        def parse_data(root_dir):
+            full_df = pd.DataFrame()
+            for Type in ['snp', 'mnp', 'indel']:
+                file_path = f'{root_dir}/{Type}_roc.tsv.gz'
 
-            header_lines_reg = []
-            header_lines_par = []
-            # Read through file lines until hitting one without leading '#'
-            with gzip.open(file_path_reg, 'rt') as file_reg:
-                for line in file_reg:
-                    if line[0] == '#':
-                        header_lines_reg += [line]
-                    else:
-                        break
+                header_lines = []
+                # Read through file lines until hitting one without leading '#'
+                with gzip.open(file_path, 'rt') as file:
+                    for line in file:
+                        if line[0] == '#':
+                            header_lines += [line]
+                        else:
+                            break
+                header_names = header_lines[-1].replace('#', '').replace('\n', '').split('\t')
+                df = pd.read_csv(file_path, sep='\t', comment='#', header=None, names=header_names)
 
-            with gzip.open(file_path_par, 'rt') as file_par:
-                for line in file_par:
-                    if line[0] == '#':
-                        header_lines_par += [line]
-                    else:
-                        break
+                rename_columns = {'score': 'Score', 'true_positives_baseline': 'TP_Base',
+                      'false_positives': 'FP', 'true_positives_call': 'TP_Call', 'false_negatives': 'FN',
+                      'precision': 'Precision', 'sensitivity': 'Recall', 'f_measure': 'F1_Score'}
 
-            header_names_reg = header_lines_reg[-1].replace('#', '').replace('\n', '').split('\t')
-            df_reg = pd.read_csv(file_path_reg, sep='\t', comment='#', header=None, names=header_names_reg)
-            header_names_par = header_lines_par[-1].replace('#', '').replace('\n', '').split('\t')
-            df_par = pd.read_csv(file_path_par, sep='\t', comment='#', header=None, names=header_names_par)
+                df = df.rename(columns=rename_columns)
+                df['Type'] = Type.upper()
+                df['Stratifier'] = "~{strat_label}"
+                df['Score_Field'] = "~{score_field}"
+                df['Call_Name'] = "~{call_output_sample_name}"
+                df['Base_Name'] = "~{base_output_sample_name}"
 
-            rename_columns = {'score': 'Score', 'true_positives_baseline': 'TP_Base',
-                  'false_positives': 'FP', 'true_positives_call': 'TP_Call', 'false_negatives': 'FN'}
+                full_df = pd.concat([full_df, df])
 
-            df_reg = df_reg.rename(columns=rename_columns)
-            df_par = df_par.rename(columns=rename_columns)
+            return full_df
 
-            combined_df = pd.concat([df_par, df_reg], ignore_index=True).groupby("Score", as_index=False).sum()
-            combined_df['Type'] = Type.upper()
-            if not combined_df.empty:
-                combined_df["Precision"] = combined_df["TP_Call"] / (combined_df["TP_Call"] + combined_df["FP"])
-                combined_df["Recall"] = combined_df["TP_Base"] / (combined_df["TP_Base"] + combined_df["FN"])
-                combined_df["F1_Score"] = combined_df["Precision"] * combined_df["Recall"] / (combined_df["Precision"] + combined_df["Recall"])
-                combined_df['Type'] = Type.upper()
-                combined_df['Stratifier'] = "~{strat_label}"
-                combined_df['Score_Field'] = "~{score_field}"
-                combined_df['Call_Name'] = "~{call_output_sample_name}"
-                combined_df['Base_Name'] = "~{base_output_sample_name}"
+        reg_roc_summary = parse_data('reg')
+        roc_summary = reg_roc_summary
 
-            roc_summary = pd.concat([roc_summary, combined_df])
+        # If PAR bed file provided, also collect data from analysis over PAR region and combine stats
+        if len("~{par_bed}") > 0:
+            par_roc_summary = parse_data('par')
+            merged_df = reg_roc_summary.merge(par_roc_summary, on=['Score', 'Type', 'Stratifier', 'Score_Field', 'Call_Name', 'Base_Name'], how='outer').fillna(0)
+            for stat in ['TP_Base', 'FP', 'TP_Call', 'FN']:
+                merged_df[stat] = merged_df[f'{stat}_x'] + merged_df[f'{stat}_y']
+            merged_df['Precision'] = merged_df['TP_Call'] / (merged_df['TP_Call'] + merged_df['FP'])
+            merged_df['Recall'] = merged_df['TP_Base'] / (merged_df['TP_Base'] + merged_df['FN'])
+            merged_df['F1_Score'] = 2 * merged_df['Precision'] * merged_df['Recall'] / (merged_df['Precision'] + merged_df['Recall'])
+
+            roc_summary = merged_df[
+                ['Score', 'TP_Base', 'FP', 'TP_Call', 'FN', 'Precision', 'Recall', 'F1_Score', 'Type', 'Stratifier', 'Score_Field', 'Call_Name', 'Base_Name']
+            ]
 
         roc_summary.to_csv('ROC_summary.tsv', sep='\t', index=False)
+
         CODE
 
-        #do i need to create this directory?? Also above I use eval.bed twice which is excessive
-        mkdir output_dir
-        bcftools merge --force-samples par/tp-baseline.vcf.gz reg/tp-baseline.vcf.gz | bcftools sort -Oz -o output_dir/tp-baseline.vcf.gz
-        bcftools merge --force-samples par/tp.vcf.gz reg/tp.vcf.gz | bcftools sort -Oz -o output_dir/tp.vcf.gz
-        bcftools merge --force-samples par/fp.vcf.gz reg/fp.vcf.gz | bcftools sort -Oz -o output_dir/fp.vcf.gz
-        bcftools merge --force-samples par/fn.vcf.gz reg/fn.vcf.gz | bcftools sort -Oz -o output_dir/fn.vcf.gz
-
-        # do i need to save the output?
-        bcftools tabix -p vcf output_dir/tp-baseline.vcf.gz
-        bcftools tabix -p vcf output_dir/tp.vcf.gz
-        bcftools tabix -p vcf output_dir/fp.vcf.gz
-        bcftools tabix -p vcf output_dir/fn.vcf.gz
-
-        fi
     >>>
 
     runtime {
