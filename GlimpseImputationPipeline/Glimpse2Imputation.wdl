@@ -23,7 +23,7 @@ workflow Glimpse2Imputation {
         Int? effective_population_size
         
         Int preemptible = 1
-        String docker = "us.gcr.io/broad-dsde-methods/glimpse:official_repo_dbd7401"
+        String docker = "us.gcr.io/broad-dsde-methods/glimpse:palantir_workflows_1920bc8"
         Int cpu_phase = 4
         Int mem_gb_phase = 64
         Int cpu_ligate = 4
