@@ -1,4 +1,4 @@
-FROM us.gcr.io/broad-dsde-methods/glimpse-base:michaelgatzen_glimpse_9a1396c
+FROM us.gcr.io/broad-dsde-methods/glimpse-base:michaelgatzen_glimpse_b768497
 
 WORKDIR /docker_build/
 
