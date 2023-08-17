@@ -184,7 +184,8 @@ with open('aggregated_annotations.tsv', 'w') as output_file:
                 raise RuntimeError('The site information (CHROM, POS, REF, ALT) is not identical in each line between different batch annotations.')
             
             aggregated_af = sum([af[i] * num_samples[i] for i in range(num_batches)]) / sum(num_samples)
-            aggregated_info = 1 - \
+            aggregated_info = 1 if aggregated_af == 0 or aggregated_af == 1 else \
+                     1 - \
                     (sum([1 - info[i] * 2 * num_samples[i] * af[i] * (1 - af[i]) for i in range(num_batches)])) / \
                     (2 * sum(num_samples) * aggregated_af * (1 - aggregated_af))
             
