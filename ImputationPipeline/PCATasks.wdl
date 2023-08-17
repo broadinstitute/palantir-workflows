@@ -46,6 +46,7 @@ task ProjectArray {
     File pc_meansd
     String basename
     Int mem = 8
+    String? divisor
   }
 
   command <<<
@@ -81,7 +82,7 @@ task ProjectArray {
     fi
 
     ~/flashpca/flashpca --bfile ~{basename} --project --inmeansd meansd.txt \
-    --outproj projections.txt --inload loadings.txt -v
+    --outproj projections.txt --inload loadings.txt -v ~{"--div " + divisor}
   >>>
 
   output {
@@ -102,9 +103,11 @@ task ArrayVcfToPlinkDataset {
     File? subset_to_sites
     String basename
     Int mem = 8
+    Boolean use_ref_alt_for_ids = false
   }
 
   Int disk_space =  3*ceil(size(vcf, "GB")) + 20
+  String var_ids_string = "@:#:" + if use_ref_alt_for_ids then "\\$r:\\$a" else "\\$1:\\$2"
 
   command {
 
