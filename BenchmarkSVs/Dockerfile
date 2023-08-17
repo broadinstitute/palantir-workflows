@@ -10,3 +10,11 @@ RUN mv bedtools.static bedtools && chmod +x bedtools && cp bedtools /bin/
 
 # Add tabix/bgzip
 RUN apt-get update && apt-get install -y tabix
+
+# Get updated bcftools
+# TODO: Update base docker image instead of overwriting bcftools old version
+ADD https://github.com/samtools/bcftools/releases/download/1.18/bcftools-1.18.tar.bz2 .
+RUN tar -xvf bcftools-1.18.tar.bz2
+WORKDIR bcftools-1.18
+RUN ./configure && make && make install
+WORKDIR /

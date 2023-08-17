@@ -31,6 +31,13 @@ Some tasks that are lower priority at the moment but might get picked up in the 
 
 ## CHANGELOG
 
+### v0.8
+
+- Fixed bug in `CleanSVs.wdl` to preserve existing abstract alleles in file. Also convert BND notation using `[` or `]` to abstract.
+Also try to infer SVTYPE from allele when UNK (e.g. from GATK-SV). User can now toggle whether to write BND variants or filter them out.
+- Record user comment for submission in `gather_terra_data` README file.
+- Update docker version to use bcftools 1.18 to avoid an old bug.
+
 ### v0.7
 
 - Added column for Terra workflow id when using `gather_terra_data` script to help disambiguate data across runs when using

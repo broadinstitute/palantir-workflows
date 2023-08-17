@@ -70,7 +70,7 @@ task SplitMASites {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -132,7 +132,7 @@ task AddAnnotations {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -155,6 +155,9 @@ task ConvertToAbstract {
 
         Int min_size = 50
 
+        Boolean normalize_missing_filter_to_pass = true
+        Boolean remove_bnd = true
+
         # Runtime parameters
         Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
         Int cpu = 4
@@ -174,21 +177,34 @@ task ConvertToAbstract {
                     ## Remove alt sequence to use abstract alleles; assumes split MA sites already
                     ref = record.alleles[0]
                     alt = record.alleles[1]
-                    # Check relative difference in size meets size threshold
-                    if np.abs(len(ref) - len(alt)) >= ~{min_size}:
+
+                    # Check relative difference in size meets size threshold or already abstract
+                    # Also convert BND notation using ] or [ to abstract allele
+                    if (np.abs(len(ref) - len(alt)) >= ~{min_size}) or (alt[0] == '<') or ('[' in alt) or (']' in alt):
                         # Replace REF with its first char, and ALT with abstraction
-                        record.alleles = (record.alleles[0][0], f'<{record.info["SVTYPE"]}>')
-                        if len(record.filter.values()) == 0:
+                        # If SVTYPE is UNK, try to infer from alt alleles
+                        if record.info["SVTYPE"] == "UNK":
+                            allele_type = alt.split('<')[-1].split('>')[0]
+                            record.info["SVTYPE"] = allele_type
+                        else:
+                            new_alt = f'<{record.info["SVTYPE"]}>' if alt[0] != '<' else alt
+                            record.alleles = (record.alleles[0][0], new_alt)
+
+                        # Normalize FILTER to be PASS rather than missing
+                        if (len(record.filter.values()) == 0) and ('~{normalize_missing_filter_to_pass}' == 'true'):
                             record.filter.clear()
                             record.filter.add('PASS')
-                        output_vcf.write(record)
+
+                        # Check for BND and write only if not asked to remove
+                        if not ( ('~{remove_bnd}' == 'true') and (record.info["SVTYPE"] == 'BND') ):
+                            output_vcf.write(record)
         CODE
 
         bcftools index -t -f "~{output_name}.vcf.gz"
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu

@@ -303,7 +303,7 @@ task SubsetEvaluation {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -408,7 +408,7 @@ task CollectQcMetrics {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -569,7 +569,7 @@ task RunTruvari {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -713,7 +713,7 @@ task CollectIntervalComparisonMetrics {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -920,7 +920,7 @@ task AddIntervalOverlapStatsWittyer {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -984,7 +984,7 @@ task CleanBasicWittyerStats {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
         disks: "local-disk " + 50 + " HDD"
         memory: 4 + " GB"
         cpu: 2
@@ -1024,7 +1024,7 @@ task CombineSummaries {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.5"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
