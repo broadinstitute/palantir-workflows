@@ -9,7 +9,7 @@ workflow Glimpse2MergeBatches {
 
         String docker_extract_annotations = "us.gcr.io/broad-gatk/gatk:4.3.0.0"
         String docker_count_samples = "us.gcr.io/broad-dsde-methods/bcftools:v1.2"
-        String docker_merge = "us.gcr.io/broad-dsde-methods/bcftools:v1.2"
+        String docker_merge = "us.gcr.io/broad-dsde-methods/samtools-suite:v1"
     }
 
     scatter(batch_index in range(length(imputed_vcfs))) {
@@ -193,7 +193,10 @@ with open('aggregated_annotations.tsv', 'w') as output_file:
 EOF
         python script.py
 
-        bcftools annotate -a aggregated_annotations.tsv -c CHROM,POS,REF,ALT,AF,INFO -O z -o ~{output_basename}.vcf.gz ~{output_basename}.merged.vcf.gz
+        bgzip aggregated_annotations.tsv
+        tabix -s1 -b2 -e2 aggregated_annotations.tsv.gz
+
+        bcftools annotate -a aggregated_annotations.tsv.gz -c CHROM,POS,REF,ALT,AF,INFO -O z -o ~{output_basename}.vcf.gz ~{output_basename}.merged.vcf.gz
     >>>
 
     runtime {
@@ -207,5 +210,6 @@ EOF
     output {
         File merged_imputed_vcf = "~{output_basename}.vcf.gz"
         File merged_imputed_vcf_index = "~{output_basename}.vcf.gz.tbi"
+        File aggregated_annotations = "aggregated_annotations.tsv.gz"
     }
 }

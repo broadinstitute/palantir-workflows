@@ -43,6 +43,14 @@ includes some minimal Python tools (pandas) for data processing.
   * 1.0: Versions are `samtools` 1.16.1.
   * 1.1: Added gcloud SDK
 
+## samtools-suite
+
+* Directory: Samtools-Suite
+* Description: A docker image containing an installation of htslib, samtools, and bcftools.
+* Location: `us.gcr.io/broad-dsde-methods/samtools-suite:v1`
+* Version Notes:
+  * 1.0: All versions are 1.18.
+
 ## pysam
 
 * Directory: Pysam
