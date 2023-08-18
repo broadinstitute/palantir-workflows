@@ -245,6 +245,7 @@ are important both for usage and functionality, which are briefly summarized bel
 In other words, this a quick guide for porting over inputs / workflows depending on BenchmarkVCFs to use this workflow instead.
 
 ### Output Differences
+
 * The new `simple_summary` output is meant to closely mimic the `summary` output of BenchmarkVCFs. The key differences are:
     * The new file is a tsv while the old file is a csv.
     * The new file uses `TP_Call` in place of `TP_Eval` in the column names. In addition, the new file swaps `Call_Name`
@@ -278,6 +279,7 @@ Note when a site has multiple variants (e.g. a SNP and an INDEL), it increments 
 * There are three new file outputs which help give granular statistics, taking into account INDEL length distribution, types of SNPs, etc. You can learn more about these in the [Usage](#usage) section.
 
 ### Internal Differences
+
 * The number of tasks run in a typical run of the new workflow should be much lower than the old. This should translate to a significant decrease in
 runtimes, though that can vary with cloud weather.
 * The old `CrosscheckFingerprints` task (`MatchEvalTruth`) in the BenchmarkVCFs workflow has been removed for now. Any good
@@ -286,15 +288,19 @@ or a wrapper analogous to FindSamplesAndBenchmark, which has to run fingerprinti
 this will be added back as an (optional, but highly recommended) step in this WDL in the future.
 
 ## Ploidy Defaults
-Different VCFs may choose to represent a given genotype differently. VCFeval considers some of these discrepensies to be matches, while others it consider to be mismatches.
-This is relevant for the X and Y chromosomes.
+
+Different VCFs may choose to represent a given genotype differently. VCFeval considers some of these discrepensies to be matches, while others it consider to be mismatches. This is relevant for the X and Y chromosomes.
 
 ### Chart of Ploidy Deafults
+
+This table shows the behavior of how `vcfeval` labels equal variants with differing `GT` fields. To reproduce the results in this table, see the [PAR Test](PARTest) directory.
+
+
 | First  |Second| Result   |
-| ------ | ---- | -------- |
+| ------ | ---- |----------|
 | 1/0    | 1    | Mismatch |
 | 1/0    | 1/1  | Mismatch |
-| 1/0    | 1/.  | Match    |
-| 1/.    | 1    | Match    |
+| 1/0    | 1/.  | Mismatch |
+| 1/.    | 1    | Mismatch |
 | 1/.    | 1/1  | Mismatch |
 | 1/1    | 1    | Match    |
