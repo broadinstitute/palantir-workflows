@@ -191,7 +191,7 @@ with open('aggregated_annotations.tsv', 'w') as output_file:
             
             output_file.write(f'{aggregated_af}\t{aggregated_info}\n')
 EOF
-        python script.py
+        python3 script.py
 
         bgzip aggregated_annotations.tsv
         tabix -s1 -b2 -e2 aggregated_annotations.tsv.gz
