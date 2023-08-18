@@ -197,6 +197,7 @@ EOF
         tabix -s1 -b2 -e2 aggregated_annotations.tsv.gz
 
         bcftools annotate -a aggregated_annotations.tsv.gz -c CHROM,POS,REF,ALT,AF,INFO -O z -o ~{output_basename}.vcf.gz ~{output_basename}.merged.vcf.gz
+        tabix ~{output_basename}.vcf.gz
     >>>
 
     runtime {
