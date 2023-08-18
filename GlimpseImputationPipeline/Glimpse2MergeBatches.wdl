@@ -186,10 +186,10 @@ with open('aggregated_annotations.tsv', 'w') as output_file:
             aggregated_af = sum([af[i] * num_samples[i] for i in range(num_batches)]) / sum(num_samples)
             aggregated_info = 1 if aggregated_af == 0 or aggregated_af == 1 else \
                      1 - \
-                    (sum([1 - info[i] * 2 * num_samples[i] * af[i] * (1 - af[i]) for i in range(num_batches)])) / \
+                    (sum([(1 - info[i]) * 2 * num_samples[i] * af[i] * (1 - af[i]) for i in range(num_batches)])) / \
                     (2 * sum(num_samples) * aggregated_af * (1 - aggregated_af))
             
-            output_file.write(f'{contig}\t{pos}\t{ref}\t{alt}\t{aggregated_af}\t{aggregated_info}\n')
+            output_file.write(f'{contig[0]}\t{pos[0]}\t{ref[0]}\t{alt[0]}\t{aggregated_af}\t{aggregated_info}\n')
 EOF
         python3 script.py
 
