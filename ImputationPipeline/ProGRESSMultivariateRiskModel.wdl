@@ -41,7 +41,8 @@ workflow ProGRESSMultivariateRiskModel {
 			vcf = vcf,
 			pruning_sites = pc_sites,
 			basename = basename,
-            use_ref_alt_for_ids = use_ref_alt_for_ids
+            use_ref_alt_for_ids = use_ref_alt_for_ids,
+            chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
     } 
 
     call PCATasks.ProjectArray {
