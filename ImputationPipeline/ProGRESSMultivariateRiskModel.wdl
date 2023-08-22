@@ -106,7 +106,7 @@ task ComputeRiskValue {
     >>>
 
     runtime {
-        docker : "python:3.9.10"
+        docker : "us.gcr.io/broad-dsde-methods/imputation_interaction_python@sha256:40a8fb88fe287c3e3a11022ff63dae1ad5375f439066ae23fe089b2b61d3222e"
     }
 
     output {
