@@ -99,7 +99,7 @@ task ComputeRiskValue {
         full_risk['combined_risk_score'] = (~{prs_beta}*full_risk.SCORE1_SUM + ~{fam_hist_beta}*full_risk.fam_hist + 
                                             ~{pc1_beta}*full_risk.PC1 + ~{pc2_beta}*full_risk.PC2)
         
-        full_risk.to_csv("~{basename}_full_risk.tsv", sep="\tsv")
+        full_risk.to_csv("~{basename}_full_risk.tsv", sep="\t")
 
         EOF
 
