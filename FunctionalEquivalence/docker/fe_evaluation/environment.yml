@@ -1,7 +1,0 @@
-name: fe_evaluation
-dependencies:
-  - pip
-  - pip:
-    - numpy
-    - matplotlib
-    - scipy

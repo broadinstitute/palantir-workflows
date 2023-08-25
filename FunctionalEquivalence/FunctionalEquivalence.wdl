@@ -271,7 +271,6 @@ workflow FunctionalEquivalence {
         input:
             tool1_label = tool1_label,
             tool2_label = tool2_label,
-            stratifiers = select_first([stratLabels, []]),
             additional_label = additional_label,
             signed_difference = signed_difference,
             roc_tables = roc_tables_3,
@@ -384,8 +383,6 @@ task CreateHTMLReport {
 
     command <<<
         set -xeuo pipefail
-        
-        source activate fe_evaluation
 
         fe_plots_base64=$(base64 -w 0 ~{merged_fe_plots})
         f1_plots_base64=$(base64 -w 0 ~{merged_f1_plots})
@@ -445,7 +442,7 @@ EOF
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/functionalequivalence/fe_evaluation:1.0.0"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim-plots:1.0"
         preemptible: select_first([preemptible, 0])
         memory: "2 GB"
         disks: "local-disk 20 HDD"

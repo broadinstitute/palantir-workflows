@@ -1,0 +1,23 @@
+{
+  "test_AggregatePRSResults.results": ["/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_1_results.csv",
+                                      "/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_2_results.csv",
+                                      "/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_3_results.csv"],
+  "test_AggregatePRSResults.target_pc_projections": ["/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_1_projections.tsv",
+                                                    "/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_2_projections.tsv",
+                                                    "/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_3_projections.tsv"],
+  "test_AggregatePRSResults.missing_sites_shifts":["/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_1_missing_sites_shifts.tsv",
+                                                  "/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_2_missing_sites_shifts.tsv",
+                                                  "/home/circleci/project/test/AggregatePRSResults/plumbing_data/sample_3_missing_sites_shifts.tsv"],
+  "test_AggregatePRSResults.high_risk_thresholds": "/home/circleci/project/test/AggregatePRSResults/plumbing_data/test_thresholds.tsv",
+  "test_AggregatePRSResults.population_pc_projections": "/home/circleci/project/test/AggregatePRSResults/plumbing_data/test_population_projections.tsv",
+  "test_AggregatePRSResults.expected_control_results": "/home/circleci/project/test/AggregatePRSResults/plumbing_data/test_expected_control_results.csv",
+  "test_AggregatePRSResults.lab_batch": "test_batch",
+  "test_AggregatePRSResults.group_n": 1,
+
+  "test_AggregatePRSResults.expected_batch_all_results":"/home/circleci/project/test/AggregatePRSResults/plumbing_data/expected_batch_all_results.tsv",
+  "test_AggregatePRSResults.expected_batch_control_results":"/home/circleci/project/test/AggregatePRSResults/plumbing_data/expected_batch_control_results.tsv",
+  "test_AggregatePRSResults.expected_batch_summarised_results": "/home/circleci/project/test/AggregatePRSResults/plumbing_data/expected_batch_summarised_results.tsv",
+  "test_AggregatePRSResults.expected_batch_pcs":"/home/circleci/project/test/AggregatePRSResults/plumbing_data/expected_batch_pcs.tsv",
+  "test_AggregatePRSResults.allowed_condition_groups":"/home/circleci/project/test/AggregatePRSResults/plumbing_data/condition_groups.tsv",
+  "test_AggregatePRSResults.control_sample_diff_threshold" : 0.12
+}

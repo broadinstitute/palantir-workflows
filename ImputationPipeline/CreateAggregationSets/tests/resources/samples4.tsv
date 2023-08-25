@@ -1,0 +1,3 @@
+entity:sample_id	lab_batch	is_control_sample
+sample_id_11	lb_2	false
+sample_id_12	lb_1	false

@@ -102,4 +102,3 @@ workflows:
   - name: ExtractSingleSampleVCFFromCallset
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/ExtractSampleFromVCF.wdl
-  

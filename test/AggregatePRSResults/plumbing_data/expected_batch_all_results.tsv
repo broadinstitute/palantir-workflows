@@ -1,0 +1,4 @@
+sample_id	lab_batch	is_control_sample	condition_1_raw	condition_1_adjusted	condition_1_percentile	condition_1_risk	condition_1_reason_not_resulted	condition_2_raw	condition_2_adjusted	condition_2_percentile	condition_2_risk	condition_2_reason_not_resulted	condition_3_raw	condition_3_adjusted	condition_3_percentile	condition_3_risk	condition_3_reason_not_resulted	condition_4_raw	condition_4_adjusted	condition_4_percentile	condition_4_risk	condition_4_reason_not_resulted	pc1	pc2	pc3	pc4
+sample_1	test_batch	FALSE	49.8	-0.5	0.308	NOT_HIGH	NA	-0.09	-1.8	0.036	NOT_HIGH	NA	-0.3	-0.7	0.24	NOT_HIGH	NA	NA	NA	NA	NA	NA	0.13	-0.15	-0.05	-0.02
+sample_2	test_batch	TRUE	51.2	2.1	0.98	HIGH	NA	1.97	0.9	0.82	NOT_HIGH	NA	-0.2	-0.3	0.38	NOT_HIGH	NA	1.23	0.32	0.63	NOT_HIGH	NA	0.12	-0.15	-0.05	-0.03
+sample_3	test_batch	FALSE	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	NA	1.2	-0.03	0.48	NOT_HIGH	NA	0.11	-0.15	-0.05	-0.03
