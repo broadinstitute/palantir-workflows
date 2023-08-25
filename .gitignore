@@ -32,8 +32,8 @@ old_*
 *.bai
 *.idx
 *.vcf
-#*.vcf.gz
-#*.tbi
+*.vcf.gz
+*.tbi
 *.recal
 *.recal.idx
 

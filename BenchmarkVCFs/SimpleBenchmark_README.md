@@ -289,11 +289,11 @@ this will be added back as an (optional, but highly recommended) step in this WD
 
 ## Ploidy Defaults
 
-Different VCFs may choose to represent a given genotype differently. VCFeval considers some of these discrepensies to be matches, while others it consider to be mismatches. This is relevant for the X and Y chromosomes.
+Different VCFs may choose to represent a given genotype differently. VCFeval considers some of these discrepancies to be matches, while others it considers to be mismatches. This is relevant for the X and Y chromosomes.
 
 ### Chart of Ploidy Deafults
 
-This table shows the behavior of how `vcfeval` labels equal variants with differing `GT` fields. To reproduce the results in this table, see the [PAR Test](PARTest) directory.
+This table shows the behavior of how `vcfeval` labels equal variants with differing `GT` fields. To reproduce the results in this table, see the `VCFEval_Ploidy` analysis done in the private hydro.gen repo.
 
 
 | First  |Second| Result   |

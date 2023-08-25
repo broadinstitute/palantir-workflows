@@ -30,4 +30,3 @@ WORKDIR bcftools-1.16
 RUN ./configure
 RUN make
 RUN make install
-RUN export PATH=/bcftools-1.16/bcftools:$PATH
