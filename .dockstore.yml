@@ -21,6 +21,9 @@ workflows:
   - name: BenchmarkAndCompareVCFs
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/BenchmarkAndCompareVCFs.wdl
+  - name: SimpleBenchmark
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/SimpleBenchmark.wdl
   - name: ValidateImputation
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/Validation/ValidateImputation.wdl
@@ -60,3 +63,39 @@ workflows:
   - name: TrainAncestryAdjustmentModel
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/TrainAncestryAdjustmentModel.wdl
+  - name: RNAMetrics
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/RNAMetrics.wdl
+  - name: IsoformDiscoveryBenchmark
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/IsoformDiscoveryBenchmark.wdl
+  - name: IsoQuant
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/IsoQuant.wdl
+  - name: StringTie
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/StringTie.wdl
+  - name: Bambu
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/Bambu.wdl
+  - name: Flair
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/Flair.wdl
+  - name: Talon
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/Talon.wdl
+  - name: IsoSeq
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/IsoSeq.wdl
+  - name: Flames
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/Flames.wdl
+  - name: Cupcake
+    subclass: WDL
+    primaryDescriptorPath: /LongReadRNABenchmark/Cupcake.wdl
+  - name: DownsampleAndCollectCoverage
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/DownsampleAndCollectCoverage.wdl
+  - name: Dipcall
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/Dipcall.wdl

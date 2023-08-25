@@ -18,6 +18,8 @@ workflow test_AggregatePRSResults {
         File expected_batch_control_results
         File expected_batch_summarised_results
         File expected_batch_pcs
+        File allowed_condition_groups
+        Float control_sample_diff_threshold
     }
     
     call AggregatePRSResults.AggregatePRSResults {
@@ -30,7 +32,9 @@ workflow test_AggregatePRSResults {
             population_name = population_name,
             expected_control_results = expected_control_results,
             lab_batch = lab_batch,
-            group_n = group_n
+            group_n = group_n,
+            allowed_condition_groups = allowed_condition_groups,
+            control_sample_diff_threshold = control_sample_diff_threshold
     }
     
     call CompareTextFiles {
