@@ -72,18 +72,9 @@ workflows:
   - name: ReduceAndMergeForGlimpse
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/ReduceAndMergeForGlimpse.wdl
-  - name: ReduceAndMergeForGlimpseByInterval
-    subclass: WDL
-    primaryDescriptorPath: /GlimpseImputationPipeline/ReduceAndMergeForGlimpseByInterval.wdl
   - name: CollectBGEImputationMetrics
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/CollectBGEImputationMetrics.wdl
-  - name: CollectBGEImputationMetricsCohort
-    subclass: WDL
-    primaryDescriptorPath: /GlimpseImputationPipeline/CollectBGEImputationMetricsCohort.wdl
-  - name: GlimpseReferencePanelDev
-    subclass: WDL
-    primaryDescriptorPath: /GlimpseImputationPipeline/ReferencePanelDev.wdl
   - name: BenchmarkVCFsWithoutMatch
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/BenchmarkVCFsWithoutMatch.wdl
@@ -120,6 +111,3 @@ workflows:
   - name: DownsampleAndCollectCoverage
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/DownsampleAndCollectCoverage.wdl
-  - name: BGEEstimateSex
-    subclass: WDL
-    primaryDescriptorPath: /GlimpseImputationPipeline/BGEEstimateSex.wdl
