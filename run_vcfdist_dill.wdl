@@ -1,3 +1,4 @@
+
 version 1.0
 
 workflow vcfdist_eval {
@@ -21,6 +22,10 @@ workflow vcfdist_eval {
     output {
         File prs_tsv = run_vcfdist_task.prs_tsv
         File vcfdistsummary = run_vcfdist_task.summary
+        File precrec_tsv = run_vcfdist_task.precrec
+        File query_tsv = run_vcfdist_task.querytsv
+        File truth_tsv = run_vcfdist_task.truthtsv
+        
     }
 }
 
@@ -33,7 +38,7 @@ task run_vcfdist_task{
         
         String docker
         Int disk_size_gb = ceil(1 * size(truth_vcf, "GiB") + 10)
-        Int mem_gb = 64
+        Int mem_gb = 16
         Int cpu = 2
         Int preemptible = 1
     }
@@ -59,5 +64,8 @@ task run_vcfdist_task{
     output {
         File prs_tsv = "precision-recall-summary.tsv"
         File summary = "summary.vcf"
+        File precrec = "precision-recall.tsv"
+        File querytsv = "query.tsv"
+        File truthtsv = "truth.tsv"
     }
 }
