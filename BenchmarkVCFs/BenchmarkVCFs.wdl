@@ -159,7 +159,7 @@ workflow Benchmark {
 
     if (defined(stratIntervals)) {
         scatter (stratIL in actualStratIntervals) {
-            if(stratIL!="") {
+            if(stratIL+"" !="") { # coerce to String
                 call ConvertIntervals as StratConvertIntervals {
                     input:
                         inputIntervals=stratIL,
@@ -195,9 +195,12 @@ workflow Benchmark {
 
     scatter (stratifier in stratifiers) {
 
-        if (stratifier.label != "" && stratifier.intervalList != "") {
+        if (defined(stratifier.label)        && select_first([stratifier.label]) != "" && 
+            
+            # coerce to String   -------------------------------------------------->>  VVV
+            defined(stratifier.intervalList) && select_first([stratifier.intervalList])+"" != "" ) {
             String stratLabel=select_first([stratifier.label,""])
-            File stratIL=select_first([stratifier.intervalList,""])
+            File stratIL2=select_first([stratifier.intervalList,""])
             File stratBed=select_first([stratifier.bed,""])
             String outputPreStrat=evalLabel+"_"+truthLabel+"_"+stratLabel
         }
@@ -210,7 +213,7 @@ workflow Benchmark {
                 vcf=evalVcf,
                 vcfIndex=evalVcfIndex,
                 confidenceIL=ConfidenceConvertIntervals.intervalList,
-                stratIL=stratIL,
+                stratIL=stratIL2,
                 gatkTag=gatkTag,
                 preemptible=preemptible
         }
@@ -220,7 +223,7 @@ workflow Benchmark {
                 vcf=truthVcf,
                 vcfIndex=truthVcfIndex,
                 confidenceIL=ConfidenceConvertIntervals.intervalList,
-                stratIL=stratIL,
+                stratIL=stratIL2,
                 gatkTag=gatkTag,
                 preemptible=preemptible
         }
@@ -1460,7 +1463,7 @@ task WriteXMLfile {
         String reference_version
         String file_name
 
-        Array[String]? input_names=""
+        Array[String] input_names
         Array[String] input_names_prefix = if defined(input_names) then prefix('-n ', select_first([input_names])) else []
     }
     command {

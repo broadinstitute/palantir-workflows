@@ -99,3 +99,6 @@ workflows:
   - name: Dipcall
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/Dipcall.wdl
+  - name: ExtractSingleSampleVCFFromCallset
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/ExtractSampleFromVCF.wdl
