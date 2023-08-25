@@ -6,6 +6,7 @@ workflow F1Evaluation {
         String tool1_label
         String tool2_label
         String? additional_label
+        Int plot_qual_limit
         Boolean signed_difference = false
         Int? mem_gb
         Int? preemptible
@@ -17,6 +18,7 @@ workflow F1Evaluation {
             tool1_label = tool1_label,
             tool2_label = tool2_label,
             additional_label = additional_label,
+            plot_qual_limit = plot_qual_limit,
             signed_difference = signed_difference,
             mem_gb = mem_gb,
             preemptible = preemptible
@@ -36,6 +38,7 @@ task F1EvaluationTask {
         String tool1_label
         String tool2_label
         String? additional_label
+        Int plot_qual_limit
         Boolean signed_difference = false
         Int? mem_gb
         Int? preemptible
@@ -61,7 +64,7 @@ matplotlib.rcParams['text.usetex'] = False
 matplotlib.rcParams['mathtext.default'] = 'regular'
 matplotlib.rcParams['font.family'] = 'serif'
 
-plot_qual_limit = 30
+plot_qual_limit = ~{plot_qual_limit}
 
 def f1(tp, fp, fn):
     return tp / (tp + 0.5 * (fp + fn))

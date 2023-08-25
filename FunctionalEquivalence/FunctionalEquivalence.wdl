@@ -32,6 +32,7 @@ workflow FunctionalEquivalence {
         String tool1_label
         String tool2_label
         String? additional_label
+        Int plot_qual_limit = 30
 
         Boolean signed_difference = false
 
@@ -272,6 +273,7 @@ workflow FunctionalEquivalence {
             tool1_label = tool1_label,
             tool2_label = tool2_label,
             additional_label = additional_label,
+            plot_qual_limit = plot_qual_limit,
             signed_difference = signed_difference,
             roc_tables = roc_tables_3,
             preemptible = preemptible
