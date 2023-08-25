@@ -1,7 +1,6 @@
 version 1.0
 
 import "Glimpse2Imputation.wdl" as Glimpse2ImputationImport
-import "CollectBGEImputationMetricsCohort.wdl" as CollectBGEImputationMetricsCohort
 
 workflow ReferencePanelDev {
     input {
