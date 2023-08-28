@@ -62,7 +62,7 @@ There are five files output by the workflow. They are:
 * `truth_tsv` - *"Reports detailed information regarding each variant"* (-vcfdist documentation) for the truth vcf file.
 * `vcfdistsummary` - A vcf summarizing the variants, output by vcfdist.
 
-## Some Warnings on Interpreting Output Statistics
+#### Some Warnings on Interpreting Output Statistics
 Comparison with BenchmarkVCFs (and the tool vcfeval)
 * Since data needs to be phased, it's important to remember that the quality of the benchmarking will be affected 
 by the sequencing quality, the read quality, and the phasing.
