@@ -81,7 +81,7 @@ False Positives (QUERY_FP) to to get the updated value of False Positives (QUERY
 
 The workflow has one high-level task: it runs vcfdist on the inputs and returns the output files listed above.
 
----
+
 
 ### Output File Structure Differences
 
