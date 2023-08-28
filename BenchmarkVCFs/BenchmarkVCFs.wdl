@@ -546,8 +546,8 @@ task VcfEval {
     command <<<
     set -xeuo pipefail
 
-    /bin/rtg-tools/rtg format -o rtg_ref ~{ref}
-    /bin/rtg-tools/rtg vcfeval \
+    rtg format -o rtg_ref ~{ref}
+    rtg vcfeval \
         ~{false="--all-records" true="" passingOnly} \
         ~{"--vcf-score-field=" + vcfScoreField} \
         ~{false="--squash-ploidy" true="" requireMatchingGenotypes} \
@@ -561,8 +561,8 @@ task VcfEval {
         mv $f ~{outputPre}_"$(basename "$f")";
     done
 
-    /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} SNP"   --svg=~{outputPre}.snp.svg   ~{outputPre}_snp_roc.tsv.gz
-    /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} INDEL" --svg=~{outputPre}.indel.svg ~{outputPre}_non_snp_roc.tsv.gz
+    rtg rocplot --precision-sensitivity --title="~{outputPre} SNP"   --svg=~{outputPre}.snp.svg   ~{outputPre}_snp_roc.tsv.gz
+    rtg rocplot --precision-sensitivity --title="~{outputPre} INDEL" --svg=~{outputPre}.indel.svg ~{outputPre}_non_snp_roc.tsv.gz
 
     python3 -<<"EOF" ~{outputPre}_snp_roc.tsv.gz ~{outputPre}_non_snp_roc.tsv.gz ~{outputPre}_summary.csv
     import gzip
@@ -594,11 +594,9 @@ task VcfEval {
                 snp_TP_Base=float(line.split()[1])
                 snp_FP=float(line.split()[2])
                 snp_FN=float(line.split()[4])
-            except ValueError:
+            except (ValueError, IndexError):
                 continue
-            except IndexError:
-                continue
-        f_snp.close()
+
     with gzip.open(sys.argv[2],"rt") as f_indel:
         for line in f_indel:
             try:
@@ -609,11 +607,8 @@ task VcfEval {
                 indel_TP_Base=float(line.split()[1])
                 indel_FP=float(line.split()[2])
                 indel_FN=float(line.split()[4])
-            except ValueError:
+            except (ValueError, IndexError):
                 continue
-            except IndexError:
-                continue
-        f_indel.close()
 
     str_indel_sensitivity=str(indel_sensitivity)
     str_indel_precision=str(indel_precision)
@@ -621,7 +616,6 @@ task VcfEval {
     str_snp_sensitivity=str(snp_sensitivity)
     str_snp_precision=str(snp_precision)
     str_snp_fscore=str(snp_fscore)
-
 
     if indel_TP_Eval+indel_FP==0:
         str_indel_precision="NA"
@@ -637,18 +631,15 @@ task VcfEval {
     if str_snp_sensitivity=="NA" or str_snp_precision=="NA":
         str_snp_fscore="NA"
 
-
-
     with open(sys.argv[3],"wt") as f_out:
         f_out.write(",".join(["Type","Precision","Recall","F1_Score","TP_Eval","TP_Base","FP","FN"])+"\n")
         f_out.write(",".join(["SNP",str_snp_precision,str_snp_sensitivity,str_snp_fscore,str(snp_TP_Eval),str(snp_TP_Base),str(snp_FP),str(snp_FN)])+"\n")
         f_out.write(",".join(["INDEL",str_indel_precision,str_indel_sensitivity,str_indel_fscore,str(indel_TP_Eval),str(indel_TP_Base),str(indel_FP),str(indel_FN)])+"\n")
-        f_out.close()
     EOF
     >>>
 
     runtime {
-        docker: "ckachulis/rtg-tools:0.1"
+        docker: "us.gcr.io/broad-dsde-methods/rtg:v1.0"
         preemptible: select_first([preemptible,0])
         memory: mem
         cpu: cpu
