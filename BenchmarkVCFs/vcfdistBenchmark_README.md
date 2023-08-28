@@ -3,13 +3,16 @@
 This guide describes an overview of the [vcfdistBenchmark](vcfdistBenchmark.wdl) WDL used for evaluating VCF performance 
 against a known baseline.
 
-Some useful resources referenced below:
+Some useful resources/information referenced below:
+Link to vcfdist git repo: https://github.com/TimD1/vcfdist (link valid as of 2023-08-28)
+Link to vcfdist preprint: https://www.biorxiv.org/content/10.1101/2023.03.10.532078v1.full.pdf (link valid as of 2023-08-28)
+Tim Dunn's email: timdunn@umich.edu (email address valid as of 2023-08-28)
 
 ---
 
 ## Acknowledgements
 
-This tool was created to run vcfdist, created by Tim Dunn, on Terra.
+This workflow was created to run vcfdist, which was created by Tim Dunn, on Terra.
 
 ---
 
@@ -29,9 +32,9 @@ This tool was created to run vcfdist, created by Tim Dunn, on Terra.
 
 ## Usage
 To run this file, upload it to a workspace on Terra, and run it on a table with the input information it needs. More information below,
-but please note that **both input vcfs need to be phased**. As of 2023-08-24, there are **no warnings about data inputs that could be unphased**.
-vcfdist will not crash, but your accuracy will likely be affected. Also, vcfdist ignores (as of 2023-08-24) whether the variants' haplotypes contain
-a ``/`` or a ``|`` to improve compatibility with tools that have non-standard outputs.
+but please note that **both input vcfs need to be phased**. As of 2023-08-24, **there are no warnings about data inputs that could be unphased**.
+vcfdist will not crash because of unphased files, but your accuracy will likely be affected. Also, vcfdist ignores (as of 2023-08-24) whether the 
+variants' haplotypes contain a ``/`` or a ``|`` to improve compatibility with tools that have non-standard outputs.
 
 ### Inputs
 
@@ -72,7 +75,7 @@ that corresponds to the quality score threshold that results in the best perform
 shown for the truth vcf (TRUTH_PP) to the reported value of False Negatives (TRUTH_FN) to get the updated value of False 
 Negatives (TRUTH_FN), and add the number of partial positives shown for the query vcf (QUERY_PP) to the reported value of 
 False Positives (QUERY_FP) to to get the updated value of False Positives (QUERY_FP).
-* **Because variants are outputted in biallelic rows, that affects the event counts (as each row is one event), and therefore the precision and recall values**
+* **Because variants are output in biallelic rows, that affects the event counts (as each row is one event), and therefore the precision and recall values**
 * **Because some INDELs in repetitive regions are replaced with SNPs and altered surrounding INDELs, that affects the event counts, and therefore the precision and recall values**
 * **Please ensure that your data is locally phased!** Global phasing (as of 2023-08-24) is not required.
 
@@ -84,9 +87,9 @@ The workflow has one high-level task: it runs vcfdist on the inputs and returns 
 *BenchmarkVCFs outputs floats for: INDEL F1 Scores, INDEL Precision Scores, INDEL Recall Scores, SNP F1 Scores, SNP Precision Scores, and SNP Recall Scores.*
 vcfdistBenchmark outputs these statistics in the two precision-recall-summary.tsv and precision-recall.tsv files. These values, when returned by vcfdist, contain the information from partial matching; to get those values, calculate them from the event counts as mentioned in [Some Warnings on Interpreting Output Statistics](#some-warnings-on-interpreting-output-statistics).
 
-ROC plots are not outputted by vcfdist.
+ROC plots are not output by vcfdist.
 
-The query and truth tsv files are not outputted by BenchmarkVCFs.
+The query and truth tsv files are not output by BenchmarkVCFs.
 
 ### Internal Differences
 vcfdistBenchmark does not run checks and validation like BenchmarkVCFs, and therefore it is comprised of just one task.
