@@ -32,7 +32,7 @@ This workflow was created to run vcfdist, which was created by Tim Dunn, on Terr
 
 ## Usage
 To run this file, upload it to a workspace on Terra, and run it on a table with the input information it needs. More information below,
-but please note that **both input vcfs need to be phased**. As of 2023-08-24, **there are no warnings about data inputs that could be unphased**.
+but please note that **both input vcfs need to be phased**. As of 2023-08-24, **there are no warnings about data inputs that might be unphased**.
 vcfdist will not crash because of unphased files, but your accuracy will likely be affected. Also, vcfdist ignores (as of 2023-08-24) whether the 
 variants' haplotypes contain a ``/`` or a ``|`` to improve compatibility with tools that have non-standard outputs.
 
@@ -77,7 +77,7 @@ Negatives (TRUTH_FN), and add the number of partial positives shown for the quer
 False Positives (QUERY_FP) to to get the updated value of False Positives (QUERY_FP).
 * **Because variants are output in biallelic rows, that affects the event counts (as each row is one event), and therefore the precision and recall values**
 * **Because some INDELs in repetitive regions are replaced with SNPs and altered surrounding INDELs, that affects the event counts, and therefore the precision and recall values**
-* **Please ensure that your data is locally phased!** Global phasing (as of 2023-08-24) is not required.
+* **Please ensure that your data is locally phased!** Global phasing (as of 2023-08-24) is not required by vcfdist.
 
 ## Structure of the Workflow
 
