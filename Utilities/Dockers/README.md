@@ -19,7 +19,7 @@ Also includes some minimal Python tools (pandas) for data processing.
 * Usage: `bcftools [COMMAND]`
 * Version Notes:
   * 1.0: Versions are `bcftools` 1.16.
-  * 1.1: Added the `python-is-python3` package so that `python` is a valid command.
+  * 1.1: Added gcloud sdk and `python-is-python3` package so that `python` is a valid command.
 
 ## bedtools
 

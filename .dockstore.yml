@@ -75,9 +75,6 @@ workflows:
   - name: CollectBGEImputationMetrics
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/CollectBGEImputationMetrics.wdl
-  - name: BenchmarkVCFsWithoutMatch
-    subclass: WDL
-    primaryDescriptorPath: /BenchmarkVCFs/BenchmarkVCFsWithoutMatch.wdl
   - name: RNAMetrics
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/RNAMetrics.wdl

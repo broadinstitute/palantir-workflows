@@ -16,8 +16,8 @@ workflow Glimpse2Imputation {
 
         File ref_dict
 
-        Boolean impute_reference_only_variants
-        Boolean call_indels
+        Boolean impute_reference_only_variants = false
+        Boolean call_indels = false
         Int? n_burnin
         Int? n_main
         Int? effective_population_size
