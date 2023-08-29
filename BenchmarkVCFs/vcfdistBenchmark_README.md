@@ -25,8 +25,8 @@ This workflow was created to run vcfdist, which was created by Tim Dunn, on Terr
     2. [Interpreting Output Data](#interpreting-output-data)
         1. [Some Warnings on Interpreting Output Statistics](#some-warnings-on-interpreting-output-statistics)
 2. [Structure of the Workflow](#structure-of-the-workflow)
-3. [Output File Structure Differences](#output-file-structure-differences)
-4. [Internal Differences](#internal-differences)
+    1. [Output File Structure Differences](#output-file-structure-differences)
+    2. [Internal Differences](#internal-differences)
 
 ---
 
