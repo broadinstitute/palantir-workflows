@@ -7,7 +7,7 @@ workflow VcfdistEval {
         File bed_file
         File fasta_file
         String docker = "us.gcr.io/broad-dsde-methods/vcfdist:v0.1"
-        Int verbosity=0
+        Int? verbosity
     }
 
     call RunVcfdistTask {
@@ -17,7 +17,7 @@ workflow VcfdistEval {
             bed_file = bed_file,
             fasta_file = fasta_file,
             docker = docker,
-            verbosity = verbosity
+            verbosity = select_first([0,verbosity])
     }
 
     output {
