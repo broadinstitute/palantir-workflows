@@ -17,7 +17,7 @@ workflow VcfdistEval {
             bed_file = bed_file,
             fasta_file = fasta_file,
             docker = docker,
-            verbosity = select_first([0,verbosity])
+            verbosity = select_first([verbosity, 0])
     }
 
     output {
