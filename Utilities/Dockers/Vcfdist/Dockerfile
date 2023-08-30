@@ -14,7 +14,6 @@ RUN export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 #set-up of vcfdist
 WORKDIR /
 RUN git clone https://github.com/timd1/vcfdist
-#RUN cd htslib-1.17/vcfdist/src
 WORKDIR /vcfdist/src
 RUN make
 RUN cp /vcfdist/src/vcfdist /usr/local/bin
