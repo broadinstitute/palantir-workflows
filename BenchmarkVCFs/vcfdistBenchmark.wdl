@@ -50,7 +50,6 @@ task run_vcfdist_task {
             ~{fasta_file} \
             -b ~{bed_file} \
             -v 0
-        exit
     >>>
 
     runtime {
