@@ -112,7 +112,7 @@ task CheckZScoreAgainstReportableRange {
     library(readr)
     score <- read_tsv("~{score_result}")
     if (nrow(score) != 1) {
-    quit(status=1)
+      stop("Number of rows in score table is not 1.")
     }
 
     adjusted_score <- (score %>% pull(adjusted_score))[[1]]
@@ -147,10 +147,10 @@ task SelectValuesOfInterest {
     library(readr)
     score <- read_tsv("~{score_result}")
     if (nrow(score) != 1) {
-      quit(status=1)
+      stop("Number of rows in score table is not 1.")
     }
     if ((score %>% pull(`IID`))[[1]] != "~{sample_id}") {
-      quit(status=1)
+      stop("Sample ID in score table does not match user provided sample_id.")
     }
 
     raw_score <- (score %>% pull(SCORE1_SUM))[[1]]

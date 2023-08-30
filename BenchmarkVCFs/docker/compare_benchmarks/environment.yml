@@ -1,0 +1,6 @@
+name: compare_benchmarks
+dependencies:
+  - pip
+  - pip:
+    - pandas
+    - matplotlib

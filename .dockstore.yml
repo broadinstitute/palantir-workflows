@@ -15,6 +15,12 @@ workflows:
   - name: BenchmarkVCFs
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/BenchmarkVCFs.wdl
+  - name: CompareBenchmarks
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/CompareBenchmarks.wdl
+  - name: BenchmarkAndCompareVCFs
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/BenchmarkAndCompareVCFs.wdl
   - name: SimpleBenchmark
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/SimpleBenchmark.wdl
@@ -90,3 +96,12 @@ workflows:
   - name: vcfdistBenchmark
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/vcfdistBenchmark.wdl
+  - name: DownsampleAndCollectCoverage
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/DownsampleAndCollectCoverage.wdl
+  - name: Dipcall
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/Dipcall.wdl
+  - name: ExtractSingleSampleVCFFromCallset
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/ExtractSampleFromVCF.wdl
