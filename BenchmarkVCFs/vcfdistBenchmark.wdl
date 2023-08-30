@@ -37,7 +37,7 @@ task run_vcfdist_task{
         File fasta_file
         
         String docker
-        Int disk_size_gb = ceil(1 * size(truth_vcf, "GiB") + 10)
+        Int disk_size_gb = ceil(size(truth_vcf, "GiB") + 10)
         Int mem_gb = 16
         Int cpu = 2
         Int preemptible = 1
