@@ -10,7 +10,7 @@ workflow vcfdist_eval {
         String docker = "us.gcr.io/broad-dsde-methods/vcfdist:v0.1"
     }
 
-    call run_vcfdist_task{
+    call run_vcfdist_task {
         input:
             truth_vcf = truth_vcf,
             eval_vcf = eval_vcf,
@@ -29,7 +29,7 @@ workflow vcfdist_eval {
     }
 }
 
-task run_vcfdist_task{
+task run_vcfdist_task {
     input {
         File truth_vcf
         File eval_vcf
