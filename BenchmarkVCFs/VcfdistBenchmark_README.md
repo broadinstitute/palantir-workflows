@@ -60,7 +60,7 @@ the "truth" VCF, and the "call"set VCF benchmarked against it is referred to as 
 There are five files output by the workflow. They are:
 
 * `prs_tsv` - *"High-level precision/recall overview of SNP/INDEL performance. For each category (SNP/INDEL), there is one line for performance at the chosen minimum quality score, and one line for the quality score threshold that results in the best performance."* -vcfdist documentation
-* `precrec_tsv` - *"For each category (SNP/INDEL), there is one line reporting the precison/recall performance at each possible quality score."* -vcfdist documentation
+* `precrec` - *"For each category (SNP/INDEL), there is one line reporting the precison/recall performance at each possible quality score."* -vcfdist documentation
 * `query_tsv` - *"Reports detailed information regarding each variant"* (-vcfdist documentation) for the query vcf file.
 * `truth_tsv` - *"Reports detailed information regarding each variant"* (-vcfdist documentation) for the truth vcf file.
 * `vcfdistsummary` - A vcf summarizing the variants, output by vcfdist.
