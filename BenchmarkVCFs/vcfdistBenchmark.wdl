@@ -1,6 +1,6 @@
 version 1.0
 
-workflow vcfdist_eval {
+workflow VcfdistEval {
     input {
         File truth_vcf
         File eval_vcf
@@ -9,7 +9,7 @@ workflow vcfdist_eval {
         String docker = "us.gcr.io/broad-dsde-methods/vcfdist:v0.1"
     }
 
-    call run_vcfdist_task {
+    call RunVcfdistTask {
         input:
             truth_vcf = truth_vcf,
             eval_vcf = eval_vcf,
@@ -19,16 +19,16 @@ workflow vcfdist_eval {
     }
 
     output {
-        File prs_tsv = run_vcfdist_task.prs_tsv
-        File vcfdistsummary = run_vcfdist_task.summary
-        File precrec_tsv = run_vcfdist_task.precrec
-        File query_tsv = run_vcfdist_task.querytsv
-        File truth_tsv = run_vcfdist_task.truthtsv
+        File prs_tsv = RunVcfdistTask.prs_tsv
+        File vcfdistsummary = RunVcfdistTask.summary
+        File precrec_tsv = RunVcfdistTask.precrec
+        File query_tsv = RunVcfdistTask.querytsv
+        File truth_tsv = RunVcfdistTask.truthtsv
         
     }
 }
 
-task run_vcfdist_task {
+task RunVcfdistTask {
     input {
         File truth_vcf
         File eval_vcf

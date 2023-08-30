@@ -96,3 +96,13 @@ convenient data manipulation tools.
 * Usage: `whatshap [COMMAND]`
 * Version Notes:
   * 1.0: Versions are `whatshap` 1.7
+
+
+## vcfdist
+
+* Directory: Vcfdist
+* Description: A docker image containing an installation of [vcfdist](https://github.com/TimD1/vcfdist).
+* Location: ``
+* Used By: ``
+* Usage: ``
+* Version Notes:
