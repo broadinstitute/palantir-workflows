@@ -1,4 +1,3 @@
-
 version 1.0
 
 workflow vcfdist_eval {
