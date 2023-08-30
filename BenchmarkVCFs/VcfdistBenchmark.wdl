@@ -7,6 +7,7 @@ workflow VcfdistEval {
         File bed_file
         File fasta_file
         String docker = "us.gcr.io/broad-dsde-methods/vcfdist:v0.1"
+        Int verbosity_int=0
     }
 
     call RunVcfdistTask {
@@ -15,7 +16,8 @@ workflow VcfdistEval {
             eval_vcf = eval_vcf,
             bed_file = bed_file,
             fasta_file = fasta_file,
-            docker = docker
+            docker = docker,
+            verbosity_int = verbosity_int
     }
 
     output {
@@ -34,6 +36,7 @@ task RunVcfdistTask {
         File eval_vcf
         File bed_file
         File fasta_file
+        Int verbosity_int
         
         String docker
         Int disk_size_gb = ceil(size(truth_vcf, "GiB") + 10)
@@ -48,7 +51,7 @@ task RunVcfdistTask {
             ~{truth_vcf} \
             ~{fasta_file} \
             -b ~{bed_file} \
-            -v 0
+            -v ~{verbosity_int}
     >>>
 
     runtime {
