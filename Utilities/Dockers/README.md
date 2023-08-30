@@ -102,7 +102,7 @@ convenient data manipulation tools.
 
 * Directory: Vcfdist
 * Description: A docker image containing an installation of [vcfdist](https://github.com/TimD1/vcfdist).
-* Location: ``
+* Location: `us.gcr.io/broad-dsde-methods/vcfdist:v0.1`
 * Used By: ``
 * Usage: ``
 * Version Notes:
