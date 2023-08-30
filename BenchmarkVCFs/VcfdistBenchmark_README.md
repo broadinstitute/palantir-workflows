@@ -48,11 +48,12 @@ the "truth" VCF, and the "call"set VCF benchmarked against it is referred to as 
 * `fasta_file` - reference fasta file matching the input VCFs.
 
 #### Optional Inputs
-* `cpu` - optional, integer input. Default is `2`
-* `disk_size_gb` - optional, integer input. Default is the size of the truth VCF in GiB, plus 10, rounded up.
-* `mem_gb` - optional, integer input. Default is `10`.
-* `preemptible` - optional, integer input. Default is `1`.
-* `docker` - optional, string input. Default is `us.gcr.io/broad-dsde-methods/vcfdist:v0.1`.
+* `verbosity` - integer input. controls the stdout's level of detail. options are 0 (succinct), 1 (normal), and 2 (verbose). Default is `0`.
+* `cpu` - integer input. Default is `2`.
+* `disk_size_gb` - integer input. Default is the size of the truth VCF in GiB, plus 10, rounded up.
+* `mem_gb` - integer input. Default is `10`.
+* `preemptible` - integer input. Default is `1`.
+* `docker` - string input. Default is `us.gcr.io/broad-dsde-methods/vcfdist:v0.1`.
 
 ### Interpreting Output Data
 
