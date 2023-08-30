@@ -4,9 +4,8 @@ This guide describes an overview of the [vcfdistBenchmark](vcfdistBenchmark.wdl)
 against a known baseline.
 
 Some useful resources/information referenced below:  
-* Link to vcfdist git repo: https://github.com/TimD1/vcfdist (link valid as of 2023-08-28)
-* Link to vcfdist preprint: https://www.biorxiv.org/content/10.1101/2023.03.10.532078v1.full.pdf (link valid as of 2023-08-28)
-* Tim Dunn's email: timdunn@umich.edu (email address valid as of 2023-08-28)  
+* Link to vcfdist git repo: https://github.com/TimD1/vcfdist
+* Link to vcfdist preprint: https://www.biorxiv.org/content/10.1101/2023.03.10.532078v1.full.pdf
 
 ---
 
@@ -32,8 +31,8 @@ This workflow was created to run vcfdist, which was created by Tim Dunn, on Terr
 
 ## Usage
 To run this file, upload it to a workspace on Terra, and run it on a table with the input information it needs. More information below,
-but please note that **both input vcfs need to be phased**. As of 2023-08-24, **there are no warnings about data inputs that might be unphased**.
-vcfdist will not crash because of unphased files, but your accuracy will likely be affected. Also, vcfdist ignores (as of 2023-08-24) whether the 
+but please note that **both input vcfs need to be phased. There are no warnings about data inputs that might be unphased**.
+vcfdist will not crash because of unphased files, but your accuracy will likely be affected. Also, vcfdist ignores whether the 
 variants' haplotypes contain a ``/`` or a ``|`` to improve compatibility with tools that have non-standard outputs.
 
 ### Inputs
