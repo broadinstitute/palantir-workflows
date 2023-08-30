@@ -74,8 +74,8 @@ that corresponds to the quality score threshold that results in the best perform
 shown for the truth vcf (TRUTH_PP) to the reported value of False Negatives (TRUTH_FN) to get the updated value of False 
 Negatives (TRUTH_FN), and add the number of partial positives shown for the query vcf (QUERY_PP) to the reported value of 
 False Positives (QUERY_FP) to to get the updated value of False Positives (QUERY_FP).
-* **Because variants are output in biallelic rows, that affects the event counts (as each row is one event), and therefore the precision and recall values**
-* **Because some INDELs in repetitive regions are replaced with SNPs and altered surrounding INDELs, that affects the event counts, and therefore the precision and recall values**
+* **Because variants are output in biallelic rows, that affects the event counts (as each row is one event), and therefore the precision and recall values.**
+* **Because some INDELs in repetitive regions are replaced with SNPs and altered surrounding INDELs, that affects the event counts, and therefore the precision and recall values.**
 * **Please ensure that your data is locally phased!** Global phasing is not required by vcfdist.
 
 ## Structure of the Workflow
