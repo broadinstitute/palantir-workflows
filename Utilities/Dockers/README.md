@@ -106,4 +106,4 @@ convenient data manipulation tools.
 * Used By: [VcfdistBenchmark](../../BenchmarkVCFs/VcfdistBenchmark.wdl)
 * Usage: `vcfdist [COMMAND]`
 * Version Notes:
-  * 1.0: Versions are `htslib-1.17` 1.17, `vcfdist` 2.0.0
+  * 1.0: Versions are `htslib` 1.17, `vcfdist` 2.0.0
