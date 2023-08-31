@@ -31,6 +31,7 @@ workflow Benchmark {
         Boolean passingOnly=true
         String? vcfScoreField
         String? dummyInputForTerraCallCaching
+        Boolean fingerprint_toggle = true
     }
 
     meta {
@@ -96,16 +97,17 @@ workflow Benchmark {
                 message="Variant selector list is length "+length(actualSelectorJEXL)+" while labels list is "+length(actualSelectorLabels)
         }
     }
-
-    call MatchEvalTruth as Match {
-        input:
-            evalVcf=evalVcf,
-            truthVcf=truthVcf,
-            evalVcfIndex=evalVcfIndex,
-            truthVcfIndex=truthVcfIndex,
-            hapMap=hapMap,
-            gatkTag=gatkTag,
-            preemptible=preemptible
+    if (fingerprint_toggle){
+        call MatchEvalTruth as Match {
+            input:
+                evalVcf=evalVcf,
+                truthVcf=truthVcf,
+                evalVcfIndex=evalVcfIndex,
+                truthVcfIndex=truthVcfIndex,
+                hapMap=hapMap,
+                gatkTag=gatkTag,
+                preemptible=preemptible
+        }
     }
     Array[String] indelLabels=["deletion","insertion","indel_fine_m20","indel_fine_m19","indel_fine_m18","indel_fine_m17","indel_fine_m16","indel_fine_m15",
                                "indel_fine_m14","indel_fine_m13","indel_fine_m12","indel_fine_m11","indel_fine_m10","indel_fine_m9","indel_fine_m8","indel_fine_m7",
