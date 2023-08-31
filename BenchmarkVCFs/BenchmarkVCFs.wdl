@@ -98,7 +98,7 @@ workflow Benchmark {
                 message="Variant selector list is length "+length(actualSelectorJEXL)+" while labels list is "+length(actualSelectorLabels)
         }
     }
-    if (fingerprint_toggle){
+    if (fingerprint_toggle) {
         call MatchEvalTruth as Match {
             input:
                 evalVcf=evalVcf,
