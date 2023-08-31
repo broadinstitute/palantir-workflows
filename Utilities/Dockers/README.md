@@ -103,7 +103,7 @@ convenient data manipulation tools.
 * Directory: Vcfdist
 * Description: A docker image containing an installation of [vcfdist](https://github.com/TimD1/vcfdist).
 * Location: `us.gcr.io/broad-dsde-methods/vcfdist:v0.1`
-* Used By: [VcfdistBenchmark](../../BenchmarkVCFs/SimpleBenchmark.wdl)
+* Used By: [VcfdistBenchmark](../../BenchmarkVCFs/VcfdistBenchmark.wdl)
 * Usage: `vcfdist [COMMAND]`
 * Version Notes:
   * 1.0: Versions are `htslib-1.17` 1.17, `vcfdist` 2.0.0
