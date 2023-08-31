@@ -62,7 +62,7 @@ workflow Benchmark {
         vcfScoreField: {description:"Have vcfEval use this field for making the roc-plot. If this is an info field (like VSQLOD) it should be provided as INFO.VQSLOD, otherewise it is assumed to be a format field."}
         gatkJarForAnnotation: {description:"GATK jar that can calculate necessary annotations for jexl Selections when using VCFEval."}
         annotationNames: {description:"Annotation arguments to GATK (-A argument, multiple OK)"}
-        fingerprint_toggle: {description:"no input or true toggles on fingerprinting, false toggles off fingerprinting"}
+        fingerprint_toggle: {description:"No-input or true keeps fingerprinting on, but false turns fingerprinting off."}
         dummyInputForTerraCallCaching: {description:"When running on Terra, use workspace.name as this input to ensure that all tasks will only cache hit to runs in your own workspace. This will prevent call caching from failing with 'Cache Miss (10 failed copy attempts)'. Outside of Terra this can be left empty. This dummy input is only needed for tasks that have no inputs specific to the sample being run (such as CreateIntervalList which does not take in any sample data)."}
     }
 
