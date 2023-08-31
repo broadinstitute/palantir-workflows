@@ -23,7 +23,7 @@ workflow VcfdistEval {
     output {
         File prs_tsv = RunVcfdistTask.prs_tsv
         File vcfdistsummary = RunVcfdistTask.summary
-        File precrec_tsv = RunVcfdistTask.precrec
+        File precrec_tsv = RunVcfdistTask.precrec_tsv
         File query_tsv = RunVcfdistTask.query_tsv
         File truth_tsv = RunVcfdistTask.truth_tsv
         
@@ -65,7 +65,7 @@ task RunVcfdistTask {
     output {
         File prs_tsv = "precision-recall-summary.tsv"
         File summary = "summary.vcf"
-        File precrec = "precision-recall.tsv"
+        File precrec_tsv = "precision-recall.tsv"
         File query_tsv = "query.tsv"
         File truth_tsv = "truth.tsv"
     }
