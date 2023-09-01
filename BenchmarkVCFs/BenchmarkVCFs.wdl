@@ -31,6 +31,7 @@ workflow Benchmark {
         Boolean passingOnly=true
         String? vcfScoreField
         String? dummyInputForTerraCallCaching
+        Boolean runFingerprintCheck = true
     }
 
     meta {
@@ -61,6 +62,7 @@ workflow Benchmark {
         vcfScoreField: {description:"Have vcfEval use this field for making the roc-plot. If this is an info field (like VSQLOD) it should be provided as INFO.VQSLOD, otherewise it is assumed to be a format field."}
         gatkJarForAnnotation: {description:"GATK jar that can calculate necessary annotations for jexl Selections when using VCFEval."}
         annotationNames: {description:"Annotation arguments to GATK (-A argument, multiple OK)"}
+        runFingerprintCheck: {description:"No-input or true keeps fingerprinting on, but false turns fingerprinting off."}
         dummyInputForTerraCallCaching: {description:"When running on Terra, use workspace.name as this input to ensure that all tasks will only cache hit to runs in your own workspace. This will prevent call caching from failing with 'Cache Miss (10 failed copy attempts)'. Outside of Terra this can be left empty. This dummy input is only needed for tasks that have no inputs specific to the sample being run (such as CreateIntervalList which does not take in any sample data)."}
     }
 
@@ -96,16 +98,17 @@ workflow Benchmark {
                 message="Variant selector list is length "+length(actualSelectorJEXL)+" while labels list is "+length(actualSelectorLabels)
         }
     }
-
-    call MatchEvalTruth as Match {
-        input:
-            evalVcf=evalVcf,
-            truthVcf=truthVcf,
-            evalVcfIndex=evalVcfIndex,
-            truthVcfIndex=truthVcfIndex,
-            hapMap=hapMap,
-            gatkTag=gatkTag,
-            preemptible=preemptible
+    if (runFingerprintCheck) {
+        call MatchEvalTruth as Match {
+            input:
+                evalVcf=evalVcf,
+                truthVcf=truthVcf,
+                evalVcfIndex=evalVcfIndex,
+                truthVcfIndex=truthVcfIndex,
+                hapMap=hapMap,
+                gatkTag=gatkTag,
+                preemptible=preemptible
+        }
     }
     Array[String] indelLabels=["deletion","insertion","indel_fine_m20","indel_fine_m19","indel_fine_m18","indel_fine_m17","indel_fine_m16","indel_fine_m15",
                                "indel_fine_m14","indel_fine_m13","indel_fine_m12","indel_fine_m11","indel_fine_m10","indel_fine_m9","indel_fine_m8","indel_fine_m7",
