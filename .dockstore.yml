@@ -93,6 +93,9 @@ workflows:
   - name: Cupcake
     subclass: WDL
     primaryDescriptorPath: /LongReadRNABenchmark/Cupcake.wdl
+  - name: VcfdistBenchmark
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/VcfdistBenchmark.wdl
   - name: DownsampleAndCollectCoverage
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/DownsampleAndCollectCoverage.wdl
