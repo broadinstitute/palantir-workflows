@@ -5,7 +5,6 @@ version 1.0
 struct Reference {
     File fasta
     File index
-    File dict
 }
 
 # Object representing expression for subsetting VCFs
@@ -38,7 +37,6 @@ workflow SimpleBenchmark {
         # Reference information
         File ref_fasta
         File ref_index
-        File ref_dict
 
         # Subsetting inputs using intervals
         Array[File] strat_intervals = []
@@ -67,7 +65,7 @@ workflow SimpleBenchmark {
     }
 
     # Create reference object
-    Reference reference = {"fasta": ref_fasta, "index": ref_index, "dict": ref_dict}
+    Reference reference = {"fasta": ref_fasta, "index": ref_index}
 
     # Add in default "Whole Genome" empty interval list
     Array[File] full_strat_intervals = flatten([[""], strat_intervals])
@@ -290,9 +288,9 @@ task VCFEval {
 
         else
             # Handle case where user provides PAR bed by running with --squash-ploidy over haploid region
-            grep -E '^@SQ' ~{reference.dict} | awk 'BEGIN{OFS="\t"} {gsub(/SN:/,"",$2); gsub(/LN:/,"",$3); print $2, $3}' > 'genome_file.txt'
-            bedtools complement -i ~{par_bed} -g genome_file.txt -L > 'par.bed'
-            bedtools complement -i par.bed -g genome_file.txt > 'reg.bed'
+            awk -v OFS="\t" '{print $1, 0, $2}' ~{reference.index} > genome_file.txt
+            bedtools complement -i ~{par_bed} -g genome_file.txt -L > 'non-par.bed'
+            bedtools complement -i non-par.bed -g genome_file.txt > 'regular-regions.bed'
 
             rtg format -o rtg_ref ~{reference.fasta}
 
@@ -302,7 +300,7 @@ task VCFEval {
                 --squash-ploidy \
                 -b ~{base_vcf} \
                 -c ~{call_vcf} \
-                --bed-regions par.bed \
+                --bed-regions non-par.bed \
                 ~{"-e " + evaluation_bed} \
                 --vcf-score-field="~{score_field}" \
                 --output-mode split \
@@ -317,7 +315,7 @@ task VCFEval {
                 ~{true="--ref-overlap" false="" enable_ref_overlap} \
                 -b ~{base_vcf} \
                 -c ~{call_vcf} \
-                --bed-regions reg.bed \
+                --bed-regions regular-regions.bed \
                 ~{"-e " + evaluation_bed} \
                 --vcf-score-field="~{score_field}" \
                 --output-mode split \
