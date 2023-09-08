@@ -3,7 +3,7 @@ version 1.0
 workflow CleanSVs {
     input {
         File input_vcf
-        File input_vcf_index
+        File? input_vcf_index
 
         String? output_name
 
@@ -52,9 +52,11 @@ workflow CleanSVs {
 task SplitMASites {
     input {
         File input_vcf
-        File input_vcf_index
+        File? input_vcf_index
 
         String output_name = "split"
+
+        File? restriction_bed
 
         # Runtime parameters
         Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
@@ -65,12 +67,16 @@ task SplitMASites {
     command <<<
         set -xe
 
-        bcftools norm -m -any -o "~{output_name}.vcf.gz" ~{input_vcf}
+        if [ -z "~{input_vcf_index}" ]; then
+            bcftools index -t ~{input_vcf}
+        fi
+
+        bcftools norm -m -any -o "~{output_name}.vcf.gz" ~{"-R " + restriction_bed} ~{input_vcf}
         bcftools index -t -f "~{output_name}.vcf.gz"
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -120,19 +126,20 @@ task AddAnnotations {
         # df['DIST'] = df.apply(lambda x: 1 if x['SVTYPE'] == 'INS' else x['SVLEN'], axis=1)
         # df['END'] = df['POS'] + df['DIST']
         df['END'] = df['POS'] + df['SVLEN']
-        df[['CHROM', 'POS', 'POS2', 'END']].to_csv('annotations.tsv', sep='\t', index=False, header=False)
+        df[['CHROM', 'POS', 'POS2', 'END', 'SVLEN']].to_csv('annotations.tsv', sep='\t', index=False, header=False)
         CODE
 
         # Add annotations using bcftools
         bgzip annotations.tsv
         tabix -s1 -b2 -e3 annotations.tsv.gz
         echo '##INFO=<ID=END,Number=1,Type=Integer,Description="End coordinate in reference for SV">' > annotations.hdr
-        bcftools annotate -a annotations.tsv.gz -h annotations.hdr -c CHROM,FROM,TO,INFO/END -o "~{output_name}.vcf.gz" truvari-SVs.vcf.gz
+        echo '##INFO=<ID=SVTYPE,Number=1,Type=Integer,Description="Difference in length of ref and alt alleles">' >> annotations.hdr
+        bcftools annotate -a annotations.tsv.gz -h annotations.hdr -c CHROM,FROM,TO,INFO/END,INFO/SVLEN -o "~{output_name}.vcf.gz" truvari-SVs.vcf.gz
         bcftools index -t -f "~{output_name}.vcf.gz"
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -181,14 +188,20 @@ task ConvertToAbstract {
                     # Check relative difference in size meets size threshold or already abstract
                     # Also convert BND notation using ] or [ to abstract allele
                     if (np.abs(len(ref) - len(alt)) >= ~{min_size}) or (alt[0] == '<') or ('[' in alt) or (']' in alt):
+                        # If SVTYPE has Number=A in header, record.info["SVTYPE"] would be a tuple
+                        if isinstance(record.info['SVTYPE'], tuple):
+                            svtype = record.info['SVTYPE'][0]    # Multiallelics already split, so just one entry
+                        else:
+                            svtype = record.info['SVTYPE']    # Should be string in this case
+
                         # Replace REF with its first char, and ALT with abstraction
                         # If SVTYPE is UNK, try to infer from alt alleles
-                        if record.info["SVTYPE"] == "UNK":
+                        if svtype == "UNK":
                             allele_type = alt.split('<')[-1].split('>')[0]
                             record.info["SVTYPE"] = allele_type
                         else:
-                            new_alt = f'<{record.info["SVTYPE"]}>' if alt[0] != '<' else alt
-                            record.alleles = (record.alleles[0][0], new_alt)
+                            new_alt = f'<{svtype}>' if alt[0] != '<' else alt
+                            record.alleles = (record.alleles[0][0].upper(), new_alt)    # upper since Wittyer dislikes lowercase ref...
 
                         # Normalize FILTER to be PASS rather than missing
                         if (len(record.filter.values()) == 0) and ('~{normalize_missing_filter_to_pass}' == 'true'):
@@ -196,15 +209,16 @@ task ConvertToAbstract {
                             record.filter.add('PASS')
 
                         # Check for BND and write only if not asked to remove
-                        if not ( ('~{remove_bnd}' == 'true') and (record.info["SVTYPE"] == 'BND') ):
-                            output_vcf.write(record)
+                        if not ( ('~{remove_bnd}' == 'true') and (svtype == 'BND') ):
+                            if record.info['SVLEN'] > 0:    # sniffles actually will write variants with abstract alleles SVLEN = 0, which causes problem in Wittyer...
+                                output_vcf.write(record)
         CODE
 
         bcftools index -t -f "~{output_name}.vcf.gz"
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu

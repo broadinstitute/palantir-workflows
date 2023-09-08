@@ -6,9 +6,9 @@ This file contains a "to do" list for planned changes and improvements to the WD
 
 - [x] Add interval list overlap stats for breakpoints (with padding) of SVs rather than full spanning interval.
 - [x] Collect QUAL scores for downstream analysis (as some tools use interpretable measurement).
-- [ ] Fix bed file "off by one" error -- currently use bed and VCF coordinates together, so need to shift bed coords by one.
+- [x] Fix bed file "off by one" error -- currently use bed and VCF coordinates together, so need to shift bed coords by one.
 - [x] Add optional bed file for global restriction of variants.
-- [ ] Update `query` statements to filter out entries without required INFO fields.
+- [x] Update `query` statements to filter out entries without required INFO fields.
 
 ## SVisualizer
 
@@ -17,7 +17,6 @@ This file contains a "to do" list for planned changes and improvements to the WD
 - [x] Add more interval list overlap sliders (esp. to Basic Wittyer Tab), and for breakpoint overlaps after collecting data.
 - [x] Add `ALL` for SVTYPE option in Adv Wittyer Plots.
 - [x] Allow user to control fixed vs dynamic axes in Prec/Recall plots.
-- [ ] Update HWE plots to use density rather than one dot per variant to prevent crashing with large files.
 - [x] Add toggle for Truvari plots to force GT match. (Added GT Concordance plot instead.)
 
 ## Backlog
@@ -27,9 +26,20 @@ Some tasks that are lower priority at the moment but might get picked up in the 
 - [ ] QC: Add optional .ped file for collecting Mendelian concordance stats.
 - [ ] Add CNV-aware methods for collecting GT info (since CNVs have variable ploidy -- use CN field?).
 - [ ] Allow for custom site-level padding around breakpoints when collecting intersection stats.
+- [ ] Update HWE plots to use density rather than one dot per variant to prevent crashing with large files.
 
 
 ## CHANGELOG
+
+### v0.9
+
+- Updated `sv_docker` to latest version for e.g. htslib to fix issue in `CleanSVs.wdl` to be able to switch negative `SVLEN` to positive.
+- Allow `CleanSVs.wdl` to take in a .bed for subsetting in the split MA task.
+- Make running Wittyer and collecting QC metrics truly optional in `BenchmarkSVs.wdl`.
+- Update/refactor SVisualizer to allow for optionally creating QC/Wittyer/Truvari tabs, which can save lots of computational setup time when some files are large.
+- Update `gather_terra_data.py` to handle edge case where some workflows in submission failed to even launch (e.g. due to missing file input). 
+- Fix "off by one" small error in VCF vs BED coordinates when computing overlap statistics with user input bed files.
+- Update `bcftools query` statements to check that `SVTYPE` field is present (helps remove e.g. SNPs if still present in VCF).
 
 ### v0.8
 

@@ -38,27 +38,30 @@ os.mkdir('./wdl_outputs/workflows/')
 print("Parsing outputs and organizing data...")
 output_json = json.loads(response.content)
 for workflow in output_json['workflows']:
-    wf_response = fapi.get_workflow_outputs(
-        namespace=NAMESPACE,
-        workspace=WORKSPACE,
-        submission_id=SUBMISSION_ID,
-        workflow_id=workflow['workflowId']
-    )
+    if 'workflowId' in workflow:
+        wf_response = fapi.get_workflow_outputs(
+            namespace=NAMESPACE,
+            workspace=WORKSPACE,
+            submission_id=SUBMISSION_ID,
+            workflow_id=workflow['workflowId']
+        )
     
-    wf_json = json.loads(wf_response.content)
-    
-    # Get dict of output names -> output files from workflow
-    if 'BenchmarkSVs' in wf_json['tasks']:
-        wf_path = f'./wdl_outputs/workflows/{workflow["workflowId"]}/'
-        gs_path = wf_json['tasks']['BenchmarkSVs']['outputs']['BenchmarkSVs.combined_files']
+        wf_json = json.loads(wf_response.content)
         
-        os.mkdir(wf_path)
-        os.system(f'gsutil cp {gs_path} {wf_path}')
-        with tarfile.open(f'{wf_path}/benchmark_outputs.tar.gz') as tar:
-            tar.extractall(path=wf_path)
-        os.remove(f'{wf_path}/benchmark_outputs.tar.gz')
+        # Get dict of output names -> output files from workflow
+        if 'BenchmarkSVs' in wf_json['tasks']:
+            wf_path = f'./wdl_outputs/workflows/{workflow["workflowId"]}/'
+            gs_path = wf_json['tasks']['BenchmarkSVs']['outputs']['BenchmarkSVs.combined_files']
+            
+            os.mkdir(wf_path)
+            os.system(f'gsutil cp {gs_path} {wf_path}')
+            with tarfile.open(f'{wf_path}/benchmark_outputs.tar.gz') as tar:
+                tar.extractall(path=wf_path)
+            os.remove(f'{wf_path}/benchmark_outputs.tar.gz')
+        else:
+            print(f"WARNING: Workflow {wf_json['workflowId']} seems to have failed... Skipping data collection for this run.")
     else:
-        print(f"WARNING: Workflow {wf_json['workflowId']} seems to have failed... Skipping data collection for this run.")
+        print(f"WARNING: Workflow seems to have failed to launch... Skipping data collection for this run.")
 
 # for k in file_df_dict:
 #     file_df_dict[k].to_csv(f'wdl_outputs/{file_basenames[k]}', sep='\t', index=False)
@@ -87,6 +90,9 @@ shutil.rmtree('./wdl_outputs/workflows/')
 
 # Create README file
 print("Creating README file...")
+
+USER_COMMENT = output_json['userComment']
+
 with open('./wdl_outputs/README.txt', 'w') as file:
     lines = []
     lines += ['Files in this directory were created using the gather_terra_data.py script provided with the SVisualizer script.\n']
@@ -94,7 +100,8 @@ with open('./wdl_outputs/README.txt', 'w') as file:
     lines += [f'Taken from:\n']
     lines += [f'\tNamespace: {NAMESPACE}\n']
     lines += [f'\tWorkspace: {WORKSPACE}\n']
-    lines += [f'\tSubmission ID: {SUBMISSION_ID}']
+    lines += [f'\tSubmission ID: {SUBMISSION_ID}\n']
+    lines += [f'User Comment: {USER_COMMENT}']
     file.writelines(lines)
 
 print("Finished!")

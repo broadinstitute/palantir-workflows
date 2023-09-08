@@ -1,5 +1,11 @@
 version 1.0
 
+struct RuntimeAttributes {
+    Int disk_size
+    Int cpu
+    Int memory
+}
+
 workflow BenchmarkSVs {
     input {
         File? base_vcf
@@ -12,7 +18,7 @@ workflow BenchmarkSVs {
 
         String? experiment
 
-        File ref_dict
+        File ref_fai
 
         Boolean perform_qc = true
         Boolean run_wittyer = true
@@ -68,7 +74,7 @@ workflow BenchmarkSVs {
                 sample_name=comp_sample_names[0],
                 experiment=experiment,
                 label_suffix="Comp",
-                ref_dict=ref_dict,
+                ref_fai=ref_fai,
                 bed_regions=bed_regions,
                 bed_labels=bed_labels
         }
@@ -81,7 +87,7 @@ workflow BenchmarkSVs {
                     sample_name=base_sample_names[0],
                     experiment=experiment,
                     label_suffix="Base",
-                    ref_dict=ref_dict,
+                    ref_fai=ref_fai,
                     bed_regions=bed_regions,
                     bed_labels=bed_labels
             }
@@ -135,7 +141,7 @@ workflow BenchmarkSVs {
                 bed_regions=bed_regions,
                 bed_labels=bed_labels,
                 breakpoint_padding=breakpoint_padding,
-                ref_dict=ref_dict
+                ref_fai=ref_fai
             }
         }
     }
@@ -215,7 +221,7 @@ workflow BenchmarkSVs {
                         base_sample_name=sample_pair.right.left,
                         comp_sample_name=sample_pair.right.right,
                         experiment=experiment,
-                        ref_dict=ref_dict,
+                        ref_fai=ref_fai,
                         bed_regions=select_all(bed_regions),
                         bed_labels=select_all(bed_labels),
                         breakpoint_padding=breakpoint_padding
@@ -285,9 +291,7 @@ task SubsetEvaluation {
         Float? evaluation_pct
 
         # Runtime parameters
-        Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
-        Int cpu = 4
-        Int memory_ram = 16
+        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(2 * size(input_vcf, "GB")) + 100, "cpu": 4, "memory": 16}
     }
 
     command <<<
@@ -303,10 +307,10 @@ task SubsetEvaluation {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
-        disks: "local-disk " + disk_size + " HDD"
-        memory: memory_ram + " GB"
-        cpu: cpu
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        memory: runtimeAttributes.memory + " GB"
+        cpu: runtimeAttributes.cpu
     }
 
     output {
@@ -324,16 +328,14 @@ task CollectQcMetrics {
         String experiment = ""
         String label_suffix = "Comp"
 
-        File? ref_dict
+        File ref_fai
 
         Array[File] bed_regions = []
         Array[String] bed_labels = []
         Int? breakpoint_padding = 20
 
         # Runtime parameters
-        Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
-        Int cpu = 4
-        Int memory_ram = 16
+        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(2 * size(input_vcf, "GB")) + 100, "cpu": 4, "memory": 16}
     }
 
     command <<<
@@ -344,19 +346,20 @@ task CollectQcMetrics {
         bcftools index -t -f tagged.vcf.gz
 
         # Main query formatting
+        # Use POS0/END0 for coherence with bed coordinates later
         MAIN_HEADER="CHROM\tPOS\tEND\tQUAL\tFILTER\tSVTYPE\tSVLEN\tAC\tAC_Het\tAC_Hom\tAN\tExcHet\tHWE\tAF\tMAF\tNS\tSample\tExperiment"
-        MAIN_QUERY="%CHROM\t%POS\t%INFO/END\t%QUAL\t%FILTER\t%INFO/SVTYPE\t%INFO/SVLEN\t%AC\t%AC_Het\t%AC_Hom\t%AN\t%ExcHet\t%HWE\t%AF\t%MAF\t%NS\n"
+        MAIN_QUERY="%CHROM\t%POS0\t%END0\t%QUAL\t%FILTER\t%INFO/SVTYPE\t%INFO/SVLEN\t%AC\t%AC_Het\t%AC_Hom\t%AN\t%ExcHet\t%HWE\t%AF\t%MAF\t%NS\n"
 
         # Create table of relevant stats from variant annotations
         # Requires input to have INFO fields: END, SVTYPE, SVLEN
         # echo -e "${MAIN_HEADER}" > qc_stats-pre_intervals.tsv
-        bcftools query \
+        bcftools query -i 'INFO/SVTYPE!="."' \
             -f"${MAIN_QUERY}" \
             tagged.vcf.gz | awk -v OFS='\t' '{ print $0, "~{sample_name}-~{label_suffix}", "~{experiment}-~{label_suffix}" }' > qc_stats-pre_intervals.tsv
 
         # Add interval overlap data
-        # Clean ref_dict into genome file for bedtools
-        tail -n +2 ~{ref_dict} | cut -f2,3 - | sed 's/SN://g' - | sed 's/LN://g' - > ref.genome
+        # Clean ref_fai into genome file for bedtools
+        cut -f1,2 ~{ref_fai} > ref.genome
 
         # Collect interval bed overlap stats
         generate_interval_stats () {
@@ -405,13 +408,23 @@ task CollectQcMetrics {
             mv qc_stats-pre_header.tsv qc_stats.tsv
         fi
 
+        # Correct POS0/END0 back to original VCF POS/END coordinates
+        python3 << CODE
+        import pandas as pd
+
+        df = pd.read_csv('qc_stats.tsv', sep='\t')
+        df['POS'] = df['POS'] + 1
+        df['END'] = df['END'] + 1
+        df.to_csv('qc_stats.tsv', sep='\t', index=False)
+
+        CODE
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
-        disks: "local-disk " + disk_size + " HDD"
-        memory: memory_ram + " GB"
-        cpu: cpu
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        memory: runtimeAttributes.memory + " GB"
+        cpu: runtimeAttributes.cpu
     }
 
     output {
@@ -456,9 +469,7 @@ task RunTruvari {
         Boolean debug_mode = false
 
         # Runtime parameters
-        Int disk_size = ceil(2 * size(base_vcf, "GB") + 2 * size(comp_vcf, "GB")) + 100
-        Int cpu = 8
-        Int memory_ram = 16
+        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(2 * size(base_vcf, "GB") + 2 * size(comp_vcf, "GB")) + 100, "cpu": 8, "memory": 16}
     }
 
     command <<<
@@ -569,10 +580,10 @@ task RunTruvari {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
-        disks: "local-disk " + disk_size + " HDD"
-        memory: memory_ram + " GB"
-        cpu: cpu
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        memory: runtimeAttributes.memory + " GB"
+        cpu: runtimeAttributes.cpu
     }
 
     output {
@@ -613,26 +624,25 @@ task CollectIntervalComparisonMetrics {
         Array[File] bed_regions = []
         Array[String] bed_labels = []
         Int breakpoint_padding = 20
-        File ref_dict
+        File ref_fai
 
         Int k_closest = 3    # Number of close by variants to compare to
 
         # Runtime parameters
-        Int disk_size = ceil(2 * size(comp_vcf, "GB")) + 100
-        Int cpu = 4
-        Int memory_ram = 16
+        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(2 * size(comp_vcf, "GB")) + 100, "cpu": 4, "memory": 16}
     }
 
     command <<<
         set -xueo pipefail
 
         # Transform VCFs into bed files for more convenient analysis
-        bcftools view ~{"-s " + base_sample_name} --min-ac 1 "~{base_vcf}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > base.bed
-        bcftools view ~{"-s " + base_sample_name} --min-ac 1 "~{tp_base}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > tp-base.bed
-        bcftools view ~{"-s " + base_sample_name} --min-ac 1 "~{fn}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > fn.bed
-        bcftools view ~{"-s " + comp_sample_name} --min-ac 1 "~{comp_vcf}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > comp.bed
-        bcftools view ~{"-s " + comp_sample_name} --min-ac 1 "~{tp_comp}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > tp-comp.bed
-        bcftools view ~{"-s " + comp_sample_name} --min-ac 1 "~{fp}" | bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > fp.bed
+        # Use POS0/END0 for coherence with bed coordinates later
+        bcftools view ~{"-s " + base_sample_name} --min-ac 1 "~{base_vcf}" | bcftools query -i 'INFO/SVTYPE!="."' -f'%CHROM\t%POS0\t%END0\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > base.bed
+        bcftools view ~{"-s " + base_sample_name} --min-ac 1 "~{tp_base}" | bcftools query -i 'INFO/SVTYPE!="."' -f'%CHROM\t%POS0\t%END0\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > tp-base.bed
+        bcftools view ~{"-s " + base_sample_name} --min-ac 1 "~{fn}" | bcftools query -i 'INFO/SVTYPE!="."' -f'%CHROM\t%POS0\t%END0\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > fn.bed
+        bcftools view ~{"-s " + comp_sample_name} --min-ac 1 "~{comp_vcf}" | bcftools query -i 'INFO/SVTYPE!="."' -f'%CHROM\t%POS0\t%END0\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > comp.bed
+        bcftools view ~{"-s " + comp_sample_name} --min-ac 1 "~{tp_comp}" | bcftools query -i 'INFO/SVTYPE!="."' -f'%CHROM\t%POS0\t%END0\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > tp-comp.bed
+        bcftools view ~{"-s " + comp_sample_name} --min-ac 1 "~{fp}" | bcftools query -i 'INFO/SVTYPE!="."' -f'%CHROM\t%POS0\t%END0\t%SVLEN\t%SVTYPE\t%FILTER\n' - | bedtools sort -i - > fp.bed
 
         # Generate "closest" data
         echo -e "BASENAME\tCOMPNAME\tExperiment\tLCHROM\tLPOS\tLEND\tLLEN\tLTYPE\tLFILTER\tRCHROM\tRPOS\tREND\tRLEN\tRTYPE\tRFILTER\tDIST" > header.txt
@@ -645,8 +655,8 @@ task CollectIntervalComparisonMetrics {
         awk -v OFS='\t' '{ print "~{base_sample_name}-Base", "~{comp_sample_name}-Comp", "~{experiment}", $0 }' fn-closest.bed > fn-closest-samples.bed
         cat header.txt fn-closest-samples.bed > fn-closest-final.bed
 
-        # Clean ref_dict into genome file for bedtools
-        tail -n +2 ~{ref_dict} | cut -f2,3 - | sed 's/SN://g' - | sed 's/LN://g' - > ref.genome
+        # Clean ref_fai into genome file for bedtools
+        cut -f1,2 ~{ref_fai} > ref.genome
 
         # Collect interval bed overlap stats
         generate_interval_stats () {
@@ -710,13 +720,32 @@ task CollectIntervalComparisonMetrics {
             paste fn_header.bed *-fn-full-annotated.bed > fn_intervals-final.bed
         fi
 
+        # Correct POS0/END back to original VCF POS/END coordinates
+        python3 << CODE
+        import pandas as pd
+
+        for file in ['tp-base_intervals-final.bed', 'tp-comp_intervals-final.bed', 'fp_intervals-final.bed', 'fn_intervals-final.bed']:
+            df = pd.read_csv(file, sep='\t')
+            df['POS'] = df['POS'] + 1
+            df['END'] = df['END'] + 1
+            df.to_csv(file, sep='\t', index=False)
+
+        for file in ['fp-closest-final.bed', 'fn-closest-final.bed']:
+            df = pd.read_csv(file, sep='\t')
+            df['LPOS'] = df['LPOS'] + 1
+            df['LEND'] = df['LEND'] + 1
+            df['RPOS'] = df['RPOS'] + 1
+            df['REND'] = df['REND'] + 1
+
+        CODE
+
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
-        disks: "local-disk " + disk_size + " HDD"
-        memory: memory_ram + " GB"
-        cpu: cpu
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        memory: runtimeAttributes.memory + " GB"
+        cpu: runtimeAttributes.cpu
     }
 
     output {
@@ -744,15 +773,9 @@ task WittyerEval {
 
         File? wittyer_config
         String wittyer_evaluation_mode = "CrossTypeAndSimpleCounting"
-        String wittyer_docker = "us.gcr.io/broad-dsde-methods/wittyer:v1.0"
 
-        Int? mem
-        Int? disk_space
+        RuntimeAttributes runtimeAttributes = {"disk_size": 100, "cpu": 4, "memory": 8}
     }
-
-    # If mem and disk size were not specified, use 4GB and 100 GB as default
-    Int mem_size = select_first([mem, 4])
-    Int disk_size = select_first([disk_space,100])
 
     command <<<
         set -x
@@ -789,11 +812,12 @@ task WittyerEval {
     >>>
 
     runtime {
-        docker: wittyer_docker
+        docker: "us.gcr.io/broad-dsde-methods/wittyer:v1.0"
         bootDiskSizeGb: 12
-        memory: mem_size + " GB"
-        disks: "local-disk " + disk_size + " HDD"
-        preemptible: 2
+        memory: runtimeAttributes.memory + " GB"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        cpu: runtimeAttributes.cpu
+        preemptible: 1
     }
 
     output {
@@ -816,19 +840,18 @@ task AddIntervalOverlapStatsWittyer {
         Array[String] bed_labels
         Int breakpoint_padding = 20
 
-        File ref_dict
+        File ref_fai
 
         # Runtime parameters
-        Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
-        Int cpu = 4
-        Int memory_ram = 16
+        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(2 * size(input_vcf, "GB")) + 100, "cpu": 4, "memory": 16}
     }
 
     command <<<
         set -xueo pipefail
 
         # Extract useful columns from Wittyer VCF
-        bcftools query -f'%CHROM\t%POS\t%END\t%SVLEN\t%SVTYPE\t%FILTER\t%WHERE\t%WIN[\t%GT\t%WIT\t%WHY]\n' ~{input_vcf} | bedtools sort -i - > wittyer_vcf_labels.tsv
+        # Use POS0/END0 for conherence with bed coordinates later
+        bcftools query -i 'INFO/SVTYPE!="."' -f'%CHROM\t%POS0\t%END0\t%SVLEN\t%SVTYPE\t%FILTER\t%WHERE\t%WIN[\t%GT\t%WIT\t%WHY]\n' ~{input_vcf} | bedtools sort -i - > wittyer_vcf_labels.tsv
 
         # Format table in Python
         python3 << CODE
@@ -860,8 +883,8 @@ task AddIntervalOverlapStatsWittyer {
 
         CODE
 
-        # Clean ref_dict into genome file for bedtools
-        tail -n +2 ~{ref_dict} | cut -f2,3 - | sed 's/SN://g' - | sed 's/LN://g' - > ref.genome
+        # Clean ref_fai into genome file for bedtools
+        cut -f1,2 ~{ref_fai} > ref.genome
 
         # Collect interval bed overlap stats
         generate_interval_stats () {
@@ -917,13 +940,26 @@ task AddIntervalOverlapStatsWittyer {
         cat header.txt query_table.tsv > query_table-with_header.tsv
         paste query_table-with_header.tsv *-query-table-full-annotated.bed > query-table_intervals-final.bed
 
+        # Correct POS0/END back to original VCF POS/END coordinates
+        python3 << CODE
+        import pandas as pd
+
+        for file in ['no-gt_intervals-final.bed', 'truth-table_intervals-final.bed', 'query-table_intervals-final.bed']:
+            df = pd.read_csv(file, sep='\t')
+            df['POS'] = df['POS'] + 1
+            df['END'] = df['END'] + 1
+            df['VCF'] = file.split('-')[0]    # Add truth/query labels for respective tables
+            df.to_csv(file, sep='\t', index=False)
+
+        CODE
+
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
-        disks: "local-disk " + disk_size + " HDD"
-        memory: memory_ram + " GB"
-        cpu: cpu
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        memory: runtimeAttributes.memory + " GB"
+        cpu: runtimeAttributes.cpu
     }
 
     output {
@@ -984,7 +1020,7 @@ task CleanBasicWittyerStats {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
         disks: "local-disk " + 50 + " HDD"
         memory: 4 + " GB"
         cpu: 2
@@ -999,12 +1035,9 @@ task CombineSummaries {
     input {
         Array[File] tables
         String output_file_name
-
-        # Runtime parameters
-        Int disk_size = ceil(2 * size(tables, "GB")) + 50
-        Int cpu = 4
-        Int memory_ram = 8
     }
+
+    Int disk_size = ceil(2 * size(tables, "GB")) + 50
 
     command <<<
         set -xueo pipefail
@@ -1024,10 +1057,10 @@ task CombineSummaries {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.6"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
         disks: "local-disk " + disk_size + " HDD"
-        memory: memory_ram + " GB"
-        cpu: cpu
+        memory: 8 + " GB"
+        cpu: 4
     }
 
     output {
@@ -1048,13 +1081,22 @@ task CombineFiles {
         mkdir benchmark_outputs
 
         mkdir benchmark_outputs/qc_files
-        cp ~{sep=" " qc_files} benchmark_outputs/qc_files/
+        if [ ~{length(qc_files)} -gt 0 ]
+        then
+            cp ~{sep=" " qc_files} benchmark_outputs/qc_files/
+        fi
 
         mkdir benchmark_outputs/truvari_files
-        cp ~{sep=" " truvari_files} benchmark_outputs/truvari_files/
+        if [ ~{length(truvari_files)} -gt 0 ]
+        then
+            cp ~{sep=" " truvari_files} benchmark_outputs/truvari_files/
+        fi
 
         mkdir benchmark_outputs/wittyer_files
-        cp ~{sep=" " wittyer_files} benchmark_outputs/wittyer_files/
+        if [ ~{length(wittyer_files)} -gt 0 ]
+        then
+            cp ~{sep=" " wittyer_files} benchmark_outputs/wittyer_files/
+        fi
 
         tar -zcvf benchmark_outputs.tar.gz benchmark_outputs
     >>>
