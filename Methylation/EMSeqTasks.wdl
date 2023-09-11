@@ -1,5 +1,5 @@
 version 1.0
-    
+
 task Mapping {
     input {
         String sampleId
@@ -31,14 +31,7 @@ task Mapping {
         #--read-group '@RG\tID:~{sampleId}\tPL:illumina\tSM:~{sampleId}\tLB:~{sampleId}' \
         #~{fq1} ~{fq2} > ~{sampleId}.sam
 
-    #if [[ "${inst_name:0:2}" == 'A0' ]] || [[ "${inst_name:0:2}" == 'NS' ]] || \
-    #        [[ "${inst_name:0:2}" == 'NB' ]] || [[ "${inst_name:0:2}" == 'VH' ]] ;
-    #    then
-    #        trim_polyg='--trim_poly_g'
-    #        echo '2-color instrument: poly-g trim mode on'
-    #    else
-    #        trim_polyg=''
-    #    fi
+
 
     #    seqtk mergepe <(zcat -f "!{fq1}") <(zcat -f "!{fq2}") \
     #    | fastp --stdin --stdout -l 2 -Q ${trim_polyg} --interleaved_in --overrepresentation_analysis \
@@ -50,10 +43,19 @@ task Mapping {
 
     command <<<
         inst_name=$(zcat -f ~{fq1} | head -n 1 | cut -f 1 -d ':' | sed 's/^@//')
-        echo $inst_name
-
         fastq_barcode=$(zcat -f ~{fq2} | head -n 1 | sed -r 's/.*://')
+
+        if [[ "${inst_name:0:2}" == 'A0' ]] || [[ "${inst_name:0:2}" == 'NS' ]] || \
+           [[ "${inst_name:0:2}" == 'NB' ]] || [[ "${inst_name:0:2}" == 'VH' ]] ; then
+            trim_polyg='--trim_poly_g'
+            echo '2-color instrument: poly-g trim mode on'
+        else
+            trim_polyg=''
+        fi
+
+        echo $inst_name
         echo $fastq_barcode
+        echo $trim_polyg
     >>>
 
     output {
