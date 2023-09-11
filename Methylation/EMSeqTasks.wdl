@@ -3,10 +3,6 @@ version 1.0
 task Mapping {
     input {
         String sampleId
-        String flowcell
-        String library
-        String lane = "all"
-        String tile = "all"
         File fq1
         File fq2
         File ref
@@ -42,11 +38,11 @@ task Mapping {
 
         seqtk mergepe <(zcat -f ~{fq1}) <(zcat -f ~{fq2}) \
         | fastp --stdin --stdout -l 2 -Q ${trim_polyg} --interleaved_in --overrepresentation_analysis \
-            -j ~{library}_fastp.json 2> fastp.stderr \
-        | bwameth.py -p -t ~{numThreads} --read-group "@RG\\tID:${fastq_barcode}\\tSM:~{library}" --reference ~{refBasename} /dev/stdin \
-            2>  "~{library}_${fastq_barcode}_~{flowcell}_~{lane}_~{tile}.log.bwamem" \
-        | /usr/local/src/mark-nonconverted-reads/mark-nonconverted-reads.py 2> "~{library}_${fastq_barcode}_~{flowcell}_~{lane}_~{tile}.nonconverted.tsv" \
-        | sambamba view -t 2 -S -f bam -o "~{library}_${fastq_barcode}_~{flowcell}_~{lane}_~{tile}.aln.bam" /dev/stdin 2> sambamba.stderr;
+            -j ~{sampleId}_fastp.json 2> fastp.stderr \
+        | bwameth.py -p -t ~{numThreads} --read-group "@RG\\tID:~{sampleId}\\tSM:~{sampleId}" --reference ~{refBasename} /dev/stdin \
+            2>  "~{sampleId}.log.bwamem" \
+        | /usr/local/src/mark-nonconverted-reads/mark-nonconverted-reads.py 2> "~{sampleId}.nonconverted.tsv" \
+        | sambamba view -t 2 -S -f bam -o "~{sampleId}.aln.bam" /dev/stdin 2> sambamba.stderr;
 
         ls -lha
     >>>
