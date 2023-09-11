@@ -1,4 +1,3 @@
-#  conda "bwameth=0.2.2 seqtk=1.3 sambamba=0.7.0 fastp=0.20.1 mark-nonconverted-reads=1.1"
 task Mapping {
     input {
         String sampleId
