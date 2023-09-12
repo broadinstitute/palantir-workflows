@@ -23,6 +23,8 @@ workflow EMSeq {
     }
 
     output {
-        #File sam = Mapping.sam
+        File bam = Mapping.bam
+        File fastpReport = Mapping.fastpReport
+        File nonconvertedReadCounts = Mapping.nonconvertedReadCounts
     }
 }

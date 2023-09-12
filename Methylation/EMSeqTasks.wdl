@@ -36,22 +36,23 @@ task Mapping {
             trim_polyg=''
         fi
 
-        seqtk mergepe <(zcat -f ~{fq1}) <(zcat -f ~{fq2}) \
-        | fastp --stdin --stdout -l 2 -Q ${trim_polyg} --interleaved_in --overrepresentation_analysis \
-            -j ~{sampleId}_fastp.json 2> fastp.stderr \
-        | bwameth.py -p -t ~{numThreads} --read-group "@RG\\tID:~{sampleId}\\tSM:~{sampleId}" --reference ~{refBasename} /dev/stdin \
-            2>  "~{sampleId}.log.bwamem" \
-        | /usr/local/src/mark-nonconverted-reads/mark-nonconverted-reads.py 2> "~{sampleId}.nonconverted.tsv" \
-        | sambamba view -t 2 -S -f bam -o "~{sampleId}.aln.bam" /dev/stdin 2> sambamba.stderr;
+        fastp --in1 ~{fq1} --out1 ~{sampleId}.1.filterted.fastq.gz --in2 ~{fq2} --out2 ~{sampleId}.2.filtered.fastq.gz -l 2 -Q ${trim_polyg} --overrepresentation_analysis -j ~{sampleId}_fastp.json
+        ls -lha
 
+        bwameth.py --reference ~{refBasename} --threads ~{numThreads} --read-group "@RG\\tID:~{sampleId}\\tSM:~{sampleId}" ~{sampleId}.1.filtered.fastq.gz ~{sampleId}.2.filtered.fastq.gz > ~{sampleId}.sam
+        ls -lha
+
+        /usr/local/src/mark-nonconverted-reads/mark-nonconverted-reads.py --bam ~{sampleId}.sam --out ~{sampleId}.nc_marked.sam 2> ~{sampleId}.nonconverted.tsv
+        ls -lha
+
+        sambamba view --with-header --sam-input --nthreads 2 --format bam --compression-level 0 --output-filename "~{sampleId}.bam" ~{sampleId}.nc_marked.sam
         ls -lha
     >>>
 
     output {
-        # File sam = "~{sampleId}.sam"
-        # set val(fq_set.library), file("*.aln.bam") into aligned_files
-        # set val(fq_set.library), file("*.nonconverted.tsv") into nonconverted_counts
-        # set val(fq_set.library), file("*_fastp.json") into fastp_log_files
+        File bam = "~{sampleId}.bam"
+        File fastpReport = "~{sampleId}_fastp.json"
+        File nonconvertedReadCounts = "~{sampleId}.nonconverted.tsv"
     }
 
     runtime {
