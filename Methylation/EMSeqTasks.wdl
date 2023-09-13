@@ -36,7 +36,7 @@ task Mapping {
             trim_polyg=''
         fi
 
-        fastp --in1 ~{fq1} --out1 ~{sampleId}.1.filterted.fastq.gz --in2 ~{fq2} --out2 ~{sampleId}.2.filtered.fastq.gz -l 2 -Q ${trim_polyg} --overrepresentation_analysis -j ~{sampleId}_fastp.json
+        fastp --in1 ~{fq1} --out1 ~{sampleId}.1.filtered.fastq.gz --in2 ~{fq2} --out2 ~{sampleId}.2.filtered.fastq.gz -l 2 -Q ${trim_polyg} --overrepresentation_analysis -j ~{sampleId}_fastp.json
         ls -lha
 
         bwameth.py --reference ~{refBasename} --threads ~{numThreads} --read-group "@RG\\tID:~{sampleId}\\tSM:~{sampleId}" ~{sampleId}.1.filtered.fastq.gz ~{sampleId}.2.filtered.fastq.gz > ~{sampleId}.sam
