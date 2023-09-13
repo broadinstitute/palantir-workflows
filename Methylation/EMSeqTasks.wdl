@@ -83,8 +83,8 @@ task MarkDuplicates {
     >>>
 
     output {
-        File bam = "~{sampleId}.md.bam"
-        File bai = "~{sampleId}.md.bam.bai"
+        File mdBam = "~{sampleId}.md.bam"
+        #File mdBai = "~{sampleId}.md.bam.bai"
         File samblasterLog = "~{sampleId}.samblaster.log"
     }
 
