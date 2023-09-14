@@ -20,11 +20,11 @@ task ScoreVcf {
   Int disk_space =  3*ceil(size(vcf, "GB")) + 20
   String var_ids_string = "@:#:" + if use_ref_alt_for_ids then "\\$r:\\$a" else "\\$1:\\$2"
 
-  command {
+  command <<<
     /plink2 --score ~{weights} header ignore-dup-ids list-variants no-mean-imputation \
     cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --set-all-var-ids ~{var_ids_string} --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
     --new-id-max-allele-len 1000 missing ~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem} ~{"--output-chr " + chromosome_encoding}
-  }
+  >>>
 
   output {
     File score = "~{basename}.sscore"
@@ -630,18 +630,27 @@ task MakePCAPlot {
 task ExtractIDsPlink {
   input {
     File vcf
-    Int disk_size = 2*ceil(size(vcf, "GB")) + 100
+    Int disk_size = 2 * ceil(size(vcf, "GB")) + 100
     Int mem = 8
   }
 
   Int plink_mem = ceil(mem * 0.75 * 1000)
 
   command <<<
-    /plink2 --vcf ~{vcf} --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing --rm-dup exclude-all --allow-extra-chr --write-snplist allow-dups --memory ~{plink_mem}
+    /plink2 \
+      --vcf ~{vcf} \
+      --set-all-var-ids @:#:\$1:\$2 \
+      --new-id-max-allele-len 1000 missing \
+      --rm-dup exclude-all \
+      --allow-extra-chr \
+      --write-snplist allow-dups \
+      --memory ~{plink_mem}
   >>>
+
   output {
     File ids = "plink2.snplist"
   }
+
   runtime {
     docker: "us.gcr.io/broad-dsde-methods/plink2_docker@sha256:4455bf22ada6769ef00ed0509b278130ed98b6172c91de69b5bc2045a60de124"
     disks: "local-disk " + disk_size + " HDD"
