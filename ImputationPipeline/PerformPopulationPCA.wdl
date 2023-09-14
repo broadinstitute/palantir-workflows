@@ -188,7 +188,6 @@ task LDPruning {
     Array[File] imputed_typed_sites
     Array[File]? selected_sites
     Int mem = 8
-    Int nthreads = 16
     Int disk_size = 1000
     String basename
   }
@@ -196,7 +195,6 @@ task LDPruning {
   # all these numbers are from Wallace Wang
   command <<<
     /plink2 --vcf ~{vcf} \
-    --threads ~{nthreads} \
     --rm-dup force-first \
     --geno 0.05 \
     --hwe 1e-10 \
@@ -208,7 +206,6 @@ task LDPruning {
     --out ~{basename} 
 
     /plink2 --vcf ~{vcf} \
-    --threads ~{nthreads} \
     --rm-dup force-first \
     --keep-allele-order \
     --extract ~{basename}.prune.in \

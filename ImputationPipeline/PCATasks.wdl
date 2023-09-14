@@ -114,7 +114,6 @@ task ArrayVcfToPlinkDataset {
     File? subset_to_sites
     String basename
     Int mem = 8
-    Int nthreads = 16
   }
 
   Int disk_space =  3 * ceil(size(vcf, "GB")) + 20
@@ -122,7 +121,6 @@ task ArrayVcfToPlinkDataset {
   command <<<
     /plink2 \
       --vcf ~{vcf} \
-      --threads ~{nthreads} \
       --extract-intersect ~{pruning_sites} ~{subset_to_sites} \
       --allow-extra-chr \
       --set-all-var-ids @:#:\$1:\$2 \
