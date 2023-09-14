@@ -316,14 +316,12 @@ task LDPruneToSites {
     File vcf
     File pruning_sites
     Int mem = 8
-    Int nthreads = 16
     String basename
   }
   
   command <<<
     /plink2 \
     --vcf ~{vcf} \
-    --threads ~{nthreads} \
     --rm-dup force-first \
     --keep-allele-order \
     --extract ~{pruning_sites} \
