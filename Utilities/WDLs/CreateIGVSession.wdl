@@ -6,7 +6,7 @@ workflow CreateIGVSession {
         Array[String]? vcfs
         Array[String]? interval_files
 
-        String ref_fasta
+        String reference
 
         String output_name = "igv_session"
     }
@@ -16,7 +16,7 @@ workflow CreateIGVSession {
             bams=bams,
             vcfs=vcfs,
             interval_files=interval_files,
-            ref_fasta=ref_fasta,
+            reference=reference,
             output_name=output_name
     }
 
