@@ -55,6 +55,7 @@ task SplitMASites {
         File? input_vcf_index
 
         String output_name = "split"
+        String output_suffix = "-splitMA"
 
         File? restriction_bed
 
@@ -71,8 +72,8 @@ task SplitMASites {
             bcftools index -t ~{input_vcf}
         fi
 
-        bcftools norm -m -any -o "~{output_name}.vcf.gz" ~{"-R " + restriction_bed} ~{input_vcf}
-        bcftools index -t -f "~{output_name}.vcf.gz"
+        bcftools norm -m -any -o "~{output_name}~{output_suffix}.vcf.gz" ~{"-R " + restriction_bed} ~{input_vcf}
+        bcftools index -t -f "~{output_name}~{output_suffix}.vcf.gz"
     >>>
 
     runtime {
@@ -83,8 +84,8 @@ task SplitMASites {
     }
 
     output {
-        File output_vcf = "~{output_name}.vcf.gz"
-        File output_vcf_index = "~{output_name}.vcf.gz.tbi"
+        File output_vcf = "~{output_name}~{output_suffix}.vcf.gz"
+        File output_vcf_index = "~{output_name}~{output_suffix}.vcf.gz.tbi"
     }
 }
 
@@ -95,6 +96,7 @@ task AddAnnotations {
         File input_vcf_index
 
         String output_name = "annotated"
+        String output_suffix = "-sv_annotated"
 
         Int min_size = 50
 
@@ -114,28 +116,30 @@ task AddAnnotations {
 
         # Add END for INDELs using bcftools because pysam doesn't handle these well
         # See: https://github.com/pysam-developers/pysam/issues/1200
-        bcftools query -f'%CHROM\t%POS\t%POS\t%SVLEN\t%SVTYPE\n' truvari-SVs.vcf.gz > query.tsv
+        bcftools query -f'%CHROM\t%POS\t%ID\t%REF\t%ALT\t%SVLEN\t%SVTYPE\n' truvari-SVs.vcf.gz > query.tsv
 
         # Process updated END coordinate from POS and SVLEN
         python3 << CODE
         import pandas as pd
         import numpy as np
 
-        df = pd.read_csv('query.tsv', sep='\t', names=['CHROM', 'POS', 'POS2', 'SVLEN', 'SVTYPE'])
+        df = pd.read_csv('query.tsv', sep='\t', names=['CHROM', 'POS', 'ID', 'REF', 'ALT', 'SVLEN', 'SVTYPE'])
         df['SVLEN'] = df['SVLEN'].replace('.', 0).astype(int).apply(np.abs)
         # df['DIST'] = df.apply(lambda x: 1 if x['SVTYPE'] == 'INS' else x['SVLEN'], axis=1)
         # df['END'] = df['POS'] + df['DIST']
         df['END'] = df['POS'] + df['SVLEN']
-        df[['CHROM', 'POS', 'POS2', 'END', 'SVLEN']].to_csv('annotations.tsv', sep='\t', index=False, header=False)
+        df[['CHROM', 'POS', 'ID', 'REF', 'ALT', 'END', 'SVLEN']].to_csv('annotations.tsv', sep='\t', index=False, header=False)
         CODE
 
         # Add annotations using bcftools
+        # Start by removing old SVLEN from annotations; see this issue: https://github.com/samtools/bcftools/issues/1998
+        bcftools annotate -x INFO/SVLEN truvari-SVs.vcf.gz -o truvari-SVs-noSVLEN.vcf.gz
         bgzip annotations.tsv
-        tabix -s1 -b2 -e3 annotations.tsv.gz
+        tabix -s1 -b2 -e2 annotations.tsv.gz
         echo '##INFO=<ID=END,Number=1,Type=Integer,Description="End coordinate in reference for SV">' > annotations.hdr
-        echo '##INFO=<ID=SVTYPE,Number=1,Type=Integer,Description="Difference in length of ref and alt alleles">' >> annotations.hdr
-        bcftools annotate -a annotations.tsv.gz -h annotations.hdr -c CHROM,FROM,TO,INFO/END,INFO/SVLEN -o "~{output_name}.vcf.gz" truvari-SVs.vcf.gz
-        bcftools index -t -f "~{output_name}.vcf.gz"
+        echo '##INFO=<ID=SVLEN,Number=1,Type=Integer,Description="Difference in length of ref and alt alleles">' >> annotations.hdr
+        bcftools annotate -a annotations.tsv.gz -h annotations.hdr -c CHROM,POS,~ID,REF,ALT,INFO/END,INFO/SVLEN -o "~{output_name}~{output_suffix}.vcf.gz" truvari-SVs-noSVLEN.vcf.gz
+        bcftools index -t -f "~{output_name}~{output_suffix}.vcf.gz"
     >>>
 
     runtime {
@@ -146,8 +150,8 @@ task AddAnnotations {
     }
 
     output {
-        File output_vcf = "~{output_name}.vcf.gz"
-        File output_vcf_index = "~{output_name}.vcf.gz.tbi"
+        File output_vcf = "~{output_name}~{output_suffix}.vcf.gz"
+        File output_vcf_index = "~{output_name}~{output_suffix}.vcf.gz.tbi"
     }
 }
 
@@ -159,6 +163,7 @@ task ConvertToAbstract {
         File input_vcf_index
 
         String output_name = "converted"
+        String output_suffix = "-converted_abs"
 
         Int min_size = 50
 
@@ -179,7 +184,7 @@ task ConvertToAbstract {
         import numpy as np
 
         with pysam.VariantFile("~{input_vcf}") as vcf:
-            with pysam.VariantFile("~{output_name}.vcf.gz", "w", header=vcf.header) as output_vcf:
+            with pysam.VariantFile("~{output_name}~{output_suffix}.vcf.gz", "w", header=vcf.header) as output_vcf:
                 for record in vcf:
                     ## Remove alt sequence to use abstract alleles; assumes split MA sites already
                     ref = record.alleles[0]
@@ -214,7 +219,7 @@ task ConvertToAbstract {
                                 output_vcf.write(record)
         CODE
 
-        bcftools index -t -f "~{output_name}.vcf.gz"
+        bcftools index -t -f "~{output_name}~{output_suffix}.vcf.gz"
     >>>
 
     runtime {
@@ -225,7 +230,7 @@ task ConvertToAbstract {
     }
 
     output {
-        File output_vcf = "~{output_name}.vcf.gz"
-        File output_vcf_index = "~{output_name}.vcf.gz.tbi"
+        File output_vcf = "~{output_name}~{output_suffix}.vcf.gz"
+        File output_vcf_index = "~{output_name}~{output_suffix}.vcf.gz.tbi"
     }
 }

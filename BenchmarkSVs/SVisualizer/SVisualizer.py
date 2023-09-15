@@ -45,21 +45,15 @@ SKIP_COMP_HWE = True
 MAKE_MISSING_PASS_FILTER = True
 
 # Use to fix explicit order for experiment groups
-EXPERIMENT_ORDER = ['GATK-SV_HGSVC2'] + [f'Sniffles{i}x_vs_HGSVC2' for i in [2, 5, 8]]
+EXPERIMENT_ORDER = None
 
 # Use if running Truvari w/ dup-to-ins on
 TRUVARI_DUP_TO_INS = True
 
 # Toggle which categories of data to plot in Dashboard
 INCLUDE_QC = True
-INCLUDE_WITTYER = False
+INCLUDE_WITTYER = True
 INCLUDE_TRUVARI = True
-
-
-# In[ ]:
-
-
-
 
 
 # In[ ]:
@@ -564,13 +558,19 @@ def gt_match(plotter):
 
 @interval_filter
 def make_bar_counts(df, x, interval_name, breakpoint, pct_overlap):
+    category_orders = {'Experiment': [f'{x}-{y}' for x in EXPERIMENT_ORDER for y in ['Base', 'Comp']]} if EXPERIMENT_ORDER is not None else None
+    title = f'Mean Count of {x}'
+    if pct_overlap[0] > 0 or pct_overlap[1] < 100:
+        title += f' for events with {pct_overlap[0]:.0f}%-{pct_overlap[1]:.0f}% overlap with {interval_name}'
+    
     plot_args = {
         'x': x,
         'y': 'Mean_Count',
-        'title': f'Mean Count of {x}',
+        'title': title,
         'error_y': 'std',
         'color': 'Experiment',
         'barmode': 'group',
+        'category_orders': category_orders
     }
 
     counts_df = df.groupby(['Experiment_Suffix', 'Experiment', 'Sample']).apply(lambda df: df[x].value_counts().reset_index()).reset_index() \
@@ -620,12 +620,6 @@ if INCLUDE_QC:
 
 
 
-# In[ ]:
-
-
-
-
-
 # #### Counts Distributions
 
 # In[ ]:
@@ -633,7 +627,11 @@ if INCLUDE_QC:
 
 @interval_filter
 def make_qc_histogram(df, x, barmode, interval_name, breakpoint, pct_overlap):
-    fig = px.histogram(df, x=x, barmode=barmode, color='Experiment')
+    category_orders = {'Experiment': [f'{x}-{y}' for x in EXPERIMENT_ORDER for y in ['Base', 'Comp']]} if EXPERIMENT_ORDER is not None else None
+    title = f'Histogram of {x}'
+    if pct_overlap[0] > 0 or pct_overlap[1] < 100:
+        title += f' for events with {pct_overlap[0]:.0f}%-{pct_overlap[1]:.0f}% overlap with {interval_name}'
+    fig = px.histogram(df, x=x, barmode=barmode, color='Experiment', category_orders=category_orders, title=title)
     return fig
 
 
@@ -655,7 +653,7 @@ if INCLUDE_QC:
             plg.PlotInputRadioButtons(
                 header='Bar Mode',
                 plot_input='barmode',
-                data_values=['overlay', 'group', 'relative']
+                data_values=['group', 'overlay', 'relative']
             )
         ]
     )
@@ -828,8 +826,9 @@ def make_basic_wittyer_plot(df, axes_mode, stat='Precision'):
         y = 'Precision'
         title = 'Precision vs Recall Plot'
     hover_data = ['TruthName', 'TruthTpCount', 'TruthFnCount', 'QueryTpCount', 'QueryFpCount']
+    category_orders = {'Experiment': EXPERIMENT_ORDER} if EXPERIMENT_ORDER is not None else None
     return px.scatter(df, x=x, y=y, color='Experiment', title=title, hover_name='QueryName', hover_data=hover_data, 
-                      marginal_x='box', marginal_y='box', category_orders={'Experiment': EXPERIMENT_ORDER})
+                      marginal_x='box', marginal_y='box', category_orders=category_orders)
 
 
 # In[ ]:
@@ -965,8 +964,9 @@ def make_adv_wittyer_plot(df, interval_name, breakpoint, pct_overlap, gt_match, 
         return fig
     
     hover_data = ['TruthSample', 'TP-Base', 'FN', 'TP-Comp', 'FP']
+    category_orders = {'Experiment': EXPERIMENT_ORDER} if EXPERIMENT_ORDER is not None else None
     fig = px.scatter(counts_df, x=x, y=y, title=title, color='Experiment', hover_name='QuerySample', hover_data=hover_data, 
-                     marginal_x='box', marginal_y='box', category_orders={'Experiment': EXPERIMENT_ORDER})
+                     marginal_x='box', marginal_y='box', category_orders=category_orders)
     return fig
 
 
@@ -1064,8 +1064,12 @@ def make_truvari_bench_plot(df, axes_mode, stat='precision'):
 
 def make_gt_concordance_plot(df, axes_mode):
     category_orders = {'Experiment': EXPERIMENT_ORDER} if EXPERIMENT_ORDER is not None else None
+    title = 'GT Concordance'
+    if len(df) > 0:
+        interval_name = df['Interval'].values[0]
+        title += f' over {interval_name}'
     fig = px.box(df[df['TP-comp_TP-gt'] > 0], x='SVTYPE', y='gt_concordance', color='Experiment', 
-                 title='GT Concordance', category_orders=category_orders)
+                 title=title, category_orders=category_orders)
     if axes_mode == 'Fixed':
         fig.update_layout(yaxis_range=[0, 1])
     return fig
@@ -1235,7 +1239,13 @@ board = qbb.Quickboard(
 # In[ ]:
 
 
-start_app(board, debug=False, app_title='SVisualizer', mode='external', port=8051)
+start_app(board, debug=False, app_title='SVisualizer', mode='external', port=8050)
+
+
+# In[ ]:
+
+
+
 
 
 # In[ ]:

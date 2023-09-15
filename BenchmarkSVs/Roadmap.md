@@ -31,6 +31,12 @@ Some tasks that are lower priority at the moment but might get picked up in the 
 
 ## CHANGELOG
 
+### v0.10
+
+- Fixed category orders in QC plots not consistent / matching user input in SVisualizer.
+- Fixed a few titles in SVisualizer to match interval selections.
+- Fixed a bug in `CleanSVs.wdl` where `bcftools annotate` would not properly update `SVLEN` at multiallelic sites (even after split).
+
 ### v0.9
 
 - Updated `sv_docker` to latest version for e.g. htslib to fix issue in `CleanSVs.wdl` to be able to switch negative `SVLEN` to positive.
