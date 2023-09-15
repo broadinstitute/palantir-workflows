@@ -32,7 +32,7 @@ task MakeIGVXML {
         Array[String]? vcfs
         Array[String]? interval_files
 
-        String ref_fasta
+        String reference
 
         String output_name = "igv_session"
     }
@@ -56,12 +56,12 @@ task MakeIGVXML {
         session = ET.Element('Session')
 
         # Check reference sequence based on Terra defaults; else use provided reference
-        if "~{ref_fasta}" == "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta":
+        if "~{reference}" == "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta" or "~{reference}" == "hg38":
             session.set('genome', 'hg38')
-        elif "~{ref_fasta}" == "gs://gcp-public-data--broad-references/hg19/v0/Homo_sapiens_assembly19.fasta":
+        elif "~{reference}" == "gs://gcp-public-data--broad-references/hg19/v0/Homo_sapiens_assembly19.fasta" or "~{reference}" == "hg19":
             session.set('genome', 'hg19')
         else:
-            session.set('genome', "~{ref_fasta}")    # Requires IGV v2.1+
+            session.set('genome', "~{reference}")    # Requires IGV v2.1+
 
         # Create resources object to hold all files
         resources = ET.SubElement(session, 'Resources')
