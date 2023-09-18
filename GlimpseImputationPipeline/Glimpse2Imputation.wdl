@@ -156,7 +156,7 @@ task GlimpsePhase {
             echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
         done
 
-        cmd = "/bin/GLIMPSE2_phase \
+        cmd="/bin/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
         --reference ~{reference_chunk} \
         --output phase_output.bcf \
