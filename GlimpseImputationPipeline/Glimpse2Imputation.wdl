@@ -23,7 +23,7 @@ workflow Glimpse2Imputation {
         Int? effective_population_size
         
         Int preemptible = 1
-        String docker = "us.gcr.io/broad-dsde-methods/glimpse:palantir-workflows_20c9de0"
+        String docker = "us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:checkpointing_and_extract_num_sites"
         #Int cpu_phase = 4
         #Int mem_gb_phase = 64
         Int cpu_ligate = 4
@@ -126,7 +126,7 @@ task GlimpsePhase {
         Int mem_gb = 4
         Int cpu = 4
         Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + size(reference_chunk, "GiB") + 100)
-        Int preemptible = 1
+        Int preemptible = 20
         Int max_retries = 3
         String docker
         File? monitoring_script
@@ -156,7 +156,7 @@ task GlimpsePhase {
             echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
         done
 
-        /bin/GLIMPSE2_phase \
+        cmd = "/bin/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
         --reference ~{reference_chunk} \
         --output phase_output.bcf \
@@ -165,7 +165,14 @@ task GlimpsePhase {
         ~{"--burnin " + n_burnin} ~{"--main " + n_main} \
         ~{"--ne " + effective_population_size} \
         ~{bam_file_list_input} \
-        ~{"--fasta " + fasta}
+        ~{"--fasta " + fasta} \
+        --checkpoint-file-out checkpoint.bin"
+
+        if [-f "checkpoint.bin"]; then
+            cmd="$cmd --checkpoint-file-in checkpoint.bin" 
+        fi
+
+        eval $cmd
     >>>
 
     runtime {
@@ -175,6 +182,7 @@ task GlimpsePhase {
         cpu: cpu
         preemptible: preemptible
         maxRetries: max_retries
+        checkpointFile: "checkpoint.bin"
     }
 
     output {
@@ -239,7 +247,7 @@ task GetNumberOfSitesInChunk {
     input {
         File reference_chunk
 
-        String docker = "us.gcr.io/broad-dsde-methods/ckachulis/glimpse:extract_num_sites_from_reference_chunk"
+        String docker = "us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:checkpointing_and_extract_num_sites "
         Int mem_gb = 4
         Int cpu = 4
         Int disk_size_gb = ceil(size(reference_chunk, "GiB") + 100)

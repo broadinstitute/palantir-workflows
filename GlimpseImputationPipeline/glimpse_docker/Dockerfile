@@ -1,4 +1,4 @@
-FROM us.gcr.io/broad-dsde-methods/ckachulis/glimpse:new_info_score
+FROM us.gcr.io/broad-dsde-methods/ckachulis/glimpse:checkpointing_and_extract_num_sites
 
 WORKDIR /docker_build/
 
