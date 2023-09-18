@@ -257,7 +257,7 @@ task GetNumberOfSitesInChunk {
 
     command <<<
         set -xeuo pipefail
-        /GLIMPSE/GLIMPSE2_extract_num_sites_from_reference_chunk ~{reference_chunk} > n_sites.txt
+        /bin/GLIMPSE2_extract_num_sites_from_reference_chunk ~{reference_chunk} > n_sites.txt
         cat n_sites.txt
         grep "Lrare" n_sites.txt | sed 's/Lrare=//' > n_rare.txt
         grep "Lcommon" n_sites.txt | sed 's/Lcommon=//' > n_common.txt
