@@ -72,13 +72,12 @@ task MarkDuplicates {
         | samblaster 2> ~{sampleId}.log.samblaster \
         | sambamba view -t 2 -l 0 -S -f bam /dev/stdin \
         | sambamba sort --nthreads ~{numThreads} --memory-limit 32GB --out ~{sampleId}.md.bam /dev/stdin
-        ls -lha
     >>>
 
     output {
         File mdBam = "~{sampleId}.md.bam"
-        #File mdBai = "~{sampleId}.md.bam.bai"
-        File samblasterLog = "~{sampleId}.samblaster.log"
+        File mdBai = "~{sampleId}.md.bam.bai"
+        File samblasterLog = "~{sampleId}.log.samblaster"
     }
 
     runtime {

@@ -29,8 +29,10 @@ workflow EMSeq {
     }
 
     output {
-        File bam = Mapping.bam
+        File bam = MarkDuplicates.mdBam
+        File bai = MarkDuplicates.mdBai
         File fastpReport = Mapping.fastpReport
         File nonconvertedReadCounts = Mapping.nonconvertedReadCounts
+        File samblasterLog = MarkDuplicates.samblasterLog
     }
 }
