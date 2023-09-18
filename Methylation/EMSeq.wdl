@@ -22,6 +22,12 @@ workflow EMSeq {
             bwamethIdx = bwamethIdx
     }
 
+    call EMSeqTasks.MarkDuplicates {
+        input:
+            sampleId = sampleId,
+            bam = Mapping.bam
+    }
+
     output {
         File bam = Mapping.bam
         File fastpReport = Mapping.fastpReport

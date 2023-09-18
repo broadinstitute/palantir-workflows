@@ -37,16 +37,9 @@ task Mapping {
         fi
 
         fastp --in1 ~{fq1} --out1 ~{sampleId}.1.filtered.fastq.gz --in2 ~{fq2} --out2 ~{sampleId}.2.filtered.fastq.gz -l 2 -Q ${trim_polyg} --overrepresentation_analysis -h ~{sampleId}_fastp.html
-        ls -lha
-
         bwameth.py --reference ~{refBasename} --threads ~{numThreads} --read-group "@RG\\tID:~{sampleId}\\tSM:~{sampleId}" ~{sampleId}.1.filtered.fastq.gz ~{sampleId}.2.filtered.fastq.gz > ~{sampleId}.sam
-        ls -lha
-
         /usr/local/src/mark-nonconverted-reads-1.1/mark-nonconverted-reads.py --bam ~{sampleId}.sam --out ~{sampleId}.nc_marked.sam 2> ~{sampleId}.nonconverted.tsv
-        ls -lha
-
         sambamba view --with-header --sam-input --nthreads 2 --format bam --compression-level 0 --output-filename "~{sampleId}.bam" ~{sampleId}.nc_marked.sam
-        ls -lha
     >>>
 
     output {
