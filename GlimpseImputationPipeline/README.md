@@ -93,34 +93,6 @@ This workflow merges multiple batches of imputed multi-sample VCFs into one and 
 - **File imputed_vcf**: Merged VCF with recalculated AF and INFO annotations.
 - **File imputed_vcf_index**: Index to `imputed_vcf`.
 
-## CollectBGEImputationMetrics
-
-This workflow calculates the correlation between sites in an imputed VCF and matched samples in a WGS VCF, stratified by reference allele frequency bins.
-
-### Input
-This workflow can calculate correlations for one to ten different configurations. Each of these configuration has the following inputs:
-- **Array[String] sample_ids**: Sample IDs for samples in the imputed VCF.
-- **File eval_vcf**: The imputed VCF.
-- **Array[String] truth_sample_ids**: Sample IDs for samples in the matched WGS VCF. The order must be the same as `sample_ids` to be correctly matched.
-- **File truth_vcf**: The WGS VCF.
-- **String configuration_label**: A label for this configuration.
-- **File annotation_vcf**: A VCF file containing the population allele frequencies for each site.
-- **Map[String, String] ancestry_to_af_annotation_map**: Map from a string to denote the ancestry in the `ancestry` input to the annotation in the `annotation_vcf`.
-- **String? intervals**: Restrict analysis to certain regions (optional).
-
-In addition to these inputs, the following inputs need to be set for all configurations:
-- **Array[String] ancestries**: A string to denote the ancestry in each sample, which will be matched to the ancestries in the `annotation_vcf` in each configuration using the `ancestry_to_af_annotation_map`.
-- **Boolean collect_af_0_1_single_number = false**: If set to true, also report correlations for all sites with AF > 0.1 within one bin.
-- **Int? n_calibration_bins**: Number of AF bins.
-
-### Output
-- **File correlation_plot**: Plot generated with an R script consistent with previous analyses. **Warning: The smoothing line may be misleading.**
-- **File correlation_data**: TSV file with the raw correlation for each sample, configuraiton and AF bin.
-
-Additionally, the following outputs are generated for each configuration:
-- **File? correlation_file_0_1**: Containing the correlation for the single bin of all sites with AF > 0.1, if `collect_af_0_1_single_number` is set to true.
-- **File gp_calibration**: TSV file containing information about how well the GP values are calibrated.
-
 ## Appendix
 ### Glimpse2MergeBatches AF and INFO score recalculation
 **By: Christopher Kachulis**
