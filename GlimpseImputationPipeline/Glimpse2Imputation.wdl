@@ -22,7 +22,7 @@ workflow Glimpse2Imputation {
         Int? n_main
         Int? effective_population_size
         
-        Int preemptible = 1
+        Int preemptible = 10
         String docker = "us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:checkpointing_and_extract_num_sites"
         #Int cpu_phase = 4
         #Int mem_gb_phase = 64
