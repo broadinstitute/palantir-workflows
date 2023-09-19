@@ -94,8 +94,8 @@ task SplitIntoBatches {
     input {
         Int batch_size
 
-        Array[File] crams
-        Array[File] cram_indices
+        Array[String] crams
+        Array[String] cram_indices
         Array[String] sample_ids
     }
 
@@ -130,8 +130,8 @@ EOF
     }
 
     output {
-        Array[Array[File]] crams_batches = read_json('crams.json')
-        Array[Array[File]] cram_indices_batches = read_json('cram_indices.json')
+        Array[Array[String]] crams_batches = read_json('crams.json')
+        Array[Array[String]] cram_indices_batches = read_json('cram_indices.json')
         Array[Array[String]] sample_ids_batches = read_json('sample_ids.json')
     }
 }
