@@ -26,3 +26,5 @@ make && \
 make install
 
 RUN curl -sSL https://sdk.cloud.google.com | bash
+
+RUN pip install pandas

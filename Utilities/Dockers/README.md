@@ -47,9 +47,10 @@ includes some minimal Python tools (pandas) for data processing.
 
 * Directory: Samtools-Suite
 * Description: A docker image containing an installation of htslib, samtools, and bcftools.
-* Location: `us.gcr.io/broad-dsde-methods/samtools-suite:v1`
+* Location: `us.gcr.io/broad-dsde-methods/samtools-suite:v1.1`
 * Version Notes:
   * 1.0: All versions are 1.18.
+  * 1.1: Added pandas
 
 ## pysam
 
