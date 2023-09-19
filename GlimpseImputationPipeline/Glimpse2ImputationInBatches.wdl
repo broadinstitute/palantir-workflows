@@ -119,6 +119,7 @@ with open('cram_indices.json', 'w') as json_file:
 with open('sample_ids.json', 'w') as json_file:
     json.dump(sample_ids_batches, json_file)
 EOF
+        python3 script.py
     >>>
 
     runtime {
