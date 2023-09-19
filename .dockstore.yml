@@ -75,6 +75,9 @@ workflows:
   - name: CollectBGEImputationMetrics
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/CollectBGEImputationMetrics.wdl
+  - name: Glimpse2ImputationInBatches
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2ImputationInBatches.wdl
   - name: RNAMetrics
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/RNAMetrics.wdl
