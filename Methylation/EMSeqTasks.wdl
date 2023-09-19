@@ -102,13 +102,16 @@ task MethylDackelMbias {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/em-seq:latest"
     }
 
+    String bamBasename = basename(bam)
     String refBasename = basename(ref)
 
     command <<<
-        mv ~{ref} ~{refIdx} .
+        mv ~{bam} ~{bai} ~{ref} ~{refIdx} .
+        touch ~{bamBasename}.bai
+        touch ~{refBasename}.fai
 
         echo -e "chr\tcontext\tstrand\tRead\tPosition\tnMethylated\tnUnmethylated\tnMethylated(+dups)\tnUnmethylated(+dups)" > ~{sampleId}_combined_mbias.tsv
-        chrs=(`samtools view -H ~{bam} | grep @SQ | cut -f 2 | sed 's/SN://'| grep -v _random | grep -v chrUn | sed 's/|/\\|/'`)
+        chrs=(`samtools view -H ~{bamBasename} | grep @SQ | cut -f 2 | sed 's/SN://'| grep -v _random | grep -v chrUn | sed 's/|/\\|/'`)
 
         for chr in ${chrs[*]}; do
             for context in CHH CHG CpG; do
@@ -123,11 +126,11 @@ task MethylDackelMbias {
                 # Not sure why we need both --keepDupes and -F, probably a bug in mbias
                 join -t $'\t' -j1 -o 1.2,1.3,1.4,1.5,1.6,2.5,2.6 -a 1 -e 0 \
                 <( \
-                    MethylDackel mbias --noSVG $arg -@ ~{numThreads} -r $chr ~{refBasename} ~{bam} | \
+                    MethylDackel mbias --noSVG $arg -@ ~{numThreads} -r $chr ~{refBasename} ~{bamBasename} | \
                     tail -n +2 | awk '{print $1"-"$2"-"$3"\t"$0}' | sort -k 1b,1
                 ) \
                 <( \
-                    MethylDackel mbias --noSVG --keepDupes -F 2816 $arg -@ ~{numThreads} -r $chr ~{refBasename} ~{bam} | \
+                    MethylDackel mbias --noSVG --keepDupes -F 2816 $arg -@ ~{numThreads} -r $chr ~{refBasename} ~{bamBasename} | \
                     tail -n +2 | awk '{print $1"-"$2"-"$3"\t"$0}' | sort -k 1b,1
                 ) \
                 | sed "s/^/${chr}\t${context}\t/" \
@@ -136,15 +139,17 @@ task MethylDackelMbias {
         done
 
         # Makes the svg files for trimming checks
-        MethylDackel mbias -@ !{task.cpus} --noCpG --CHH --CHG -r ${chrs[0]} !{genome} !{md_file} !{library}_chn
+        MethylDackel mbias -@ ~{numThreads} --noCpG --CHH --CHG -r ${chrs[0]} ~{refBasename} ~{bamBasename} ~{sampleId}_chn
         for f in *chn*.svg; do sed -i "s/Strand<\\/text>/Strand $f ${chrs[0]} CHN <\\/text>/" $f; done;
 
-        MethylDackel mbias -@ !{task.cpus} -r ${chrs[0]} !{genome} !{md_file} !{library}_cpg
+        MethylDackel mbias -@ ~{numThreads} -r ${chrs[0]} ~{refBasename} ~{bamBasename} ~{sampleId}_cpg
         for f in *cpg*.svg; do sed -i "s/Strand<\\/text>/Strand $f ${chrs[0]} CpG<\\/text>/" $f; done;
+
+        ls -lha
     >>>
 
     output {
-
+        File combinedMbias = "~{sampleId}_combined_mbias.tsv"
     }
 
     runtime {

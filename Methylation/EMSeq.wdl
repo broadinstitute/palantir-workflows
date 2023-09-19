@@ -28,6 +28,15 @@ workflow EMSeq {
             bam = Mapping.bam
     }
 
+    call EMSeqTasks.MethylDackelMbias {
+        input:
+            sampleId = sampleId,
+            bam = MarkDuplicates.mdBam,
+            bai = MarkDuplicates.mdBai,
+            ref = ref,
+            refIdx = refIdx
+    }
+
     output {
         File bam = MarkDuplicates.mdBam
         File bai = MarkDuplicates.mdBai
