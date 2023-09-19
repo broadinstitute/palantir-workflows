@@ -43,5 +43,10 @@ workflow EMSeq {
         File fastpReport = Mapping.fastpReport
         File nonconvertedReadCounts = Mapping.nonconvertedReadCounts
         File samblasterLog = MarkDuplicates.samblasterLog
+        File combinedMbias = MethylDackelMbias.combinedMbias
+        File chnSvgOB = MethylDackelMbias.chnSvgOB
+        File chnSvgOT = MethylDackelMbias.chnSvgOT
+        File cpgSvgOB = MethylDackelMbias.cpgSvgOB
+        File cpgSvgOT = MethylDackelMbias.cpgSvgOT
     }
 }

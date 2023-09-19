@@ -144,12 +144,14 @@ task MethylDackelMbias {
 
         MethylDackel mbias -@ ~{numThreads} -r ${chrs[0]} ~{refBasename} ~{bamBasename} ~{sampleId}_cpg
         for f in *cpg*.svg; do sed -i "s/Strand<\\/text>/Strand $f ${chrs[0]} CpG<\\/text>/" $f; done;
-
-        ls -lha
     >>>
 
     output {
         File combinedMbias = "~{sampleId}_combined_mbias.tsv"
+        File chnSvgOB = "~{sampleId}_chn_OB.svg"
+        File chnSvgOT = "~{sampleId}_chn_OT.svg"
+        File cpgSvgOB = "~{sampleId}_cpg_OB.svg"
+        File cpgSvgOT = "~{sampleId}_cpg_OT.svg"
     }
 
     runtime {
