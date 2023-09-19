@@ -152,44 +152,29 @@ task MergeAndRecomputeAndAnnotate {
         bcftools merge -O z -o ~{output_basename}.merged.vcf.gz ~{sep=" " imputed_vcfs}
 
         cat <<EOF > script.py
-import gzip
-from contextlib import ExitStack
+import pandas as pd
+import functools
 
 input_filenames = ['~{sep="', '" annotations}']
 num_samples = [~{sep=", " num_samples}]
-
-def check_identical(fields):
-    return all(field == fields[0] for field in fields)
-
 if len(num_samples) != len(input_filenames):
     raise RuntimeError('The number of input annotations does not match the number of input number of samples.')
 num_batches = len(input_filenames)
 
-with open('aggregated_annotations.tsv', 'w') as output_file:
-    with ExitStack() as exit_stack:
-        input_files = [exit_stack.enter_context(gzip.open(filename, 'rt')) for filename in input_filenames]
-
-        lines_iterator = iter(zip(*input_files))
-        next(lines_iterator)
-        for lines in lines_iterator:
-            lines_data = [line.strip().split('\t') for line in lines]
-            contig = [line_data[0] for line_data in lines_data]
-            pos = [line_data[1] for line_data in lines_data]
-            ref = [line_data[2] for line_data in lines_data]
-            alt = [line_data[3] for line_data in lines_data]
-            af = [float(line_data[4]) for line_data in lines_data]
-            info = [float(line_data[5]) for line_data in lines_data]
-
-            if not check_identical(contig) or not check_identical(pos) or not check_identical(ref) or not check_identical(alt):
-                raise RuntimeError('The site information (CHROM, POS, REF, ALT) is not identical in each line between different batch annotations.')
-            
-            aggregated_af = sum([af[i] * num_samples[i] for i in range(num_batches)]) / sum(num_samples)
-            aggregated_info = 1 if aggregated_af == 0 or aggregated_af == 1 else \
+def calculate_af(row):
+    return sum([row[f'AF_{i}'] * num_samples[i] for i in range(num_batches)]) / sum(num_samples)
+def calculate_info(row):
+    aggregated_af = row['AF']
+    return 1 if aggregated_af == 0 or aggregated_af == 1 else \
                      1 - \
-                    (sum([(1 - info[i]) * 2 * num_samples[i] * af[i] * (1 - af[i]) for i in range(num_batches)])) / \
+                    (sum([(1 - row[f'INFO_{i}']) * 2 * num_samples[i] * row[f'AF_{i}'] * (1 - row[f'AF_{i}']) for i in range(num_batches)])) / \
                     (2 * sum(num_samples) * aggregated_af * (1 - aggregated_af))
-            
-            output_file.write(f'{contig[0]}\t{pos[0]}\t{ref[0]}\t{alt[0]}\t{aggregated_af}\t{aggregated_info}\n')
+
+annotation_dfs = [pd.read_csv(input_filename, sep='\t').rename(columns={'AF': f'AF_{i}', 'INFO': f'INFO_{i}'}) for i, input_filename in enumerate(input_filenames)]
+annotations_merged = functools.reduce(lambda left, right: pd.merge(left, right, on=['CHROM', 'POS', 'REF', 'ALT'], how='inner', validate='one_to_one'), annotation_dfs)
+annotations_merged['AF'] = annotations_merged.apply(lambda row: calculate_af(row), axis=1)
+annotations_merged['INFO'] = annotations_merged.apply(lambda row: calculate_info(row), axis=1)
+annotations_merged.to_csv('aggregated_annotations.tsv', sep='\t', columns=['CHROM', 'POS', 'REF', 'ALT', 'AF', 'INFO'], header=False, index=False)
 EOF
         python3 script.py
 

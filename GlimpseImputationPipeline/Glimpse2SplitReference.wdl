@@ -25,7 +25,7 @@ workflow Glimpse2SplitReference {
         String genetic_map_path_suffix
 
         Int? seed
-        Array[Float] min_window_cms
+        Float min_window_cm
         Boolean uniform_number_variants = false
         
         Int preemptible = 1
@@ -49,7 +49,7 @@ workflow Glimpse2SplitReference {
                 i_contig = i_contig,
                 genetic_map = genetic_map_filename,
                 seed = seed,
-                min_window_cm = min_window_cms[i_contig],
+                min_window_cm = min_window_cm,
                 uniform_number_variants = uniform_number_variants,
                 preemptible = preemptible,
                 docker = docker,

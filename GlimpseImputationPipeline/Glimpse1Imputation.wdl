@@ -17,6 +17,7 @@ workflow GlimpseImputation {
         Int mem_gb = 4
         Int cpu = 4
         Int preemptible = 1
+        File? monitoring_script
     }
 
     scatter (chunks_and_contig in zip(chunks, zip(reference_panel_contig_names, genetic_map_contig_names))) {
@@ -35,7 +36,8 @@ workflow GlimpseImputation {
                 genetic_map = genetic_map_filename,
                 mem_gb = mem_gb,
                 cpu = cpu,
-                preemptible = preemptible
+                preemptible = preemptible,
+                monitoring_script = monitoring_script
         }
     }
 
@@ -44,14 +46,15 @@ workflow GlimpseImputation {
             input_vcfs = Glimpse.imputed_vcf,
             input_vcf_indices = Glimpse.imputed_vcf_index,
             output_vcf_basename = basename(input_vcf, ".vcf.gz") + ".imputed",
-            preemptible = preemptible
+            preemptible = preemptible,
+            monitoring_script = monitoring_script
     }
 
     output {
         File imputed_vcf = GatherVcfs.output_vcf
         File imputed_vcf_index = GatherVcfs.output_vcf_index
-        Array[File] glimpse_monitoring = Glimpse.monitoring
-        File gather_monitoring = GatherVcfs.monitoring
+        Array[File?] glimpse_monitoring = Glimpse.monitoring
+        File? gather_monitoring = GatherVcfs.monitoring
     }
 }
 
@@ -72,13 +75,13 @@ task Glimpse {
         Int disk_size_gb = ceil(2 * size(input_vcf, "GiB") + size(reference_panel, "GiB") + size(genetic_map, "GiB") + 100)
         Int preemptible = 1
 
-        File monitoring_script = "gs://broad-dsde-methods-mgatzen/cromwell_monitoring_script.sh"
+        File? monitoring_script
     }
 
     command <<<
         set -xeuo pipefail
 
-        bash ~{monitoring_script} > monitoring.log &
+        ~{"bash " + monitoring_script + " > monitoring.log &"}
         
         while IFS="" read -r LINE || [ -n "$LINE" ];
         do
@@ -116,7 +119,7 @@ task Glimpse {
     output {
         File imputed_vcf = "ligated.sampled.dict_updated." + contig_name + ".vcf.gz"
         File imputed_vcf_index = "ligated.sampled.dict_updated." + contig_name + ".vcf.gz.tbi"
-        File monitoring = "monitoring.log"
+        File? monitoring = "monitoring.log"
     }
 }
 
@@ -132,7 +135,7 @@ task GatherVcfs {
         Int disk_size_gb = ceil(3*size(input_vcfs, "GiB"))
         Int preemptible = 1
 
-        File monitoring_script = "gs://broad-dsde-methods-mgatzen/cromwell_monitoring_script.sh"
+        File? monitoring_script
     }
     Int command_mem = memory_mb - 1000
     Int max_heap = memory_mb - 500
@@ -140,7 +143,7 @@ task GatherVcfs {
     command <<<
         set -xeuo pipefail
 
-        bash ~{monitoring_script} > monitoring.log &
+        ~{"bash " + monitoring_script + " > monitoring.log &"}
 
         gatk --java-options "-Xms~{command_mem}m -Xmx~{max_heap}m" \
         GatherVcfs \
@@ -161,6 +164,6 @@ task GatherVcfs {
     output {
         File output_vcf = "~{output_vcf_basename}.vcf.gz"
         File output_vcf_index = "~{output_vcf_basename}.vcf.gz.tbi"
-        File monitoring = "monitoring.log"
+        File? monitoring = "monitoring.log"
     }
 }

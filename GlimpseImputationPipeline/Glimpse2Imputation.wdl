@@ -25,7 +25,7 @@ workflow Glimpse2Imputation {
         Int preemptible = 1
         String docker = "us.gcr.io/broad-dsde-methods/glimpse:palantir-workflows_20c9de0"
         Int cpu_phase = 4
-        Int mem_gb_phase = 64
+        Int mem_gb_phase = 8
         Int cpu_ligate = 4
         Int mem_gb_ligate = 4
         File? monitoring_script
@@ -167,7 +167,6 @@ task GlimpseLigate {
         Int preemptible = 1
         Int max_retries = 3
         String docker
-        File? picard_jar_override
         File? monitoring_script
     }
 
@@ -182,7 +181,6 @@ task GlimpseLigate {
         /bin/GLIMPSE2_ligate --input ~{write_lines(imputed_chunks)} --output ligated.vcf.gz --threads ${NPROC}
 
         # Set correct reference dictionary
-        ~{"mv " + picard_jar_override + " /picard.jar"}
         bcftools view -h --no-version ligated.vcf.gz > old_header.vcf        
         java -jar /picard.jar UpdateVcfSequenceDictionary -I old_header.vcf --SD ~{ref_dict} -O new_header.vcf        
         bcftools reheader -h new_header.vcf -o ~{output_basename}.imputed.vcf.gz ligated.vcf.gz
