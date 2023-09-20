@@ -67,53 +67,58 @@ task MakeIGVXML {
         resources = ET.SubElement(session, 'Resources')
 
         # Add all resources from BAMs
+        # Each bam has its own panel
+        if len(bams_list) > 0 and bams_list[0] != '':
+            for bam in bams_list:
+                bam_name = bam.split('/')[-1]
 
-        for bam in bams_list:
-            bam_name = bam.split('/')[-1]
+                bam_panel = ET.SubElement(session, 'Panel')
+                bam_panel.set('name', f'{bam_name}-BAMPanel')
 
-            bam_panel = ET.SubElement(session, 'Panel')
-            bam_panel.set('name', f'{bam_name}-BAMPanel')
+                res = ET.SubElement(resources, 'Resource')
+                res.set('path', bam)
+                res.set('type', 'bam')
 
-            res = ET.SubElement(resources, 'Resource')
-            res.set('path', bam)
-            res.set('type', 'bam')
+                cov_track = ET.SubElement(bam_panel, 'Track')
+                cov_track.set('id', f'{bam}_coverage')
+                cov_track.set('name', f'{bam_name} Coverage')
 
-            cov_track = ET.SubElement(bam_panel, 'Track')
-            cov_track.set('id', f'{bam}_coverage')
-            cov_track.set('name', f'{bam_name} Coverage')
-
-            track = ET.SubElement(bam_panel, 'Track')
-            track.set('id', bam)
-            track.set('name', bam_name)
+                track = ET.SubElement(bam_panel, 'Track')
+                track.set('id', bam)
+                track.set('name', bam_name)
 
         # Add all resources from VCFs and VCF track
-        vcf_panel = ET.SubElement(session, 'Panel')
-        vcf_panel.set('name', 'VCFPanel')
-        for vcf in vcfs_list:
-            res = ET.SubElement(resources, 'Resource')
-            res.set('path', vcf)
-            res.set('type', 'vcf')
+        # All VCFs in one panel
+        if len(vcfs_list) > 0 and vcfs_list[0] != '':
+            vcf_panel = ET.SubElement(session, 'Panel')
+            vcf_panel.set('name', 'VCFPanel')
 
-            vcf_name = vcf.split('/')[-1]
-            track = ET.SubElement(vcf_panel, 'Track')
-            track.set('id', vcf)
-            track.set('name', vcf_name)
+            for vcf in vcfs_list:
+                res = ET.SubElement(resources, 'Resource')
+                res.set('path', vcf)
+                res.set('type', 'vcf')
+
+                vcf_name = vcf.split('/')[-1]
+                track = ET.SubElement(vcf_panel, 'Track')
+                track.set('id', vcf)
+                track.set('name', vcf_name)
 
         # Create tracks for intervals and reference
         feature_panel = ET.SubElement(session, 'Panel')
         feature_panel.set('name', 'FeaturePanel')
 
         # Add each interval_file to resources and lower track
-        for interval_file in interval_files_list:
-            res = ET.SubElement(resources, 'Resource')
-            res.set('path', interval_file)
-            interval_type = interval_file.split('.')[-1]    # Check if .bed or .interval_list
-            res.set('type', interval_type)
+        if len(interval_files_list) > 0 and interval_files_list[0] != '':
+            for interval_file in interval_files_list:
+                res = ET.SubElement(resources, 'Resource')
+                res.set('path', interval_file)
+                interval_type = interval_file.split('.')[-1]    # Check if .bed or .interval_list
+                res.set('type', interval_type)
 
-            interval_name = interval_file.split('/')[-1]
-            track = ET.SubElement(feature_panel, 'Track')
-            track.set('id', interval_file)
-            track.set('name', interval_name)
+                interval_name = interval_file.split('/')[-1]
+                track = ET.SubElement(feature_panel, 'Track')
+                track.set('id', interval_file)
+                track.set('name', interval_name)
 
         # Make reference sequence visible
         ref_seq = ET.SubElement(feature_panel, 'Track')
