@@ -35,7 +35,7 @@ workflow Glimpse2ImputationInBatches {
 
         String docker_extract_annotations = "us.gcr.io/broad-gatk/gatk:4.3.0.0"
         String docker_count_samples = "us.gcr.io/broad-dsde-methods/bcftools:v1.2"
-        String docker_merge = "us.gcr.io/broad-dsde-methods/samtools-suite:v1"
+        String docker_merge = "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
     }
 
     call SplitIntoBatches {
