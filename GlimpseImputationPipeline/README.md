@@ -8,7 +8,7 @@ This directory contains the following WDLs:
 - [Glimpse2SplitReference](#Glimpse2SplitReference): Split reference panel into chunks and generate binary files to be used in imputation
 - [Glimpse2Imputation](#Glimpse2Imputation): Run GLIMPSE2 imputation
 - [Glimpse2MergeBatches](#Glimpse2MergeBatches): Combine multiple batches of imputed multi-sample VCFs and recompute AF and INFO annotations
-- [CollectBGEImputationMetrics](#CollectBGEImputationMetrics): Calculate correlation between imputed VCFs and matched WGS
+- [Glimpse2ImputationInBatches](#Glimpse2ImputationInBatches): Split inputs into batches, run GLIMPSE2 imputation, and merge the output of the batches back together
 - *ReduceAndMergeForGlimpse*: Remove all annotations except GT and PL from single-sample VCFs and merge them into a multi-sample VCF
 - *Glimpse1Imputation*: Run GLIMPSE1 imputation (not well-tested or optimized)
 
@@ -92,6 +92,10 @@ This workflow merges multiple batches of imputed multi-sample VCFs into one and 
 ### Output
 - **File imputed_vcf**: Merged VCF with recalculated AF and INFO annotations.
 - **File imputed_vcf_index**: Index to `imputed_vcf`.
+
+## Glimpse2ImputationInBatches
+
+This workflow splits the provided CRAMs into batches, performs imputation using [Glimpse2Imputation](#Glimpse2Imputation), and merges the batches back together using [Glimpse2MergeBatches](#Glimpse2MergeBatches). In addition to the inputs to imputation, this workflow takes an **Int batch_size**. This workflow can only operate on CRAM inputs, it does not support VCF inputs to imputation. 
 
 ## Appendix
 ### Glimpse2MergeBatches AF and INFO score recalculation
