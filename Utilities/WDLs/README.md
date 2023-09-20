@@ -3,6 +3,7 @@
 This directory contains a collection of miscellaneous WDLs useful for some small tasks. Check below for documentation on each.
 
 * [CollectBenchmarkSucceeded](#collectbenchmarksucceeded)
+* [CreateIGVSession](#createigvsession)
 * [Dipcall](#dipcall)
 * [IndexCramOrBam](#indexcramorbam)
 * [DownsampleAndCollectCoverage](#downsampleandcollectcoverage)
@@ -22,6 +23,24 @@ the successful outputs and aggregate them into one .csv, similar to the last tas
   in Terra, then this should be `<my_project>` as a string.
 * `workspace_name`: specific name for your workspace, e.g. `<my_workspace>` in the last example.
 * `submission_id`: the submission id for the `FindSamplesAndBenchmark` run, found from the "Job History" tab.
+
+## CreateIGVSession
+
+### Summary
+
+This workflow takes in optional lists of BAMs, VCFs, and interval files (`.interval_list` or `.bed`) and combines them together
+into an IGV session .xml file. A reference must be provided, either by a hardcoded string ("hg38" or "hg19"), or by providing a 
+path to the desired fasta. Input files are interpreted as WDL strings, so no localization occurs. Bucket paths are output in the .xml
+session, so IGV will stream them directly from the cloud. This task is useful to add to the end of workflows that output lots of files
+you might want to visualize together for analysis or debugging.
+
+### Inputs
+
+* `bams`: (optional) list of BAMs/CRAMs to add to session.
+* `vcfs`: (optional) list of VCFs to add to session.
+* `interval_files`: (optional) list of `.interval_list` or `.bed` files to add to session.
+* `reference`: reference to use in IGV; must be either a `.fasta` file or one of the values: "hg38" or "hg19".
+* `output_name`: (default = "igv_session") name for the output .xml file.
 
 ## Dipcall
 
