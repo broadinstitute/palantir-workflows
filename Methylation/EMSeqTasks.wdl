@@ -193,7 +193,9 @@ task MethylDackelExtract {
     >>>
 
     output {
-        File methylKit = "~{sampleId}.methylKit.gz"
+        File methylKitCHG = "~{sampleId}_CHG.methylKit.gz"
+        File methylKitCHH = "~{sampleId}_CHH.methylKit.gz"
+        File methylKitCpG = "~{sampleId}_CpG.methylKit.gz"
         File cpgBedGraph = "~{sampleId}_CpG.bedGraph"
     }
 

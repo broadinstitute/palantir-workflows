@@ -57,7 +57,9 @@ workflow EMSeq {
         File chnSvgOT = MethylDackelMbias.chnSvgOT
         File cpgSvgOB = MethylDackelMbias.cpgSvgOB
         File cpgSvgOT = MethylDackelMbias.cpgSvgOT
-        File methylKit = MethylDackelExtract.methylKit
+        File methylKitCHG = MethylDackelExtract.methylKitCHG
+        File methylKitCHH = MethylDackelExtract.methylKitCHH
+        File methylKitCpG = MethylDackelExtract.methylKitCpG
         File cpgBedGraph = MethylDackelExtract.cpgBedGraph
     }
 }
