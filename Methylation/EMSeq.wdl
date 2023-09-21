@@ -37,6 +37,15 @@ workflow EMSeq {
             refIdx = refIdx
     }
 
+    call EMSeqTasks.MethylDackelExtract {
+        input:
+            sampleId = sampleId,
+            bam = MarkDuplicates.mdBam,
+            bai = MarkDuplicates.mdBai,
+            ref = ref,
+            refIdx = refIdx
+    }
+
     output {
         File bam = MarkDuplicates.mdBam
         File bai = MarkDuplicates.mdBai
@@ -48,5 +57,7 @@ workflow EMSeq {
         File chnSvgOT = MethylDackelMbias.chnSvgOT
         File cpgSvgOB = MethylDackelMbias.cpgSvgOB
         File cpgSvgOT = MethylDackelMbias.cpgSvgOT
+        File methylKit = MethylDackelExtract.methylKit
+        File cpgBedGraph = MethylDackelExtract.cpgBedGraph
     }
 }

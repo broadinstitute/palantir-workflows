@@ -176,17 +176,25 @@ task MethylDackelExtract {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/em-seq:latest"
     }
 
+    String bamBasename = basename(bam)
     String refBasename = basename(ref)
 
     command <<<
-        mv ~{ref} ~{refIdx} .
-        MethylDackel extract --methylKit --nOT 0,0,0,5 --nOB 0,0,5,0 -@ ~{numThreads} --CHH --CHG -o ~{sampleId} ~{refBasename} ~{bam}
+        mv ~{bam} ~{bai} ~{ref} ~{refIdx} .
+        touch ~{bamBasename}.bai
+        touch ~{refBasename}.fai
+
+        MethylDackel extract --methylKit --nOT 0,0,0,5 --nOB 0,0,5,0 -@ ~{numThreads} --CHH --CHG -o ~{sampleId} ~{refBasename} ~{bamBasename}
         pigz -p ~{numThreads} *.methylKit
+
+        MethylDackel extract --nOT 0,0,0,5 --nOB 0,0,5,0 -@ ~{numThreads} --mergeContext -o ~{sampleId} ~{refBasename} ~{bamBasename}
+
         ls -lha
     >>>
 
     output {
         File methylKit = "~{sampleId}.methylKit.gz"
+        File cpgBedGraph = "~{sampleId}_CpG.bedGraph"
     }
 
     runtime {
