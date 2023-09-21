@@ -184,10 +184,10 @@ task MethylDackelExtract {
         touch ~{bamBasename}.bai
         touch ~{refBasename}.fai
 
-        MethylDackel extract --methylKit --OT 0,0,0,0 --OB 0,0,0,0 -@ ~{numThreads} --CHH --CHG -o ~{sampleId} ~{refBasename} ~{bamBasename}
+        MethylDackel extract --methylKit --OT 1,1,1,1 --OB 1,1,1,1 -@ ~{numThreads} --CHH --CHG -o ~{sampleId} ~{refBasename} ~{bamBasename}
         pigz -p ~{numThreads} *.methylKit
 
-        MethylDackel extract --OT 0,0,0,0 --OB 0,0,0,0 -@ ~{numThreads} --mergeContext -o ~{sampleId} ~{refBasename} ~{bamBasename}
+        MethylDackel extract --OT 1,1,1,1 --OB 1,1,1,1 -@ ~{numThreads} --mergeContext -o ~{sampleId} ~{refBasename} ~{bamBasename}
 
         ls -lha
     >>>
