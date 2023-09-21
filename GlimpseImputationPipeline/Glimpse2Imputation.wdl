@@ -25,7 +25,7 @@ workflow Glimpse2Imputation {
         Int preemptible = 1
         String docker = "us.gcr.io/broad-dsde-methods/glimpse:palantir-workflows_20c9de0"
         Int cpu_phase = 4
-        Int mem_gb_phase = 8
+        Int mem_gb_phase = 16
         Int cpu_ligate = 4
         Int mem_gb_ligate = 4
         File? monitoring_script
