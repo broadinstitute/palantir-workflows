@@ -31,6 +31,14 @@ Some tasks that are lower priority at the moment but might get picked up in the 
 
 ## CHANGELOG
 
+### v0.11
+
+- Major refactor to SVisualizer to separate code into different files for utilities, and to encapsulate code for different tabs.
+- Major restructuring of `BenchmarkSVs.wdl` to deprecate Wittyer tasks (left for experimentation), and refactor handling adding interval overlap stats.
+- Change collecting Truvari stats in `BenchmarkSVs.wdl` to allow for stratifying by overlap percentage with intervals and SVLEN. 
+- Add new toggles for SVLEN bin to Truvari stats tab.
+- Move some binning computations from SVisualizer into the actual `BenchmarkSVs.wdl` workflow.
+
 ### v0.10
 
 - Fixed category orders in QC plots not consistent / matching user input in SVisualizer.

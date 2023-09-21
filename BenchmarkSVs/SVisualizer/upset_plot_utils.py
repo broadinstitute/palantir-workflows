@@ -20,31 +20,31 @@ VALID_PLOT_TYPES = ["bar", "box", "violin"]
 
 
 def create_upset(
-        data_frame,
-        x=None,
-        color=None,
-        title=None,
-        plot_type="bar",
-        sort_by="Counts",
-        asc=False,
-        mode="Counts",
-        max_subsets=20,
-        subset_column=None,
-        subset_order=None,
-        subset_bgcolor="#C9C9C9",
-        subset_fgcolor="#000000",
-        category_orders=None,
-        color_discrete_sequence=None,
-        color_discrete_map=None,
-        log_y=False,
-        show_yaxis=False,
-        barmode="group",
-        textangle=0,
-        boxmode="group",
-        points="outliers",
-        notched=False,
-        violinmode="group",
-        box=False,
+    data_frame,
+    x=None,
+    color=None,
+    title=None,
+    plot_type="bar",
+    sort_by="Counts",
+    asc=False,
+    mode="Counts",
+    max_subsets=20,
+    subset_column=None,
+    subset_order=None,
+    subset_bgcolor="#C9C9C9",
+    subset_fgcolor="#000000",
+    category_orders=None,
+    color_discrete_sequence=None,
+    color_discrete_map=None,
+    log_y=False,
+    show_yaxis=False,
+    barmode="group",
+    textangle=0,
+    boxmode="group",
+    points="outliers",
+    notched=False,
+    violinmode="group",
+    box=False,
 ):
     """
     Creates an UpSet plot, a scalable alternative to Venn diagrams. The interface supports a flexible range of use cases
@@ -182,32 +182,32 @@ class _Upset:
     """
 
     def __init__(
-            self,
-            data_frame,
-            x=None,
-            color=None,
-            title=None,
-            plot_type="bar",
-            sort_by="Counts",
-            asc=False,
-            mode="Counts",
-            max_subsets=20,
-            subset_column=None,
-            subset_order=None,
-            subset_bgcolor="#C9C9C9",
-            subset_fgcolor="#000000",
-            category_orders=None,
-            color_discrete_sequence=None,
-            color_discrete_map=None,
-            log_y=False,
-            show_yaxis=False,
-            barmode="group",
-            textangle=0,
-            boxmode="group",
-            points="outliers",
-            notched=False,
-            violinmode="group",
-            box=False,
+        self,
+        data_frame,
+        x=None,
+        color=None,
+        title=None,
+        plot_type="bar",
+        sort_by="Counts",
+        asc=False,
+        mode="Counts",
+        max_subsets=20,
+        subset_column=None,
+        subset_order=None,
+        subset_bgcolor="#C9C9C9",
+        subset_fgcolor="#000000",
+        category_orders=None,
+        color_discrete_sequence=None,
+        color_discrete_map=None,
+        log_y=False,
+        show_yaxis=False,
+        barmode="group",
+        textangle=0,
+        boxmode="group",
+        points="outliers",
+        notched=False,
+        violinmode="group",
+        box=False,
     ):
 
         # Plot inputs and settings
@@ -306,25 +306,25 @@ class _Upset:
                     values="Counts",
                     fill_value=0,
                 )
-                    .unstack()
-                    .reset_index()
-                    .rename(columns={0: "Counts"})
+                .unstack()
+                .reset_index()
+                .rename(columns={0: "Counts"})
             )
 
             # Perform sorting within each color group
             # WARNING: If sort_by="Counts" it will be ignored here since this won't make sense when using groups
             self.intersect_counts = (
                 filled_df.groupby(groups)
-                    .apply(
+                .apply(
                     lambda df: _sort_intersect_counts(
                         df.drop(columns=groups),
                         sort_by="Intersections",
                         asc=self.asc,
                     ).reset_index()
                 )
-                    .reset_index()
-                    .drop(columns=["index"])
-                    .rename(
+                .reset_index()
+                .drop(columns=["index"])
+                .rename(
                     columns={"level_1": "index", "level_2": "index"}
                 )  # Not sure how to tell the two apart...
             )
@@ -355,13 +355,13 @@ class _Upset:
                     self.intersect_counts["Counts"]
                     / self.intersect_counts[self.color].map(denom_dict),
                     2,
-                    )
+                )
             else:
                 self.intersect_counts["Counts"] = round(
                     self.intersect_counts["Counts"]
                     / self.intersect_counts["Counts"].sum(),
                     2,
-                    )
+                )
 
         # Create 3 main components for figure
         self.make_primary_plot()
@@ -499,7 +499,7 @@ class _Upset:
                     showlegend=False,
                     marker=dict(size=16, color=self.subset_fgcolor, showscale=False),
                     text=["+".join([x for x, y in zip(self.subset_names, s) if y != 0])]
-                         * sum(s),
+                    * sum(s),
                     hovertemplate="<b>%{text}</b><extra></extra>",
                 )
             )
@@ -520,8 +520,8 @@ class _Upset:
         else:
             counts_df = (
                 self.df.sum()
-                    .reset_index()
-                    .rename(columns={"index": "variable", 0: "value"})
+                .reset_index()
+                .rename(columns={"index": "variable", 0: "value"})
             )
 
         # Create counts px.bar chart
@@ -530,7 +530,7 @@ class _Upset:
             if self.color is not None
             else counts_df
         )
-
+        
         if self.mode == "Percent":
             if color is not None:
                 denom = self.df.groupby(color).apply(lambda df: len(df)).reset_index().rename(columns={0: "value"})

@@ -37,7 +37,9 @@ os.mkdir('./wdl_outputs/workflows/')
 # Parse and download output files
 print("Parsing outputs and organizing data...")
 output_json = json.loads(response.content)
-for workflow in output_json['workflows']:
+for i, workflow in enumerate(output_json['workflows']):
+    num_workflows = len(output_json['workflows'])
+    print(f"Copying file {i+1} of {num_workflows}")
     if 'workflowId' in workflow:
         wf_response = fapi.get_workflow_outputs(
             namespace=NAMESPACE,
@@ -55,6 +57,7 @@ for workflow in output_json['workflows']:
             
             os.mkdir(wf_path)
             os.system(f'gsutil cp {gs_path} {wf_path}')
+            print(f'Extracting files from archive [{i+1}/{num_workflows}]')
             with tarfile.open(f'{wf_path}/benchmark_outputs.tar.gz') as tar:
                 tar.extractall(path=wf_path)
             os.remove(f'{wf_path}/benchmark_outputs.tar.gz')
@@ -63,10 +66,7 @@ for workflow in output_json['workflows']:
     else:
         print(f"WARNING: Workflow seems to have failed to launch... Skipping data collection for this run.")
 
-# for k in file_df_dict:
-#     file_df_dict[k].to_csv(f'wdl_outputs/{file_basenames[k]}', sep='\t', index=False)
-
-print('Combining files across workflow runs...')
+print('Consolidating files across workflow runs...')
 # Get list of file names across the different stat categories
 workflows = os.listdir('./wdl_outputs/workflows/')
 dir_names = os.listdir(f"./wdl_outputs/workflows/{workflows[0]}/benchmark_outputs/")
@@ -78,7 +78,8 @@ for d in dir_names:
 # Concatenate all file outputs across all workflow runs
 for file_name in file_names:
     full_df = pd.DataFrame()
-    for wf in workflows:
+    for i, wf in enumerate(workflows):
+        print(f'Loading workflow {i} of {len(workflows)}...')
         for d in dir_names:
             if file_name in os.listdir(f"./wdl_outputs/workflows/{wf}/benchmark_outputs/{d}/"):
                 df = pd.read_csv(f"./wdl_outputs/workflows/{wf}/benchmark_outputs/{d}/{file_name}", sep='\t', low_memory=False)
