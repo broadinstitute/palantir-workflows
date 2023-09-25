@@ -12,20 +12,39 @@ workflow EMSeq {
         File bwamethIdx
     }
 
-    call EMSeqTasks.Mapping {
+    call EMSeqTasks.Fastp {
         input:
             sampleId = sampleId,
             fq1 = fq1,
-            fq2 = fq2,
+            fq2 = fq2
+    }
+
+    call EMSeqTasks.Bwameth {
+        input:
+            sampleId = sampleId,
+            fq1 = Fastp.filteredFq1,
+            fq2 = Fastp.filteredFq2,
             ref = ref,
             refIdx = refIdx,
             bwamethIdx = bwamethIdx
     }
 
+    call EMSeqTasks.MarkNonconvertedReads {
+        input:
+            sampleId = sampleId,
+            sam = Bwameth.sam
+    }
+
+    call EMSeqTasks.Sambamba {
+        input:
+            sampleId = sampleId,
+            sam = MarkNonconvertedReads.ncMarkedSam
+    }
+
     call EMSeqTasks.MarkDuplicates {
         input:
             sampleId = sampleId,
-            bam = Mapping.bam
+            bam = Sambamba.bam
     }
 
     call EMSeqTasks.MethylDackelMbias {
@@ -47,19 +66,24 @@ workflow EMSeq {
     }
 
     output {
+        File filteredFq1 = Fastp.filteredFq1
+        File filteredFq2 = Fastp.filteredFq2
+        File fastpReport = Fastp.fastpReport
+        File sam = Bwameth.sam
+        File ncMarkedSam = MarkNonconvertedReads.ncMarkedSam
+        File nonconvertedReadCounts = MarkNonconvertedReads.nonconvertedReadCounts
+        File sambambaBam = Sambamba.bam
         File bam = MarkDuplicates.mdBam
         File bai = MarkDuplicates.mdBai
-        File fastpReport = Mapping.fastpReport
-        File nonconvertedReadCounts = Mapping.nonconvertedReadCounts
         File samblasterLog = MarkDuplicates.samblasterLog
         File combinedMbias = MethylDackelMbias.combinedMbias
         File chnSvgOB = MethylDackelMbias.chnSvgOB
         File chnSvgOT = MethylDackelMbias.chnSvgOT
         File cpgSvgOB = MethylDackelMbias.cpgSvgOB
         File cpgSvgOT = MethylDackelMbias.cpgSvgOT
-        File methylKitCHG = MethylDackelExtract.methylKitCHG
-        File methylKitCHH = MethylDackelExtract.methylKitCHH
-        File methylKitCpG = MethylDackelExtract.methylKitCpG
+        #File methylKitCHG = MethylDackelExtract.methylKitCHG
+        #File methylKitCHH = MethylDackelExtract.methylKitCHH
+        #File methylKitCpG = MethylDackelExtract.methylKitCpG
         File cpgBedGraph = MethylDackelExtract.cpgBedGraph
     }
 }

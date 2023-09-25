@@ -1,6 +1,47 @@
 version 1.0
 
-task Mapping {
+task Fastp {
+    input {
+        String sampleId
+        File fq1
+        File fq2
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 512
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/em-seq:latest"
+    }
+
+    command <<<
+        inst_name=$(zcat -f ~{fq1} | head -n 1 | cut -f 1 -d ':' | sed 's/^@//')
+        fastq_barcode=$(zcat -f ~{fq2} | head -n 1 | sed -r 's/.*://')
+
+        if [[ "${inst_name:0:2}" == 'A0' ]] || [[ "${inst_name:0:2}" == 'NS' ]] || \
+           [[ "${inst_name:0:2}" == 'NB' ]] || [[ "${inst_name:0:2}" == 'VH' ]] ; then
+            trim_polyg='--trim_poly_g'
+            echo '2-color instrument: poly-g trim mode on'
+        else
+            trim_polyg=''
+        fi
+
+        fastp --in1 ~{fq1} --out1 ~{sampleId}.1.filtered.fastq.gz --in2 ~{fq2} --out2 ~{sampleId}.2.filtered.fastq.gz -l 2 -Q ${trim_polyg} --overrepresentation_analysis -h ~{sampleId}_fastp.html
+    >>>
+
+    output {
+        File filteredFq1 = "~{sampleId}.1.filtered.fastq.gz"
+        File filteredFq2 = "~{sampleId}.2.filtered.fastq.gz"
+        File fastpReport = "~{sampleId}_fastp.html"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task Bwameth {
     input {
         String sampleId
         File fq1
@@ -8,10 +49,10 @@ task Mapping {
         File ref
         File refIdx
         File bwamethIdx
-        Int cpu = 16
-        Int numThreads = 32
-        Int memoryGB = 64
-        Int diskSizeGB = 512
+        Int cpu = 32
+        Int numThreads = 64
+        Int memoryGB = 128
+        Int diskSizeGB = 1024
         String docker = "us.gcr.io/broad-dsde-methods/kockan/em-seq:latest"
     }
 
@@ -25,27 +66,66 @@ task Mapping {
         tar -xzvf ~{bwamethIdxBasename}
         mv ~{bwamethIdxBaseDir}/* .
 
-        inst_name=$(zcat -f ~{fq1} | head -n 1 | cut -f 1 -d ':' | sed 's/^@//')
-        fastq_barcode=$(zcat -f ~{fq2} | head -n 1 | sed -r 's/.*://')
+        bwameth.py --reference ~{refBasename} --threads ~{numThreads} --read-group "@RG\\tID:~{sampleId}\\tSM:~{sampleId}" ~{fq1} ~{fq2} > ~{sampleId}.sam
+    >>>
 
-        if [[ "${inst_name:0:2}" == 'A0' ]] || [[ "${inst_name:0:2}" == 'NS' ]] || \
-           [[ "${inst_name:0:2}" == 'NB' ]] || [[ "${inst_name:0:2}" == 'VH' ]] ; then
-            trim_polyg='--trim_poly_g'
-            echo '2-color instrument: poly-g trim mode on'
-        else
-            trim_polyg=''
-        fi
+    output {
+        File sam = "~{sampleId}.sam"
+    }
 
-        fastp --in1 ~{fq1} --out1 ~{sampleId}.1.filtered.fastq.gz --in2 ~{fq2} --out2 ~{sampleId}.2.filtered.fastq.gz -l 2 -Q ${trim_polyg} --overrepresentation_analysis -h ~{sampleId}_fastp.html
-        bwameth.py --reference ~{refBasename} --threads ~{numThreads} --read-group "@RG\\tID:~{sampleId}\\tSM:~{sampleId}" ~{sampleId}.1.filtered.fastq.gz ~{sampleId}.2.filtered.fastq.gz > ~{sampleId}.sam
-        /usr/local/src/mark-nonconverted-reads-1.1/mark-nonconverted-reads.py --bam ~{sampleId}.sam --out ~{sampleId}.nc_marked.sam 2> ~{sampleId}.nonconverted.tsv
-        sambamba view --with-header --sam-input --nthreads 2 --format bam --compression-level 0 --output-filename "~{sampleId}.bam" ~{sampleId}.nc_marked.sam
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task MarkNonconvertedReads {
+    input {
+        String sampleId
+        File sam
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 512
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/em-seq:latest"
+    }
+
+    command <<<
+        /usr/local/src/mark-nonconverted-reads-1.1/mark-nonconverted-reads.py --bam ~{sam} --out ~{sampleId}.nc_marked.sam 2> ~{sampleId}.nonconverted.tsv
+    >>>
+
+    output {
+        File ncMarkedSam = "~{sampleId}.nc_marked.sam"
+        File nonconvertedReadCounts = "~{sampleId}.nonconverted.tsv"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memoryGB} GiB"
+        disks: "local-disk ~{diskSizeGB} HDD"
+        docker: docker
+    }
+}
+
+task Sambamba {
+    input {
+        String sampleId
+        File sam
+        Int cpu = 16
+        Int numThreads = 32
+        Int memoryGB = 64
+        Int diskSizeGB = 512
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/em-seq:latest"
+    }
+
+    command <<<
+        sambamba view --with-header --sam-input --nthreads 2 --format bam --compression-level 0 --output-filename "~{sampleId}.bam" ~{sam}
     >>>
 
     output {
         File bam = "~{sampleId}.bam"
-        File fastpReport = "~{sampleId}_fastp.html"
-        File nonconvertedReadCounts = "~{sampleId}.nonconverted.tsv"
     }
 
     runtime {
@@ -184,18 +264,15 @@ task MethylDackelExtract {
         touch ~{bamBasename}.bai
         touch ~{refBasename}.fai
 
-        MethylDackel extract --methylKit --OT 1,1,1,1 --OB 1,1,1,1 -@ ~{numThreads} --CHH --CHG -o ~{sampleId} ~{refBasename} ~{bamBasename}
-        pigz -p ~{numThreads} *.methylKit
-
-        MethylDackel extract --OT 1,1,1,1 --OB 1,1,1,1 -@ ~{numThreads} --mergeContext -o ~{sampleId} ~{refBasename} ~{bamBasename}
+        MethylDackel extract --nOT 0,0,0,5 --nOB 0,0,5,0 -@ ~{numThreads} --mergeContext -o ~{sampleId} ~{refBasename} ~{bamBasename}
 
         ls -lha
     >>>
 
     output {
-        File methylKitCHG = "~{sampleId}_CHG.methylKit.gz"
-        File methylKitCHH = "~{sampleId}_CHH.methylKit.gz"
-        File methylKitCpG = "~{sampleId}_CpG.methylKit.gz"
+        #File methylKitCHG = "~{sampleId}_CHG.methylKit.gz"
+        #File methylKitCHH = "~{sampleId}_CHH.methylKit.gz"
+        #File methylKitCpG = "~{sampleId}_CpG.methylKit.gz"
         File cpgBedGraph = "~{sampleId}_CpG.bedGraph"
     }
 
