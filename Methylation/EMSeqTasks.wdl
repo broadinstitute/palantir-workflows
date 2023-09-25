@@ -99,7 +99,6 @@ task MarkNonconvertedReads {
     command <<<
         mv ~{ref} ~{refIdx} .
         /usr/local/src/mark-nonconverted-reads-1.1/mark-nonconverted-reads.py --reference ~{refBasename} --bam ~{sam} --out ~{sampleId}.nc_marked.sam 2> ~{sampleId}.nonconverted.tsv
-        ls -lha
     >>>
 
     output {

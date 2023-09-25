@@ -34,7 +34,7 @@ workflow EMSeq {
             sampleId = sampleId,
             sam = Bwameth.sam,
             ref = ref,
-            refIdx = refIdx,
+            refIdx = refIdx
     }
 
     call EMSeqTasks.Sambamba {
