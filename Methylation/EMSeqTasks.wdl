@@ -85,6 +85,8 @@ task MarkNonconvertedReads {
     input {
         String sampleId
         File sam
+        File ref
+        File refIdx
         Int cpu = 16
         Int numThreads = 32
         Int memoryGB = 64
@@ -92,8 +94,11 @@ task MarkNonconvertedReads {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/em-seq:latest"
     }
 
+    String refBasename = basename(ref)
+
     command <<<
-        /usr/local/src/mark-nonconverted-reads-1.1/mark-nonconverted-reads.py --bam ~{sam} --out ~{sampleId}.nc_marked.sam 2> ~{sampleId}.nonconverted.tsv
+        mv ~{ref} ~{refIdx} .
+        /usr/local/src/mark-nonconverted-reads-1.1/mark-nonconverted-reads.py --reference ~{refBasename} --bam ~{sam} --out ~{sampleId}.nc_marked.sam 2> ~{sampleId}.nonconverted.tsv
         ls -lha
     >>>
 
