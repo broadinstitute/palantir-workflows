@@ -32,7 +32,9 @@ workflow EMSeq {
     call EMSeqTasks.MarkNonconvertedReads {
         input:
             sampleId = sampleId,
-            sam = Bwameth.sam
+            sam = Bwameth.sam,
+            ref = ref,
+            refIdx = refIdx,
     }
 
     call EMSeqTasks.Sambamba {
