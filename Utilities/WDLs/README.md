@@ -68,6 +68,22 @@ when appropriate. Some data cleaning and indexing of the output VCF is also perf
 
 Use this WDL to index a CRAM or BAM file, using `samtools`. The type is inferred using the file extension (either `.cram` or `.bam`). 
 
+## Interval2Bed
+
+### Summary
+
+This WDL takes in a list of interval files (either `.bed` or `.interval_list`) and converts the `.interval_list` files into `.bed`. The WDL checks if any of the provided files has a `.interval_list` extension, and then will call a conversion task on it if so. This means if all the files provided are `.bed`, then no tasks will be called, and the original list will be returned. This allows you to drop this task in to your workflows to extend pipeline functionality from accepting `.bed` inputs to also handle `.interval_list` files without penalizing users who provided `.bed` files with unnecessary extra tasks, which is ideal as many tools require specifically `.bed` lists.
+
+If labels are provided, they will be returned in the new order of the `bed_files` output, which may be different than the originally given order. If labels are not provided, a list of `basename`s for the input files will be returned, in the correct order.
+
+### Inputs
+* `interval_files`: a list of `.bed` and/or `.interval_list` files
+* `interval_labels`: an optional list of string labels to use for the corresponding interval file
+
+### Outputs
+* `bed_files`: a list of `.bed` files converted to the given inputs; note the order may have changed from the given list
+* `bed_labels`: a list of labels for the `.bed` files corresponding to the user inputs, or the basename of the input files if the user did not provide any labels. Note the order may have changed, but the position of a label corresponds to the position of the file in `bed_files`.
+
 
 ## DownsampleAndCollectCoverage
 
