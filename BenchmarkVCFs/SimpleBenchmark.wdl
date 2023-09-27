@@ -2,6 +2,13 @@ version 1.0
 
 import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/Utilities/WDLs/CreateIGVSession.wdl" as IGV
 
+# Object holding configuration for runtime parameters to shorten number of optional inputs
+struct RuntimeAttributes {
+    Int disk_size
+    Int cpu
+    Int memory
+}
+
 # Object holding all reference files, to ensure all localized in tasks
 struct Reference {
     File fasta
@@ -42,8 +49,6 @@ workflow SimpleBenchmark {
         # Subsetting inputs using intervals
         Array[File] strat_intervals = []
         Array[String] strat_labels = []
-        Int interval_padding = 0
-        String subset_gatk_tag = "4.2.3.0"
 
         # Subsetting inputs using variant properties; Note SNP & INDEL are separated automatically later
         Array[String] bcf_selectors = []
@@ -143,7 +148,7 @@ workflow SimpleBenchmark {
             input:
             bams=optional_igv_bams,
             vcfs=[StandardVCFEval.combined_output],
-            interval_lists=strat_intervals,
+            interval_files=strat_intervals,
             reference=ref_fasta,
             output_name=igv_session_name
         }
@@ -192,10 +197,8 @@ task VCFEval {
 
         # Runtime params
         Int? preemptible
-        Int disk_size = ceil(size(call_vcf, "GB") + size(base_vcf, "GB") + size(reference.fasta, "GB")) + 25
-        Int cpu = 8
-        Int memory = 16
-        String rtg_docker_version = "v1.0"
+        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(size(call_vcf, "GB") + size(base_vcf, "GB") + size(reference.fasta, "GB")) + 10,
+                                                  "cpu": 8, "memory": 16}
     }
 
     command <<<
@@ -217,7 +220,7 @@ task VCFEval {
                 --decompose \
                 --roc-subset snp,indel \
                 -t rtg_ref \
-                -o reg \
+                -o reg
 
             mkdir output_dir
             cp reg/*.vcf.gz* output_dir/
@@ -328,24 +331,15 @@ task VCFEval {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:" + rtg_docker_version
+        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.0"
         preemptible: select_first([preemptible, 0])
-        disks: "local-disk " + disk_size + " HDD"
-        cpu: cpu
-        memory: memory + " GB"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        cpu: runtimeAttributes.cpu
+        memory: runtimeAttributes.memory + " GB"
     }
 
     output {
         File ROC_summary = "ROC_summary.tsv"
-
-#        File tp_base_vcf = "output_dir/tp-baseline.vcf.gz"
-#        File tp_base_index = "output_dir/tp-baseline.vcf.gz.tbi"
-#        File tp_call_vcf = "output_dir/tp.vcf.gz"
-#        File tp_call_index = "output_dir/tp.vcf.gz.tbi"
-#        File fp_vcf = "output_dir/fp.vcf.gz"
-#        File fp_index = "output_dir/fp.vcf.gz.tbi"
-#        File fn_vcf = "output_dir/fn.vcf.gz"
-#        File fn_index = "output_dir/fn.vcf.gz.tbi"
 
         File combined_output = "output_dir/output.vcf.gz"
         File combined_output_index = "output_dir/output.vcf.gz.tbi"
@@ -354,16 +348,6 @@ task VCFEval {
 
 task BCFToolsStats {
     input {
-        # Post-vcfeval files
-#        File tp_base_vcf
-#        File tp_base_index
-#        File tp_call_vcf
-#        File tp_call_index
-#        File fp_vcf
-#        File fp_index
-#        File fn_vcf
-#        File fn_index
-
         File combined_vcfeval_output
         File combined_vcfeval_output_index
 
@@ -375,10 +359,8 @@ task BCFToolsStats {
         String call_output_sample_name
         String base_output_sample_name
 
-#        Int disk_size = ceil(size(tp_base_vcf, "GB") + size(tp_call_vcf, "GB") + size(fp_vcf, "GB") + size(fn_vcf, "GB")) + 20
-        Int disk_size = 100
-        Int cpu = 8
-        Int memory = 16
+        RuntimeAttributes runtimeAttributes = {"disk_size":2 * ceil(size(combined_vcfeval_output, "GB") + size(strat_interval, "GB")) + 10,
+                                                  "cpu": 4, "memory": 8}
     }
 
     # Handle parsing bcf_selector with surrounding quotes, with empty case handled separately
@@ -388,15 +370,19 @@ task BCFToolsStats {
     String tp_call_selection = "-i 'INFO/CALL=\"TP\"" + selection
     String fp_selection = "-i 'INFO/CALL=\"FP\"" + selection
     String fn_selection = "-i 'INFO/BASE=\"FN\"" + selection
+    String out_selection = "-i (INFO/BASE=\"OUT\" || INFO/CALL=\"OUT\")" + selection
+    String ign_selection = "-i (INFO/BASE=\"IGN\" || INFO/CALL=\"IGN\")" + selection
 
     command <<<
         set -xeuo pipefail
 
         # Subset combined output to each stat category; run in parallel
-        bcftools stats ~{tp_base_selection} -s- ~{"-R " + strat_interval} ~{combined_vcfeval_output} > tp_base_stats.tsv &
-        bcftools stats ~{tp_call_selection} -s- ~{"-R " + strat_interval} ~{combined_vcfeval_output} > tp_call_stats.tsv &
-        bcftools stats ~{fp_selection} -s- ~{"-R " + strat_interval} ~{combined_vcfeval_output} > fp_stats.tsv &
-        bcftools stats ~{fn_selection} -s- ~{"-R " + strat_interval} ~{combined_vcfeval_output} > fn_stats.tsv &
+        bcftools stats ~{tp_base_selection} -s- ~{"-T" + strat_interval} ~{combined_vcfeval_output} > tp_base_stats.tsv &
+        bcftools stats ~{tp_call_selection} -s- ~{"-T" + strat_interval} ~{combined_vcfeval_output} > tp_call_stats.tsv &
+        bcftools stats ~{fp_selection} -s- ~{"-T" + strat_interval} ~{combined_vcfeval_output} > fp_stats.tsv &
+        bcftools stats ~{fn_selection} -s- ~{"-T" + strat_interval} ~{combined_vcfeval_output} > fn_stats.tsv &
+        bcftools stats ~{out_selection} -s- ~{"-T" + strat_interval} ~{combined_vcfeval_output} > out_stats.tsv &
+        bcftools stats ~{ign_selection} -s- ~{"-T" + strat_interval} ~{combined_vcfeval_output} > ign_stats.tsv &
 
         # Wait for bcftools stats to finish for all selectors
         wait
@@ -443,7 +429,9 @@ task BCFToolsStats {
             "TP_Base" : make_dfs("tp_base_stats.tsv"),
             "TP_Call": make_dfs("tp_call_stats.tsv"),
             "FP": make_dfs("fp_stats.tsv"),
-            "FN": make_dfs("fn_stats.tsv")
+            "FN": make_dfs("fn_stats.tsv"),
+            "OUT": make_dfs("out_stats.tsv"),
+            "IGN": make_dfs("ign_stats.tsv")
         }
 
         # Make full SN (Summary Numbers) df
@@ -476,7 +464,6 @@ task BCFToolsStats {
         full_st_df['Stratifier'] = "~{strat_label}"
         full_st_df['BCF_Label'] = "~{bcf_label}"
 
-
         # Write files
         full_sn_df.to_csv('Full_SN.tsv', sep='\t', index=False)
         full_idd_df.to_csv('Full_IDD.tsv', sep='\t', index=False)
@@ -487,9 +474,9 @@ task BCFToolsStats {
 
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.0"
-        disks: "local-disk " + disk_size + " HDD"
-        cpu: cpu
-        memory: memory + "GB"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        cpu: runtimeAttributes.cpu
+        memory: runtimeAttributes.memory + "GB"
     }
 
     output {
@@ -511,9 +498,8 @@ task CombineSummaries {
         String? extra_column_name
         String? extra_column_value
 
-        Int disk_size = 50
-        Int cpu = 2
-        Int memory = 8
+        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(size(ROC_summaries, "GB") + size(SN_summaries, "GB")
+                                             + size(IDD_summaries, "GB") + size(ST_summaries, "GB")) + 10, "cpu": 2, "memory": 8}
     }
 
     command <<<
@@ -610,9 +596,9 @@ task CombineSummaries {
 
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
-        disks: "local-disk " + disk_size + " HDD"
-        cpu: cpu
-        memory: memory + "GB"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        cpu: runtimeAttributes.cpu
+        memory: runtimeAttributes.memory + "GB"
     }
 
     output {
