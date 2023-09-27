@@ -7,7 +7,7 @@ import quickboard.plugins as plg
 from common_utils import read_and_postprocess, convert_missing_to_pass_filter, add_bbend_stats, sort_svtypes, sort_svlen_bins
 from decorators import axes_mode
 from plugins import make_type_selector, make_stat_selector, make_length_selector, make_interval_selector, make_axes_mode_selector
-from user_config import COVARIATE_X, EXPERIMENT_ORDER, TRUVARI_DUP_TO_INS
+from user_config import COVARIATE_X, EXPERIMENT_ORDER, EXPERIMENT_COLORS, EXPERIMENT_COLOR_DICT, TRUVARI_DUP_TO_INS
 from truvari_data import postprocess_truvari_bench, postprocess_truvari_closest
 from upset_plot_utils import create_upset, make_disqualified_df
 
@@ -56,22 +56,27 @@ def make_truvari_bench_plot(df, axes_mode, stat, pct_overlap, svtype, svlen_bin,
     
     type_ = df['SVTYPE'].iloc[0] if len(df) > 0 else "Empty df"
     title += f' for SVTYPE {type_}'
-    
-    interval = df['Interval'].iloc[0] if len(df) > 0 else "Empty df"
-    title += f' over {interval}'
 
     df = df[df['Pct_Overlap'] == pct_overlap]
-    title += f' w/ >= {pct_overlap}% overlap'
+    if pct_overlap > 0:
+        interval = df['Interval'].iloc[0] if len(df) > 0 else "Empty df"
+        title += f' over {interval}'
+        title += f' w/ >= {pct_overlap}% overlap'
     
     hover_data = ['Base_Sample_Name', 'tp_base_count', 'fn_count', 'tp_comp_count', 'fp_count']
     category_orders = {'Experiment': EXPERIMENT_ORDER} if EXPERIMENT_ORDER is not None else None
     fig = px.scatter(df, x=x, y=y, color='Experiment', title=title, hover_name='Comp_Sample_Name', hover_data=hover_data, 
-                      marginal_x='box', marginal_y='box', category_orders=category_orders, facet_row=facet_row, facet_col=facet_col)
+                      marginal_x='box', marginal_y='box', category_orders=category_orders, color_discrete_sequence=EXPERIMENT_COLORS,
+                      color_discrete_map=EXPERIMENT_COLOR_DICT, facet_row=facet_row, facet_col=facet_col)
 
     if view_mode == 'Grid':
         fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[1]))
         # fig.for_each_trace(lambda t: t.update(name=t.name.split("=")[1]))
         fig.update_xaxes(showticklabels=False, title_text='')
+    
+    # Rotate tick labels for categorical xaxis
+    if COVARIATE_X is not None and len(df[COVARIATE_X].unique()) > 1:
+        fig.update_xaxes(tickangle=45)
     return fig
 
 def make_gt_concordance_plot(df, axes_mode, pct_overlap, svlen_bin, view_mode='Single'):
@@ -82,15 +87,16 @@ def make_gt_concordance_plot(df, axes_mode, pct_overlap, svlen_bin, view_mode='S
 
     category_orders = {'Experiment': EXPERIMENT_ORDER} if EXPERIMENT_ORDER is not None else None
     title = 'GT Concordance'
-    if len(df) > 0:
+
+    df = df[df['Pct_Overlap'] == pct_overlap]
+    if len(df) > 0 and pct_overlap > 0:
         interval_name = df['Interval'].values[0]
         title += f' over {interval_name}'
-
-        df = df[df['Pct_Overlap'] == pct_overlap]
         title += f' w/ >= {pct_overlap}% overlap'
     
     fig = px.box(df, x='SVTYPE', y='GT_concordance', color='Experiment', 
-                 title=title, category_orders=category_orders, facet_col=facet_col)
+                 title=title, category_orders=category_orders, color_discrete_sequence=EXPERIMENT_COLORS, 
+                 color_discrete_map=EXPERIMENT_COLOR_DICT, facet_col=facet_col)
     if axes_mode == 'Fixed':
         fig.update_layout(yaxis_range=[0, 1])
 
@@ -168,7 +174,9 @@ def make_closest_plot(df, sort_by, asc, mode, disq_values):
     title = f'Counts of Disqualified ({disq_values}) Sites (N = {len(df)})'
     asc = asc == 'Ascending'
     disq_df = make_disqualified_df(df, dist_threshold=500, size_ratio_threshold=0.7, color='Experiment')
-    fig = create_upset(disq_df, title=title, sort_by=sort_by, asc=asc, mode=mode, color='Experiment', category_orders={'Experiment': EXPERIMENT_ORDER})
+    fig = create_upset(disq_df, title=title, sort_by=sort_by, asc=asc, mode=mode, color='Experiment', 
+                       category_orders={'Experiment': EXPERIMENT_ORDER}, color_discrete_sequence=EXPERIMENT_COLORS, 
+                       color_discrete_map=EXPERIMENT_COLOR_DICT)
     return fig
 
 def make_fp_closest_plot(df, sort_by, asc, mode):

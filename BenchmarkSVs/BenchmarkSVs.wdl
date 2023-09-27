@@ -1,6 +1,6 @@
 version 1.0
 
-import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/Utilities/WDLs/CreateIGVSession.wdl" as CreateIGVSession
+import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/Utilities/WDLs/CreateIGVSession.wdl" as IGV
 
 struct RuntimeAttributes {
     Int disk_size
@@ -129,6 +129,8 @@ workflow BenchmarkSVs {
                     output_file_name="combined_qc_stats.tsv"
             }
         }
+
+        File qc_file = select_first([CombineQcMetrics.combined_file, CompQcMetrics.stats])
     }
 
     # Benchmarking - Truvari tasks
@@ -233,27 +235,29 @@ workflow BenchmarkSVs {
                 tables=CollectTruvariClosestStats.fn_closest,
                 output_file_name="truvari_fn_closest.tsv"
         }
-    }
 
-    if (create_igv_session) {
-        call CreateIGVSession.CreateIGVSession {
-            input:
-                bams=optional_igv_bams,
-                vcfs=select_all([RunTruvari.tp_base, RunTruvari.tp_comp, RunTruvari.fp, RunTruvari.fn]),
-                interval_files=bed_regions,
-                reference=ref_fasta
+        if (create_igv_session) {
+            call IGV.CreateIGVSession as IGVSession {
+                input:
+                    bams=optional_igv_bams,
+                    vcfs=flatten([select_all(RunTruvari.tp_base), select_all(RunTruvari.tp_comp),
+                                    select_all(RunTruvari.fp), select_all(RunTruvari.fn)]),
+                    interval_files=bed_regions,
+                    reference=ref_fasta
+            }
         }
     }
 
+    Array[File] qc_files = select_all([qc_file])
     call CombineFiles {
         input:
-            qc_files=[select_first([CombineQcMetrics.combined_file, CompQcMetrics.stats])],
+            qc_files=qc_files,
             truvari_files=select_all([CombineTruvariSummaries.combined_file, CombineFPClosest.combined_file, CombineFNClosest.combined_file])
     }
 
     output {
         # QC outputs
-        File? qc_summary = select_first([CombineQcMetrics.combined_file, CompQcMetrics.stats])
+        File? qc_summary = qc_file
 
         # Truvari outputs
         File? truvari_bench_summary = CombineTruvariSummaries.combined_file
@@ -264,7 +268,7 @@ workflow BenchmarkSVs {
         File? combined_files = CombineFiles.combined_files
 
         # IGV Session
-        File? igv_session = CreateIGVSession.CreateIGVSession.igv_session
+         File? igv_session = IGVSession.igv_session
     }
 }
 

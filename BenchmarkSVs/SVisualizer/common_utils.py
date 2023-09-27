@@ -48,8 +48,13 @@ def sort_svtypes(svtypes):
 
 # Sort AF and SVLEN bins
 def sort_bins(bins, sorter):
-    sorted_bins = ['ALL']
-    bins.remove('ALL')
+    sorted_bins = []
+    if 'ALL' in bins:
+        sorted_bins += ['ALL']
+        bins.remove('ALL')
+    if 'AC=1' in bins:
+        sorted_bins += ['AC=1']
+        bins.remove('AC=1')
 
     other_bins = sorted(bins, key=sorter)
     sorted_bins += other_bins

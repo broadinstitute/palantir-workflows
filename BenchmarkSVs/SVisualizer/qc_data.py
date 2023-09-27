@@ -15,7 +15,7 @@ def postprocess_qc_df(qc_df):
     svlen_bins = sort_svlen_bins(list(qc_df['SVLEN_Bin'].unique()))
     qc_df['SVLEN_Bin'] = pd.Categorical(qc_df['SVLEN_Bin'], ordered=True, categories=svlen_bins)
 
-    svtypes = sort_svlen_bins(list(qc_df['SVTYPE'].unique()))
+    svtypes = sort_svtypes(list(qc_df['SVTYPE'].unique()))
     qc_df['SVTYPE'] = pd.Categorical(qc_df['SVTYPE'], ordered=True, categories=svtypes)
 
     add_bbend_stats(qc_df)

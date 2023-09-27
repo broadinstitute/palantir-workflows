@@ -31,6 +31,13 @@ Some tasks that are lower priority at the moment but might get picked up in the 
 
 ## CHANGELOG
 
+### v0.12
+
+- Make QC metrics collection genuinely optional in main WDL.
+- Add optional color list for experiment categories in SVisualizer, along with dictionary mapping option.
+- Updated titles for pct overlap = 0% to remove interval list from title.
+- Add CreateIGVSession task to `BenchmarkSVs.wdl`.
+
 ### v0.11
 
 - Major refactor to SVisualizer to separate code into different files for utilities, and to encapsulate code for different tabs.

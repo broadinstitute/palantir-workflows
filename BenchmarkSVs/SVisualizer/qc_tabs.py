@@ -6,7 +6,7 @@ import quickboard.plugins as plg
 from common_utils import read_and_postprocess
 from decorators import interval_filter
 from plugins import make_interval_plugin_bundle, make_type_selector, make_length_selector, make_filter_selector
-from user_config import EXPERIMENT_ORDER, SKIP_COMP_HWE
+from user_config import EXPERIMENT_ORDER, EXPERIMENT_COLORS, EXPERIMENT_COLOR_DICT, SKIP_COMP_HWE
 from qc_data import postprocess_qc_df
 
 
@@ -28,7 +28,9 @@ def make_bar_counts(df, x, interval_name, breakpoint, pct_overlap):
         'error_y': 'std',
         'color': 'Experiment',
         'barmode': 'group',
-        'category_orders': category_orders
+        'category_orders': category_orders,
+        'color_discrete_sequence': EXPERIMENT_COLORS,
+        'color_discrete_map': EXPERIMENT_COLOR_DICT
     }
 
     counts_df = df.groupby(['Experiment_Suffix', 'Experiment', 'Sample']).apply(lambda df: df[x].value_counts().reset_index()).reset_index() \
@@ -73,7 +75,8 @@ def make_qc_histogram(df, x, barmode, interval_name, breakpoint, pct_overlap):
     title = f'Histogram of {x}'
     if pct_overlap[0] > 0 or pct_overlap[1] < 100:
         title += f' for events with {pct_overlap[0]:.0f}%-{pct_overlap[1]:.0f}% overlap with {interval_name}'
-    fig = px.histogram(df, x=x, barmode=barmode, color='Experiment', category_orders=category_orders, title=title)
+    fig = px.histogram(df, x=x, barmode=barmode, color='Experiment', category_orders=category_orders, 
+                       color_discrete_sequence=EXPERIMENT_COLORS, color_discrete_map=EXPERIMENT_COLOR_DICT, title=title)
     return fig
 
 histogram_plot = qbb.PlotPanel(
