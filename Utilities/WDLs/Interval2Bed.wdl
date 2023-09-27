@@ -59,21 +59,19 @@ workflow Interval2Bed {
 task Convert {
     input {
         File interval_list
-        String? interval_label
+        String interval_label
 
-        String gatk_tag = "4.2.3.0"
+        String gatk_tag = "4.4.0.0"
         Int? preemptible
         Int disk_size = ceil(4 * size(interval_list, "GB")) + 5
         Int cpu = 4
         Int memory = 16
     }
 
-    String name = basename(interval_list, ".interval_list")
-
     command <<<
         set -xe
 
-        gatk IntervalListToBed -I ~{interval_list} -O ~{name}.bed
+        gatk IntervalListToBed -I ~{interval_list} -O ~{interval_label}.bed
     >>>
 
     runtime {
@@ -86,7 +84,7 @@ task Convert {
     }
 
     output {
-        File bed_file = "~{name}.bed"
-        String? bed_label = select_first([interval_label, name])
+        File bed_file = "~{interval_label}.bed"
+        String bed_label = interval_label
     }
 }
