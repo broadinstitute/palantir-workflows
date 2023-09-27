@@ -68,7 +68,8 @@ when appropriate. Some data cleaning and indexing of the output VCF is also perf
 
 Use this WDL to index a CRAM or BAM file, using `samtools`. The type is inferred using the file extension (either `.cram` or `.bam`). 
 
-## Interval2Bed
+
+## IntervalList2Bed
 
 ### Summary
 
