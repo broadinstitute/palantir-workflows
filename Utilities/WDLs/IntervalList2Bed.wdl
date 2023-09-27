@@ -1,6 +1,6 @@
 version 1.0
 
-workflow Interval2Bed {
+workflow IntervalList2Bed {
     input {
         Array[File] interval_files
         Array[String]? interval_labels
