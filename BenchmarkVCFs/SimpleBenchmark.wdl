@@ -1,5 +1,6 @@
 version 1.0
 
+import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/Utilities/WDLs/IntervalList2Bed.wdl" as IntervalList2Bed
 import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/Utilities/WDLs/CreateIGVSession.wdl" as IGV
 
 # Object holding configuration for runtime parameters to shorten number of optional inputs
@@ -15,10 +16,10 @@ struct Reference {
     File index
 }
 
-# Object representing expression for subsetting VCFs
-struct VariantSelector {
-    String bcf_label
-    String bcf_selector
+# Object representing expression for subsetting VCFs into genotype categories
+struct GenotypeSelector {
+    String bcf_genotype_label
+    String bcf_genotype
 }
 
 # Object representing file with intervals to subset analysis over
@@ -47,12 +48,8 @@ workflow SimpleBenchmark {
         File ref_index
 
         # Subsetting inputs using intervals
-        Array[File] strat_intervals = []
-        Array[String] strat_labels = []
-
-        # Subsetting inputs using variant properties; Note SNP & INDEL are separated automatically later
-        Array[String] bcf_selectors = []
-        Array[String] bcf_labels = []
+        Array[File] stratifier_intervals = []
+        Array[String] stratifier_labels = []
 
         # Evaluation inputs
         File? evaluation_bed
@@ -74,18 +71,24 @@ workflow SimpleBenchmark {
     # Create reference object
     Reference reference = {"fasta": ref_fasta, "index": ref_index}
 
-    # Make Stratifier objects
-    scatter (strat in zip(strat_labels, strat_intervals)) {
-        Stratifier stratifier_list = {"label": strat.left, "intervals": strat.right}
+    # Convert any provided interval_lists to beds
+    call IntervalList2Bed.IntervalList2Bed as ConvertIntervals {
+        input:
+            interval_files=stratifier_intervals,
+            interval_labels=stratifier_labels
     }
 
-    # Make VariantSelector objects, with default None, Het, and HomVar types
-    Array[String] default_bcf_selectors =  ["", "GT=\"het\"", "GT=\"hom\""]
-    Array[String] default_bcf_labels = ["", "Het", "HomVar"]
-    Array[String] full_bcf_selectors = flatten([default_bcf_selectors, bcf_selectors])
-    Array[String] full_bcf_labels = flatten([default_bcf_labels, bcf_labels])
-    scatter (selection in zip(full_bcf_labels, full_bcf_selectors)) {
-        VariantSelector selector_list = {"bcf_label": selection.left, "bcf_selector": selection.right}
+    # Make Stratifier objects
+    scatter (interval_pair in zip(ConvertIntervals.bed_labels, ConvertIntervals.bed_files)) {
+        Stratifier stratifier_list = {"label": interval_pair.left, "intervals": interval_pair.right}
+    }
+
+    # Collect genotype categories to stratify by in bcftools stats
+    Array[String] bcf_genotypes = ["", "GT=\"het\"", "GT=\"AA\""]
+    Array[String] bcf_genotype_labels = ["", "Het", "HomVar"]
+
+    scatter (selection in zip(bcf_genotype_labels, bcf_genotypes)) {
+        GenotypeSelector selector_list = {"bcf_genotype_label": selection.left, "bcf_genotype": selection.right}
     }
 
     call VCFEval as StandardVCFEval {
@@ -99,7 +102,6 @@ workflow SimpleBenchmark {
             reference=reference,
             evaluation_bed=evaluation_bed,
             score_field=score_field,
-            strat_label="WholeGenome",
             preemptible=preemptible
     }
 
@@ -108,9 +110,9 @@ workflow SimpleBenchmark {
             input:
                 combined_vcfeval_output=StandardVCFEval.combined_output,
                 combined_vcfeval_output_index=StandardVCFEval.combined_output_index,
-                strat_label="WholeGenome",
-                bcf_selector=selector.bcf_selector,
-                bcf_label=selector.bcf_label,
+                stratifier_label="WholeGenome",
+                bcf_genotype=selector.bcf_genotype,
+                bcf_genotype_label=selector.bcf_genotype_label,
                 call_output_sample_name=call_output_sample_name,
                 base_output_sample_name=base_output_sample_name
         }
@@ -118,15 +120,15 @@ workflow SimpleBenchmark {
 
     scatter (subset_condition in cross(stratifier_list, selector_list)) {
         Stratifier stratifier = subset_condition.left
-        VariantSelector selector = subset_condition.right
+        GenotypeSelector selector = subset_condition.right
         call BCFToolsStats as SubsetStats {
             input:
                 combined_vcfeval_output=StandardVCFEval.combined_output,
                 combined_vcfeval_output_index=StandardVCFEval.combined_output_index,
-                strat_interval=stratifier.intervals,
-                strat_label=stratifier.label,
-                bcf_selector=selector.bcf_selector,
-                bcf_label=selector.bcf_label,
+                stratifier_interval=stratifier.intervals,
+                stratifier_label=stratifier.label,
+                bcf_genotype=selector.bcf_genotype,
+                bcf_genotype_label=selector.bcf_genotype_label,
                 call_output_sample_name=call_output_sample_name,
                 base_output_sample_name=base_output_sample_name
         }
@@ -148,7 +150,7 @@ workflow SimpleBenchmark {
             input:
             bams=optional_igv_bams,
             vcfs=[StandardVCFEval.combined_output],
-            interval_files=strat_intervals,
+            interval_files=stratifier_intervals,
             reference=ref_fasta,
             output_name=igv_session_name
         }
@@ -186,9 +188,6 @@ task VCFEval {
 
         # String for VCF field to use as ROC score
         String score_field
-
-        # Label to add to ROC table outputs
-        String strat_label
 
         # vcfeval Arguments
         Boolean passing_only = true
@@ -264,11 +263,8 @@ task VCFEval {
                 -o reg
 
             mkdir output_dir
-            for file_name in "tp-baseline" "tp" "fp" "fn";
-            do
-                bcftools merge --force-samples "par/${file_name}.vcf.gz" "reg/${file_name}.vcf.gz" | bcftools sort -Oz -o "output_dir/${file_name}.vcf.gz"
-                bcftools index -t "output_dir/${file_name}.vcf.gz"
-            done
+            bcftools merge --force-samples "par/output.vcf.gz" "reg/output.vcf.gz" | bcftools sort -Oz -o "output_dir/output.vcf.gz"
+            bcftools index -t "output_dir/output.vcf.gz"
 
         fi
 
@@ -299,7 +295,6 @@ task VCFEval {
 
                 df = df.rename(columns=rename_columns)
                 df['Type'] = Type.upper()
-                df['Stratifier'] = "~{strat_label}"
                 df['Call_Name'] = "~{call_output_sample_name}"
                 df['Base_Name'] = "~{base_output_sample_name}"
 
@@ -351,38 +346,39 @@ task BCFToolsStats {
         File combined_vcfeval_output
         File combined_vcfeval_output_index
 
-        File? strat_interval
-        String strat_label
-        String bcf_selector
-        String bcf_label
+        File? stratifier_interval
+        String stratifier_label
+
+        String bcf_genotype
+        String bcf_genotype_label
 
         String call_output_sample_name
         String base_output_sample_name
 
-        RuntimeAttributes runtimeAttributes = {"disk_size":2 * ceil(size(combined_vcfeval_output, "GB") + size(strat_interval, "GB")) + 10,
+        RuntimeAttributes runtimeAttributes = {"disk_size":2 * ceil(size(combined_vcfeval_output, "GB") + size(stratifier_interval, "GB")) + 10,
                                                   "cpu": 4, "memory": 8}
     }
 
-    # Handle parsing bcf_selector with surrounding quotes, with empty case handled separately
-    String selection = if bcf_selector!= "" then " && " + bcf_selector + "'" else "'"
+    # Handle parsing bcf_genotype with surrounding quotes, with empty case handled separately
+    String selection = if bcf_genotype!= "" then " && " + bcf_genotype + "'" else "'"
 
     String tp_base_selection = "-i 'INFO/BASE=\"TP\"" + selection
     String tp_call_selection = "-i 'INFO/CALL=\"TP\"" + selection
-    String fp_selection = "-i 'INFO/CALL=\"FP\"" + selection
-    String fn_selection = "-i 'INFO/BASE=\"FN\"" + selection
-    String out_selection = "-i (INFO/BASE=\"OUT\" || INFO/CALL=\"OUT\")" + selection
-    String ign_selection = "-i (INFO/BASE=\"IGN\" || INFO/CALL=\"IGN\")" + selection
+    String fp_selection = "-i '(INFO/CALL=\"FP\" || INFO/CALL=\"FP_CA\")" + selection
+    String fn_selection = "-i '(INFO/BASE=\"FN\" || INFO/BASE=\"FN_CA\")" + selection
+    String out_selection = "-i '(INFO/BASE=\"OUT\" || INFO/CALL=\"OUT\")" + selection
+    String ign_selection = "-i '(INFO/BASE=\"IGN\" || INFO/CALL=\"IGN\")" + selection
 
     command <<<
         set -xeuo pipefail
 
         # Subset combined output to each stat category; run in parallel
-        bcftools stats ~{tp_base_selection} -s- ~{"-T" + strat_interval} ~{combined_vcfeval_output} > tp_base_stats.tsv &
-        bcftools stats ~{tp_call_selection} -s- ~{"-T" + strat_interval} ~{combined_vcfeval_output} > tp_call_stats.tsv &
-        bcftools stats ~{fp_selection} -s- ~{"-T" + strat_interval} ~{combined_vcfeval_output} > fp_stats.tsv &
-        bcftools stats ~{fn_selection} -s- ~{"-T" + strat_interval} ~{combined_vcfeval_output} > fn_stats.tsv &
-        bcftools stats ~{out_selection} -s- ~{"-T" + strat_interval} ~{combined_vcfeval_output} > out_stats.tsv &
-        bcftools stats ~{ign_selection} -s- ~{"-T" + strat_interval} ~{combined_vcfeval_output} > ign_stats.tsv &
+        bcftools stats ~{tp_base_selection} -s BASELINE ~{"-T" + stratifier_interval} ~{combined_vcfeval_output} > tp_base_stats.tsv &
+        bcftools stats ~{tp_call_selection} -s CALLS ~{"-T" + stratifier_interval} ~{combined_vcfeval_output} > tp_call_stats.tsv &
+        bcftools stats ~{fp_selection} -s CALLS ~{"-T" + stratifier_interval} ~{combined_vcfeval_output} > fp_stats.tsv &
+        bcftools stats ~{fn_selection} -s BASELINE ~{"-T" + stratifier_interval} ~{combined_vcfeval_output} > fn_stats.tsv &
+        bcftools stats ~{out_selection} -s- ~{"-T" + stratifier_interval} ~{combined_vcfeval_output} > out_stats.tsv &
+        bcftools stats ~{ign_selection} -s- ~{"-T" + stratifier_interval} ~{combined_vcfeval_output} > ign_stats.tsv &
 
         # Wait for bcftools stats to finish for all selectors
         wait
@@ -441,8 +437,8 @@ task BCFToolsStats {
         full_sn_df = full_sn_df.fillna(0)
         full_sn_df['Call_Name'] = "~{call_output_sample_name}"
         full_sn_df['Base_Name'] = "~{base_output_sample_name}"
-        full_sn_df['Stratifier'] = "~{strat_label}"
-        full_sn_df['BCF_Label'] = "~{bcf_label}"
+        full_sn_df['Stratifier'] = "~{stratifier_label}"
+        full_sn_df['BCF_Label'] = "~{bcf_genotype_label}"
 
         # Make full IDD (InDel Distribution) df
         full_idd_df = pd.DataFrame({'INDEL_Length': df_dict['TP_Base']['IDD_df']['INDEL_Length']})
@@ -451,8 +447,8 @@ task BCFToolsStats {
         full_idd_df = full_idd_df.fillna(0)
         full_idd_df['Call_Name'] = "~{call_output_sample_name}"
         full_idd_df['Base_Name'] = "~{base_output_sample_name}"
-        full_idd_df['Stratifier'] = "~{strat_label}"
-        full_idd_df['BCF_Label'] = "~{bcf_label}"
+        full_idd_df['Stratifier'] = "~{stratifier_label}"
+        full_idd_df['BCF_Label'] = "~{bcf_genotype_label}"
 
         # Make full ST (Substitution) df
         full_st_df = pd.DataFrame({'Substitution': df_dict['TP_Base']['ST_df']['Substitution']})
@@ -461,8 +457,8 @@ task BCFToolsStats {
         full_st_df = full_st_df.fillna(0)
         full_st_df['Call_Name'] = "~{call_output_sample_name}"
         full_st_df['Base_Name'] = "~{base_output_sample_name}"
-        full_st_df['Stratifier'] = "~{strat_label}"
-        full_st_df['BCF_Label'] = "~{bcf_label}"
+        full_st_df['Stratifier'] = "~{stratifier_label}"
+        full_st_df['BCF_Label'] = "~{bcf_genotype_label}"
 
         # Write files
         full_sn_df.to_csv('Full_SN.tsv', sep='\t', index=False)
