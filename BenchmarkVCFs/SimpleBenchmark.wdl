@@ -78,7 +78,7 @@ workflow SimpleBenchmark {
             interval_labels=stratifier_labels
     }
 
-    # Make Stratifier objects
+    # Make StratifierInterval objects
     scatter (interval_pair in zip(ConvertIntervals.bed_labels, ConvertIntervals.bed_files)) {
         StratifierInterval stratifier_list = {"label": interval_pair.left, "intervals": interval_pair.right}
     }
@@ -119,7 +119,7 @@ workflow SimpleBenchmark {
     }
 
     scatter (subset_condition in cross(stratifier_list, selector_list)) {
-        Stratifier stratifier = subset_condition.left
+        StratifierInterval stratifier = subset_condition.left
         GenotypeSelector selector = subset_condition.right
         call BCFToolsStats as SubsetStats {
             input:
