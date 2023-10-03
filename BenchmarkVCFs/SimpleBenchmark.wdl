@@ -98,7 +98,7 @@ workflow SimpleBenchmark {
     Array[String] bcf_genotype_labels = ["", "Het", "HomVar"]
 
     scatter (selection in zip(bcf_genotype_labels, bcf_genotypes)) {
-        GenotypeSelector selector_list = {"bcf_genotype_label": selection.left, "bcf_genotype": selection.right}
+        GenotypeSelector genotype_selector_list = {"bcf_genotype_label": selection.left, "bcf_genotype": selection.right}
     }
 
     call VCFEval as StandardVCFEval {
@@ -106,39 +106,41 @@ workflow SimpleBenchmark {
             query_vcf=query_vcf,
             query_vcf_index=query_vcf_index,
             query_output_sample_name=query_output_sample_name,
+            query_vcf_sample_name=query_vcf_sample_name,
             base_vcf=base_vcf,
             base_vcf_index=base_vcf_index,
             base_output_sample_name=base_output_sample_name,
+            base_vcf_sample_name=base_vcf_sample_name,
             reference=reference,
             evaluation_bed=converted_evaluation_bed,
             score_field=score_field,
             preemptible=preemptible
     }
 
-    scatter (selector in selector_list) {
+    scatter (genotype_selector in genotype_selector_list) {
         call BCFToolsStats as WholeGenomeStats {
             input:
                 combined_vcfeval_output=StandardVCFEval.combined_output,
                 combined_vcfeval_output_index=StandardVCFEval.combined_output_index,
                 stratifier_label="WholeGenome",
-                bcf_genotype=selector.bcf_genotype,
-                bcf_genotype_label=selector.bcf_genotype_label,
+                bcf_genotype=genotype_selector.bcf_genotype,
+                bcf_genotype_label=genotype_selector.bcf_genotype_label,
                 query_output_sample_name=query_output_sample_name,
                 base_output_sample_name=base_output_sample_name
         }
     }
 
-    scatter (subset_condition in cross(stratifier_list, selector_list)) {
+    scatter (subset_condition in cross(stratifier_list, genotype_selector_list)) {
         StratifierInterval stratifier = subset_condition.left
-        GenotypeSelector selector = subset_condition.right
+        GenotypeSelector genotype_selector = subset_condition.right
         call BCFToolsStats as SubsetStats {
             input:
                 combined_vcfeval_output=StandardVCFEval.combined_output,
                 combined_vcfeval_output_index=StandardVCFEval.combined_output_index,
                 stratifier_interval=stratifier.intervals,
                 stratifier_label=stratifier.label,
-                bcf_genotype=selector.bcf_genotype,
-                bcf_genotype_label=selector.bcf_genotype_label,
+                bcf_genotype=genotype_selector.bcf_genotype,
+                bcf_genotype_label=genotype_selector.bcf_genotype_label,
                 query_output_sample_name=query_output_sample_name,
                 base_output_sample_name=base_output_sample_name
         }
@@ -184,9 +186,11 @@ task VCFEval {
         File query_vcf
         File query_vcf_index
         String query_output_sample_name
+        String? query_vcf_sample_name
         File base_vcf
         File base_vcf_index
         String base_output_sample_name
+        String? base_vcf_sample_name
 
         Reference reference
 
@@ -229,6 +233,7 @@ task VCFEval {
                 --decompose \
                 --roc-subset snp,indel \
                 -t rtg_ref \
+                ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
                 -o reg
 
             mkdir output_dir
@@ -595,7 +600,7 @@ task CombineSummaries {
         metadata_cols = ['Query_Name', 'Base_Name', 'Stratifier', 'Type']
         metadata_cols = metadata_cols + ["~{extra_column_name}"] if "~{extra_column_name}" != "" else metadata_cols
         metadata_cols = ['Experiment'] + metadata_cols if "~{experiment}" != "" else metadata_cols
-        stat_cols = ['TP_Query', 'TP_Base', 'FP', 'FN', 'Precision', 'Recall', 'F1_Score']
+        stat_cols = ['TP_Query', 'TP_Base', 'FP', 'FN', 'Precision', 'Recall', 'F1_Score', 'IGN', 'OUT']
 
         full_IDD = full_IDD[metadata_cols + ['INDEL_Type', 'INDEL_Length'] + stat_cols]
         full_ST = full_ST[metadata_cols + ['Substitution', 'Substitution_Type'] + stat_cols]

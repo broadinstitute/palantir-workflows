@@ -39,12 +39,12 @@ of a "base"line VCF and a "call"set VCF benchmarked against it.
 * `base_vcf` - the VCF to use as baseline.
 * `base_vcf_index` - the index of the VCF to use as baseline.
 * `base_output_sample_name` - the name to appear in output data to label the baseline sample.
-* `base_vcf_sample_name` - (optional) the name appearing in the VCF to label this sample; to be used only for extracting that sample from a multisample callset. **Tip**: If you expect to use the same baseline repeatedly, consider extracting it from a multisample callset once, and then use that as input here to save time repeatedly subsetting a large VCF.
+* `base_vcf_sample_name` - (optional if using single-sample VCF) the name appearing in the VCF to label this sample; to be used only for extracting that sample from a multisample callset. **Tip**: If you expect to use the same baseline repeatedly, consider extracting it from a multisample callset once, and then use that as input here to save time repeatedly subsetting a large VCF.
 
 * `query_vcf` - the VCF to be evaluated against the baseline.
 * `query_vcf_index` - the index of the VCF to be evaluated.
 * `query_output_sample_name` - the name to appear in output data to label the evaluated sample.
-* `query_vcf_sample_name` - (optional) the name appearing in the VCF to label this sample; to be used only for extracting that sample from a multisample callset.
+* `query_vcf_sample_name` - (optional if using single-sample VCF) the name appearing in the VCF to label this sample; to be used only for extracting that sample from a multisample callset.
 
 * `ref_fasta` - reference fasta file matching the input VCFs.
 * `ref_index` - reference fasta index.
@@ -92,6 +92,8 @@ $$ Recall = \frac{TP_{base}}{(TP_{base} + FN)}, $$
 and
 
 $$ F_1 = 2 \cdot \frac{Prec \cdot Recall}{Prec + Recall}.$$
+
+In addition, simple counts of sites labeled `IGN` or `OUT` from `vcfeval` will be tallied across the strata. The `IGN` label is used for FILTERed sites, structural variants, or otherwise irregular sites as determined by the tool. The `OUT` label is used for variants that fall outside the user-provided `evaluation_intervals` regions, and are hence not classified as a match or mismatch.
 
 ---
 
