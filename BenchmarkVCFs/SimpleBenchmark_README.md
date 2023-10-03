@@ -33,8 +33,7 @@ This tool was heavily inspired by the previously developed BenchmarkVCFs and Fin
 
 ### Workflow Inputs
 
-The following are the top-level inputs for the workflow. We borrow the `vcfeval` terminology in referring to the paradigm
-of a "base"line VCF and a "call"set VCF benchmarked against it.
+The following are the top-level inputs for the workflow. 
 
 * `base_vcf` - the VCF to use as baseline.
 * `base_vcf_index` - the index of the VCF to use as baseline.
@@ -49,17 +48,18 @@ of a "base"line VCF and a "call"set VCF benchmarked against it.
 * `ref_fasta` - reference fasta file matching the input VCFs.
 * `ref_index` - reference fasta index.
 
-* `stratifier_intervals` - (default = `[]`) list of interval files to stratify by to compute benchmarking statistics over. These can be any of the allowed interval file formats supported by GATK, including bed and Picard interval_list files.**Regardless of input, an "empty" interval file will be added to perform benchmarking over without any subseting, which will have a corresponding empty label.** This is important when computing summary statistics in groups, since some programs(like pandas groupby) default to excluding entries with null values. The naming convention for the empty file is left empty to avoid collisions with user input names on other interval files.
+* `stratifier_intervals` - (default = `[]`) list of interval files to stratify by to compute benchmarking statistics over.
 * `stratifier_labels` - (default = `[]`) list of names for the given `strat_intervals`. The order must match, and the sizes must agree.
 
-* `evaluation_intervals` - if provided, only variants inside this bed file will be counted in statistics. Note this is slightly different from using a `strat_interval` because `vcfeval` will process variants on the boundary slightly differently here (see the RTG manual for details). This is intended to be used when one has a "high confidence" region for known truth samples.
-* `score_field` - (default = `"GQ"`) an optional field to use for stratifying ROC data. The `vcfeval` will be run to produce the proper ROC data with the given string input to `--vcf-score-field`. Example values include `"GQ"`, `INFO.<NAME>`, and `FORMAT.<NAME>`. See the `vcfeval` documentation for more information **WARNING**: Some values might not make sense to stratify when interested in *both* precision and recall statistics. For example, with the value `FORMAT.DP` it might make sense to evaluate precision of calls made by depth in the callset, but often the baseline/truth doesn't have any intrinsic DP associated with each variant, and so any present in the baseline may lead to misleading recall statistics. See the section on [Interpreting Output Data](#interpreting-output-data) below for details.
+* `evaluation_intervals` - if provided, only variants inside this bed file will be counted in main statistics. Note this is slightly different from using a `strat_interval` because `vcfeval` will process variants on the boundary slightly differently here (see the RTG manual for details). This is intended to be used when one has a "high confidence" region for known truth samples.
+
+* `score_field` - (default = `"GQ"`) an optional field to use for stratifying ROC data. The `vcfeval` tool will be run to produce the proper ROC data with the given string input to `--vcf-score-field`. Example values include `"GQ"`, `INFO.<NAME>`, and `FORMAT.<NAME>`. See the `vcfeval` documentation for more information. **WARNING**: Some values might not make sense to stratify when interested in *both* precision and recall statistics. For example, with the value `FORMAT.DP` it might make sense to evaluate precision of calls made by depth in the callset, but often the baseline/truth doesn't have any intrinsic DP associated with each variant, and so any present in the baseline may lead to misleading recall statistics.
 
 * `experiment` - an optional string to populate "Experiment" column in final output tables. Useful for incorporating Terra table information about experimental groups to do grouped analyses downstream, or for easier integration into provided visualizer tools.
 * `extra_column_name` - an optional string title for an additional column to add to final output tables, for downstream analysis.
 * `extra_column_value` - values to populate in the optional `extra_column`, if specified. To make downstream analysis easier by incorporating Terra table information, e.g. `MEAN_COVERAGE`.
 
-* `create_igv_session` - if true, an XML for an IGV session with relevant files will be created and output
+* `create_igv_session` - if true, an XML for an IGV session with relevant files will be created and output.
 * `optional_igv_bams` - an optional list of bams to include in the IGV session output; these are considered `String`s, so no overhead runtime cost is accrued from larger files.
 * `igv_session_name` - the name of the XML file for IGV.
 
@@ -83,7 +83,7 @@ There are four files output by the workflow. They are:
 (e.g. `A>C`, `A>G`, etc.). For convenience, the column `Substitution_Type` labels the variant class as `Ti` or `Tv` depending on if the substitution is a transition or transversion accordingly, so users can readily group and process their own statistics per class.
 * `ROCStats` - This file is the ROC outputs by `vcfeval`, relative to the whole genome. A `score_field` column records the user input score label for the given row.
 
-We follow the same convention as RTG when computing Precision / Recall statistics, namely we use:
+The convention as advised by RTG when computing Precision / Recall statistics is:
 
 $$ Prec = \frac{TP_{call}}{(TP_{call} + FP)}, $$
 
@@ -93,7 +93,7 @@ and
 
 $$ F_1 = 2 \cdot \frac{Prec \cdot Recall}{Prec + Recall}.$$
 
-In addition, simple counts of sites labeled `IGN` or `OUT` from `vcfeval` will be tallied across the strata. The `IGN` label is used for FILTERed sites, structural variants, or otherwise irregular sites as determined by the tool. The `OUT` label is used for variants that fall outside the user-provided `evaluation_intervals` regions, and are hence not classified as a match or mismatch.
+In addition, simple counts of sites labeled `IGN` or `OUT` from `vcfeval` will be tallied across the strata. The `IGN` label is used for FILTERed sites, structural variants, or otherwise irregular sites as determined by the tool. The `OUT` label is used for variants that fall outside the `evaluation_intervals` regions if provided, and are hence not classified as a match or mismatch. If no `evaluation_intervals` file is provided, there will be no `OUT` variants in the result.
 
 ---
 
@@ -101,7 +101,7 @@ In addition, simple counts of sites labeled `IGN` or `OUT` from `vcfeval` will b
 
 The workflow has the following main high-level tasks:
 
-1. **Classify Variants** in both VCFs using `vcfeval`.
+1. **Classify Variants** in both VCFs using `vcfeval` and combine into one labeled VCF.
 2. **Compute Statistics** on labeled variants in different subsets of types of variants in different regions.
 3. **Combine Statistics** into a few final files for output.
 
@@ -109,7 +109,7 @@ Some details are provided for each step below.
 
 ### Classify Variants
 
-We run `vcfeval` just once to perform haplotype-aware variant comparison. This is a sophisticated way to comparing variants across VCFs which accounts for potentially different methods of representing haplotype-equivalent variants. Each variant in the files can be categorized as true positive (TP), false positive (FP), and false negative (FN) based on how the call variants compare with the base. The command outputs a "combined" VCF file containing "consensus" calls between the two VCFs and classifier labels.
+We run `vcfeval` just once to perform haplotype-aware variant comparison. This is a sophisticated way to comparing variants across VCFs which accounts for potentially different methods of representing haplotype-equivalent variants. Each variant in the files can be categorized as true positive (TP), false positive (FP), and false negative (FN) based on how the query variants compare with the base. The command outputs a "combined" VCF file containing "consensus" calls between the two VCFs and classifier labels.
 
 In addition, the command outputs ROC-style statistics split by user-input score fields (e.g. stratify TP, FP, FN counts by GQ scores, etc.). Some data cleaning is performed in this step on the ROC files output by `vcfeval`.
 

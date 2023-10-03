@@ -79,7 +79,7 @@ workflow SimpleBenchmark {
                 interval_labels=["Evaluation"]
         }
 
-        File converted_evaluation_bed = select_first([ConvertEvalIntervals.bed_files, evaluation_intervals])
+        File converted_evaluation_bed = ConvertEvalIntervals.bed_files
     }
 
     call IntervalList2Bed.IntervalList2Bed as ConvertIntervals {
