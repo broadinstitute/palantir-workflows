@@ -96,3 +96,6 @@ workflows:
   - name: ProGRESSMultivariateRiskModel
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/ProGRESSMultivariateRiskModel.wdl
+  - name: SampleSetPRSWrapper
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/SampleSetPRSWrapper.wdl
