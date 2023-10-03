@@ -84,6 +84,12 @@ idd_df = pd.read_csv('IndelDistributionStats.tsv', sep='\t')
 
 
 
+# In[ ]:
+
+
+
+
+
 # ### Fill Null Stratifier Entries
 
 # In[ ]:
@@ -128,7 +134,7 @@ for df in [idd_df, roc_df, st_df, summary_df]:
 
 # Check if only one distinguishable sample in summary_df
 # Affects behavior of some plots downstream
-SINGLE_SAMPLE_MODE = len(summary_df[['Experiment', 'Call_Name', 'Base_Name']].value_counts()) == 1
+SINGLE_SAMPLE_MODE = len(summary_df[['Experiment', 'Query_Name', 'Base_Name']].value_counts()) == 1
 
 
 # In[ ]:
@@ -172,9 +178,9 @@ def make_type_selector(df):
 
 def make_sample_selector(df):
     return plg.DataFilterChecklist(
-        header="Callset Sample",
-        data_col='Call_Name',
-        data_values=list(df['Call_Name'].unique())
+        header="Query Sample",
+        data_col='Query_Name',
+        data_values=list(df['Query_Name'].unique())
     )
 
 def make_experiment_selector(df):
@@ -203,12 +209,12 @@ def make_prec_recall_plot(df, marginal, axes_mode):
     if not SINGLE_SAMPLE_MODE:
         marginal = marginal.lower() if marginal != 'None' else None
         fig = px.scatter(df, x='Recall', y='Precision', color=color, marginal_x=marginal, marginal_y=marginal,
-                          hover_data=['Call_Name'], title=f'Precision vs Recall Plot over {strat} for {type_}', 
+                          hover_data=['Query_Name'], title=f'Precision vs Recall Plot over {strat} for {type_}', 
                           category_orders=CATEGORY_ORDERS, color_discrete_map=EXPERIMENT_COLOR_MAP)
         if axes_mode == 'Fixed':
             fig.update_layout(xaxis_range=[0, 1.1], yaxis_range=[0, 1.1])
     else:
-        melted_df = df.melt(id_vars=['Experiment', 'Call_Name', 'Base_Name', 'Stratifier', 'Type'], value_vars=['Precision', 'Recall', 'F1_Score'])
+        melted_df = df.melt(id_vars=['Experiment', 'Query_Name', 'Base_Name', 'Stratifier', 'Type'], value_vars=['Precision', 'Recall', 'F1_Score'])
         melted_df = melted_df.rename(columns={'variable': 'Stat', 'value': 'Value'})
         fig = px.bar(melted_df, x='Stat', y='Value', title=f'Performance Stats over {strat} for {type_}', 
                      category_orders=CATEGORY_ORDERS, color_discrete_map=EXPERIMENT_COLOR_MAP)
@@ -221,7 +227,7 @@ def make_stat_covariate_plot(df, covaraite, stat):
     strat = df['Stratifier'].iloc[0]
     type_ = df['Type'].iloc[0]
     color = None if df['Experiment'].iloc[0] == 'No_ExpGroups_Provided' else 'Experiment'
-    return px.scatter(df, x=stat_corr, y=stat, color=color, hover_data=['Call_Name', 'TP_Base', 'TP_Call', 'FP', 'FN'],
+    return px.scatter(df, x=stat_corr, y=stat, color=color, hover_data=['Query_Name', 'TP_Base', 'TP_Query', 'FP', 'FN'],
                       title=f'Plot of {stat} by {covariate} over {strat} for {type_}', 
                       category_orders=CATEGORY_ORDERS, color_discrete_map=EXPERIMENT_COLOR_MAP)
 
@@ -328,7 +334,7 @@ def make_roc_plot(df, tp):
     tp_value = f'TP_{tp}'
     color = f'{tp}_Name'
     type_ = df['Type'].iloc[0]
-    fig = px.line(df, x='Score', y='Precision', hover_data=['Score', 'TP_Base', 'TP_Call', 'FP', 'FN'], 
+    fig = px.line(df, x='Score', y='Precision', hover_data=['Score', 'TP_Base', 'TP_Query', 'FP', 'FN'], 
                   title=f'ROC Plot on for {type_} by Score', color=color, 
                   category_orders=CATEGORY_ORDERS, color_discrete_map=EXPERIMENT_COLOR_MAP)
     return fig
@@ -346,7 +352,7 @@ roc_plot = qbb.PlotPanel(
     header="ROC Plot (TP vs FP by Score Field)",
     plotter=make_roc_plot,
     plot_inputs={
-        'tp': 'Call'
+        'tp': 'Query'
     },
     data_source=roc_df,
     plugins=[]
@@ -388,13 +394,13 @@ def make_snp_substitution_plot(df, stat):
     color = None if df['Experiment'].iloc[0] == 'No_ExpGroups_Provided' else 'Experiment'
     strat = df['Stratifier'].iloc[0]
     type_ = df['Type'].iloc[0]
-    df_means = df.groupby(['Experiment', 'Type', 'Substitution_Type', 'Ref_Nucleotide', 'Var_Nucleotide'])[['TP_Base', 'TP_Call', 
+    df_means = df.groupby(['Experiment', 'Type', 'Substitution_Type', 'Ref_Nucleotide', 'Var_Nucleotide'])[['TP_Base', 'TP_Query', 
                                                                                'FP', 'FN', 'F1_Score', 'Precision', 'Recall']].mean().reset_index()
     df_conf = df.groupby(['Experiment', 'Type', 'Substitution_Type', 'Ref_Nucleotide', 'Var_Nucleotide'])[[
-        'TP_Base', 'TP_Call', 'FP', 'FN', 'F1_Score', 'Precision', 'Recall']].sem().apply(lambda x: 1.96*x).reset_index()
+        'TP_Base', 'TP_Query', 'FP', 'FN', 'F1_Score', 'Precision', 'Recall']].sem().apply(lambda x: 1.96*x).reset_index()
     
     plot_df = df_means.merge(df_conf, on=['Experiment', 'Ref_Nucleotide', 'Var_Nucleotide'], suffixes=('_mean', '_conf'))
-    counts = ['TP_Base_mean', 'TP_Call_mean', 'FP_mean', 'FN_mean']
+    counts = ['TP_Base_mean', 'TP_Query_mean', 'FP_mean', 'FN_mean']
     plot_df[counts] = plot_df[counts].round(2)
     
     category_orders = {
@@ -405,7 +411,7 @@ def make_snp_substitution_plot(df, stat):
         category_orders = {**category_orders, **{'Experiment': EXPERIMENT_ORDER}}
 
     fig = px.scatter_3d(plot_df, x='Ref_Nucleotide', y='Var_Nucleotide', z=f'{stat}_mean', error_z=f'{stat}_conf', color=color, 
-                        hover_data=['TP_Base_mean', 'TP_Call_mean', 'FP_mean', 'FN_mean'],
+                        hover_data=['TP_Base_mean', 'TP_Query_mean', 'FP_mean', 'FN_mean'],
                         title=f'Plot of {stat} per Substitution Type on {strat} for {type_}', 
                         category_orders=category_orders, symbol='Substitution_Type_mean', color_discrete_map=EXPERIMENT_COLOR_MAP,
                         height=700, width=1000,
@@ -418,8 +424,8 @@ def make_titv_plot(df, stat, titv):
     strat = df['Stratifier'].iloc[0]
     type_ = df['Type'].iloc[0]
 
-    df_counts = df.groupby(['Call_Name', 'Substitution_Type', 'Experiment'])[['TP_Base', 'TP_Call', 'FP', 'FN']].sum().reset_index()
-    df_counts['Precision'] = df_counts['TP_Call'] / (df_counts['TP_Call'] + df_counts['FP'])
+    df_counts = df.groupby(['Query_Name', 'Substitution_Type', 'Experiment'])[['TP_Base', 'TP_Query', 'FP', 'FN']].sum().reset_index()
+    df_counts['Precision'] = df_counts['TP_Query'] / (df_counts['TP_Query'] + df_counts['FP'])
     df_counts['Recall'] = df_counts['TP_Base'] / (df_counts['TP_Base'] + df_counts['FN'])
     df_counts['F1_Score'] = 2 * df_counts['Precision'] * df_counts['Recall'] / (df_counts['Precision'] + df_counts['Recall'])
     
@@ -449,7 +455,7 @@ snp_substitution_plot = qbb.PlotPanel(
         plg.PlotInputRadioButtons(
             header='Stat to Plot',
             plot_input='stat',
-            data_values=['F1_Score', 'Precision', 'Recall', 'TP_Base', 'TP_Call', 'FP', 'FN']
+            data_values=['F1_Score', 'Precision', 'Recall', 'TP_Base', 'TP_Query', 'FP', 'FN']
         )
     ]
 )
@@ -466,7 +472,7 @@ snp_titv_plot = qbb.PlotPanel(
         plg.PlotInputRadioButtons(
             header='Stat to Plot',
             plot_input='stat',
-            data_values=['F1_Score', 'Precision', 'Recall', 'TP_Base', 'TP_Call', 'FP', 'FN']
+            data_values=['F1_Score', 'Precision', 'Recall', 'TP_Base', 'TP_Query', 'FP', 'FN']
         ),
         plg.PlotInputRadioButtons(
             header='Substitution Type',
@@ -517,9 +523,9 @@ def make_idd_plot(df, stat):
     type_ = df['Type'].iloc[0]
 
     if not SINGLE_SAMPLE_MODE:
-        df_means = df.groupby(['Experiment', 'INDEL_Length'])[['TP_Base', 'TP_Call', 'FP', 'FN', 'F1_Score', 'Precision', 'Recall']].mean().reset_index()
+        df_means = df.groupby(['Experiment', 'INDEL_Length'])[['TP_Base', 'TP_Query', 'FP', 'FN', 'F1_Score', 'Precision', 'Recall']].mean().reset_index()
         # Use naive noise model for error bars
-        df_conf = df.groupby(['Experiment', 'INDEL_Length'])[['TP_Base', 'TP_Call', 'FP', 'FN', 
+        df_conf = df.groupby(['Experiment', 'INDEL_Length'])[['TP_Base', 'TP_Query', 'FP', 'FN', 
                                                               'F1_Score', 'Precision', 'Recall']].sem().apply(lambda x: 1.96*x).reset_index()
         
         df_means = df_means.round(2)
@@ -532,7 +538,7 @@ def make_idd_plot(df, stat):
     plot_df = df_means.merge(df_conf, on=['Experiment', 'INDEL_Length'], suffixes=('_mean', '_conf'))
     fig = px.bar(
         plot_df, x='INDEL_Length', y=f'{stat}_mean', error_y=error_y, title=f'Plot of {stat} mean by INDEL Length on {strat} for {type_}',
-        hover_data=['TP_Base_mean', 'TP_Call_mean', 'FP_mean', 'FN_mean'], color=color, barmode='group',
+        hover_data=['TP_Base_mean', 'TP_Query_mean', 'FP_mean', 'FN_mean'], color=color, barmode='group',
         category_orders=CATEGORY_ORDERS, color_discrete_map=EXPERIMENT_COLOR_MAP
     )
     return fig
