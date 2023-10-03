@@ -1,7 +1,7 @@
 version 1.0
 
-import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/Utilities/WDLs/IntervalList2Bed.wdl" as IntervalList2Bed
-import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/Utilities/WDLs/CreateIGVSession.wdl" as IGV
+import "../Utilities/WDLs/IntervalList2Bed.wdl" as IntervalList2Bed
+import "../Utilities/WDLs/CreateIGVSession.wdl" as IGV
 
 # Object holding configuration for runtime parameters to shorten number of optional inputs
 struct RuntimeAttributes {
@@ -23,12 +23,12 @@ struct GenotypeSelector {
 }
 
 # Object representing file with intervals to subset analysis over
-struct Stratifier {
+struct StratifierInterval {
     String label
     File intervals
 }
 
-# Main workflow: performs evaluation of call_vcf against base_vcf using vcfeval comparison engine,
+# Main workflow: performs evaluation of query_vcf against base_vcf using vcfeval comparison engine,
 # over different analysis modes.
 workflow SimpleBenchmark {
     input {
@@ -38,10 +38,10 @@ workflow SimpleBenchmark {
         String base_output_sample_name
         String? base_vcf_sample_name
 
-        File call_vcf
-        File call_vcf_index
-        String call_output_sample_name
-        String? call_vcf_sample_name
+        File query_vcf
+        File query_vcf_index
+        String query_output_sample_name
+        String? query_vcf_sample_name
 
         # Reference information
         File ref_fasta
@@ -80,7 +80,7 @@ workflow SimpleBenchmark {
 
     # Make Stratifier objects
     scatter (interval_pair in zip(ConvertIntervals.bed_labels, ConvertIntervals.bed_files)) {
-        Stratifier stratifier_list = {"label": interval_pair.left, "intervals": interval_pair.right}
+        StratifierInterval stratifier_list = {"label": interval_pair.left, "intervals": interval_pair.right}
     }
 
     # Collect genotype categories to stratify by in bcftools stats
@@ -93,9 +93,9 @@ workflow SimpleBenchmark {
 
     call VCFEval as StandardVCFEval {
         input:
-            call_vcf=call_vcf,
-            call_vcf_index=call_vcf_index,
-            call_output_sample_name=call_output_sample_name,
+            query_vcf=query_vcf,
+            query_vcf_index=query_vcf_index,
+            query_output_sample_name=query_output_sample_name,
             base_vcf=base_vcf,
             base_vcf_index=base_vcf_index,
             base_output_sample_name=base_output_sample_name,
@@ -113,7 +113,7 @@ workflow SimpleBenchmark {
                 stratifier_label="WholeGenome",
                 bcf_genotype=selector.bcf_genotype,
                 bcf_genotype_label=selector.bcf_genotype_label,
-                call_output_sample_name=call_output_sample_name,
+                query_output_sample_name=query_output_sample_name,
                 base_output_sample_name=base_output_sample_name
         }
     }
@@ -129,7 +129,7 @@ workflow SimpleBenchmark {
                 stratifier_label=stratifier.label,
                 bcf_genotype=selector.bcf_genotype,
                 bcf_genotype_label=selector.bcf_genotype_label,
-                call_output_sample_name=call_output_sample_name,
+                query_output_sample_name=query_output_sample_name,
                 base_output_sample_name=base_output_sample_name
         }
     }
@@ -171,9 +171,9 @@ workflow SimpleBenchmark {
 task VCFEval {
     input {
         # Input VCF Files
-        File call_vcf
-        File call_vcf_index
-        String call_output_sample_name
+        File query_vcf
+        File query_vcf_index
+        String query_output_sample_name
         File base_vcf
         File base_vcf_index
         String base_output_sample_name
@@ -196,7 +196,7 @@ task VCFEval {
 
         # Runtime params
         Int? preemptible
-        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(size(call_vcf, "GB") + size(base_vcf, "GB") + size(reference.fasta, "GB")) + 10,
+        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(size(query_vcf, "GB") + size(base_vcf, "GB") + size(reference.fasta, "GB")) + 10,
                                                   "cpu": 8, "memory": 16}
     }
 
@@ -212,7 +212,7 @@ task VCFEval {
                 ~{false="--squash-ploidy" true="" require_matching_genotypes} \
                 ~{true="--ref-overlap" false="" enable_ref_overlap} \
                 -b ~{base_vcf} \
-                -c ~{call_vcf} \
+                -c ~{query_vcf} \
                 ~{"-e " + evaluation_bed} \
                 --vcf-score-field="~{score_field}" \
                 --output-mode combine \
@@ -237,7 +237,7 @@ task VCFEval {
                 ~{true="--ref-overlap" false="" enable_ref_overlap} \
                 --squash-ploidy \
                 -b ~{base_vcf} \
-                -c ~{call_vcf} \
+                -c ~{query_vcf} \
                 --bed-regions non-par.bed \
                 ~{"-e " + evaluation_bed} \
                 --vcf-score-field="~{score_field}" \
@@ -252,7 +252,7 @@ task VCFEval {
                 ~{false="--squash-ploidy" true="" require_matching_genotypes} \
                 ~{true="--ref-overlap" false="" enable_ref_overlap} \
                 -b ~{base_vcf} \
-                -c ~{call_vcf} \
+                -c ~{query_vcf} \
                 --bed-regions regular-regions.bed \
                 ~{"-e " + evaluation_bed} \
                 --vcf-score-field="~{score_field}" \
@@ -290,12 +290,12 @@ task VCFEval {
                 df = pd.read_csv(file_path, sep='\t', comment='#', header=None, names=header_names)
 
                 rename_columns = {'score': 'Score', 'true_positives_baseline': 'TP_Base',
-                      'false_positives': 'FP', 'true_positives_call': 'TP_Call', 'false_negatives': 'FN',
+                      'false_positives': 'FP', 'true_positives_call': 'TP_Query', 'false_negatives': 'FN',
                       'precision': 'Precision', 'sensitivity': 'Recall', 'f_measure': 'F1_Score'}
 
                 df = df.rename(columns=rename_columns)
                 df['Type'] = Type.upper()
-                df['Call_Name'] = "~{call_output_sample_name}"
+                df['Query_Name'] = "~{query_output_sample_name}"
                 df['Base_Name'] = "~{base_output_sample_name}"
 
                 full_df = pd.concat([full_df, df])
@@ -308,15 +308,15 @@ task VCFEval {
         # If PAR bed file provided, also collect data from analysis over PAR region and combine stats
         if len("~{par_bed}") > 0:
             par_roc_summary = parse_data('par')
-            merged_df = reg_roc_summary.merge(par_roc_summary, on=['Score', 'Type', 'Stratifier', 'Call_Name', 'Base_Name'], how='outer').fillna(0)
-            for stat in ['TP_Base', 'FP', 'TP_Call', 'FN']:
+            merged_df = reg_roc_summary.merge(par_roc_summary, on=['Score', 'Type', 'Stratifier', 'Query_Name', 'Base_Name'], how='outer').fillna(0)
+            for stat in ['TP_Base', 'FP', 'TP_Query', 'FN']:
                 merged_df[stat] = merged_df[f'{stat}_x'] + merged_df[f'{stat}_y']
-            merged_df['Precision'] = merged_df['TP_Call'] / (merged_df['TP_Call'] + merged_df['FP'])
+            merged_df['Precision'] = merged_df['TP_Query'] / (merged_df['TP_Query'] + merged_df['FP'])
             merged_df['Recall'] = merged_df['TP_Base'] / (merged_df['TP_Base'] + merged_df['FN'])
             merged_df['F1_Score'] = 2 * merged_df['Precision'] * merged_df['Recall'] / (merged_df['Precision'] + merged_df['Recall'])
 
             roc_summary = merged_df[
-                ['Score', 'TP_Base', 'FP', 'TP_Call', 'FN', 'Precision', 'Recall', 'F1_Score', 'Type', 'Stratifier', 'Call_Name', 'Base_Name']
+                ['Score', 'TP_Base', 'FP', 'TP_Query', 'FN', 'Precision', 'Recall', 'F1_Score', 'Type', 'Stratifier', 'Query_Name', 'Base_Name']
             ]
 
         roc_summary.to_csv('ROC_summary.tsv', sep='\t', index=False)
@@ -352,7 +352,7 @@ task BCFToolsStats {
         String bcf_genotype
         String bcf_genotype_label
 
-        String call_output_sample_name
+        String query_output_sample_name
         String base_output_sample_name
 
         String targets_overlap = "record"
@@ -365,7 +365,7 @@ task BCFToolsStats {
     String selection = if bcf_genotype!= "" then " && " + bcf_genotype + "'" else "'"
 
     String tp_base_selection = "-i 'INFO/BASE=\"TP\"" + selection
-    String tp_call_selection = "-i 'INFO/CALL=\"TP\"" + selection
+    String tp_query_selection = "-i 'INFO/CALL=\"TP\"" + selection
     String fp_selection = "-i '(INFO/CALL=\"FP\" || INFO/CALL=\"FP_CA\")" + selection
     String fn_selection = "-i '(INFO/BASE=\"FN\" || INFO/BASE=\"FN_CA\")" + selection
     String out_selection = "-i '(INFO/BASE=\"OUT\" || INFO/CALL=\"OUT\")" + selection
@@ -383,7 +383,7 @@ task BCFToolsStats {
         # access lookup for each entry, which is extremely slow for even interval lists with just a few thousand entries
         # Also use --targets-overlap record to ensure events just overlapping the bed get counted (rather than being fully contained)
         bcftools view -s BASELINE --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{tp_base_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > tp_base_stats.tsv &
-        bcftools view -s CALLS --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{tp_call_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > tp_call_stats.tsv &
+        bcftools view -s CALLS --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{tp_query_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > tp_query_stats.tsv &
         bcftools view -s CALLS --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{fp_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > fp_stats.tsv &
         bcftools view -s BASELINE --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{fn_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > fn_stats.tsv &
         bcftools stats ~{out_selection} -s- ~{"-T " + stratifier_interval + targets_overlap_expression} ~{combined_vcfeval_output} > out_stats.tsv &
@@ -432,7 +432,7 @@ task BCFToolsStats {
 
         df_dict = {
             "TP_Base" : make_dfs("tp_base_stats.tsv"),
-            "TP_Call": make_dfs("tp_call_stats.tsv"),
+            "TP_Query": make_dfs("tp_query_stats.tsv"),
             "FP": make_dfs("fp_stats.tsv"),
             "FN": make_dfs("fn_stats.tsv"),
             "OUT": make_dfs("out_stats.tsv"),
@@ -444,7 +444,7 @@ task BCFToolsStats {
         for stat in df_dict:
             full_sn_df = df_dict[stat]['SN_df'].rename(columns={'Count': f'{stat}_Count'}).merge(full_sn_df, on='Category', how='outer')
         full_sn_df = full_sn_df.fillna(0)
-        full_sn_df['Call_Name'] = "~{call_output_sample_name}"
+        full_sn_df['Query_Name'] = "~{query_output_sample_name}"
         full_sn_df['Base_Name'] = "~{base_output_sample_name}"
         full_sn_df['Stratifier'] = "~{stratifier_label}"
         full_sn_df['BCF_Label'] = "~{bcf_genotype_label}"
@@ -454,7 +454,7 @@ task BCFToolsStats {
         for stat in df_dict:
             full_idd_df = df_dict[stat]['IDD_df'].rename(columns={'Count': f'{stat}_Count'}).merge(full_idd_df, on='INDEL_Length', how='outer')
         full_idd_df = full_idd_df.fillna(0)
-        full_idd_df['Call_Name'] = "~{call_output_sample_name}"
+        full_idd_df['Query_Name'] = "~{query_output_sample_name}"
         full_idd_df['Base_Name'] = "~{base_output_sample_name}"
         full_idd_df['Stratifier'] = "~{stratifier_label}"
         full_idd_df['BCF_Label'] = "~{bcf_genotype_label}"
@@ -464,7 +464,7 @@ task BCFToolsStats {
         for stat in df_dict:
             full_st_df = df_dict[stat]['ST_df'].rename(columns={'Count': f'{stat}_Count'}).merge(full_st_df, on='Substitution', how='outer')
         full_st_df = full_st_df.fillna(0)
-        full_st_df['Call_Name'] = "~{call_output_sample_name}"
+        full_st_df['Query_Name'] = "~{query_output_sample_name}"
         full_st_df['Base_Name'] = "~{base_output_sample_name}"
         full_st_df['Stratifier'] = "~{stratifier_label}"
         full_st_df['BCF_Label'] = "~{bcf_genotype_label}"
@@ -569,7 +569,7 @@ task CombineSummaries {
         # Compute simple stats
         for df in [full_SN, full_IDD, full_ST, simple_summary]:
             df.columns = [c.replace('_Count', '') for c in df.columns]
-            df['Precision'] = df['TP_Call'] / (df['TP_Call'] + df['FP'])
+            df['Precision'] = df['TP_Query'] / (df['TP_Query'] + df['FP'])
             df['Recall'] = df['TP_Base'] / (df['TP_Base'] + df['FN'])
             df['F1_Score'] = 2 * df['Precision'] * df['Recall'] / (df['Precision'] + df['Recall'])
 
@@ -582,10 +582,10 @@ task CombineSummaries {
                 df["~{extra_column_name}"] = "~{extra_column_value}"
 
         # Reorder columns
-        metadata_cols = ['Call_Name', 'Base_Name', 'Stratifier', 'Type']
+        metadata_cols = ['Query_Name', 'Base_Name', 'Stratifier', 'Type']
         metadata_cols = metadata_cols + ["~{extra_column_name}"] if "~{extra_column_name}" != "" else metadata_cols
         metadata_cols = ['Experiment'] + metadata_cols if "~{experiment}" != "" else metadata_cols
-        stat_cols = ['TP_Call', 'TP_Base', 'FP', 'FN', 'Precision', 'Recall', 'F1_Score']
+        stat_cols = ['TP_Query', 'TP_Base', 'FP', 'FN', 'Precision', 'Recall', 'F1_Score']
 
         full_IDD = full_IDD[metadata_cols + ['INDEL_Type', 'INDEL_Length'] + stat_cols]
         full_ST = full_ST[metadata_cols + ['Substitution', 'Substitution_Type'] + stat_cols]
