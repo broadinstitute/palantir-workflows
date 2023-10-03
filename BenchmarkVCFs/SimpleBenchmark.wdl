@@ -323,7 +323,7 @@ task VCFEval {
         # If PAR bed file provided, also collect data from analysis over PAR region and combine stats
         if len("~{par_bed}") > 0:
             par_roc_summary = parse_data('par')
-            merged_df = reg_roc_summary.merge(par_roc_summary, on=['Score', 'Type', 'Stratifier', 'Query_Name', 'Base_Name'], how='outer').fillna(0)
+            merged_df = reg_roc_summary.merge(par_roc_summary, on=['Score', 'Type', 'Interval', 'Query_Name', 'Base_Name'], how='outer').fillna(0)
             for stat in ['TP_Base', 'FP', 'TP_Query', 'FN']:
                 merged_df[stat] = merged_df[f'{stat}_x'] + merged_df[f'{stat}_y']
             merged_df['Precision'] = merged_df['TP_Query'] / (merged_df['TP_Query'] + merged_df['FP'])
@@ -331,7 +331,7 @@ task VCFEval {
             merged_df['F1_Score'] = 2 * merged_df['Precision'] * merged_df['Recall'] / (merged_df['Precision'] + merged_df['Recall'])
 
             roc_summary = merged_df[
-                ['Score', 'TP_Base', 'FP', 'TP_Query', 'FN', 'Precision', 'Recall', 'F1_Score', 'Type', 'Stratifier', 'Query_Name', 'Base_Name']
+                ['Score', 'TP_Base', 'FP', 'TP_Query', 'FN', 'Precision', 'Recall', 'F1_Score', 'Type', 'Interval', 'Query_Name', 'Base_Name']
             ]
 
         roc_summary.to_csv('ROC_summary.tsv', sep='\t', index=False)
@@ -461,7 +461,7 @@ task BCFToolsStats {
         full_sn_df = full_sn_df.fillna(0)
         full_sn_df['Query_Name'] = "~{query_output_sample_name}"
         full_sn_df['Base_Name'] = "~{base_output_sample_name}"
-        full_sn_df['Stratifier'] = "~{stratifier_label}"
+        full_sn_df['Interval'] = "~{stratifier_label}"
         full_sn_df['BCF_Label'] = "~{bcf_genotype_label}"
 
         # Make full IDD (InDel Distribution) df
@@ -471,7 +471,7 @@ task BCFToolsStats {
         full_idd_df = full_idd_df.fillna(0)
         full_idd_df['Query_Name'] = "~{query_output_sample_name}"
         full_idd_df['Base_Name'] = "~{base_output_sample_name}"
-        full_idd_df['Stratifier'] = "~{stratifier_label}"
+        full_idd_df['Interval'] = "~{stratifier_label}"
         full_idd_df['BCF_Label'] = "~{bcf_genotype_label}"
 
         # Make full ST (Substitution) df
@@ -481,7 +481,7 @@ task BCFToolsStats {
         full_st_df = full_st_df.fillna(0)
         full_st_df['Query_Name'] = "~{query_output_sample_name}"
         full_st_df['Base_Name'] = "~{base_output_sample_name}"
-        full_st_df['Stratifier'] = "~{stratifier_label}"
+        full_st_df['Interval'] = "~{stratifier_label}"
         full_st_df['BCF_Label'] = "~{bcf_genotype_label}"
 
         # Write files
@@ -597,7 +597,7 @@ task CombineSummaries {
                 df["~{extra_column_name}"] = "~{extra_column_value}"
 
         # Reorder columns
-        metadata_cols = ['Query_Name', 'Base_Name', 'Stratifier', 'Type']
+        metadata_cols = ['Query_Name', 'Base_Name', 'Interval', 'Type']
         metadata_cols = metadata_cols + ["~{extra_column_name}"] if "~{extra_column_name}" != "" else metadata_cols
         metadata_cols = ['Experiment'] + metadata_cols if "~{experiment}" != "" else metadata_cols
         stat_cols = ['TP_Query', 'TP_Base', 'FP', 'FN', 'Precision', 'Recall', 'F1_Score', 'IGN', 'OUT']
