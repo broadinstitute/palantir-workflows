@@ -19,6 +19,7 @@ workflow SampleSetPRSWrapper {
     File population_pcs
     File pruning_sites_for_pca # and the sites used for PCA
     Int mem_extract
+    Int mem_vcf_to_plink
   }
   scatter(sample_id in sample_ids) {
     call Wrapper.PRSWrapper {
@@ -35,7 +36,8 @@ workflow SampleSetPRSWrapper {
         population_meansd = population_meansd,
         population_pcs = population_pcs,
         pruning_sites_for_pca = pruning_sites_for_pca,
-        mem_extract = mem_extract
+        mem_extract = mem_extract,
+        mem_vcf_to_plink = mem_vcf_to_plink
     }
   }
 
