@@ -32,6 +32,7 @@ workflow ScoringImputedDataset {
 	# is the effect allele, and the 13th column is the effect weight
 	Boolean redoPCA = false
 	Boolean adjustScores = true
+	Int mem_extract
   }
 
   if (adjustScores) {
@@ -82,7 +83,8 @@ workflow ScoringImputedDataset {
 	if (adjustScores && defined(population_vcf)) {
 		call ScoringTasks.ExtractIDsPlink as ExtractIDsPopulation {
 			input:
-				vcf = select_first([population_vcf])
+				vcf = select_first([population_vcf]),
+				mem = mem_extract
 		}
 	}
 

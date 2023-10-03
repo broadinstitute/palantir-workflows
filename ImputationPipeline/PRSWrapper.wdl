@@ -19,6 +19,7 @@ workflow PRSWrapper {
     File population_meansd
     File population_pcs
     File pruning_sites_for_pca # and the sites used for PCA
+    Int mem_extract
   }
 
   scatter(condition_resource in condition_resources) {
@@ -33,7 +34,8 @@ workflow PRSWrapper {
           population_pcs = population_pcs,
           basename = sample_id,
           fitted_model_params_and_sites = condition_resource.ancestry_model_params_and_sites,
-          redoPCA = redoPCA
+          redoPCA = redoPCA,
+          mem_extract = mem_extract
       }
 
       if (condition_resource.named_weight_set.condition_name == "ckd") {
