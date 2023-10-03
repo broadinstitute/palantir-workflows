@@ -52,7 +52,7 @@ workflow SimpleBenchmark {
         Array[String] stratifier_labels = []
 
         # Evaluation inputs
-        File? evaluation_bed
+        File? evaluation_intervals
         String score_field = "GQ"
 
         # Columns to add to output files
@@ -72,6 +72,14 @@ workflow SimpleBenchmark {
     Reference reference = {"fasta": ref_fasta, "index": ref_index}
 
     # Convert any provided interval_lists to beds
+    call IntervalList2Bed.IntervalList2Bed as ConvertEvalIntervals {
+        input:
+            interval_files=[evaluation_intervals],
+            interval_labels=["Evaluation"]
+    }
+
+    File? converted_evaluation_bed = select_first(ConvertEvalIntervals.bed_files)
+
     call IntervalList2Bed.IntervalList2Bed as ConvertIntervals {
         input:
             interval_files=stratifier_intervals,
@@ -100,7 +108,7 @@ workflow SimpleBenchmark {
             base_vcf_index=base_vcf_index,
             base_output_sample_name=base_output_sample_name,
             reference=reference,
-            evaluation_bed=evaluation_bed,
+            evaluation_bed=converted_evaluation_bed,
             score_field=score_field,
             preemptible=preemptible
     }
