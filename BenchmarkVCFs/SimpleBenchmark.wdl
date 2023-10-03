@@ -56,7 +56,7 @@ workflow SimpleBenchmark {
         String score_field = "GQ"
 
         # Columns to add to output files
-        String? experiment_value
+        String? experiment
         String? extra_column_name
         String? extra_column_value
 
@@ -140,7 +140,7 @@ workflow SimpleBenchmark {
             SN_summaries=select_all(flatten([WholeGenomeStats.full_sn, SubsetStats.full_sn])),
             IDD_summaries=select_all(flatten([WholeGenomeStats.full_idd, SubsetStats.full_idd])),
             ST_summaries=select_all(flatten([WholeGenomeStats.full_st, SubsetStats.full_st])),
-            experiment_value=experiment_value,
+            experiment=experiment,
             extra_column_name=extra_column_name,
             extra_column_value=extra_column_value
     }
@@ -158,10 +158,10 @@ workflow SimpleBenchmark {
 
 
     output {
-        File simple_summary = CombineSummaries.simple_summary
-        File combined_IDD = CombineSummaries.IDD_combined_summaries
-        File combined_ST = CombineSummaries.ST_combined_summaries
-        File combined_ROC = CombineSummaries.ROC_combined_summaries
+        File SimpleSummary = CombineSummaries.simple_summary
+        File IndelDistributionStats = CombineSummaries.IDD_combined_summaries
+        File SNPSubstitutionStats = CombineSummaries.ST_combined_summaries
+        File ROCStats = CombineSummaries.ROC_combined_summaries
 
         File? igv_session = IGVSession.igv_session
     }
@@ -192,7 +192,7 @@ task VCFEval {
         # vcfeval Arguments
         Boolean passing_only = true
         Boolean require_matching_genotypes = true
-        Boolean enable_ref_overlap = true
+        Boolean enable_ref_overlap = false
 
         # Runtime params
         Int? preemptible
@@ -355,6 +355,8 @@ task BCFToolsStats {
         String call_output_sample_name
         String base_output_sample_name
 
+        String targets_overlap = "record"
+
         RuntimeAttributes runtimeAttributes = {"disk_size":2 * ceil(size(combined_vcfeval_output, "GB") + size(stratifier_interval, "GB")) + 10,
                                                   "cpu": 4, "memory": 8}
     }
@@ -369,16 +371,23 @@ task BCFToolsStats {
     String out_selection = "-i '(INFO/BASE=\"OUT\" || INFO/CALL=\"OUT\")" + selection
     String ign_selection = "-i '(INFO/BASE=\"IGN\" || INFO/CALL=\"IGN\")" + selection
 
+    String targets_overlap_expression = " --targets-overlap " + targets_overlap
+
     command <<<
         set -xeuo pipefail
 
         # Subset combined output to each stat category; run in parallel
-        bcftools stats ~{tp_base_selection} -s BASELINE ~{"-T" + stratifier_interval} ~{combined_vcfeval_output} > tp_base_stats.tsv &
-        bcftools stats ~{tp_call_selection} -s CALLS ~{"-T" + stratifier_interval} ~{combined_vcfeval_output} > tp_call_stats.tsv &
-        bcftools stats ~{fp_selection} -s CALLS ~{"-T" + stratifier_interval} ~{combined_vcfeval_output} > fp_stats.tsv &
-        bcftools stats ~{fn_selection} -s BASELINE ~{"-T" + stratifier_interval} ~{combined_vcfeval_output} > fn_stats.tsv &
-        bcftools stats ~{out_selection} -s- ~{"-T" + stratifier_interval} ~{combined_vcfeval_output} > out_stats.tsv &
-        bcftools stats ~{ign_selection} -s- ~{"-T" + stratifier_interval} ~{combined_vcfeval_output} > ign_stats.tsv &
+        # Note: subset to sample name and drop unused alts with -a BEFORE using above selector in stats command,
+        # otherwise selecting for GT/TYPE all at once will apply to ALL sample/allele fields, giving misleading stats
+        # Note: Use -T flag instead of -R for subsettng by region; the former streams the entire VCF file while latter does random
+        # access lookup for each entry, which is extremely slow for even interval lists with just a few thousand entries
+        # Also use --targets-overlap record to ensure events just overlapping the bed get counted (rather than being fully contained)
+        bcftools view -s BASELINE --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{tp_base_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > tp_base_stats.tsv &
+        bcftools view -s CALLS --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{tp_call_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > tp_call_stats.tsv &
+        bcftools view -s CALLS --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{fp_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > fp_stats.tsv &
+        bcftools view -s BASELINE --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{fn_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > fn_stats.tsv &
+        bcftools stats ~{out_selection} -s- ~{"-T " + stratifier_interval + targets_overlap_expression} ~{combined_vcfeval_output} > out_stats.tsv &
+        bcftools stats ~{ign_selection} -s- ~{"-T " + stratifier_interval + targets_overlap_expression} ~{combined_vcfeval_output} > ign_stats.tsv &
 
         # Wait for bcftools stats to finish for all selectors
         wait
@@ -469,7 +478,7 @@ task BCFToolsStats {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.0"
+        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.2"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         cpu: runtimeAttributes.cpu
         memory: runtimeAttributes.memory + "GB"
@@ -490,7 +499,7 @@ task CombineSummaries {
         Array[File] IDD_summaries
         Array[File] ST_summaries
 
-        String? experiment_value
+        String? experiment
         String? extra_column_name
         String? extra_column_value
 
@@ -510,13 +519,13 @@ task CombineSummaries {
             df = pd.read_csv(file, sep='\t')
             full_ROC = pd.concat([full_ROC, df])
 
-        if "~{experiment_value}" != "":
-            full_ROC['Experiment'] = "~{experiment_value}"
+        if "~{experiment}" != "":
+            full_ROC['Experiment'] = "~{experiment}"
 
         if ("~{extra_column_name}" != "") and ("~{extra_column_value}" != ""):
             full_ROC["~{extra_column_name}"] = "~{extra_column_value}"
 
-        full_ROC.to_csv('Full_ROC.tsv', sep='\t', index=False)
+        full_ROC.to_csv('ROCStats.tsv', sep='\t', index=False)
 
         # Gather all tables for bcftools stats outputs
         full_SN = pd.DataFrame()
@@ -566,8 +575,8 @@ task CombineSummaries {
 
         # Add optional labels
         for df in [full_SN, full_IDD, full_ST, simple_summary]:
-            if "~{experiment_value}" != "":
-                df['Experiment'] = "~{experiment_value}"
+            if "~{experiment}" != "":
+                df['Experiment'] = "~{experiment}"
 
             if ("~{extra_column_name}" != "") and ("~{extra_column_value}" != ""):
                 df["~{extra_column_name}"] = "~{extra_column_value}"
@@ -575,7 +584,7 @@ task CombineSummaries {
         # Reorder columns
         metadata_cols = ['Call_Name', 'Base_Name', 'Stratifier', 'Type']
         metadata_cols = metadata_cols + ["~{extra_column_name}"] if "~{extra_column_name}" != "" else metadata_cols
-        metadata_cols = ['Experiment'] + metadata_cols if "~{experiment_value}" != "" else metadata_cols
+        metadata_cols = ['Experiment'] + metadata_cols if "~{experiment}" != "" else metadata_cols
         stat_cols = ['TP_Call', 'TP_Base', 'FP', 'FN', 'Precision', 'Recall', 'F1_Score']
 
         full_IDD = full_IDD[metadata_cols + ['INDEL_Type', 'INDEL_Length'] + stat_cols]
@@ -584,8 +593,8 @@ task CombineSummaries {
 
         # Skip returning full_SN since it is redundant with simple_summary
         simple_summary.to_csv('SimpleSummary.tsv', sep='\t', index=False)
-        full_IDD.to_csv('Full_IDD.tsv', sep='\t', index=False)
-        full_ST.to_csv('Full_ST.tsv', sep='\t', index=False)
+        full_IDD.to_csv('IndelDistributionStats.tsv', sep='\t', index=False)
+        full_ST.to_csv('SNPSubstitutionStats.tsv', sep='\t', index=False)
 
         CODE
     >>>
@@ -599,8 +608,8 @@ task CombineSummaries {
 
     output {
         File simple_summary = "SimpleSummary.tsv"
-        File IDD_combined_summaries = "Full_IDD.tsv"
-        File ST_combined_summaries = "Full_ST.tsv"
-        File ROC_combined_summaries = "Full_ROC.tsv"
+        File IDD_combined_summaries = "IndelDistributionStats.tsv"
+        File ST_combined_summaries = "SNPSubstitutionStats.tsv"
+        File ROC_combined_summaries = "ROCStats.tsv"
     }
 }
