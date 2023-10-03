@@ -72,13 +72,15 @@ workflow SimpleBenchmark {
     Reference reference = {"fasta": ref_fasta, "index": ref_index}
 
     # Convert any provided interval_lists to beds
-    call IntervalList2Bed.IntervalList2Bed as ConvertEvalIntervals {
-        input:
-            interval_files=[evaluation_intervals],
-            interval_labels=["Evaluation"]
+    if (defined(evaluation_intervals)) {
+        call IntervalList2Bed.IntervalList2Bed as ConvertEvalIntervals {
+            input:
+                interval_files=select_all([evaluation_intervals]),
+                interval_labels=["Evaluation"]
+        }
     }
 
-    File? converted_evaluation_bed = select_first(ConvertEvalIntervals.bed_files)
+    File? converted_evaluation_bed = select_first([ConvertEvalIntervals.bed_files, evaluation_intervals])
 
     call IntervalList2Bed.IntervalList2Bed as ConvertIntervals {
         input:
