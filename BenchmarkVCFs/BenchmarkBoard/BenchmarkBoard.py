@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import pandas as pd
@@ -27,7 +27,7 @@ from quickboard.app import start_app
 
 # ## User Inputs
 
-# In[2]:
+# In[ ]:
 
 
 # Users must specify column names for quantities to use in making some plots below. See the docs for details.
@@ -56,7 +56,7 @@ SHOW_ERROR_BARS = True
 
 
 
-# In[3]:
+# In[ ]:
 
 
 # DO NOT MODIFY ANY CODE BELOW HERE
@@ -70,7 +70,7 @@ SHOW_ERROR_BARS = True
 
 # ## Load Data
 
-# In[4]:
+# In[ ]:
 
 
 # These file paths must point to the corresponding output files from the WDL, either saved locally or bucket links
@@ -89,7 +89,7 @@ idd_df = pd.read_csv('IndelDistributionStats.tsv', sep='\t')
 
 # ### Fill Null Interval Entries
 
-# In[5]:
+# In[ ]:
 
 
 for df in [idd_df, st_df, summary_df]:
@@ -110,7 +110,7 @@ for df in [idd_df, st_df, summary_df]:
 
 # ### Fill Experiment Column if not Provided
 
-# In[6]:
+# In[ ]:
 
 
 for df in [idd_df, roc_df, st_df, summary_df]:
@@ -126,7 +126,7 @@ for df in [idd_df, roc_df, st_df, summary_df]:
 
 # ### Other Environment Variables
 
-# In[7]:
+# In[ ]:
 
 
 # Check if only one distinguishable sample in summary_df
@@ -134,7 +134,7 @@ for df in [idd_df, roc_df, st_df, summary_df]:
 SINGLE_SAMPLE_MODE = len(summary_df[['Experiment', 'Query_Name', 'Base_Name']].value_counts()) == 1
 
 
-# In[8]:
+# In[ ]:
 
 
 CATEGORY_ORDERS = {
@@ -150,7 +150,7 @@ CATEGORY_ORDERS = {
 
 # ## Plugin Utilities
 
-# In[9]:
+# In[ ]:
 
 
 simple_variants = ['SNP', 'HetSNP', 'HomVarSNP', 'INDEL', 'HetINDEL', 'HomVarINDEL']
@@ -203,7 +203,7 @@ def make_axes_mode_selector():
 
 # ## Data Utilities
 
-# In[10]:
+# In[ ]:
 
 
 def make_exp_average(df, group):
@@ -234,7 +234,7 @@ def make_exp_average(df, group):
 
 # ## Summary Tab
 
-# In[11]:
+# In[ ]:
 
 
 def make_prec_recall_plot(df, marginal, axes_mode):
@@ -270,7 +270,7 @@ def make_stat_covariate_plot(df, covaraite, stat, axes_mode):
     return fig
 
 
-# In[12]:
+# In[ ]:
 
 
 summary_sidebar_plugins = [
@@ -361,7 +361,7 @@ summary_tab = qbb.BaseTab(
 
 # ## ROC Tab
 
-# In[13]:
+# In[ ]:
 
 
 def make_roc_plot(df, roc_mode, error_bars, axes_mode):
@@ -388,7 +388,7 @@ def make_roc_plot(df, roc_mode, error_bars, axes_mode):
     return fig
 
 
-# In[14]:
+# In[ ]:
 
 
 roc_sidebar_plugins = [
@@ -422,7 +422,7 @@ roc_plot = qbb.PlotPanel(
 )
 
 
-# In[15]:
+# In[ ]:
 
 
 roc_tab = qbb.BaseTab(
@@ -443,14 +443,14 @@ roc_tab = qbb.BaseTab(
 
 # ## SNP Tab
 
-# In[16]:
+# In[ ]:
 
 
 st_df['Ref_Nucleotide'] = st_df['Substitution'].apply(lambda x: x.split('>')[0])
 st_df['Var_Nucleotide'] = st_df['Substitution'].apply(lambda x: x.split('>')[1])
 
 
-# In[17]:
+# In[ ]:
 
 
 def make_titv_plot(df, stat, axes_mode):
@@ -506,7 +506,7 @@ def make_snp_substitution_plot(df, stat, axes_mode):
     return fig
 
 
-# In[18]:
+# In[ ]:
 
 
 snp_sidebar_plugins = [
@@ -574,7 +574,7 @@ snp_tab = qbb.BaseTab(
 
 # ## INDEL Tab
 
-# In[19]:
+# In[ ]:
 
 
 def make_idd_plot(df, stat, axes_mode):
@@ -597,7 +597,7 @@ def make_idd_plot(df, stat, axes_mode):
     return fig
 
 
-# In[20]:
+# In[ ]:
 
 
 indel_sidebar_plugins = [
@@ -656,7 +656,7 @@ indel_tab = qbb.BaseTab(
 
 # ## Main Board
 
-# In[21]:
+# In[ ]:
 
 
 board = qbb.Quickboard(
@@ -669,10 +669,10 @@ board = qbb.Quickboard(
 )
 
 
-# In[22]:
+# In[ ]:
 
 
-start_app(board, app_title='BenchmarkBoard', mode='external', port=8055)
+start_app(board, app_title='BenchmarkBoard', mode='external', port=8050)
 
 
 # In[ ]:
