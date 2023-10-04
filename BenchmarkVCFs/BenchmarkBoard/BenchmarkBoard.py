@@ -219,7 +219,7 @@ def make_exp_average(df, group):
     # Use naive noise model for error bars
     df_conf = df.groupby(['Experiment', group])[cols].sem().apply(lambda x: 1.96*x).reset_index()
     
-    df_means = df_means.round(2)
+    df_means = df_means.round(4)
     df_conf = df_conf.round(4)
 
     plot_df = df_means.merge(df_conf, on=['Experiment', group], suffixes=('_mean', '_conf'))
@@ -672,7 +672,7 @@ board = qbb.Quickboard(
 # In[ ]:
 
 
-start_app(board, app_title='BenchmarkBoard', mode='external', port=8050)
+start_app(board, app_title='BenchmarkBoard', mode='external', port=8055)
 
 
 # In[ ]:
