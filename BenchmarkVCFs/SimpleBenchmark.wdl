@@ -260,6 +260,7 @@ task VCFEval {
                 --decompose \
                 --roc-subset snp,indel \
                 -t rtg_ref \
+                ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
                 -o par
 
             rtg vcfeval \
@@ -275,6 +276,7 @@ task VCFEval {
                 --decompose \
                 --roc-subset snp,indel \
                 -t rtg_ref \
+                ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
                 -o reg
 
             mkdir output_dir
