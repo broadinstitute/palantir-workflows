@@ -187,6 +187,13 @@ def make_experiment_selector(df):
         data_values=list(df['Experiment'].unique()),
     )
 
+def make_axes_mode_selector():
+    return plg.PlotInputRadioButtons(
+        header='Axes Mode',
+        plot_input='axes_mode',
+        data_values=['Dynamic', 'Fixed']
+    )
+
 
 # In[ ]:
 
@@ -200,7 +207,14 @@ def make_experiment_selector(df):
 
 
 def make_exp_average(df, group):
-    cols = ['TP_Base', 'TP_Query', 'FP', 'FN', 'F1_Score', 'Precision', 'Recall', 'IGN', 'OUT']
+    cols = ['TP_Base', 'TP_Query', 'FP', 'FN', 'F1_Score', 'Precision', 'Recall']
+    
+    # Handle case where no IGN/OUT cols like ROC plots by adding back when present
+    if 'IGN' in df.columns:
+        cols += ['IGN']
+    if 'OUT' in df.columns:
+        cols += ['OUT']
+
     df_means = df.groupby(['Experiment', group])[cols].mean().reset_index()
     # Use naive noise model for error bars
     df_conf = df.groupby(['Experiment', group])[cols].sem().apply(lambda x: 1.96*x).reset_index()
@@ -244,13 +258,16 @@ def make_prec_recall_plot(df, marginal, axes_mode):
     return fig
 
 
-def make_stat_covariate_plot(df, covaraite, stat):
+def make_stat_covariate_plot(df, covaraite, stat, axes_mode):
     strat = df['Interval'].iloc[0]
     type_ = df['Type'].iloc[0]
     color = None if df['Experiment'].iloc[0] == 'No_ExpGroups_Provided' else 'Experiment'
-    return px.scatter(df, x=stat_corr, y=stat, color=color, hover_data=['Query_Name', 'TP_Base', 'TP_Query', 'FP', 'FN'],
+    fig = px.scatter(df, x=stat_corr, y=stat, color=color, hover_data=['Query_Name', 'TP_Base', 'TP_Query', 'FP', 'FN'],
                       title=f'Plot of {stat} by {covariate} over {strat} for {type_}', 
                       category_orders=CATEGORY_ORDERS, color_discrete_map=EXPERIMENT_COLOR_MAP)
+    if axes_mode == 'Fixed':
+        fig.update_layout(yaxis_range=[0, 1.1])
+    return fig
 
 
 # In[12]:
@@ -259,7 +276,8 @@ def make_stat_covariate_plot(df, covaraite, stat):
 summary_sidebar_plugins = [
     make_strat_selector(summary_df),
     make_type_selector(summary_df),
-    make_experiment_selector(summary_df)
+    make_experiment_selector(summary_df),
+    make_axes_mode_selector()
 ]
 
 # Prec vs Recall plot 
@@ -277,11 +295,6 @@ prec_recall_plot = qbb.PlotPanel(
             plot_input='marginal',
             data_values=['None', 'Box', 'Violin', 'Histogram', 'Rug']
         ),
-        plg.PlotInputRadioButtons(
-            header='Axes Mode',
-            plot_input='axes_mode',
-            data_values=['Dynamic', 'Fixed']
-        )
     ] if not SINGLE_SAMPLE_MODE else []
 )
 
@@ -351,7 +364,7 @@ summary_tab = qbb.BaseTab(
 # In[13]:
 
 
-def make_roc_plot(df, roc_mode, error_bars):
+def make_roc_plot(df, roc_mode, error_bars, axes_mode):
     type_ = df['Type'].iloc[0]
     if roc_mode in ['Precision', 'Recall']:
         error_y = None
@@ -368,6 +381,10 @@ def make_roc_plot(df, roc_mode, error_bars):
     else:
         fig = px.line(df, x='Recall', y='Precision', color='Experiment', line_group='Query_Name', hover_data=['Score'],
                       title=f'ROC Plot for {type_} stratified by Score')
+        fig.update_layout(xaxis_range=[0, 1.1])
+
+    if axes_mode == 'Fixed':
+        fig.update_layout(yaxis_range=[0, 1.1])
     return fig
 
 
@@ -377,7 +394,8 @@ def make_roc_plot(df, roc_mode, error_bars):
 roc_sidebar_plugins = [
     make_type_selector(roc_df),
     make_experiment_selector(roc_df),
-    make_sample_selector(roc_df)
+    make_axes_mode_selector(),
+    make_sample_selector(roc_df),
 ]
 
 roc_plot_plugins = [
@@ -435,7 +453,7 @@ st_df['Var_Nucleotide'] = st_df['Substitution'].apply(lambda x: x.split('>')[1])
 # In[17]:
 
 
-def make_titv_plot(df, stat):
+def make_titv_plot(df, stat, axes_mode):
     color = None if df['Experiment'].iloc[0] == 'No_ExpGroups_Provided' else 'Experiment'
     strat = df['Interval'].iloc[0]
     type_ = df['Type'].iloc[0]
@@ -453,9 +471,11 @@ def make_titv_plot(df, stat):
                   title=f'Plot of {stat} mean by Substitution Type on {strat} for {type_}', 
                   hover_data=['TP_Base_mean', 'TP_Query_mean', 'FP_mean', 'FN_mean', 'IGN_mean', 'OUT_mean'], color=color, barmode='group',
                   category_orders=CATEGORY_ORDERS, color_discrete_map=EXPERIMENT_COLOR_MAP)
+    if axes_mode == 'Fixed' and stat in ['Precision', 'Recall', 'F1_Score']:
+        fig.update_layout(yaxis_range=[0, 1.1])
     return fig
 
-def make_snp_substitution_plot(df, stat):
+def make_snp_substitution_plot(df, stat, axes_mode):
     color = None if df['Experiment'].iloc[0] == 'No_ExpGroups_Provided' else 'Experiment'
     strat = df['Interval'].iloc[0]
     type_ = df['Type'].iloc[0]
@@ -492,7 +512,8 @@ def make_snp_substitution_plot(df, stat):
 snp_sidebar_plugins = [
     make_strat_selector(st_df),
     make_type_selector(st_df),
-    make_experiment_selector(st_df)
+    make_experiment_selector(st_df),
+    make_axes_mode_selector()
 ]
 
 snp_titv_plot = qbb.PlotPanel(
@@ -556,7 +577,7 @@ snp_tab = qbb.BaseTab(
 # In[19]:
 
 
-def make_idd_plot(df, stat):
+def make_idd_plot(df, stat, axes_mode):
     color = None if df['Experiment'].iloc[0] == 'No_ExpGroups_Provided' else 'Experiment'
     strat = df['Interval'].iloc[0]
     type_ = df['Type'].iloc[0]
@@ -571,6 +592,8 @@ def make_idd_plot(df, stat):
     fig = px.line(plot_df, x='INDEL_Length', y=f'{stat}_mean', error_y=error_y, title=f'Plot of {stat} mean by INDEL Length on {strat} for {type_}', 
                   hover_data=['TP_Base_mean', 'TP_Query_mean', 'FP_mean', 'FN_mean', 'IGN_mean', 'OUT_mean'], color=color, line_group=color, 
                   category_orders=CATEGORY_ORDERS, color_discrete_map=EXPERIMENT_COLOR_MAP)
+    if axes_mode == 'Fixed' and stat in ['Precision', 'Recall', 'F1_Score']:
+        fig.update_layout(yaxis_range=[0, 1.1])
     return fig
 
 
@@ -580,7 +603,8 @@ def make_idd_plot(df, stat):
 indel_sidebar_plugins = [
     make_strat_selector(idd_df),
     make_type_selector(idd_df),
-    make_experiment_selector(idd_df)
+    make_experiment_selector(idd_df),
+    make_axes_mode_selector()
 ]
 
 min_indel_len = min(idd_df['INDEL_Length'])
@@ -648,7 +672,7 @@ board = qbb.Quickboard(
 # In[22]:
 
 
-start_app(board, app_title='BenchmarkBoard', mode='external', port=8050)
+start_app(board, app_title='BenchmarkBoard', mode='external', port=8055)
 
 
 # In[ ]:
