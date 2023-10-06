@@ -12,12 +12,12 @@ workflow DownsampleAndCollectCoverage {
         Float? fail_if_below_coverage
 
         File? coverage_intervals
-        String downsample_strategy = "ConstantMemory"
         Int read_length = 150
         Boolean use_fast_algorithm = true
         Boolean output_bam_instead_of_cram = false
 
-        String docker = "us.gcr.io/broad-gatk/gatk:4.4.0.0"
+        String docker_gatk = "us.gcr.io/broad-gatk/gatk:4.4.0.0"
+        String docker_samtools = "us.gcr.io/broad-dsde-methods/samtools:v1.1"
         File? picard_jar_override
 
         Int preemptible = 1
@@ -37,7 +37,7 @@ workflow DownsampleAndCollectCoverage {
                 read_length = read_length,
                 use_fast_algorithm = use_fast_algorithm,
                 fail_if_below_coverage = fail_if_below_coverage, # pass this here too to fail early if we can't get to the minimum coverage
-                docker = docker,
+                docker = docker_gatk,
                 picard_jar_override = picard_jar_override,
                 preemptible = preemptible
         }
@@ -49,12 +49,10 @@ workflow DownsampleAndCollectCoverage {
             downsample_probability = downsample_probability,
             target_coverage = target_coverage,
             original_coverage = CollectOriginalCoverage.mean_coverage,
-            downsample_strategy = downsample_strategy,
             output_bam_instead_of_cram = output_bam_instead_of_cram,
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
-            docker = docker,
-            picard_jar_override = picard_jar_override,
+            docker = docker_samtools,
             preemptible = preemptible
     }
 
@@ -68,7 +66,7 @@ workflow DownsampleAndCollectCoverage {
             ref_fasta_index = ref_fasta_index,
             read_length = read_length,
             use_fast_algorithm = use_fast_algorithm,
-            docker = docker,
+            docker = docker_gatk,
             picard_jar_override = picard_jar_override,
             preemptible = preemptible
     }
@@ -145,13 +143,11 @@ task Downsample {
         Float? target_coverage
         Float? original_coverage
 
-        String downsample_strategy
         Boolean output_bam_instead_of_cram
         File ref_fasta
         File ref_fasta_index
 
         String docker
-        File? picard_jar_override
         Int preemptible
         Int additional_disk_gb = 200
     }
@@ -172,14 +168,7 @@ task Downsample {
         # above would not be printed.
         PROBABILITY=~{if defined(downsample_probability) then downsample_probability else (if select_first([target_coverage, 0]) > select_first([original_coverage, 0]) then "1" else "$(bc -l <<< 'scale=2; " + target_coverage + "/" + original_coverage + "')")}
         
-        ~{if defined(picard_jar_override) then "java -Xms10000m -Xmx10000m -jar " + picard_jar_override else 'gatk --java-options "-Xms10000m -Xmx10000m"'} \
-            DownsampleSam \
-            -I ~{input_cram} \
-            -O ~{output_basename}.downsampled.~{output_extension} \
-            -STRATEGY ~{downsample_strategy} \
-            -P $PROBABILITY \
-            -CREATE_INDEX false \
-            -REFERENCE_SEQUENCE ~{ref_fasta}
+        samtools view -s $PROBABILITY --output-fmt ~{if output_bam_instead_of_cram then "bam" else "cram"} -o ~{output_basename}.downsampled.~{output_extension}
         
         # Create reference cache for indexing CRAM file
         seq_cache_populate.pl -root ./ref/cache ~{ref_fasta}
