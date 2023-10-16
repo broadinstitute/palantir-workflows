@@ -5,7 +5,8 @@ import "Structs.wdl"
 workflow SampleSetPRSWrapper {
   input {
     Array[PRSWrapperConditionResource] condition_resources
-    File ckd_risk_alleles
+    File? ckd_risk_alleles
+    Boolean ckd_adjust_monogenic_risk
     Float z_score_reportable_range
 
     File vcf
@@ -14,16 +15,19 @@ workflow SampleSetPRSWrapper {
     Boolean is_control_sample_in
     Boolean redoPCA = false
 
-    File population_loadings
-    File population_meansd
-    File population_pcs
-    File pruning_sites_for_pca # and the sites used for PCA
+    Boolean adjust_scores
+    File? population_loadings
+    File? population_meansd
+    File? population_pcs
+    File? pruning_sites_for_pca # and the sites used for PCA
     Int mem_extract
     Int mem_vcf_to_plink
   }
   scatter(sample_id in sample_ids) {
     call Wrapper.PRSWrapper {
       input:
+        ckd_adjust_monogenic_risk = ckd_adjust_monogenic_risk,
+        adjust_scores = adjust_scores,
         condition_resources = condition_resources,
         ckd_risk_alleles = ckd_risk_alleles,
         z_score_reportable_range = z_score_reportable_range,

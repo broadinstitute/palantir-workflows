@@ -6,7 +6,8 @@ import "Structs.wdl"
 workflow PRSWrapper {
   input {
     Array[PRSWrapperConditionResource] condition_resources
-    File ckd_risk_alleles
+    File? ckd_risk_alleles
+    Boolean ckd_adjust_monogenic_risk
     Float z_score_reportable_range
 
     File vcf
@@ -15,10 +16,11 @@ workflow PRSWrapper {
     Boolean is_control_sample_in
     Boolean redoPCA = false
 
-    File population_loadings
-    File population_meansd
-    File population_pcs
-    File pruning_sites_for_pca # and the sites used for PCA
+    File? population_loadings
+    File? population_meansd
+    File? population_pcs
+    File? pruning_sites_for_pca # and the sites used for PCA
+    Boolean adjust_scores
     Int mem_extract
     Int mem_vcf_to_plink
   }
@@ -29,6 +31,7 @@ workflow PRSWrapper {
         input:
           named_weight_set = condition_resource.named_weight_set,
           imputed_array_vcf = vcf,
+          adjustScores = adjust_scores,
           population_loadings = population_loadings,
           population_meansd = population_meansd,
           pruning_sites_for_pca = pruning_sites_for_pca,
@@ -40,12 +43,12 @@ workflow PRSWrapper {
           vcf_to_plink_mem = mem_vcf_to_plink
       }
 
-      if (condition_resource.named_weight_set.condition_name == "ckd") {
+      if (ckd_adjust_monogenic_risk && condition_resource.named_weight_set.condition_name == "ckd") {
         call CKDRiskAdjustmentWF.CKDRiskAdjustment {
           input:
             adjustedScores = select_first([ScoringImputedDataset.adjusted_array_scores]),
             vcf = vcf,
-            risk_alleles = ckd_risk_alleles
+            risk_alleles = select_first([ckd_risk_alleles])
         }
       }
 
