@@ -7,7 +7,7 @@ workflow PRSWrapper {
   input {
     Array[PRSWrapperConditionResource] condition_resources
     File? ckd_risk_alleles
-    Boolean ckd_adjust_monogenic_risk
+    Boolean ckd_adjust_monogenic_risk = true
     Float z_score_reportable_range
 
     File vcf
@@ -20,7 +20,7 @@ workflow PRSWrapper {
     File? population_meansd
     File? population_pcs
     File? pruning_sites_for_pca # and the sites used for PCA
-    Boolean adjust_scores
+    Boolean adjust_scores = true
     Int mem_extract
     Int mem_vcf_to_plink
   }
