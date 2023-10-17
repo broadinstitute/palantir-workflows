@@ -44,16 +44,9 @@ workflow PRSWrapper {
       }
     }
   }
-  call JoinResults{
-    input:
-      results_in = select_all(ScoringImputedDataset.raw_scores),
-      lab_batch = lab_batch_id,
-      is_control_sample = is_control_sample_in
-  }
 
 
   output {
-    File results = JoinResults.results
     Array[File?] raw_scores = select_all(ScoringImputedDataset.raw_scores)
   }
 }
