@@ -11,7 +11,7 @@ workflow PRSWrapper {
     Float z_score_reportable_range
 
     File vcf
-    String sample_id
+    String sample_set_id
     String lab_batch_id
     Boolean is_control_sample_in
     Boolean redoPCA = false
@@ -36,73 +36,25 @@ workflow PRSWrapper {
           population_meansd = population_meansd,
           pruning_sites_for_pca = pruning_sites_for_pca,
           population_pcs = population_pcs,
-          basename = sample_id,
+          basename = sample_set_id,
           fitted_model_params_and_sites = condition_resource.ancestry_model_params_and_sites,
           redoPCA = redoPCA,
           mem_extract = mem_extract,
           vcf_to_plink_mem = mem_vcf_to_plink
       }
-
-      if (ckd_adjust_monogenic_risk && condition_resource.named_weight_set.condition_name == "ckd") {
-        call CKDRiskAdjustmentWF.CKDRiskAdjustment {
-          input:
-            adjustedScores = select_first([ScoringImputedDataset.adjusted_array_scores]),
-            vcf = vcf,
-            risk_alleles = select_first([ckd_risk_alleles])
-        }
-      }
-
-      call CheckZScoreAgainstReportableRange {
-        input:
-          score_result = select_first([ScoringImputedDataset.adjusted_array_scores]),
-          z_score_reportable_range = z_score_reportable_range
-      }
-
-      call SelectValuesOfInterest {
-        input:
-          score_result = select_first([CKDRiskAdjustment.adjusted_scores_with_apol1, ScoringImputedDataset.adjusted_array_scores]),
-          sample_id = sample_id,
-          condition_name = condition_resource.named_weight_set.condition_name,
-          threshold = condition_resource.percentile_threshold,
-          z_score_reportable_range = z_score_reportable_range,
-          out_of_reportable_range = CheckZScoreAgainstReportableRange.out_of_reportable_range
-      }
     }
-
-    if (!condition_resource.score_condition)
-    {
-      call CreateUnscoredResult {
-        input:
-          sample_id = sample_id,
-          condition_name = condition_resource.named_weight_set.condition_name
-      }
-    }
-
-    File result_for_condition = select_first([SelectValuesOfInterest.results, CreateUnscoredResult.results])
   }
-
   call JoinResults{
     input:
-      results_in = result_for_condition,
+      results_in = select_all(ScoringImputedDataset.raw_scores),
       lab_batch = lab_batch_id,
       is_control_sample = is_control_sample_in
-  }
-
-  Array[File] missing_sites_shifted = select_all(ScoringImputedDataset.missing_sites_shifted_scores)
-
-  call CombineMissingSitesShiftedScores {
-    input:
-      missing_sites_shifted = missing_sites_shifted,
-      lab_batch = lab_batch_id
   }
 
 
   output {
     File results = JoinResults.results
-    File pcs = select_first(ScoringImputedDataset.pc_projection)
-    String lab_batch = lab_batch_id
-    Boolean is_control_sample = is_control_sample_in
-    File missing_sites_shifts = CombineMissingSitesShiftedScores.missing_sites_shifts
+    Array[File?] raw_scores = select_all(ScoringImputedDataset.raw_scores)
   }
 }
 
