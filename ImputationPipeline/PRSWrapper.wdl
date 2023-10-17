@@ -182,7 +182,7 @@ task JoinResults {
     library(purrr)
     library(tibble)
 
-    results <- c("~{sep = '","' results_in}") %>% map(read_csv) %>% reduce(inner_join) %>% add_column(lab_batch="~{lab_batch}", .after="sample_id") %>% add_column(is_control_sample="~{is_control_sample}", .after="lab_batch")
+    results <- c("~{sep = '","' results_in}") %>% map(read_csv) %>% reduce(inner_join)
     write_csv(results, "results.csv")
     EOF
   >>>
