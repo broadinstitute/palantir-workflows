@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "LiftoverSites"
+authors = [
+    {name = "Michael Gatzen", email = "mgatzen@broadinstitute.org"},
+]
+description = "Lifts over sites"
+requires-python = ">=3.7"
+dependencies = [
+    "hail",
+    "pandas"
+]
+dynamic = ["version"]
