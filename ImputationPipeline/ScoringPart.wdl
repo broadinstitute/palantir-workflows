@@ -33,6 +33,8 @@ workflow ScoringImputedDataset {
 	Boolean redoPCA = false
 	Boolean adjustScores = true
 	Int mem_extract
+
+	Boolean use_ref_alt_for_ids
   }
 
   if (adjustScores) {
@@ -117,7 +119,8 @@ workflow ScoringImputedDataset {
 			base_mem = scoring_mem,
 			extra_args = columns_for_scoring,
 			sites = sites_to_use_in_scoring,
-			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
+			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
+			use_ref_alt_for_ids = use_ref_alt_for_ids
 	}
 
 	if (defined(named_weight_set.weight_set.interaction_weights)) {

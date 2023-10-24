@@ -23,6 +23,8 @@ workflow PRSWrapper {
     Boolean adjust_scores = true
     Int mem_extract
     Int mem_vcf_to_plink
+
+    Boolean use_ref_alt_for_ids
   }
 
   scatter(condition_resource in condition_resources) {
@@ -40,7 +42,8 @@ workflow PRSWrapper {
           fitted_model_params_and_sites = condition_resource.ancestry_model_params_and_sites,
           redoPCA = redoPCA,
           mem_extract = mem_extract,
-          vcf_to_plink_mem = mem_vcf_to_plink
+          vcf_to_plink_mem = mem_vcf_to_plink,
+          use_ref_alt_for_ids = use_ref_alt_for_ids
       }
     }
   }
