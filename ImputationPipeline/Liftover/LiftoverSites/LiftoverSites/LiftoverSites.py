@@ -3,17 +3,6 @@ import pandas as pd
 import subprocess
 import collections.abc
 
-class InputRow:
-    def __init__(self, chrom, pos, a1, a2, effect_allele, custom_columns) -> None:
-        if any(v is None for v in [chrom, pos, a1, a2]):
-            raise RuntimeError('All of chrom, pos, a1, a2 have to be set.')
-        self.chrom = chrom
-        self.pos = pos
-        self.a1 = a1
-        self.a2 = a2
-        self.effect_allele = effect_allele
-        self.custom_columns = custom_columns
-
 def format_input(line, header):
     fields = line.split('\t')
     locus_alleles = fields[0].split(':')
@@ -41,6 +30,17 @@ class LiftoverSites:
             self.path_to_gakt_or_picard_jar = path_to_gakt_or_picard_jar
             self.chain_file_path = chain_file_path
             self.reference_path = reference_path
+    
+    class InputRow:
+        def __init__(self, chrom, pos, a1, a2, effect_allele, custom_columns) -> None:
+            if any(v is None for v in [chrom, pos, a1, a2]):
+                raise RuntimeError('All of chrom, pos, a1, a2 have to be set.')
+            self.chrom = chrom
+            self.pos = pos
+            self.a1 = a1
+            self.a2 = a2
+            self.effect_allele = effect_allele
+            self.custom_columns = custom_columns
     
     def __init__(self, output_dir:str, input_function:collections.abc.Callable[[str, str], InputRow], output_function:collections.abc.Callable[[hl.Table], hl.Table], annotations_to_save:collections.abc.Iterable[str], liftover_arguments:LiftoverArguments, contains_effect_allele:bool, reference_panel_path:str, input_has_header:bool=True, input_encoding:str ='utf-8', ) -> None:
         self.output_dir = output_dir
@@ -72,15 +72,14 @@ class LiftoverSites:
             with open(f'{self.output_dir}/{basename}.hg19.vcf', 'w') as output_vcf:
                 output_vcf.write('##fileformat=VCFv4.2\n')
                 output_vcf.write('##INFO=<ID=effect_allele,Number=1,Type=String,Description="Effect allele, either ref or alt.">\n')
-                output_vcf.write('##INFO=<ID=var_number,Number=1,Type=String,Description="Increasing variant number to be able to associate INDELs to each other.">\n')
                 for annotation in self.annotations_to_save:
                     output_vcf.write(f'##INFO=<ID=original_{annotation},Number=1,Type=String>\n')
                 output_vcf.write('#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n')
 
-                input_header = next(input_file).strip() if self.input_has_header else None
+                input_header_line = next(input_file).strip() if self.input_has_header else None
 
                 for i_line, line in enumerate(input_file):
-                    input_row = self.input_function(line.strip(), input_header)
+                    input_row = self.input_function(line.strip(), input_header_line)
                     original_columns = ';'.join([f'original_{annotation}={input_row.custom_columns[annotation]}' for annotation in self.annotations_to_save])
                     if not original_columns and not self.contains_effect_allele:
                         original_columns = '.'
@@ -131,7 +130,7 @@ class LiftoverSites:
         rejected_sites = rejected_sites[rejected_sites.FILTER != 'MismatchedRefAllele']
 
         if len(rejected_sites) > 0:
-            # Group sites by var_number
+            # Group sites by var_number (rsid)
             rejected_site_groups = rejected_sites.groupby('ID')
             print(f'{len(rejected_site_groups)} site(s) could not be lifted over.')
             print(f'If you want to fix these sites manually, download the following file, edit it, and re-upload it:\n{dir}/{basename}.hg38.vcf\n')
@@ -170,7 +169,7 @@ class LiftoverSites:
         if still_ambiguous_sites.count() > 0:
             print('AF filtering criterion did not disambiguate all sites.')
             still_ambiguous_sites.show()
-            ambiguous_sites_in_panel_selected = ambiguous_sites_in_panel_selected.key_by('info.var_number').anti_join(still_ambiguous_sites.key_by('info.var_number')).key_by('locus', 'alleles')
+            ambiguous_sites_in_panel_selected = ambiguous_sites_in_panel_selected.key_by('rsid').anti_join(still_ambiguous_sites.key_by('rsid')).key_by('locus', 'alleles')
         
         # If we passed the above then this will catch if we might have accidentally filtered out both candidates.
         # It may seem that the check below will catch both cases, but it could happen that we filter out both
