@@ -23,6 +23,7 @@ workflow PRSWrapper {
     Boolean adjust_scores = true
     Int mem_extract
     Int mem_vcf_to_plink
+    String? extra_args
 
     Boolean use_ref_alt_for_ids
   }
@@ -43,7 +44,8 @@ workflow PRSWrapper {
           redoPCA = redoPCA,
           mem_extract = mem_extract,
           vcf_to_plink_mem = mem_vcf_to_plink,
-          use_ref_alt_for_ids = use_ref_alt_for_ids
+          use_ref_alt_for_ids = use_ref_alt_for_ids,
+          columns_for_scoring = extra_args
       }
     }
   }
