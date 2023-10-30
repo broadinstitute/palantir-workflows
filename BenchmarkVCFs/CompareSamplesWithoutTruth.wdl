@@ -4,6 +4,7 @@ import "FindSamplesAndBenchmark.wdl" as FindSamplesAndBenchmark
 
 workflow CompareSamplesWithoutTruth {
   input {
+    String NEW_INPUT
     #must be in glob order
     Array[String] sample_names_to_compare
     File intersected_hiconf_intervals
