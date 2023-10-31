@@ -40,6 +40,7 @@ workflow GlimpseCheckpointTest {
                         input:
                             reference_chunk = reference_chunk,
                             n_burnin = n_burnin,
+                            n_main = 0,
                             crams = crams,
                             cram_indices = cram_indices,
                             sample_ids = sample_ids,
