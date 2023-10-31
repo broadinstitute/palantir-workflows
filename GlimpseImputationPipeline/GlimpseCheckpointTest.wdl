@@ -325,7 +325,7 @@ task AnnotateCorrelation {
         library(dplyr)
         library(readr)
 
-        cor <- read_tsv("~{correlation}") %>% mutate(annotation=~{annotation})
+        cor <- read_tsv("~{correlation}") %>% mutate(annotation="~{annotation}")
 
         cor %>% write_tsv("~{basename}.anotate.tsv")
 
