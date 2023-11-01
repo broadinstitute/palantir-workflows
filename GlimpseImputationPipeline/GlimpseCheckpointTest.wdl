@@ -354,7 +354,7 @@ task CombineCorrelations {
         library(tidyr)
         library(ggplot2)
 
-        cor <- c("~{sep='","' correlations}") %>% map(read_tsv) %>% reduce(bind_rows)
+        cor <- c("~{sep='","' correlations}") %>% map(read_tsv, skip=6) %>% reduce(bind_rows)
         cor %>% write_tsv("correlations.tsv")
 
         cor %>% pivot_longer(cols=c("SNP_CORRELATION", "INDEL_CORRELATION"),
