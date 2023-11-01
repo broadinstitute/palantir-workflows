@@ -33,6 +33,37 @@ workflow GlimpseCheckpointTest {
 
     Map[String,String] ancestry_annotation_map = {"unknown" : "RAF"}
 
+    scatter (reference_chunk in read_lines(reference_chunks))
+    {
+
+        call GlimpsePhase {
+                input:
+                    reference_chunk = reference_chunk,
+                    crams = crams,
+                    cram_indices = cram_indices,
+                    sample_ids = sample_ids,
+                    fasta = fasta,
+                    fasta_index = fasta_index,
+                    preemptible = 0,
+                    docker = docker,
+                    cpu = cpu_phase,
+                    mem_gb = mem_gb_phase
+            }
+        
+    }
+
+    call GLIMPSE.GlimpseLigate{
+        input:
+            imputed_chunks = GlimpsePhase.imputed_vcf,
+            imputed_chunks_indices = GlimpsePhase.imputed_vcf_index,
+            output_basename = "no_checkpoint",
+            ref_dict = ref_dict,
+            preemptible = 0,
+            docker = docker,
+            cpu = cpu_ligate,
+            mem_gb = mem_gb_ligate
+    }
+
     scatter (n_burnin in n_burnin_array) {
         scatter (reference_chunk in read_lines(reference_chunks))
             {
@@ -92,6 +123,19 @@ workflow GlimpseCheckpointTest {
                 af_resource = GlimpseLigateBurnin.imputed_vcf,
                 intervals = intervals,
                 output_basename = "correlation_from_checkpoint_n_burnin_"+n_burnin
+        }
+
+        call Eval.PearsonCorrelationByAF as CorrelationBurninVsNoCheckpoint {
+            input:
+                evalVcf = GlimpseLigateBurnin.imputed_vcf,
+                truthVcf = GlimpseLigate.imputed_vcf,
+                eval_sample_ids = sample_ids,
+                truth_sample_ids = sample_ids,
+                ancestry_to_af_annotation_map = ancestry_annotation_map,
+                ancestries = ancestries,
+                af_resource = GlimpseLigateBurnin.imputed_vcf,
+                intervals = intervals,
+                output_basename = "correlation_vs_no_checkpoin_from_checkpoint_n_burnin_"+n_burnin
         }
 
         call AnnotateCorrelation as AnnotateCorrelationBurnin {
@@ -161,42 +205,24 @@ workflow GlimpseCheckpointTest {
                 output_basename = "correlation_from_checkpoint_n_main_"+n_main
         }
 
+        call Eval.PearsonCorrelationByAF as CorrelationMainVsNoCheckpoint {
+            input:
+                evalVcf = GlimpseLigateMain.imputed_vcf,
+                truthVcf = GlimpseLigate.imputed_vcf,
+                eval_sample_ids = sample_ids,
+                truth_sample_ids = sample_ids,
+                ancestry_to_af_annotation_map = ancestry_annotation_map,
+                ancestries = ancestries,
+                af_resource = GlimpseLigateMain.imputed_vcf,
+                intervals = intervals,
+                output_basename = "correlation_vs_no_checkpoint_from_checkpoint_n_burnin_"+n_main
+        }
+
         call AnnotateCorrelation as AnnotateCorrelationMain {
             input:
                 correlation = CorrelationMain.correlations,
                 annotation = "from_checkpoint_main_"+n_main
         }
-    }
-
-    scatter (reference_chunk in read_lines(reference_chunks))
-    {
-
-        call GlimpsePhase {
-                input:
-                    reference_chunk = reference_chunk,
-                    crams = crams,
-                    cram_indices = cram_indices,
-                    sample_ids = sample_ids,
-                    fasta = fasta,
-                    fasta_index = fasta_index,
-                    preemptible = 0,
-                    docker = docker,
-                    cpu = cpu_phase,
-                    mem_gb = mem_gb_phase
-            }
-        
-    }
-
-    call GLIMPSE.GlimpseLigate{
-        input:
-            imputed_chunks = GlimpsePhase.imputed_vcf,
-            imputed_chunks_indices = GlimpsePhase.imputed_vcf_index,
-            output_basename = "no_checkpoint",
-            ref_dict = ref_dict,
-            preemptible = 0,
-            docker = docker,
-            cpu = cpu_ligate,
-            mem_gb = mem_gb_ligate
     }
 
     call Eval.PearsonCorrelationByAF {
