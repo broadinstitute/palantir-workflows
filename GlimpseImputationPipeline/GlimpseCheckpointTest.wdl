@@ -13,7 +13,7 @@ workflow GlimpseCheckpointTest {
         File fasta_index
 
         File ref_dict
-        String docker = "us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:checkpointing_and_extract_num_sites"
+        String docker = "us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:checkpointing_tests"
         Int cpu_phase = 4
         Int mem_gb_phase = 4
         Int cpu_ligate = 4
