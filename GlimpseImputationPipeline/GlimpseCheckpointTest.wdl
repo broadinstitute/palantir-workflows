@@ -351,6 +351,7 @@ task CombineCorrelations {
         library(dplyr)
         library(readr)
         library(purrr)
+        library(tidyr)
         library(ggplot2)
 
         cor <- c("~{sep='","' correlations}") %>% map(read_tsv) %>% reduce(bind_rows)

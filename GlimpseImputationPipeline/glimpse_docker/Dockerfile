@@ -1,5 +1,4 @@
-FROM us.gcr.io/broad-dsde-methods/ckachulis/glimpse:checkpointing_and_extract_num_sites
-
+FROM us.gcr.io/broad-dsde-methods/ckachulis/glimpse:checkpointing
 WORKDIR /docker_build/
 
 # Install required packages
