@@ -35,7 +35,7 @@ task CrosscheckFingerprintsTask {
 
     command <<<
         java -jar /usr/picard/picard.jar CrosscheckFingerprints \
-            INPUT=~{write_lines(bams)} \
+            INPUT=${write_lines(bams)} \
             HAPLOTYPE_MAP=~{haplotypeMap} \
             CROSSCHECK_BY=SAMPLE \
             OUTPUT=~{outputPrefix}.crosscheck_metrics
