@@ -9,19 +9,21 @@ workflow CrosscheckFingerprints {
     }
 
     scatter(bam in bams) {
-        File bamBasenames = basename(bam)
+        String bamBasenames = basename(bam)
     }
 
     scatter(bai in bais) {
-        File baiBasenames = basename(bai)
+        String baiBasenames = basename(bai)
     }
 
     call CrosscheckFingerprintsTask {
         input:
-            bams = bamBasenames,
-            bais = baiBasenames,
+            bams = bams,
+            bais = bais,
             haplotypeMap = haplotypeMap,
-            outputPrefix = outputPrefix
+            outputPrefix = outputPrefix,
+            bamBasenames = bamBasenames,
+            baiBasenames = baiBasenames
     }
 
     output {
@@ -35,6 +37,8 @@ task CrosscheckFingerprintsTask {
         Array[File] bais
         File haplotypeMap
         String outputPrefix
+        Array[File] bamBasenames
+        Array[File] baiBasenames
     }
 
     Int diskSize = 512
@@ -42,8 +46,20 @@ task CrosscheckFingerprintsTask {
     Int memory = 64
 
     command <<<
-        java -Xmx63g -jar /usr/picard/picard.jar CrosscheckFingerprints \
-            INPUT=~{sep=" INPUT=" bams} \
+        set -exo pipefail
+
+        for bam in ~{sep=' ' bams}
+        do
+            mv "${bam}" .
+        done;
+
+        for bim in ~{sep=' ' bais}
+        do
+            mv "${bai}" .
+        done;
+
+        java -Xmx60g -jar /usr/picard/picard.jar CrosscheckFingerprints \
+            INPUT=~{sep=" INPUT=" bamBasenames} \
             HAPLOTYPE_MAP=~{haplotypeMap} \
             CROSSCHECK_BY=SAMPLE \
             OUTPUT=~{outputPrefix}.crosscheck_metrics
