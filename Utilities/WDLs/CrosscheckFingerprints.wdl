@@ -2,8 +2,8 @@ version 1.0
 
 workflow CrosscheckFingerprints {
     input {
-        Array[String] bams
-        Array[String] bais
+        Array[File] bams
+        Array[File] bais
         File haplotypeMap
         String outputPrefix
     }
@@ -23,8 +23,8 @@ workflow CrosscheckFingerprints {
 
 task CrosscheckFingerprintsTask {
     input {
-        Array[String] bams
-        Array[String] bais
+        Array[File] bams
+        Array[File] bais
         File haplotypeMap
         String outputPrefix
     }
@@ -34,8 +34,8 @@ task CrosscheckFingerprintsTask {
     Int memory = 64
 
     command <<<
-        java -jar /usr/picard/picard.jar CrosscheckFingerprints \
-            INPUT=${write_lines(bams)} \
+        java -Xmx63g -jar /usr/picard/picard.jar CrosscheckFingerprints \
+            INPUT=~{sep=" INPUT=" bams} \
             HAPLOTYPE_MAP=~{haplotypeMap} \
             CROSSCHECK_BY=SAMPLE \
             OUTPUT=~{outputPrefix}.crosscheck_metrics
