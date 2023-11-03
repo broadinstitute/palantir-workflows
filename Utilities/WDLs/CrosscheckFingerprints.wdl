@@ -53,7 +53,7 @@ task CrosscheckFingerprintsTask {
             mv "${bam}" .
         done;
 
-        for bim in ~{sep=' ' bais}
+        for bai in ~{sep=' ' bais}
         do
             mv "${bai}" .
         done;
