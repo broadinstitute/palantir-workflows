@@ -37,8 +37,8 @@ task CrosscheckFingerprintsTask {
         Array[File] bais
         File haplotypeMap
         String outputPrefix
-        Array[File] bamBasenames
-        Array[File] baiBasenames
+        Array[String] bamBasenames
+        Array[String] baiBasenames
     }
 
     Int diskSize = 512
