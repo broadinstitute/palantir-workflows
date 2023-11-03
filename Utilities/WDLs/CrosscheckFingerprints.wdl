@@ -46,8 +46,6 @@ task CrosscheckFingerprintsTask {
     Int memory = 64
 
     command <<<
-        set -exo pipefail
-
         for bam in ~{sep=' ' bams}
         do
             mv "${bam}" .
