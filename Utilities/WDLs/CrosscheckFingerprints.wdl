@@ -8,10 +8,18 @@ workflow CrosscheckFingerprints {
         String outputPrefix
     }
 
+    scatter(bam in bams) {
+        File bamBasenames = basename(bam)
+    }
+
+    scatter(bai in bais) {
+        File baiBasenames = basename(bai)
+    }
+
     call CrosscheckFingerprintsTask {
         input:
-            bams = bams,
-            bais = bais,
+            bams = bamBasenames,
+            bais = baiBasenames,
             haplotypeMap = haplotypeMap,
             outputPrefix = outputPrefix
     }
