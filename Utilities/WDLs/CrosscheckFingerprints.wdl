@@ -68,6 +68,7 @@ task CrosscheckFingerprintsTask {
         disks: "local-disk " + diskSize + " HDD"
         cpu: cpu
         memory: memory + "GB"
+        continueOnReturnCode: [0, 1]
     }
 
     output {
