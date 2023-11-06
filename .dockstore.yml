@@ -105,3 +105,6 @@ workflows:
   - name: ExtractSingleSampleVCFFromCallset
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/ExtractSampleFromVCF.wdl
+  - name: DetectPCANovelties
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/DetectPCANovelties.wdl
