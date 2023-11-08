@@ -1,5 +1,5 @@
 import argparse
-import random
+import pickle
 import sys
 import numpy as np
 import pandas as pd
@@ -12,12 +12,20 @@ import alphashape
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description = "Automatically flag novelties in 2D PCA plots using Concave Hulls generated via alphashapes.")
 parser.add_argument("-i", "--input", required = True)
+parser.add_argument("-a", "--alphashape", required = True)
 parser.add_argument("-t", "--training-data", required = True)
-parser.add_argument("-a", "--alpha", default = 8.0)
 parser.add_argument("-d", "--distance-threshold", default = 0.01)
 args = parser.parse_args()
 
-# Get training data
+# Load alphashape
+alphashape_pickle_file = open(args.alphashape, "rb")
+alpha_shape = pickle.load(alphashape_pickle_file)
+alphashape_pickle_file.close()
+
+# Set the distance threshold
+dist_thresh = float(args.distance_threshold)
+
+# Get training data (this is just for visualization in this script)
 # Expected input format:
 # Tab-delimited file with at least two columns where the first two columns are PC1 and PC2 (in this order)
 # SAMPLE_ID might be added as the first column later based on code review
@@ -28,11 +36,6 @@ with open(args.training_data) as infile:
 		line = line.rstrip()
 		columns = line.split('\t')
 		training_points.append((float(columns[0]), float(columns[1])))
-
-# Generate alphashape
-alpha = float(args.alpha)
-dist_thresh = float(args.distance_threshold)
-alpha_shape = alphashape.alphashape(training_points, alpha)
 
 # Get test data
 # Expected input format:
@@ -71,7 +74,9 @@ outfile.flush()
 outfile.close()
 
 # Optional plotting for nice visualization
-plt.title("alpha: " + str(alpha) + ", " + "dist_thresh: " + str(dist_thresh))
+plt.title("Alphashape Novelty Detection")
+plt.xlabel("PC1")
+plt.ylabel("PC2")
 colors = ['green', 'blue', 'red']
 labels = ['Baseline', 'Pass', 'Fail']
 patches = [(plt.Line2D([], [], color = colors[i], label = "{:s}".format(labels[i]), marker = "o", linewidth = 0)) for i in range(len(labels))]

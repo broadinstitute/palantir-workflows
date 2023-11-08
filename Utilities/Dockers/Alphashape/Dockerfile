@@ -36,5 +36,6 @@ RUN pip install descartes==1.1.0
 # Install alphashape
 RUN pip install alphashape
 
-# Copy custom pca novelty detection script
+# Copy custom pca novelty detection script(s)
+COPY generate_alphashape.py $SRC/generate_alphashape.py
 COPY pca_novelty_detection.py $SRC/pca_novelty_detection.py
