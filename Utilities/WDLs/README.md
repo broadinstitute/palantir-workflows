@@ -129,7 +129,9 @@ This WDL allows you to check fingerprints across two sets of files, and match th
 
 ### Inputs
 * `input_files`: a list of files to check the fingerprints of
+* `input_indices`: list of corresponding index files for `input_files`
 * `reference_files`: a list of files to use as a baseline when comparing fingerprints
+* `reference_indices`: list of corresponding index files for `reference_files`
 * `haplotype_map`: a haplotype map file used for Picard's `CrosscheckFingerprints` tool; see the docs [here](https://gatk.broadinstitute.org/hc/en-us/articles/13832766699291-CrosscheckFingerprints-Picard)
 * `check_all_file_pairs`: (default: `true`) fingerprints pairs across *all* `input_file` and `reference_file` pairs when toggled `true`; otherwise fingerprints are only checked across files with the same index, and input lists must have the same length
 * `fail_on_mismatch`: (default: `false`) toggle `true` to force your workflow to fail when fingerprinting fails to provide a "MATCH" for each comparison done; note for an individual comparison between `file1` and `file2`, if there are multiple samples/read groups/etc. being compared based on the mode selected, this check will pass (the workflow will NOT fail) if the resulting fingerprint summary file has *at least one* entry with a "MATCH"

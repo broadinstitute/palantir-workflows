@@ -1,11 +1,16 @@
 version 1.0
 
+struct IndexedFile {
+    File main_file
+    File index_file
+}
+
 workflow MatchFingerprints {
     input {
         Array[File] input_files
-        Array[File]? input_indices
+        Array[File] input_indices
         Array[File] reference_files
-        Array[File]? reference_indices
+        Array[File] reference_indices
 
         File haplotype_map
 
@@ -17,83 +22,48 @@ workflow MatchFingerprints {
         Float lod_threshold = -5
     }
 
-    if (check_all_file_pairs) {
-        if (defined(input_indices) && (defined(reference_indices))) {
-            scatter (pair in cross(zip(input_files, select_first([input_indices])), zip(reference_files, select_first([reference_indices])))) {
-                call CheckFingerprints as CheckAllIndexFingerprints {
-                    input:
-                        input_file=pair.left.left,
-                        input_index=pair.left.right,
-                        reference_file=pair.right.left,
-                        reference_index=pair.right.right,
-                        haplotype_map=haplotype_map,
-                        fail_on_mismatch=fail_on_mismatch,
-                        check_only_matching_sample_names=check_only_matching_sample_names,
-                        crosscheck_by=crosscheck_by,
-                        lod_threshold=lod_threshold
-                }
-            }
-        }
+    scatter (file_pair in zip(input_files, input_indices)) {
+        IndexedFile indexed_input_files = {"main_file": file_pair.left, "index_file": file_pair.right}
+    }
 
-        if (!defined(input_indices) || !defined(reference_indices)) {
-            scatter (pair in cross(input_files, reference_files)) {
-                call CheckFingerprints as CheckAllFingerprints {
-                    input:
-                        input_file=pair.left,
-                        reference_file=pair.right,
-                        haplotype_map=haplotype_map,
-                        fail_on_mismatch=fail_on_mismatch,
-                        check_only_matching_sample_names=check_only_matching_sample_names,
-                        crosscheck_by=crosscheck_by,
-                        lod_threshold=lod_threshold
-                }
-            }
-        }
+    scatter (file_pair in zip(reference_files, reference_indices)) {
+        IndexedFile indexed_reference_files = {"main_file": file_pair.left, "index_file": file_pair.right}
+    }
+
+    if (check_all_file_pairs) {
+        Array[Pair[IndexedFile, IndexedFile]] cross_pair_iterates = cross(indexed_input_files, indexed_reference_files)
     }
 
     if (!check_all_file_pairs) {
-        if (defined(input_indices) && (defined(reference_indices))) {
-            scatter (pair in cross(zip(input_files, select_first([input_indices])), zip(reference_files, select_first([reference_indices])))) {
-                call CheckFingerprints as CheckCorrespondingIndexFingerprints {
-                    input:
-                        input_file=pair.left.left,
-                        input_index=pair.left.right,
-                        reference_file=pair.right.left,
-                        reference_index=pair.right.right,
-                        haplotype_map=haplotype_map,
-                        fail_on_mismatch=fail_on_mismatch,
-                        check_only_matching_sample_names=check_only_matching_sample_names,
-                        crosscheck_by=crosscheck_by,
-                        lod_threshold=lod_threshold
-                }
-            }
-        }
+        Array[Pair[IndexedFile, IndexedFile]] zip_pair_iterates = zip(indexed_input_files, indexed_reference_files)
+    }
 
-        if (!defined(input_indices) || !defined(reference_indices)) {
-            scatter (pair in zip(input_files, reference_files)) {
-                call CheckFingerprints as CheckCorrespondingFingerprints {
-                    input:
-                        input_file=pair.left,
-                        reference_file=pair.right,
-                        haplotype_map=haplotype_map,
-                        fail_on_mismatch=fail_on_mismatch,
-                        check_only_matching_sample_names=check_only_matching_sample_names,
-                        crosscheck_by=crosscheck_by,
-                        lod_threshold=lod_threshold
-                }
-            }
+    Array[Pair[IndexedFile, IndexedFile]] pair_iterates = select_first([cross_pair_iterates, zip_pair_iterates])
+
+    scatter (pair in pair_iterates) {
+        call CheckFingerprints {
+            input:
+                input_file=pair.left.main_file,
+                input_index=pair.left.index_file,
+                reference_file=pair.right.main_file,
+                reference_index=pair.right.index_file,
+                haplotype_map=haplotype_map,
+                fail_on_mismatch=fail_on_mismatch,
+                check_only_matching_sample_names=check_only_matching_sample_names,
+                crosscheck_by=crosscheck_by,
+                lod_threshold=lod_threshold
         }
     }
 
     # Collect all the matched pairs detected with GATK
-    scatter (matched_pair in select_first([CheckAllIndexFingerprints.sample_pair, CheckAllFingerprints.sample_pair, CheckCorrespondingIndexFingerprints.sample_pair, CheckCorrespondingFingerprints.sample_pair])) {
+    scatter (matched_pair in CheckFingerprints.sample_pair) {
         if (matched_pair.right) {
             Pair[File, File] matched_pairs = matched_pair.left
         }
     }
 
     output {
-        Array[File] fingerprint_files = select_first([CheckAllIndexFingerprints.fingerprint_file, CheckAllFingerprints.fingerprint_file, CheckCorrespondingIndexFingerprints.fingerprint_file, CheckCorrespondingFingerprints.fingerprint_file])
+        Array[File] fingerprint_files = CheckFingerprints.fingerprint_file
         Array[Pair[File, File]] all_matched_pairs = select_all(matched_pairs)
     }
 }
@@ -101,9 +71,9 @@ workflow MatchFingerprints {
 task CheckFingerprints {
     input {
         File input_file
-        File? input_index
+        File input_index
         File reference_file
-        File? reference_index
+        File reference_index
 
         File haplotype_map
         Boolean fail_on_mismatch
@@ -132,6 +102,7 @@ task CheckFingerprints {
     }
 
     String crosscheck_mode = if check_only_matching_sample_names then "CHECK_SAME_SAMPLE" else "CHECK_ALL_OTHERS"
+    Int memory = 8
 
     command <<<
         set -xueo pipefail
@@ -141,11 +112,11 @@ task CheckFingerprints {
         echo -e "~{reference_file}\t~{reference_index}" > reference_index_map.tsv
 
         # Allow "UNEXPECTED_MATCH" at this stage using exit code 0 arg; otherwise causes exit code 1
-        gatk CrosscheckFingerprints \
+        gatk --java-options "-Xmx~{memory-1}g" CrosscheckFingerprints \
             -I ~{input_file} \
-            ~{true="--INPUT_INDEX_MAP input_index_map.tsv" false="" defined(input_index)} \
+            --INPUT_INDEX_MAP input_index_map.tsv \
             -SI ~{reference_file} \
-            ~{true="--SECOND_INPUT_INDEX_MAP reference_index_map.tsv" false="" defined(reference_index)} \
+            --SECOND_INPUT_INDEX_MAP reference_index_map.tsv \
             -H ~{haplotype_map} \
             -O "~{output_name}.txt" \
             -LOD ~{lod_threshold} \
@@ -172,7 +143,7 @@ task CheckFingerprints {
         docker: "us.gcr.io/broad-gatk/gatk:" + gatk_tag
         preemptible: 2
         disks: "local-disk " + ceil(size(input_file, "GB") + size(reference_file, "GB") + 20) + " HDD"
-        memory: 8 + " GB"
+        memory: memory + " GB"
     }
 
     output {
