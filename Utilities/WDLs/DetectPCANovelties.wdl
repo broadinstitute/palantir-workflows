@@ -43,7 +43,7 @@ task DetectPCANoveltiesTask{
     command <<<
         python3 /usr/local/src/pca_novelty_detection.py \
         --input ~{test} \
-        --alphashape ~{alphashape}
+        --alphashape ~{alphashape} \
         --training-data ~{training} \
         --distance-threshold ~{distanceThreshold}
     >>>
