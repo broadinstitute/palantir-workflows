@@ -1,6 +1,5 @@
 FROM ubuntu:23.10
 RUN apt-get update && apt-get install -y git python3 python-is-python3 python3-pip wget libbz2-dev liblzma-dev libcurl4-openssl-dev python3-pandas
-#RUN pip install pandas
 
 # Make bcftools
 RUN wget https://github.com/samtools/bcftools/releases/download/1.18/bcftools-1.18.tar.bz2

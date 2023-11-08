@@ -27,3 +27,7 @@ In the multi-sample board, users can find the following variables to be optional
 * `EXPERIMENT_ORDER` - provide a list of `Experiment` values to control the order these are rendered in the legends in plots that group by `Experiment` value.
 * `EXPERIMENT_COLOR_MAP` - provide a dictionary of `Experiment` label to hex color (e.g. `#0055bb`) to override the default plotly palette, and for consistent coloring of `Experiment` groups across plots.
 * `SHOW_ERROR_BARS` - if true, show error bars on plots when appropriate. Otherwise globally hide them.
+
+## Running as a Script
+
+If you prefer to start the server using a `.py` script instead of through a `.ipynb` notebook, you can convert the file types using the command `jupyter nbconvert BenchmarkBoard.ipynb --to python` to create a `.py` file you can run instead.
