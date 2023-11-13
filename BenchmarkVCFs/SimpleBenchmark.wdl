@@ -1,5 +1,14 @@
 version 1.0
 
+import "../Utilities/WDLs/IntervalList2Bed.wdl" as IntervalList2Bed
+import "../Utilities/WDLs/CreateIGVSession.wdl" as IGV
+
+# Object holding configuration for runtime parameters to shorten number of optional inputs
+struct RuntimeAttributes {
+    Int disk_size
+    Int cpu
+    Int memory
+}
 
 # Object holding all reference files, to ensure all localized in tasks
 struct Reference {
@@ -7,19 +16,19 @@ struct Reference {
     File index
 }
 
-# Object representing expression for subsetting VCFs
-struct VariantSelector {
-    String bcf_label
-    String bcf_selector
+# Object representing expression for subsetting VCFs into genotype categories
+struct GenotypeSelector {
+    String bcf_genotype_label
+    String bcf_genotype
 }
 
 # Object representing file with intervals to subset analysis over
-struct Stratifier {
+struct StratifierInterval {
     String label
-    File? interval
+    File intervals
 }
 
-# Main workflow: performs evaluation of call_vcf against base_vcf using vcfeval comparison engine,
+# Main workflow: performs evaluation of query_vcf against base_vcf using vcfeval comparison engine,
 # over different analysis modes.
 workflow SimpleBenchmark {
     input {
@@ -29,211 +38,159 @@ workflow SimpleBenchmark {
         String base_output_sample_name
         String? base_vcf_sample_name
 
-        File call_vcf
-        File call_vcf_index
-        String call_output_sample_name
-        String? call_vcf_sample_name
+        File query_vcf
+        File query_vcf_index
+        String query_output_sample_name
+        String? query_vcf_sample_name
 
         # Reference information
         File ref_fasta
         File ref_index
 
         # Subsetting inputs using intervals
-        Array[File] strat_intervals = []
-        Array[String] strat_labels = []
-        Int interval_padding = 0
-        String subset_gatk_tag = "4.2.3.0"
-
-        # Subsetting inputs using variant properties; Note SNP & INDEL are separated automatically later
-        Array[String] bcf_selectors = []
-        Array[String] bcf_labels = []
+        Array[File] stratifier_intervals = []
+        Array[String] stratifier_labels = []
 
         # Evaluation inputs
-        File? evaluation_bed
-        Array[String] score_fields = ["GQ"]
+        File? evaluation_intervals
+        String score_field = "GQ"
 
         # Columns to add to output files
-        String? experiment_value
+        String? experiment
         String? extra_column_name
         String? extra_column_value
 
+        Boolean create_igv_session = false
+        Array[File]? optional_igv_bams
+        String igv_session_name = "igv_session"
+
         # Toggle for more tries on preemptible machines for potentially cheaper runs at the risk of longer runtime
         Int preemptible = 3
-
-        # Null File type -- do NOT assign; Needed until WDL has better support for null File values
-        File? NULL_FILE
     }
 
     # Create reference object
     Reference reference = {"fasta": ref_fasta, "index": ref_index}
 
-    # Add in default "Whole Genome" empty interval list
-    Array[File] full_strat_intervals = flatten([[""], strat_intervals])
-    Array[String] full_strat_labels = flatten([[""], strat_labels])
+    # Convert any provided interval_lists to beds
+    if (defined(evaluation_intervals)) {
+        call IntervalList2Bed.IntervalList2Bed as ConvertEvalIntervals {
+            input:
+                interval_files=select_all([evaluation_intervals]),
+                interval_labels=["Evaluation"]
+        }
 
-    # Make Stratifier objects
-    scatter (strat in zip(full_strat_labels, full_strat_intervals)) {
-        Stratifier stratifier_list = {"label": strat.left, "interval": if strat.right != "" then strat.right else NULL_FILE}
+        File converted_evaluation_bed = select_first(ConvertEvalIntervals.bed_files)
     }
 
-    # Make VariantSelector objects, with default None, Het, and HomVar types
-    Array[String] default_bcf_selectors =  ["", "GT='het'", "GT='hom'"]
-    Array[String] default_bcf_labels = ["", "Het", "HomVar"]
-    Array[String] full_bcf_selectors = flatten([default_bcf_selectors, bcf_selectors])
-    Array[String] full_bcf_labels = flatten([default_bcf_labels, bcf_labels])
-    scatter (selection in zip(full_bcf_labels, full_bcf_selectors)) {
-        VariantSelector selector_list = {"bcf_label": selection.left, "bcf_selector": selection.right}
+    call IntervalList2Bed.IntervalList2Bed as ConvertIntervals {
+        input:
+            interval_files=stratifier_intervals,
+            interval_labels=stratifier_labels
     }
 
-    # Perform analysis over all Stratifiers
-    scatter (stratifier in stratifier_list) {
-        call SubsetVCF as SubsetEval {
+    # Make StratifierInterval objects
+    scatter (interval_pair in zip(ConvertIntervals.bed_labels, ConvertIntervals.bed_files)) {
+        StratifierInterval stratifier_list = {"label": interval_pair.left, "intervals": interval_pair.right}
+    }
+
+    # Collect genotype categories to stratify by in bcftools stats
+    Array[String] bcf_genotypes = ["", "GT=\"het\"", "GT=\"AA\""]
+    Array[String] bcf_genotype_labels = ["", "Het", "HomVar"]
+
+    scatter (selection in zip(bcf_genotype_labels, bcf_genotypes)) {
+        GenotypeSelector genotype_selector_list = {"bcf_genotype_label": selection.left, "bcf_genotype": selection.right}
+    }
+
+    call VCFEval as StandardVCFEval {
+        input:
+            query_vcf=query_vcf,
+            query_vcf_index=query_vcf_index,
+            query_output_sample_name=query_output_sample_name,
+            query_vcf_sample_name=query_vcf_sample_name,
+            base_vcf=base_vcf,
+            base_vcf_index=base_vcf_index,
+            base_output_sample_name=base_output_sample_name,
+            base_vcf_sample_name=base_vcf_sample_name,
+            reference=reference,
+            evaluation_bed=converted_evaluation_bed,
+            score_field=score_field,
+            preemptible=preemptible
+    }
+
+    scatter (genotype_selector in genotype_selector_list) {
+        call BCFToolsStats as WholeGenomeStats {
             input:
-                input_vcf=call_vcf,
-                input_vcf_index=call_vcf_index,
-                input_sample_name=call_vcf_sample_name,
-                reference=reference,
-                stratifier=stratifier,
-                interval_padding=interval_padding,
-                gatk_tag=subset_gatk_tag,
-                preemptible=preemptible
+                combined_vcfeval_output=StandardVCFEval.combined_output,
+                combined_vcfeval_output_index=StandardVCFEval.combined_output_index,
+                stratifier_label="WholeGenome",
+                bcf_genotype=genotype_selector.bcf_genotype,
+                bcf_genotype_label=genotype_selector.bcf_genotype_label,
+                query_output_sample_name=query_output_sample_name,
+                base_output_sample_name=base_output_sample_name
         }
+    }
 
-        call SubsetVCF as SubsetTruth {
+    scatter (subset_condition in cross(stratifier_list, genotype_selector_list)) {
+        StratifierInterval stratifier = subset_condition.left
+        GenotypeSelector genotype_selector = subset_condition.right
+        call BCFToolsStats as SubsetStats {
             input:
-                input_vcf=base_vcf,
-                input_vcf_index=base_vcf_index,
-                input_sample_name=base_vcf_sample_name,
-                reference=reference,
-                stratifier=stratifier,
-                interval_padding=interval_padding,
-                gatk_tag=subset_gatk_tag,
-                preemptible=preemptible
-        }
-
-        # Run over different score_fields to produce other ROC outputs
-        scatter (score_field in score_fields) {
-            call VCFEval as StandardVCFEval {
-                input:
-                    call_vcf=SubsetEval.output_vcf,
-                    call_vcf_index=SubsetEval.output_vcf_index,
-                    call_output_sample_name=call_output_sample_name,
-                    base_vcf=SubsetTruth.output_vcf,
-                    base_vcf_index=SubsetTruth.output_vcf_index,
-                    base_output_sample_name=base_output_sample_name,
-                    reference=reference,
-                    evaluation_bed=evaluation_bed,
-                    score_field=score_field,
-                    strat_label=stratifier.label,
-                    preemptible=preemptible
-            }
-        }
-
-        scatter (selector in selector_list) {
-            # Use the first outputs for tp_base_vcf, fp_vcf, etc. since these should be the same across all score_fields
-            call BCFToolsStats {
-                input:
-                    tp_base_vcf=StandardVCFEval.tp_base_vcf[0],
-                    tp_base_index=StandardVCFEval.tp_base_index[0],
-                    tp_call_vcf=StandardVCFEval.tp_call_vcf[0],
-                    tp_call_index=StandardVCFEval.tp_call_index[0],
-                    fp_vcf=StandardVCFEval.fp_vcf[0],
-                    fp_index=StandardVCFEval.fp_index[0],
-                    fn_vcf=StandardVCFEval.fn_vcf[0],
-                    fn_index=StandardVCFEval.fn_index[0],
-                    strat_label=select_first([stratifier.label, ""]),
-                    bcf_selector=selector.bcf_selector,
-                    bcf_label=selector.bcf_label,
-                    call_output_sample_name=call_output_sample_name,
-                    base_output_sample_name=base_output_sample_name,
-                    evaluation_bed=evaluation_bed
-            }
+                combined_vcfeval_output=StandardVCFEval.combined_output,
+                combined_vcfeval_output_index=StandardVCFEval.combined_output_index,
+                stratifier_interval=stratifier.intervals,
+                stratifier_label=stratifier.label,
+                bcf_genotype=genotype_selector.bcf_genotype,
+                bcf_genotype_label=genotype_selector.bcf_genotype_label,
+                query_output_sample_name=query_output_sample_name,
+                base_output_sample_name=base_output_sample_name
         }
     }
 
     call CombineSummaries {
         input:
-            ROC_summaries=flatten(StandardVCFEval.ROC_summary),
-            SN_summaries=flatten(BCFToolsStats.full_sn),
-            IDD_summaries=flatten(BCFToolsStats.full_idd),
-            ST_summaries=flatten(BCFToolsStats.full_st),
-            experiment_value=experiment_value,
+            ROC_summaries=[StandardVCFEval.ROC_summary],
+            SN_summaries=select_all(flatten([WholeGenomeStats.full_sn, SubsetStats.full_sn])),
+            IDD_summaries=select_all(flatten([WholeGenomeStats.full_idd, SubsetStats.full_idd])),
+            ST_summaries=select_all(flatten([WholeGenomeStats.full_st, SubsetStats.full_st])),
+            experiment=experiment,
             extra_column_name=extra_column_name,
             extra_column_value=extra_column_value
-
     }
+
+    if (create_igv_session) {
+        call IGV.CreateIGVSession as IGVSession {
+            input:
+            bams=optional_igv_bams,
+            vcfs=[StandardVCFEval.combined_output],
+            interval_files=stratifier_intervals,
+            reference=ref_fasta,
+            output_name=igv_session_name
+        }
+    }
+
 
     output {
-        File simple_summary = CombineSummaries.simple_summary
-        File combined_IDD = CombineSummaries.IDD_combined_summaries
-        File combined_ST = CombineSummaries.ST_combined_summaries
-        File combined_ROC = CombineSummaries.ROC_combined_summaries
+        File SimpleSummary = CombineSummaries.simple_summary
+        File IndelDistributionStats = CombineSummaries.IDD_combined_summaries
+        File SNPSubstitutionStats = CombineSummaries.ST_combined_summaries
+        File ROCStats = CombineSummaries.ROC_combined_summaries
+
+        File? igv_session = IGVSession.igv_session
     }
 
-}
-
-task SubsetVCF {
-    input {
-        File input_vcf
-        File input_vcf_index
-        String? input_sample_name
-        Reference reference
-
-        Stratifier stratifier
-        Int interval_padding = 0    # Amount of bases to add around stratification intervals
-
-        String gatk_tag
-        Int? preemptible
-        Int disk_size = 10 + ceil(4.2 * size(input_vcf, "GB") + 2.2 * size(input_vcf_index, "GB") + size(reference.fasta, "GB"))
-        Int cpu = 4
-        Int memory = 16
-    }
-
-    command <<<
-        set -xeuo pipefail
-
-        # Create symlink for VCF & index in case their paths are different, e.g. when using TDR
-        ln -s ~{input_vcf} input.vcf.gz
-        ln -s ~{input_vcf_index} input.vcf.gz.tbi
-
-        # Subset to given sample / loci; Output subsetted VCF
-        # Add variable padding to ensure capture of variants on boundaries downstream
-        # Remove unused alternates to make bcftools stats more accurate on multisample callsets
-        gatk SelectVariants \
-            -V input.vcf.gz \
-            -R ~{reference.fasta} \
-            ~{"-sn " + input_sample_name} \
-            ~{"-L " + stratifier.interval} \
-            ~{"--interval-padding " + interval_padding} \
-            --remove-unused-alternates \
-            -O subset.vcf.gz
-
-    >>>
-
-    runtime{
-        docker: "us.gcr.io/broad-gatk/gatk:" + gatk_tag
-        preemptible: select_first([preemptible, 0])
-        disks: "local-disk " + disk_size + " HDD"
-        bootDiskSizeGb: "16"
-        cpu: cpu
-        memory: memory + " GB"
-    }
-
-    output {
-        File output_vcf = "subset.vcf.gz"
-        File output_vcf_index = "subset.vcf.gz.tbi"
-    }
 }
 
 task VCFEval {
     input {
         # Input VCF Files
-        File call_vcf
-        File call_vcf_index
-        String call_output_sample_name
+        File query_vcf
+        File query_vcf_index
+        String query_output_sample_name
+        String? query_vcf_sample_name
         File base_vcf
         File base_vcf_index
         String base_output_sample_name
+        String? base_vcf_sample_name
 
         Reference reference
 
@@ -246,20 +203,15 @@ task VCFEval {
         # String for VCF field to use as ROC score
         String score_field
 
-        # Label to add to ROC table outputs
-        String strat_label
-
         # vcfeval Arguments
         Boolean passing_only = true
         Boolean require_matching_genotypes = true
-        Boolean enable_ref_overlap = true
+        Boolean enable_ref_overlap = false
 
         # Runtime params
         Int? preemptible
-        Int disk_size = ceil(size(call_vcf, "GB") + size(base_vcf, "GB") + size(reference.fasta, "GB")) + 25
-        Int cpu = 8
-        Int memory = 16
-        String rtg_docker_version = "v1.0"
+        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(size(query_vcf, "GB") + size(base_vcf, "GB") + size(reference.fasta, "GB")) + 10,
+                                                  "cpu": 8, "memory": 16}
     }
 
     command <<<
@@ -274,14 +226,15 @@ task VCFEval {
                 ~{false="--squash-ploidy" true="" require_matching_genotypes} \
                 ~{true="--ref-overlap" false="" enable_ref_overlap} \
                 -b ~{base_vcf} \
-                -c ~{call_vcf} \
+                -c ~{query_vcf} \
                 ~{"-e " + evaluation_bed} \
                 --vcf-score-field="~{score_field}" \
-                --output-mode split \
+                --output-mode combine \
                 --decompose \
-                --roc-subset snp,mnp,indel \
+                --roc-subset snp,indel \
                 -t rtg_ref \
-                -o reg \
+                ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
+                -o reg
 
             mkdir output_dir
             cp reg/*.vcf.gz* output_dir/
@@ -299,14 +252,15 @@ task VCFEval {
                 ~{true="--ref-overlap" false="" enable_ref_overlap} \
                 --squash-ploidy \
                 -b ~{base_vcf} \
-                -c ~{call_vcf} \
+                -c ~{query_vcf} \
                 --bed-regions non-par.bed \
                 ~{"-e " + evaluation_bed} \
                 --vcf-score-field="~{score_field}" \
-                --output-mode split \
+                --output-mode combine \
                 --decompose \
-                --roc-subset snp,mnp,indel \
+                --roc-subset snp,indel \
                 -t rtg_ref \
+                ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
                 -o par
 
             rtg vcfeval \
@@ -314,33 +268,31 @@ task VCFEval {
                 ~{false="--squash-ploidy" true="" require_matching_genotypes} \
                 ~{true="--ref-overlap" false="" enable_ref_overlap} \
                 -b ~{base_vcf} \
-                -c ~{call_vcf} \
+                -c ~{query_vcf} \
                 --bed-regions regular-regions.bed \
                 ~{"-e " + evaluation_bed} \
                 --vcf-score-field="~{score_field}" \
-                --output-mode split \
+                --output-mode combine \
                 --decompose \
-                --roc-subset snp,mnp,indel \
+                --roc-subset snp,indel \
                 -t rtg_ref \
+                ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
                 -o reg
 
             mkdir output_dir
-            for file_name in "tp-baseline" "tp" "fp" "fn";
-            do
-                bcftools merge --force-samples "par/${file_name}.vcf.gz" "reg/${file_name}.vcf.gz" | bcftools sort -Oz -o "output_dir/${file_name}.vcf.gz"
-                bcftools index -t "output_dir/${file_name}.vcf.gz"
-            done
+            bcftools merge --force-samples "par/output.vcf.gz" "reg/output.vcf.gz" | bcftools sort -Oz -o "output_dir/output.vcf.gz"
+            bcftools index -t "output_dir/output.vcf.gz"
 
         fi
 
-
+        # Format ROC stats into table
         python3 << CODE
         import gzip
         import pandas as pd
 
         def parse_data(root_dir):
             full_df = pd.DataFrame()
-            for Type in ['snp', 'mnp', 'indel']:
+            for Type in ['snp', 'indel']:
                 file_path = f'{root_dir}/{Type}_roc.tsv.gz'
 
                 header_lines = []
@@ -355,14 +307,12 @@ task VCFEval {
                 df = pd.read_csv(file_path, sep='\t', comment='#', header=None, names=header_names)
 
                 rename_columns = {'score': 'Score', 'true_positives_baseline': 'TP_Base',
-                      'false_positives': 'FP', 'true_positives_call': 'TP_Call', 'false_negatives': 'FN',
+                      'false_positives': 'FP', 'true_positives_call': 'TP_Query', 'false_negatives': 'FN',
                       'precision': 'Precision', 'sensitivity': 'Recall', 'f_measure': 'F1_Score'}
 
                 df = df.rename(columns=rename_columns)
                 df['Type'] = Type.upper()
-                df['Stratifier'] = "~{strat_label}"
-                df['Score_Field'] = "~{score_field}"
-                df['Call_Name'] = "~{call_output_sample_name}"
+                df['Query_Name'] = "~{query_output_sample_name}"
                 df['Base_Name'] = "~{base_output_sample_name}"
 
                 full_df = pd.concat([full_df, df])
@@ -375,15 +325,15 @@ task VCFEval {
         # If PAR bed file provided, also collect data from analysis over PAR region and combine stats
         if len("~{par_bed}") > 0:
             par_roc_summary = parse_data('par')
-            merged_df = reg_roc_summary.merge(par_roc_summary, on=['Score', 'Type', 'Stratifier', 'Score_Field', 'Call_Name', 'Base_Name'], how='outer').fillna(0)
-            for stat in ['TP_Base', 'FP', 'TP_Call', 'FN']:
+            merged_df = reg_roc_summary.merge(par_roc_summary, on=['Score', 'Type', 'Interval', 'Query_Name', 'Base_Name'], how='outer').fillna(0)
+            for stat in ['TP_Base', 'FP', 'TP_Query', 'FN']:
                 merged_df[stat] = merged_df[f'{stat}_x'] + merged_df[f'{stat}_y']
-            merged_df['Precision'] = merged_df['TP_Call'] / (merged_df['TP_Call'] + merged_df['FP'])
+            merged_df['Precision'] = merged_df['TP_Query'] / (merged_df['TP_Query'] + merged_df['FP'])
             merged_df['Recall'] = merged_df['TP_Base'] / (merged_df['TP_Base'] + merged_df['FN'])
             merged_df['F1_Score'] = 2 * merged_df['Precision'] * merged_df['Recall'] / (merged_df['Precision'] + merged_df['Recall'])
 
             roc_summary = merged_df[
-                ['Score', 'TP_Base', 'FP', 'TP_Call', 'FN', 'Precision', 'Recall', 'F1_Score', 'Type', 'Stratifier', 'Score_Field', 'Call_Name', 'Base_Name']
+                ['Score', 'TP_Base', 'FP', 'TP_Query', 'FN', 'Precision', 'Recall', 'F1_Score', 'Type', 'Interval', 'Query_Name', 'Base_Name']
             ]
 
         roc_summary.to_csv('ROC_summary.tsv', sep='\t', index=False)
@@ -393,64 +343,71 @@ task VCFEval {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:" + rtg_docker_version
+        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.0"
         preemptible: select_first([preemptible, 0])
-        disks: "local-disk " + disk_size + " HDD"
-        cpu: cpu
-        memory: memory + " GB"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        cpu: runtimeAttributes.cpu
+        memory: runtimeAttributes.memory + " GB"
     }
 
     output {
         File ROC_summary = "ROC_summary.tsv"
 
-        File tp_base_vcf = "output_dir/tp-baseline.vcf.gz"
-        File tp_base_index = "output_dir/tp-baseline.vcf.gz.tbi"
-        File tp_call_vcf = "output_dir/tp.vcf.gz"
-        File tp_call_index = "output_dir/tp.vcf.gz.tbi"
-        File fp_vcf = "output_dir/fp.vcf.gz"
-        File fp_index = "output_dir/fp.vcf.gz.tbi"
-        File fn_vcf = "output_dir/fn.vcf.gz"
-        File fn_index = "output_dir/fn.vcf.gz.tbi"
+        File combined_output = "output_dir/output.vcf.gz"
+        File combined_output_index = "output_dir/output.vcf.gz.tbi"
     }
 }
 
 task BCFToolsStats {
     input {
-        # Post-vcfeval files
-        File tp_base_vcf
-        File tp_base_index
-        File tp_call_vcf
-        File tp_call_index
-        File fp_vcf
-        File fp_index
-        File fn_vcf
-        File fn_index
+        File combined_vcfeval_output
+        File combined_vcfeval_output_index
 
-        String strat_label
-        String bcf_selector
-        String bcf_label
+        File? stratifier_interval
+        String stratifier_label
 
-        String call_output_sample_name
+        String bcf_genotype
+        String bcf_genotype_label
+
+        String query_output_sample_name
         String base_output_sample_name
 
-        File? evaluation_bed
+        String targets_overlap = "record"
 
-        Int disk_size = ceil(size(tp_base_vcf, "GB") + size(tp_call_vcf, "GB") + size(fp_vcf, "GB") + size(fn_vcf, "GB")) + 20
-        Int cpu = 8
-        Int memory = 16
+        RuntimeAttributes runtimeAttributes = {"disk_size":2 * ceil(size(combined_vcfeval_output, "GB") + size(stratifier_interval, "GB")) + 10,
+                                                  "cpu": 4, "memory": 8}
     }
 
-    # Handle parsing bcf_selector with surrounding quotes, with empty case handled separately
-    String selection = if bcf_selector!= "" then "-i " + '"' + bcf_selector + '"' else ""
+    # Handle parsing bcf_genotype with surrounding quotes, with empty case handled separately
+    String selection = if bcf_genotype!= "" then " && " + bcf_genotype + "'" else "'"
+
+    String tp_base_selection = "-i 'INFO/BASE=\"TP\"" + selection
+    String tp_query_selection = "-i 'INFO/CALL=\"TP\"" + selection
+    String fp_selection = "-i '(INFO/CALL=\"FP\" || INFO/CALL=\"FP_CA\")" + selection
+    String fn_selection = "-i '(INFO/BASE=\"FN\" || INFO/BASE=\"FN_CA\")" + selection
+    String out_selection = "-i '(INFO/BASE=\"OUT\" || INFO/CALL=\"OUT\")" + selection
+    String ign_selection = "-i '(INFO/BASE=\"IGN\" || INFO/CALL=\"IGN\")" + selection
+
+    String targets_overlap_expression = " --targets-overlap " + targets_overlap
 
     command <<<
         set -xeuo pipefail
 
-        # Subset to evaluation bed if provided, to ensure not too many FNs picked up outside of it
-        bcftools stats ~{selection} -s- ~{"-R" + evaluation_bed} --threads ~{cpu} ~{tp_base_vcf} > tp_base_stats.tsv
-        bcftools stats ~{selection} -s- ~{"-R" + evaluation_bed} --threads ~{cpu} ~{tp_call_vcf} > tp_call_stats.tsv
-        bcftools stats ~{selection} -s- ~{"-R" + evaluation_bed} --threads ~{cpu} ~{fp_vcf} > fp_stats.tsv
-        bcftools stats ~{selection} -s- ~{"-R" + evaluation_bed} --threads ~{cpu} ~{fn_vcf} > fn_stats.tsv
+        # Subset combined output to each stat category; run in parallel
+        # Note: subset to sample name and drop unused alts with -a BEFORE using above selector in stats command,
+        # otherwise selecting for GT/TYPE all at once will apply to ALL sample/allele fields, giving misleading stats
+        # Note: Use -T flag instead of -R for subsettng by region; the former streams the entire VCF file while latter does random
+        # access lookup for each entry, which is extremely slow for even interval lists with just a few thousand entries
+        # Also use --targets-overlap record to ensure events just overlapping the bed get counted (rather than being fully contained)
+        bcftools view -s BASELINE --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{tp_base_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > tp_base_stats.tsv &
+        bcftools view -s CALLS --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{tp_query_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > tp_query_stats.tsv &
+        bcftools view -s CALLS --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{fp_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > fp_stats.tsv &
+        bcftools view -s BASELINE --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{fn_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > fn_stats.tsv &
+        bcftools stats ~{out_selection} -s- ~{"-T " + stratifier_interval + targets_overlap_expression} ~{combined_vcfeval_output} > out_stats.tsv &
+        bcftools stats ~{ign_selection} -s- ~{"-T " + stratifier_interval + targets_overlap_expression} ~{combined_vcfeval_output} > ign_stats.tsv &
+
+        # Wait for bcftools stats to finish for all selectors
+        wait
 
         python3 << CODE
         import io
@@ -492,9 +449,11 @@ task BCFToolsStats {
 
         df_dict = {
             "TP_Base" : make_dfs("tp_base_stats.tsv"),
-            "TP_Call": make_dfs("tp_call_stats.tsv"),
+            "TP_Query": make_dfs("tp_query_stats.tsv"),
             "FP": make_dfs("fp_stats.tsv"),
-            "FN": make_dfs("fn_stats.tsv")
+            "FN": make_dfs("fn_stats.tsv"),
+            "OUT": make_dfs("out_stats.tsv"),
+            "IGN": make_dfs("ign_stats.tsv")
         }
 
         # Make full SN (Summary Numbers) df
@@ -502,31 +461,30 @@ task BCFToolsStats {
         for stat in df_dict:
             full_sn_df = df_dict[stat]['SN_df'].rename(columns={'Count': f'{stat}_Count'}).merge(full_sn_df, on='Category', how='outer')
         full_sn_df = full_sn_df.fillna(0)
-        full_sn_df['Call_Name'] = "~{call_output_sample_name}"
+        full_sn_df['Query_Name'] = "~{query_output_sample_name}"
         full_sn_df['Base_Name'] = "~{base_output_sample_name}"
-        full_sn_df['Stratifier'] = "~{strat_label}"
-        full_sn_df['BCF_Label'] = "~{bcf_label}"
+        full_sn_df['Interval'] = "~{stratifier_label}"
+        full_sn_df['BCF_Label'] = "~{bcf_genotype_label}"
 
         # Make full IDD (InDel Distribution) df
         full_idd_df = pd.DataFrame({'INDEL_Length': df_dict['TP_Base']['IDD_df']['INDEL_Length']})
         for stat in df_dict:
             full_idd_df = df_dict[stat]['IDD_df'].rename(columns={'Count': f'{stat}_Count'}).merge(full_idd_df, on='INDEL_Length', how='outer')
         full_idd_df = full_idd_df.fillna(0)
-        full_idd_df['Call_Name'] = "~{call_output_sample_name}"
+        full_idd_df['Query_Name'] = "~{query_output_sample_name}"
         full_idd_df['Base_Name'] = "~{base_output_sample_name}"
-        full_idd_df['Stratifier'] = "~{strat_label}"
-        full_idd_df['BCF_Label'] = "~{bcf_label}"
+        full_idd_df['Interval'] = "~{stratifier_label}"
+        full_idd_df['BCF_Label'] = "~{bcf_genotype_label}"
 
         # Make full ST (Substitution) df
         full_st_df = pd.DataFrame({'Substitution': df_dict['TP_Base']['ST_df']['Substitution']})
         for stat in df_dict:
             full_st_df = df_dict[stat]['ST_df'].rename(columns={'Count': f'{stat}_Count'}).merge(full_st_df, on='Substitution', how='outer')
         full_st_df = full_st_df.fillna(0)
-        full_st_df['Call_Name'] = "~{call_output_sample_name}"
+        full_st_df['Query_Name'] = "~{query_output_sample_name}"
         full_st_df['Base_Name'] = "~{base_output_sample_name}"
-        full_st_df['Stratifier'] = "~{strat_label}"
-        full_st_df['BCF_Label'] = "~{bcf_label}"
-
+        full_st_df['Interval'] = "~{stratifier_label}"
+        full_st_df['BCF_Label'] = "~{bcf_genotype_label}"
 
         # Write files
         full_sn_df.to_csv('Full_SN.tsv', sep='\t', index=False)
@@ -537,10 +495,10 @@ task BCFToolsStats {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.0"
-        disks: "local-disk " + disk_size + " HDD"
-        cpu: cpu
-        memory: memory + "GB"
+        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.2"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        cpu: runtimeAttributes.cpu
+        memory: runtimeAttributes.memory + "GB"
     }
 
     output {
@@ -558,13 +516,12 @@ task CombineSummaries {
         Array[File] IDD_summaries
         Array[File] ST_summaries
 
-        String? experiment_value
+        String? experiment
         String? extra_column_name
         String? extra_column_value
 
-        Int disk_size = 50
-        Int cpu = 2
-        Int memory = 8
+        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(size(ROC_summaries, "GB") + size(SN_summaries, "GB")
+                                             + size(IDD_summaries, "GB") + size(ST_summaries, "GB")) + 10, "cpu": 2, "memory": 8}
     }
 
     command <<<
@@ -579,13 +536,13 @@ task CombineSummaries {
             df = pd.read_csv(file, sep='\t')
             full_ROC = pd.concat([full_ROC, df])
 
-        if "~{experiment_value}" != "":
-            full_ROC['Experiment'] = "~{experiment_value}"
+        if "~{experiment}" != "":
+            full_ROC['Experiment'] = "~{experiment}"
 
         if ("~{extra_column_name}" != "") and ("~{extra_column_value}" != ""):
             full_ROC["~{extra_column_name}"] = "~{extra_column_value}"
 
-        full_ROC.to_csv('Full_ROC.tsv', sep='\t', index=False)
+        full_ROC.to_csv('ROCStats.tsv', sep='\t', index=False)
 
         # Gather all tables for bcftools stats outputs
         full_SN = pd.DataFrame()
@@ -629,23 +586,23 @@ task CombineSummaries {
         # Compute simple stats
         for df in [full_SN, full_IDD, full_ST, simple_summary]:
             df.columns = [c.replace('_Count', '') for c in df.columns]
-            df['Precision'] = df['TP_Call'] / (df['TP_Call'] + df['FP'])
+            df['Precision'] = df['TP_Query'] / (df['TP_Query'] + df['FP'])
             df['Recall'] = df['TP_Base'] / (df['TP_Base'] + df['FN'])
             df['F1_Score'] = 2 * df['Precision'] * df['Recall'] / (df['Precision'] + df['Recall'])
 
         # Add optional labels
         for df in [full_SN, full_IDD, full_ST, simple_summary]:
-            if "~{experiment_value}" != "":
-                df['Experiment'] = "~{experiment_value}"
+            if "~{experiment}" != "":
+                df['Experiment'] = "~{experiment}"
 
             if ("~{extra_column_name}" != "") and ("~{extra_column_value}" != ""):
                 df["~{extra_column_name}"] = "~{extra_column_value}"
 
         # Reorder columns
-        metadata_cols = ['Call_Name', 'Base_Name', 'Stratifier', 'Type']
+        metadata_cols = ['Query_Name', 'Base_Name', 'Interval', 'Type']
         metadata_cols = metadata_cols + ["~{extra_column_name}"] if "~{extra_column_name}" != "" else metadata_cols
-        metadata_cols = ['Experiment'] + metadata_cols if "~{experiment_value}" != "" else metadata_cols
-        stat_cols = ['TP_Call', 'TP_Base', 'FP', 'FN', 'Precision', 'Recall', 'F1_Score']
+        metadata_cols = ['Experiment'] + metadata_cols if "~{experiment}" != "" else metadata_cols
+        stat_cols = ['TP_Query', 'TP_Base', 'FP', 'FN', 'Precision', 'Recall', 'F1_Score', 'IGN', 'OUT']
 
         full_IDD = full_IDD[metadata_cols + ['INDEL_Type', 'INDEL_Length'] + stat_cols]
         full_ST = full_ST[metadata_cols + ['Substitution', 'Substitution_Type'] + stat_cols]
@@ -653,23 +610,23 @@ task CombineSummaries {
 
         # Skip returning full_SN since it is redundant with simple_summary
         simple_summary.to_csv('SimpleSummary.tsv', sep='\t', index=False)
-        full_IDD.to_csv('Full_IDD.tsv', sep='\t', index=False)
-        full_ST.to_csv('Full_ST.tsv', sep='\t', index=False)
+        full_IDD.to_csv('IndelDistributionStats.tsv', sep='\t', index=False)
+        full_ST.to_csv('SNPSubstitutionStats.tsv', sep='\t', index=False)
 
         CODE
     >>>
 
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
-        disks: "local-disk " + disk_size + " HDD"
-        cpu: cpu
-        memory: memory + "GB"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        cpu: runtimeAttributes.cpu
+        memory: runtimeAttributes.memory + "GB"
     }
 
     output {
         File simple_summary = "SimpleSummary.tsv"
-        File IDD_combined_summaries = "Full_IDD.tsv"
-        File ST_combined_summaries = "Full_ST.tsv"
-        File ROC_combined_summaries = "Full_ROC.tsv"
+        File IDD_combined_summaries = "IndelDistributionStats.tsv"
+        File ST_combined_summaries = "SNPSubstitutionStats.tsv"
+        File ROC_combined_summaries = "ROCStats.tsv"
     }
 }
