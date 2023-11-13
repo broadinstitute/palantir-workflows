@@ -57,6 +57,7 @@ vcf = hl.import_vcf('~{imputed_vcf}', force_bgz=True)
 qc = hl.sample_qc(vcf)
 qc.cols().export('qc.tsv')
 EOF
+        python3 script.py
     >>>
 
     runtime {
