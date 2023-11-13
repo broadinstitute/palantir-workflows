@@ -108,3 +108,6 @@ workflows:
   - name: MatchFingerprints
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/MatchFingerprints.wdl
+  - name: DetectPCANovelties
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/DetectPCANovelties.wdl
