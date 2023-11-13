@@ -31,6 +31,7 @@ workflow Benchmark {
         Boolean passingOnly=true
         String? vcfScoreField
         String? dummyInputForTerraCallCaching
+        Boolean runFingerprintCheck = true
     }
 
     meta {
@@ -61,6 +62,7 @@ workflow Benchmark {
         vcfScoreField: {description:"Have vcfEval use this field for making the roc-plot. If this is an info field (like VSQLOD) it should be provided as INFO.VQSLOD, otherewise it is assumed to be a format field."}
         gatkJarForAnnotation: {description:"GATK jar that can calculate necessary annotations for jexl Selections when using VCFEval."}
         annotationNames: {description:"Annotation arguments to GATK (-A argument, multiple OK)"}
+        runFingerprintCheck: {description:"No-input or true keeps fingerprinting on, but false turns fingerprinting off."}
         dummyInputForTerraCallCaching: {description:"When running on Terra, use workspace.name as this input to ensure that all tasks will only cache hit to runs in your own workspace. This will prevent call caching from failing with 'Cache Miss (10 failed copy attempts)'. Outside of Terra this can be left empty. This dummy input is only needed for tasks that have no inputs specific to the sample being run (such as CreateIntervalList which does not take in any sample data)."}
     }
 
@@ -96,16 +98,17 @@ workflow Benchmark {
                 message="Variant selector list is length "+length(actualSelectorJEXL)+" while labels list is "+length(actualSelectorLabels)
         }
     }
-
-    call MatchEvalTruth as Match {
-        input:
-            evalVcf=evalVcf,
-            truthVcf=truthVcf,
-            evalVcfIndex=evalVcfIndex,
-            truthVcfIndex=truthVcfIndex,
-            hapMap=hapMap,
-            gatkTag=gatkTag,
-            preemptible=preemptible
+    if (runFingerprintCheck) {
+        call MatchEvalTruth as Match {
+            input:
+                evalVcf=evalVcf,
+                truthVcf=truthVcf,
+                evalVcfIndex=evalVcfIndex,
+                truthVcfIndex=truthVcfIndex,
+                hapMap=hapMap,
+                gatkTag=gatkTag,
+                preemptible=preemptible
+        }
     }
     Array[String] indelLabels=["deletion","insertion","indel_fine_m20","indel_fine_m19","indel_fine_m18","indel_fine_m17","indel_fine_m16","indel_fine_m15",
                                "indel_fine_m14","indel_fine_m13","indel_fine_m12","indel_fine_m11","indel_fine_m10","indel_fine_m9","indel_fine_m8","indel_fine_m7",
@@ -159,7 +162,7 @@ workflow Benchmark {
 
     if (defined(stratIntervals)) {
         scatter (stratIL in actualStratIntervals) {
-            if(stratIL!="") {
+            if(stratIL+"" !="") { # coerce to String
                 call ConvertIntervals as StratConvertIntervals {
                     input:
                         inputIntervals=stratIL,
@@ -195,9 +198,12 @@ workflow Benchmark {
 
     scatter (stratifier in stratifiers) {
 
-        if (stratifier.label != "" && stratifier.intervalList != "") {
+        if (defined(stratifier.label)        && select_first([stratifier.label]) != "" && 
+            
+            # coerce to String   -------------------------------------------------->>  VVV
+            defined(stratifier.intervalList) && select_first([stratifier.intervalList])+"" != "" ) {
             String stratLabel=select_first([stratifier.label,""])
-            File stratIL=select_first([stratifier.intervalList,""])
+            File stratIL2=select_first([stratifier.intervalList,""])
             File stratBed=select_first([stratifier.bed,""])
             String outputPreStrat=evalLabel+"_"+truthLabel+"_"+stratLabel
         }
@@ -210,7 +216,7 @@ workflow Benchmark {
                 vcf=evalVcf,
                 vcfIndex=evalVcfIndex,
                 confidenceIL=ConfidenceConvertIntervals.intervalList,
-                stratIL=stratIL,
+                stratIL=stratIL2,
                 gatkTag=gatkTag,
                 preemptible=preemptible
         }
@@ -220,7 +226,7 @@ workflow Benchmark {
                 vcf=truthVcf,
                 vcfIndex=truthVcfIndex,
                 confidenceIL=ConfidenceConvertIntervals.intervalList,
-                stratIL=stratIL,
+                stratIL=stratIL2,
                 gatkTag=gatkTag,
                 preemptible=preemptible
         }
@@ -423,7 +429,7 @@ workflow Benchmark {
 
 
     output {
-        File? summary=CombineSummaries.summaryOut
+        File summary=CombineSummaries.summaryOut
         Float snpPrecision=SummariseVcfEval.snpPrecision[0]
         Float indelPrecision=SummariseVcfEval.indelPrecision[0]
         Float snpRecall=SummariseVcfEval.snpRecall[0]
@@ -543,8 +549,8 @@ task VcfEval {
     command <<<
     set -xeuo pipefail
 
-    /bin/rtg-tools/rtg format -o rtg_ref ~{ref}
-    /bin/rtg-tools/rtg vcfeval \
+    rtg format -o rtg_ref ~{ref}
+    rtg vcfeval \
         ~{false="--all-records" true="" passingOnly} \
         ~{"--vcf-score-field=" + vcfScoreField} \
         ~{false="--squash-ploidy" true="" requireMatchingGenotypes} \
@@ -558,8 +564,8 @@ task VcfEval {
         mv $f ~{outputPre}_"$(basename "$f")";
     done
 
-    /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} SNP"   --svg=~{outputPre}.snp.svg   ~{outputPre}_snp_roc.tsv.gz
-    /bin/rtg-tools/rtg rocplot --precision-sensitivity --title="~{outputPre} INDEL" --svg=~{outputPre}.indel.svg ~{outputPre}_non_snp_roc.tsv.gz
+    rtg rocplot --precision-sensitivity --title="~{outputPre} SNP"   --svg=~{outputPre}.snp.svg   ~{outputPre}_snp_roc.tsv.gz
+    rtg rocplot --precision-sensitivity --title="~{outputPre} INDEL" --svg=~{outputPre}.indel.svg ~{outputPre}_non_snp_roc.tsv.gz
 
     python3 -<<"EOF" ~{outputPre}_snp_roc.tsv.gz ~{outputPre}_non_snp_roc.tsv.gz ~{outputPre}_summary.csv
     import gzip
@@ -591,11 +597,9 @@ task VcfEval {
                 snp_TP_Base=float(line.split()[1])
                 snp_FP=float(line.split()[2])
                 snp_FN=float(line.split()[4])
-            except ValueError:
+            except (ValueError, IndexError):
                 continue
-            except IndexError:
-                continue
-        f_snp.close()
+
     with gzip.open(sys.argv[2],"rt") as f_indel:
         for line in f_indel:
             try:
@@ -606,11 +610,8 @@ task VcfEval {
                 indel_TP_Base=float(line.split()[1])
                 indel_FP=float(line.split()[2])
                 indel_FN=float(line.split()[4])
-            except ValueError:
+            except (ValueError, IndexError):
                 continue
-            except IndexError:
-                continue
-        f_indel.close()
 
     str_indel_sensitivity=str(indel_sensitivity)
     str_indel_precision=str(indel_precision)
@@ -618,7 +619,6 @@ task VcfEval {
     str_snp_sensitivity=str(snp_sensitivity)
     str_snp_precision=str(snp_precision)
     str_snp_fscore=str(snp_fscore)
-
 
     if indel_TP_Eval+indel_FP==0:
         str_indel_precision="NA"
@@ -634,18 +634,15 @@ task VcfEval {
     if str_snp_sensitivity=="NA" or str_snp_precision=="NA":
         str_snp_fscore="NA"
 
-
-
     with open(sys.argv[3],"wt") as f_out:
         f_out.write(",".join(["Type","Precision","Recall","F1_Score","TP_Eval","TP_Base","FP","FN"])+"\n")
         f_out.write(",".join(["SNP",str_snp_precision,str_snp_sensitivity,str_snp_fscore,str(snp_TP_Eval),str(snp_TP_Base),str(snp_FP),str(snp_FN)])+"\n")
         f_out.write(",".join(["INDEL",str_indel_precision,str_indel_sensitivity,str_indel_fscore,str(indel_TP_Eval),str(indel_TP_Base),str(indel_FP),str(indel_FN)])+"\n")
-        f_out.close()
     EOF
     >>>
 
     runtime {
-        docker: "ckachulis/rtg-tools:0.1"
+        docker: "us.gcr.io/broad-dsde-methods/rtg:v1.0"
         preemptible: select_first([preemptible,0])
         memory: mem
         cpu: cpu
@@ -1460,7 +1457,7 @@ task WriteXMLfile {
         String reference_version
         String file_name
 
-        Array[String]? input_names=""
+        Array[String] input_names
         Array[String] input_names_prefix = if defined(input_names) then prefix('-n ', select_first([input_names])) else []
     }
     command {

@@ -15,6 +15,12 @@ workflows:
   - name: BenchmarkVCFs
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/BenchmarkVCFs.wdl
+  - name: CompareBenchmarks
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/CompareBenchmarks.wdl
+  - name: BenchmarkAndCompareVCFs
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/BenchmarkAndCompareVCFs.wdl
   - name: SimpleBenchmark
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/SimpleBenchmark.wdl
@@ -108,6 +114,21 @@ workflows:
   - name: Cupcake
     subclass: WDL
     primaryDescriptorPath: /LongReadRNABenchmark/Cupcake.wdl
+  - name: VcfdistBenchmark
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/VcfdistBenchmark.wdl
   - name: DownsampleAndCollectCoverage
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/DownsampleAndCollectCoverage.wdl
+  - name: Dipcall
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/Dipcall.wdl
+  - name: ExtractSingleSampleVCFFromCallset
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/ExtractSampleFromVCF.wdl
+  - name: MatchFingerprints
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/MatchFingerprints.wdl
+  - name: DetectPCANovelties
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/DetectPCANovelties.wdl

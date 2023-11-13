@@ -14,12 +14,14 @@ the fields are populated:
 * Directory: BCFTools
 * Description: A docker image containing an installation of [bcftools](https://samtools.github.io/bcftools/bcftools.html).
 Also includes some minimal Python tools (pandas) for data processing.
-* Location: `us.gcr.io/broad-dsde-methods/bcftools:v1.1`
+* Location: `us.gcr.io/broad-dsde-methods/bcftools:v1.2`
 * Used By: [SimpleBenchmark](../../BenchmarkVCFs/SimpleBenchmark.wdl)
 * Usage: `bcftools [COMMAND]`
 * Version Notes:
   * 1.0: Versions are `bcftools` 1.16.
-  * 1.1: Added gcloud sdk and `python-is-python3` package so that `python` is a valid command.
+  * 1.1: Added the `python-is-python3` package so that `python` is a valid command.
+  * 1.2: Versions are `bcftools` 1.18 (and Ubuntu from 22.10 to 23.10).
+  * 1.3: Added gcloud SDK to allow streaming
 
 ## bedtools
 
@@ -97,6 +99,16 @@ convenient data manipulation tools.
 * Version Notes: 
   * 1.0: Versions are `rtg` 3.12.1
 
+## vcfeval
+* Directory: VCFEval
+* Description: A docker image containing various tools used for running `rtg vcfeval` in benchmarking. These include `rtg`,
+`python`, `bedtools`, and `bcftools`.
+* Location: `"us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.0`
+* Used By: [SimpleBenchmark](../../BenchmarkVCFs/SimpleBenchmark.wdl)
+* Usage: `rtg [COMMAND]`, etc.
+* Version Notes:
+  * 1.0: Versions are `rtg` 3.12.1, `bedtools` 2.31.0, `bcftools` 1.16 
+
 ## whatshap
 
 * Directory: WhatsHap
@@ -106,3 +118,14 @@ convenient data manipulation tools.
 * Usage: `whatshap [COMMAND]`
 * Version Notes:
   * 1.0: Versions are `whatshap` 1.7
+
+
+## vcfdist
+
+* Directory: Vcfdist
+* Description: A docker image containing an installation of [vcfdist](https://github.com/TimD1/vcfdist).
+* Location: `us.gcr.io/broad-dsde-methods/vcfdist:v0.1`
+* Used By: [VcfdistBenchmark](../../BenchmarkVCFs/VcfdistBenchmark.wdl)
+* Usage: `vcfdist [COMMAND]`
+* Version Notes:
+  * 1.0: Versions are `htslib` 1.17, `vcfdist` 2.0.0
