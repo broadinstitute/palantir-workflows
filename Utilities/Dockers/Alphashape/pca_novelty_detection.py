@@ -24,23 +24,16 @@ with open(args.alphashape, "rb") as infile:
 # Set the distance threshold
 dist_thresh = float(args.distance_threshold)
 
-# Get training data (this is just for visualization in this script)
-# Expected input format:
-# Tab-delimited file with at least two columns where the first two columns are PC1 and PC2 (in this order)
-# SAMPLE_ID might be added as the first column later based on code review
-training_points = []
+# Read training data (this is just for visualization in this script)
+# Expected input format: tsv with at least two columns where the first two columns are PC1 and PC2
 df_train = pd.read_csv(args.training_data, sep = '\t', header = 0)
-for row in df_train.itertuples():
-	training_points.append((float(row[1]), float(row[2])))
+training_points = list(zip(df_train.PC1, df_train.PC2))
 
-# Get test data
-# Expected input format:
-# Tab-delimited file with at least three columns where the first three columns are SAMPLE_ID, PC1, and PC2 (in this order)
-# We assume that the header exists and is mandatory. This can be changed later if needed
-test_points = {}
+# Read test data
+# Expected input format: tsv with at least three columns where the first three columns are SAMPLE_ID, PC1, and PC2
+# Assumption: the header will exist and is considered mandatory for the format
 df_test = pd.read_csv(args.input, sep = '\t', header = 0)
-for row in df_test.itertuples():
-	test_points[row[1]] = Point(float(row[2]), float(row[3]))
+test_points = {n: Point(x, y) for n, x, y in zip(df_test.SAMPLE_ID, df_test.PC1, df_test.PC2)}
 
 # Prepare output plot for nice visualization
 fig, ax = plt.subplots()
@@ -60,7 +53,7 @@ with open("out.tsv", "w") as outfile:
 			plt.scatter(test_point.x, test_point.y, c = 'red', alpha = 1.0, s = 10)
 
 # Plotting for nice visualization
-plt.title("Alphashape Novelty Detection")
+plt.title("Alphashape Automated Novelty Flagging")
 plt.xlabel("PC1")
 plt.ylabel("PC2")
 colors = ['green', 'blue', 'red']

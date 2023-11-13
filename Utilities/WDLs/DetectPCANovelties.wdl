@@ -7,7 +7,7 @@ task GenerateAlphashape{
         Int cpu = 1
         Int memoryGB = 8
         Int diskSizeGB = 64
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/alphashape@sha256:7506cc1341aeffc5b8aa6e9f0734c06c8c538bc9b576d320c3e63b603c768c8a"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/alphashape@sha256:96d5a34da2ff6da6e2cd0f85cca2fa2400c2d73e02e1957def111fbf04c2fdda"
     }
 
     command <<<
@@ -37,7 +37,7 @@ task DetectPCANoveltiesTask{
         Int cpu = 1
         Int memoryGB = 8
         Int diskSizeGB = 64
-        String docker = "us.gcr.io/broad-dsde-methods/kockan/alphashape@sha256:7506cc1341aeffc5b8aa6e9f0734c06c8c538bc9b576d320c3e63b603c768c8a"
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/alphashape@sha256:96d5a34da2ff6da6e2cd0f85cca2fa2400c2d73e02e1957def111fbf04c2fdda"
     }
 
     command <<<
