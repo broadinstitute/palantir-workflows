@@ -12,7 +12,7 @@ parser.add_argument("-a", "--alpha", default = 8.0)
 args = parser.parse_args()
 
 # Read training data
-# Expected input format: tsv with at least two columns where the first two columns are PC1 and PC2
+# Expected input format: tsv with columns PC1 and PC2
 df_train = pd.read_csv(args.training_data, sep = '\t', header = 0)
 training_points = list(zip(df_train.PC1, df_train.PC2))
 

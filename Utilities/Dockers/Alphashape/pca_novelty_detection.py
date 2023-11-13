@@ -25,12 +25,12 @@ with open(args.alphashape, "rb") as infile:
 dist_thresh = float(args.distance_threshold)
 
 # Read training data (this is just for visualization in this script)
-# Expected input format: tsv with at least two columns where the first two columns are PC1 and PC2
+# Expected input format: tsv with columns PC1 and PC2
 df_train = pd.read_csv(args.training_data, sep = '\t', header = 0)
 training_points = list(zip(df_train.PC1, df_train.PC2))
 
 # Read test data
-# Expected input format: tsv with at least three columns where the first three columns are SAMPLE_ID, PC1, and PC2
+# Expected input format: tsv with columns SAMPLE_ID, PC1, and PC2
 # Assumption: the header will exist and is considered mandatory for the format
 df_test = pd.read_csv(args.input, sep = '\t', header = 0)
 test_points = {n: Point(x, y) for n, x, y in zip(df_test.SAMPLE_ID, df_test.PC1, df_test.PC2)}
