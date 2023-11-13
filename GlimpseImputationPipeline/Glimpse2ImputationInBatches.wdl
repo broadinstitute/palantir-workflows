@@ -34,7 +34,7 @@ workflow Glimpse2ImputationInBatches {
         File? monitoring_script
 
         String docker_extract_annotations = "us.gcr.io/broad-gatk/gatk:4.3.0.0"
-        String docker_count_samples = "us.gcr.io/broad-dsde-methods/bcftools:v1.2"
+        String docker_count_samples = "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
         String docker_merge = "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
     }
 
