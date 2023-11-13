@@ -55,7 +55,7 @@ import hail as hl
 hl.init(default_reference='GRCh38', idempotent=True)
 vcf = hl.import_vcf('~{imputed_vcf}', force_bgz=True)
 qc = hl.sample_qc(vcf)
-qc.cols().export('qc.tsv')
+qc.cols().flatten().export('qc.tsv')
 EOF
         python3 script.py
     >>>
