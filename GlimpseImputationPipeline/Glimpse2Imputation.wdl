@@ -122,7 +122,7 @@ task GlimpsePhase {
 
         Int mem_gb = 4
         Int cpu = 4
-        Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + size(reference_chunk, "GiB") + 100)
+        Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + size(reference_chunk, "GiB") + 5)
         Int preemptible = 9
         Int max_retries = 3
         String docker
@@ -245,7 +245,7 @@ task GetNumberOfSitesInChunk {
         String docker = "us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:checkpointing_and_extract_num_sites "
         Int mem_gb = 4
         Int cpu = 4
-        Int disk_size_gb = ceil(size(reference_chunk, "GiB") + 100)
+        Int disk_size_gb = ceil(size(reference_chunk, "GiB") + 10)
         Int preemptible = 1
         Int max_retries = 3
     }
@@ -280,7 +280,7 @@ task CountSamples {
     String bcftools_docker = "us.gcr.io/broad-gotc-prod/imputation-bcf-vcf:1.0.7-1.10.2-0.1.16-1669908889"
     Int cpu = 1
     Int memory_mb = 3000
-    Int disk_size_gb = 100 + ceil(size(vcf, "GiB"))
+    Int disk_size_gb = 10 + ceil(size(vcf, "GiB"))
   }
 
   command <<<
