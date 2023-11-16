@@ -64,8 +64,6 @@ workflow Glimpse2ImputationInBatches {
                 effective_population_size = effective_population_size,
                 preemptible = preemptible,
                 docker = docker,
-                cpu_phase = cpu_phase,
-                mem_gb_phase = mem_gb_phase,
                 cpu_ligate = cpu_ligate,
                 mem_gb_ligate = mem_gb_ligate,
                 monitoring_script = monitoring_script
