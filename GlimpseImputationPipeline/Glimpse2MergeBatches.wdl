@@ -12,35 +12,37 @@ workflow Glimpse2MergeBatches {
         String docker_merge = "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
     }
 
-    scatter(batch_index in range(length(imputed_vcfs))) {
-        call ExtractAnnotations {
-            input:
-                imputed_vcf = imputed_vcfs[batch_index],
-                imputed_vcf_index = imputed_vcf_indices[batch_index],
-                batch_index = batch_index,
-                docker_extract_annotations = docker_extract_annotations
+    if (length(imputed_vcfs) > 0) {
+        scatter(batch_index in range(length(imputed_vcfs))) {
+            call ExtractAnnotations {
+                input:
+                    imputed_vcf = imputed_vcfs[batch_index],
+                    imputed_vcf_index = imputed_vcf_indices[batch_index],
+                    batch_index = batch_index,
+                    docker_extract_annotations = docker_extract_annotations
+            }
+            call CountSamples {
+                input:
+                    imputed_vcf = imputed_vcfs[batch_index],
+                    imputed_vcf_index = imputed_vcf_indices[batch_index],
+                    docker_count_samples = docker_count_samples
+            }
         }
-        call CountSamples {
-            input:
-                imputed_vcf = imputed_vcfs[batch_index],
-                imputed_vcf_index = imputed_vcf_indices[batch_index],
-                docker_count_samples = docker_count_samples
-        }
-    }
 
-    call MergeAndRecomputeAndAnnotate {
-        input:
-            imputed_vcfs = imputed_vcfs,
-            imputed_vcf_indices = imputed_vcf_indices,
-            annotations = ExtractAnnotations.annotations,
-            num_samples = CountSamples.num_samples,
-            output_basename = output_basename,
-            docker_merge = docker_merge
+        call MergeAndRecomputeAndAnnotate {
+            input:
+                imputed_vcfs = imputed_vcfs,
+                imputed_vcf_indices = imputed_vcf_indices,
+                annotations = ExtractAnnotations.annotations,
+                num_samples = CountSamples.num_samples,
+                output_basename = output_basename,
+                docker_merge = docker_merge
+        }
     }
 
     output {
-        File merged_imputed_vcf = MergeAndRecomputeAndAnnotate.merged_imputed_vcf
-        File merged_imputed_vcf_index = MergeAndRecomputeAndAnnotate.merged_imputed_vcf_index
+        File merged_imputed_vcf = select_first([MergeAndRecomputeAndAnnotate.merged_imputed_vcf, imputed_vcfs[0]])
+        File merged_imputed_vcf_index = select_first([MergeAndRecomputeAndAnnotate.merged_imputed_vcf_index, imputed_vcf_indices[0]])
     }
 }
 
