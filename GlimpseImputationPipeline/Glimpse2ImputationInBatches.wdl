@@ -19,23 +19,21 @@ workflow Glimpse2ImputationInBatches {
 
         File ref_dict
 
-        Boolean impute_reference_only_variants = false
-        Boolean call_indels = false
+        Boolean? impute_reference_only_variants
+        Boolean? call_indels
         Int? n_burnin
         Int? n_main
         Int? effective_population_size
         
-        Int preemptible = 1
-        String docker = "us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:checkpointing_and_extract_num_sites"
-        Int cpu_phase = 4
-        Int mem_gb_phase = 8
-        Int cpu_ligate = 4
-        Int mem_gb_ligate = 4
+        Int? preemptible
+        String? docker
+        Int? cpu_ligate
+        Int? mem_gb_ligate
         File? monitoring_script
 
-        String docker_extract_annotations = "us.gcr.io/broad-gatk/gatk:4.3.0.0"
-        String docker_count_samples = "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
-        String docker_merge = "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
+        String? docker_extract_annotations
+        String? docker_count_samples
+        String? docker_merge
     }
 
     call SplitIntoBatches {
