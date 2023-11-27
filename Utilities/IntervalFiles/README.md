@@ -205,6 +205,8 @@ a stricter exome interval file, though there is not a strict containment.
 * Summary: A list of Challenging Medically Relevant Genes sequenced specifically for HG002. Note this also pairs with a separate truth VCF for HG002.
 * Bucket Mirrors:
   * bed: `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/GIAB_CMRG/v1.00/HG002_GRCh38_CMRG_smallvar_v1.00.bed`
+  * interval_list: `gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/HG002_GRCh38_CMRG_smallvar_v1.00.interval_list`
+  * interval_list (no-alt): `gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/HG002_GRCh38-noalt_CMRG_smallvar_v1.00.interval_list`
   * truth vcf: `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/GIAB_CMRG/v1.00/HG002_GRCh38_CMRG_smallvar_v1.00.broad-header.vcf.gz`
 * Original File: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/SmallVariant/HG002_GRCh38_CMRG_smallvar_v1.00.bed)
 * Original Documentation: [here](https://data.nist.gov/od/id/mds2-2475)
@@ -250,6 +252,7 @@ strat_intervals_bed = [
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/exome_evaluation_regions.v1.bed",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_refseq_cds.bed",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_BadPromoters.bed",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/GIAB_CMRG/v1.00/HG002_GRCh38_CMRG_smallvar_v1.00.bed",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/ug_hcr.bed"
 ]
 
@@ -265,6 +268,7 @@ strat_interval_lists = [
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/exome_evaluation_regions.v1.interval_list",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_refseq_cds.interval_list",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_BadPromoters.interval_list",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/HG002_GRCh38_CMRG_smallvar_v1.00.interval_list",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/ug_hcr.interval_list"
 ]
 
@@ -280,6 +284,7 @@ strat_interval_lists_no_alt = [
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/exome_evaluation_regions.v1-noalt.interval_list",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38-noalt_refseq_cds.interval_list",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38-noalt_BadPromoters.interval_list",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/HG002_GRCh38-noalt_CMRG_smallvar_v1.00.interval_list",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/ug_hcr-noalt.interval_list"
 ]
 
@@ -294,6 +299,7 @@ strat_labels = [
 "Exome",
 "CodingRegions",
 "BadPromoters",
+"CMRG",
 "UGHiConf",
 ]
 ```
