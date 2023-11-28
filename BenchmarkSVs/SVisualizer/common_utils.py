@@ -96,3 +96,9 @@ def get_size_strnum(s):
 def sort_svlen_bins(bins):
     return sort_bins(bins, sorter=get_size_strnum)
 
+def sort_overlap_pcts(p):
+    if '>' in p:
+        return (int(p.strip('>')), 1)
+    else:
+        return (int(p), 0)
+

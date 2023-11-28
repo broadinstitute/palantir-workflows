@@ -77,7 +77,7 @@ task SplitMASites {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -143,7 +143,7 @@ task AddAnnotations {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
@@ -223,7 +223,7 @@ task ConvertToAbstract {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu

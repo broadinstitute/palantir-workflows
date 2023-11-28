@@ -199,7 +199,7 @@ task AddIntervalOverlapStatsWittyer {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         memory: runtimeAttributes.memory + " GB"
         cpu: runtimeAttributes.cpu
@@ -263,7 +263,7 @@ task CleanBasicWittyerStats {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
         disks: "local-disk " + 50 + " HDD"
         memory: 4 + " GB"
         cpu: 2

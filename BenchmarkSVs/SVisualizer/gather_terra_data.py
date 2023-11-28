@@ -47,7 +47,7 @@ for i, workflow in enumerate(output_json['workflows']):
             submission_id=SUBMISSION_ID,
             workflow_id=workflow['workflowId']
         )
-    
+
         wf_json = json.loads(wf_response.content)
         
         # Get dict of output names -> output files from workflow

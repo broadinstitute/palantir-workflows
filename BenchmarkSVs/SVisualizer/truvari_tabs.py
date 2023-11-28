@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 import quickboard.base as qbb
 import quickboard.plugins as plg
 
-from common_utils import read_and_postprocess, convert_missing_to_pass_filter, add_bbend_stats, sort_svtypes, sort_svlen_bins
+from common_utils import read_and_postprocess, convert_missing_to_pass_filter, add_bbend_stats, sort_svtypes, sort_svlen_bins, sort_overlap_pcts
 from decorators import axes_mode
 from plugins import make_type_selector, make_stat_selector, make_length_selector, make_interval_selector, make_axes_mode_selector
 from user_config import COVARIATE_X, EXPERIMENT_ORDER, EXPERIMENT_COLORS, EXPERIMENT_COLOR_DICT, TRUVARI_DUP_TO_INS
@@ -38,7 +38,7 @@ truvari_bench_df = truvari_bench_df.sort_values(['SVTYPE', 'SVLEN_Bin'])
 
 ## Basic Truvari Bench Tab
 @axes_mode
-def make_truvari_bench_plot(df, axes_mode, stat, pct_overlap, svtype, svlen_bin, view_mode='Single'):
+def make_truvari_bench_plot(df, axes_mode, pct_overlap, svtype, svlen_bin, stat=None, view_mode='Single'):
     if view_mode == 'Single':
         df = df[(df['SVTYPE'] == svtype) & (df['SVLEN_Bin'] == svlen_bin)]
 
@@ -58,10 +58,10 @@ def make_truvari_bench_plot(df, axes_mode, stat, pct_overlap, svtype, svlen_bin,
     title += f' for SVTYPE {type_}'
 
     df = df[df['Pct_Overlap'] == pct_overlap]
-    if pct_overlap > 0:
+    if pct_overlap != '0':
         interval = df['Interval'].iloc[0] if len(df) > 0 else "Empty df"
         title += f' over {interval}'
-        title += f' w/ >= {pct_overlap}% overlap'
+        title += f' w/ >= {pct_overlap}% overlap' if '>' not in pct_overlap else f' w/ {pct_overlap}% overlap'
     
     hover_data = ['Base_Sample_Name', 'tp_base_count', 'fn_count', 'tp_comp_count', 'fp_count']
     category_orders = {'Experiment': EXPERIMENT_ORDER} if EXPERIMENT_ORDER is not None else None
@@ -89,10 +89,10 @@ def make_gt_concordance_plot(df, axes_mode, pct_overlap, svlen_bin, view_mode='S
     title = 'GT Concordance'
 
     df = df[df['Pct_Overlap'] == pct_overlap]
-    if len(df) > 0 and pct_overlap > 0:
+    if len(df) > 0 and pct_overlap != '0':
         interval_name = df['Interval'].values[0]
         title += f' over {interval_name}'
-        title += f' w/ >= {pct_overlap}% overlap'
+        title += f' w/ >= {pct_overlap}% overlap' if '>' not in pct_overlap else f' w/ {pct_overlap}% overlap'
     
     fig = px.box(df, x='SVTYPE', y='GT_concordance', color='Experiment', 
                  title=title, category_orders=category_orders, color_discrete_sequence=EXPERIMENT_COLORS, 
@@ -143,17 +143,10 @@ truvari_bench_tab = qbb.BaseTab(
     ],
     sidebar_plugins=[
         make_interval_selector(truvari_bench_df),
-        plg.PlotInputSlider(
+        plg.PlotInputRadioButtons(
             header='Min Pct Overlap w/ Chosen Region',
             plot_input='pct_overlap',
-            slider_min=truvari_bench_df['Pct_Overlap'].min(),
-            slider_max=truvari_bench_df['Pct_Overlap'].max(),
-            slider_default_value=truvari_bench_df['Pct_Overlap'].min(),
-            # slider_step=10,
-            slider_marks={
-                str(i): {'label': str(i), 'style': {"transform": "rotate(-45deg)"}} for i in truvari_bench_df['Pct_Overlap'].unique()
-            },
-            updatemode='mouseup'
+            data_values=sorted(truvari_bench_df['Pct_Overlap'].unique(), key=sort_overlap_pcts)
         ),
         plg.PlotInputRadioButtons(
             header='Select SVLEN Bin',

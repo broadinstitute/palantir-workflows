@@ -297,7 +297,7 @@ task SubsetEvaluation {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         memory: runtimeAttributes.memory + " GB"
         cpu: runtimeAttributes.cpu
@@ -391,7 +391,7 @@ task AddIntervalOverlapStats {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         memory: runtimeAttributes.memory + " GB"
         cpu: runtimeAttributes.cpu
@@ -503,7 +503,7 @@ task CollectQcMetrics {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         memory: runtimeAttributes.memory + " GB"
         cpu: runtimeAttributes.cpu
@@ -637,7 +637,7 @@ task RunTruvari {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         memory: runtimeAttributes.memory + " GB"
         cpu: runtimeAttributes.cpu
@@ -714,7 +714,7 @@ task CollectTruvariClosestStats {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         memory: runtimeAttributes.memory + " GB"
         cpu: runtimeAttributes.cpu
@@ -787,7 +787,7 @@ task ComputeTruvariIntervalSummaryStats {
         fn_df['SVLEN_Bin'] = fn_df['SVLEN'].apply(bin_svlen)
 
         intervals = ["~{default="" sep="\", \"" bed_labels}"]
-        overlap_percents = [~{default="" sep=", " overlap_percents}]
+        overlap_percents = [~{default="" sep=", " overlap_percents}] + ['>0']
         full_counts_df = pd.DataFrame()
         for interval in intervals:
             for pct in overlap_percents:
@@ -799,10 +799,16 @@ task ComputeTruvariIntervalSummaryStats {
                             if gt_mode == 'no_match' or 'tp' in label:    # Skip match GT for FP/FN
                                 if overlap_mode == 'full':
                                     count_label = label
-                                    subset_condition = df[f'{interval}-overlap'] >= pct/100
+                                    if pct == '>0':
+                                        subset_condition = df[f'{interval}-overlap'] > 0
+                                    else:
+                                        subset_condition = df[f'{interval}-overlap'] >= pct/100
                                 else:
                                     count_label = f'{label}-BEND'
-                                    subset_condition = (df[f'{interval}-LBEND-overlap'] >= pct/100) | (df[f'{interval}-RBEND-overlap'] >= pct/100)
+                                    if pct == '>0':
+                                        subset_condition = (df[f'{interval}-LBEND-overlap'] > 0) | (df[f'{interval}-RBEND-overlap'] > 0)
+                                    else:
+                                        subset_condition = (df[f'{interval}-LBEND-overlap'] >= pct/100) | (df[f'{interval}-RBEND-overlap'] >= pct/100)
 
                                 if gt_mode == 'match':
                                     subset_condition = subset_condition & (df['GTMATCH'] == 0)
@@ -854,7 +860,7 @@ task ComputeTruvariIntervalSummaryStats {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         memory: runtimeAttributes.memory + " GB"
         cpu: runtimeAttributes.cpu
@@ -891,7 +897,7 @@ task CombineSummaries {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.7"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
         disks: "local-disk " + disk_size + " HDD"
         memory: 8 + " GB"
         cpu: 4
