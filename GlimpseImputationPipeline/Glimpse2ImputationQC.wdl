@@ -23,6 +23,8 @@ workflow Glimpse2ImputationQC {
 
     output {
         File qc_metrics = Glimpse2ImputationQCTask.qc_metrics
+        Boolean qc_passed = Glimpse2ImputationQCTask.qc_passed
+        File qc_failures = Glimpse2ImputationQCTask.qc_failures
     }
 }
 
