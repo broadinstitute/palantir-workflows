@@ -58,7 +58,7 @@ workflow Glimpse2MergeBatches {
         # is simply the first qc_metrics element, which has to be accessed through select_first([qc_metrics])[0].
         # If input qc_metrics are not defined then we also want to return null, which is achieved with the nifty
         # null_file trick.
-        File? merged_qc_metrics = if defined(qc_metrics) then select_first([MergeAndRecomputeAndAnnotate.merged_qc_metrics, select_first([qc_metrics])[0]]) else null_file
+        File? merged_qc_metrics = if length(select_all(select_first([qc_metrics, []]))) > 0 then select_first([MergeAndRecomputeAndAnnotate.merged_qc_metrics, select_first([qc_metrics])[0]]) else null_file
     }
 }
 
