@@ -199,7 +199,7 @@ annotations_merged.to_csv('aggregated_annotations.tsv', sep='\t', columns=['CHRO
 
 # Check if qc_metrics is defined and that its length is greater than zero. The expression below checks for both.
 if ~{if length(select_first([qc_metrics, []])) > 0 then "True" else "False"}:
-    qc_metrics = ['~{sep="', '" select_first([qc_metrics, []])}']
+    qc_metrics = ['~{sep="', '" select_all(select_first([qc_metrics, []]))}']
     merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t') for qc_metric in qc_metrics])
     merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t')
 EOF
