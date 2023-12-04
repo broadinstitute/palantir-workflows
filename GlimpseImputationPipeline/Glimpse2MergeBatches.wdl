@@ -5,6 +5,8 @@ workflow Glimpse2MergeBatches {
         Array[File] imputed_vcfs
         Array[File] imputed_vcf_indices
 
+        Array[File?]? qc_metrics
+
         String output_basename
 
         String docker_extract_annotations = "us.gcr.io/broad-gatk/gatk:4.3.0.0"
@@ -33,6 +35,7 @@ workflow Glimpse2MergeBatches {
             input:
                 imputed_vcfs = imputed_vcfs,
                 imputed_vcf_indices = imputed_vcf_indices,
+                qc_metrics = qc_metrics,
                 annotations = ExtractAnnotations.annotations,
                 num_samples = CountSamples.num_samples,
                 output_basename = output_basename,
@@ -40,9 +43,22 @@ workflow Glimpse2MergeBatches {
         }
     }
 
+    if (!defined(qc_metrics)) {
+        if (1 > 2) {
+            File null_file = write_lines([])
+        }
+    }
+
     output {
         File merged_imputed_vcf = select_first([MergeAndRecomputeAndAnnotate.merged_imputed_vcf, imputed_vcfs[0]])
         File merged_imputed_vcf_index = select_first([MergeAndRecomputeAndAnnotate.merged_imputed_vcf_index, imputed_vcf_indices[0]])
+
+        # If input qc_metrics are defined then we want to return the merged qc_metrics here.
+        # This can either be the output of MergeAndRecomputeAndAnnotate, or if there is only one batch then this
+        # is simply the first qc_metrics element, which has to be accessed through select_first([qc_metrics])[0].
+        # If input qc_metrics are not defined then we also want to return null, which is achieved with the nifty
+        # null_file trick.
+        File? merged_qc_metrics = if defined(qc_metrics) then select_first([MergeAndRecomputeAndAnnotate.merged_qc_metrics, select_first([qc_metrics])[0]]) else null_file
     }
 }
 
@@ -126,6 +142,9 @@ task MergeAndRecomputeAndAnnotate {
         Array[File] imputed_vcf_indices
         Array[File] annotations
         Array[Int] num_samples
+
+        Array[File?]? qc_metrics
+
         String output_basename
 
         String docker_merge
@@ -177,6 +196,12 @@ annotations_merged = functools.reduce(lambda left, right: pd.merge(left, right, 
 annotations_merged['AF'] = annotations_merged.apply(lambda row: calculate_af(row), axis=1)
 annotations_merged['INFO'] = annotations_merged.apply(lambda row: calculate_info(row), axis=1)
 annotations_merged.to_csv('aggregated_annotations.tsv', sep='\t', columns=['CHROM', 'POS', 'REF', 'ALT', 'AF', 'INFO'], header=False, index=False)
+
+# Check if qc_metrics is defined and that its length is greater than zero. The expression below checks for both.
+if ~{if length(select_first([qc_metrics, []])) > 0 then "True" else "False"}:
+    qc_metrics = ['~{sep="', '" qc_metrics}']
+    merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t') for qc_metric in qc_metrics])
+    merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t')
 EOF
         python3 script.py
 
@@ -199,5 +224,7 @@ EOF
         File merged_imputed_vcf = "~{output_basename}.vcf.gz"
         File merged_imputed_vcf_index = "~{output_basename}.vcf.gz.tbi"
         File aggregated_annotations = "aggregated_annotations.tsv.gz"
+
+        File? merged_qc_metrics = "~{output_basename}.qc_metrics.tsv"
     }
 }

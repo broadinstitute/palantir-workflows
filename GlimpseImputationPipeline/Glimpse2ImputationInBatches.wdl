@@ -19,6 +19,7 @@ workflow Glimpse2ImputationInBatches {
 
         File ref_dict
 
+        Boolean? collect_qc_metrics
         Boolean? impute_reference_only_variants
         Boolean? call_indels
         Int? n_burnin
@@ -54,6 +55,7 @@ workflow Glimpse2ImputationInBatches {
                 fasta = fasta,
                 fasta_index = fasta_index,
                 output_basename = output_basename + "_batch_" + i,
+                collect_qc_metrics = collect_qc_metrics,
                 ref_dict = ref_dict,
                 impute_reference_only_variants = impute_reference_only_variants,
                 call_indels = call_indels,
@@ -73,6 +75,7 @@ workflow Glimpse2ImputationInBatches {
             imputed_vcfs = Glimpse2Imputation.imputed_vcf,
             imputed_vcf_indices = Glimpse2Imputation.imputed_vcf_index,
             output_basename = output_basename,
+            qc_metrics = Glimpse2Imputation.qc_metrics,
             docker_extract_annotations = docker_extract_annotations,
             docker_count_samples = docker_count_samples,
             docker_merge = docker_merge
@@ -81,6 +84,7 @@ workflow Glimpse2ImputationInBatches {
     output {
         File merged_imputed_vcf = Glimpse2MergeBatches.merged_imputed_vcf
         File merged_imputed_vcf_index = Glimpse2MergeBatches.merged_imputed_vcf_index
+        File? merged_qc_metrics = Glimpse2MergeBatches.merged_qc_metrics
     }
 }
 
