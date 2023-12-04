@@ -63,6 +63,27 @@ workflows:
   - name: TrainAncestryAdjustmentModel
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/TrainAncestryAdjustmentModel.wdl
+  - name: Glimpse1Imputation
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse1Imputation.wdl
+  - name: Glimpse2Imputation
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2Imputation.wdl
+  - name: Glimpse2SplitReference
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2SplitReference.wdl
+  - name: Glimpse2MergeBatches
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2MergeBatches.wdl
+  - name: ReduceAndMergeForGlimpse
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/ReduceAndMergeForGlimpse.wdl
+  - name: CollectBGEImputationMetrics
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/CollectBGEImputationMetrics.wdl
+  - name: Glimpse2ImputationInBatches
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2ImputationInBatches.wdl
   - name: RNAMetrics
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/RNAMetrics.wdl
