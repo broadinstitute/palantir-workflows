@@ -14,7 +14,7 @@ workflow Glimpse2MergeBatches {
         String docker_merge = "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
     }
 
-    if (length(imputed_vcfs) > 0) {
+    if (length(imputed_vcfs) > 1) {
         scatter(batch_index in range(length(imputed_vcfs))) {
             call ExtractAnnotations {
                 input:
@@ -166,6 +166,8 @@ task MergeAndRecomputeAndAnnotate {
             }
     }
 
+    Array[File] qc_metrics_expanded = if length(select_first([qc_metrics, []])) > 0 then select_all(select_first([qc_metrics, []])) else []
+
     command <<<
         set -xeuo pipefail
         export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
@@ -198,8 +200,8 @@ annotations_merged['INFO'] = annotations_merged.apply(lambda row: calculate_info
 annotations_merged.to_csv('aggregated_annotations.tsv', sep='\t', columns=['CHROM', 'POS', 'REF', 'ALT', 'AF', 'INFO'], header=False, index=False)
 
 # Check if qc_metrics is defined and that its length is greater than zero. The expression below checks for both.
-if ~{if length(select_first([qc_metrics, []])) > 0 then "True" else "False"}:
-    qc_metrics = ['~{sep="', '" select_all(select_first([qc_metrics, []]))}']
+if ~{if length(qc_metrics_expanded) > 0 then "True" else "False"}:
+    qc_metrics = ['~{sep="', '" qc_metrics_expanded}']
     merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t') for qc_metric in qc_metrics])
     merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t')
 EOF
