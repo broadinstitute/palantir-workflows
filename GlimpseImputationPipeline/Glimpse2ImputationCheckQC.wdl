@@ -50,8 +50,6 @@ task Glimpse2ImputationCheckQCTask {
 import pandas as pd
 
 data = pd.read_csv('~{qc_metrics}', sep='\t')
-data = data.rename(columns={col: col.replace('sample_qc.', '') for col in data.columns if col.startswith('sample_qc.')})
-
 qc_metric_thresholds = pd.read_csv('~{qc_metrics_thresholds}', sep='\t')
 
 data = data.melt(id_vars=['s'], var_name='metric', value_name='value', value_vars=qc_metric_thresholds.metric)
