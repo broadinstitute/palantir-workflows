@@ -14,6 +14,13 @@ workflow Glimpse2MergeBatches {
         String docker_merge = "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
     }
 
+    if (defined(qc_metrics) && (length(imputed_vcfs) != length(select_first([qc_metrics, []])))) {
+        call ErrorWithMessage {
+            input:
+                message = "inputed_vcfs and qc_metrics have different lengths"
+        }
+    }
+
     if (length(imputed_vcfs) > 1) {
         scatter(batch_index in range(length(imputed_vcfs))) {
             call ExtractAnnotations {
@@ -43,10 +50,8 @@ workflow Glimpse2MergeBatches {
         }
     }
 
-    if (!defined(qc_metrics)) {
-        if (1 > 2) {
-            File null_file = write_lines([])
-        }
+    if (length(imputed_vcfs) == 1) {
+        File? qc_metrics_1 = select_first([qc_metrics, []])[0]
     }
 
     output {
@@ -56,9 +61,9 @@ workflow Glimpse2MergeBatches {
         # If input qc_metrics are defined then we want to return the merged qc_metrics here.
         # This can either be the output of MergeAndRecomputeAndAnnotate, or if there is only one batch then this
         # is simply the first qc_metrics element, which has to be accessed through select_first([qc_metrics])[0].
-        # If input qc_metrics are not defined then we also want to return null, which is achieved with the nifty
-        # null_file trick.
-        File? merged_qc_metrics = if length(select_all(select_first([qc_metrics, []]))) > 0 then select_first([MergeAndRecomputeAndAnnotate.merged_qc_metrics, select_first([qc_metrics])[0]]) else null_file
+        # If input qc_metrics are not defined or only contains null values (the conditional statement checks for
+        # both) then we also want to return null, which is achieved with the null_file trick.
+        File? merged_qc_metrics = if length(imputed_vcfs) > 1 then MergeAndRecomputeAndAnnotate.merged_qc_metrics else qc_metrics_1
     }
 }
 
@@ -166,6 +171,10 @@ task MergeAndRecomputeAndAnnotate {
             }
     }
 
+    # We need this variable because it's tricky to expand a Array[File?]? in the command block.
+    # This statements converts the Array[File?]? to an Array[File] according to the following rule:
+    # If qc_metrics is either not defined or only contains null values (the conditional statement
+    # checks for both) then this returns an empty array, otherwise it returns qc_metrics.
     Array[File] qc_metrics_expanded = if length(select_first([qc_metrics, []])) > 0 then select_all(select_first([qc_metrics, []])) else []
 
     command <<<
@@ -199,7 +208,6 @@ annotations_merged['AF'] = annotations_merged.apply(lambda row: calculate_af(row
 annotations_merged['INFO'] = annotations_merged.apply(lambda row: calculate_info(row), axis=1)
 annotations_merged.to_csv('aggregated_annotations.tsv', sep='\t', columns=['CHROM', 'POS', 'REF', 'ALT', 'AF', 'INFO'], header=False, index=False)
 
-# Check if qc_metrics is defined and that its length is greater than zero. The expression below checks for both.
 if ~{if length(qc_metrics_expanded) > 0 then "True" else "False"}:
     qc_metrics = ['~{sep="', '" qc_metrics_expanded}']
     merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t') for qc_metric in qc_metrics])
@@ -228,5 +236,19 @@ EOF
         File aggregated_annotations = "aggregated_annotations.tsv.gz"
 
         File? merged_qc_metrics = "~{output_basename}.qc_metrics.tsv"
+    }
+}
+
+task ErrorWithMessage{
+    input {
+        String message
+    }
+    command <<<
+    >&2 echo "Error: ~{message}"
+    exit 1
+    >>>
+
+    runtime {
+        docker: "ubuntu"
     }
 }
