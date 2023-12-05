@@ -58,10 +58,7 @@ data = data.melt(id_vars=['s'], var_name='metric', value_name='value', value_var
 data = data.merge(qc_metric_thresholds, on=['metric'])
 
 samples_out_of_spec = data.loc[(data['value'] < data['min']) | (data['value'] > data['max'])].sort_values(['s', 'metric'])
-
-with open('~{output_basename}.qc_failures.txt', 'w') as qc_failures:
-    for index, row in samples_out_of_spec.iterrows():
-        qc_failures.write(f'Sample {row["s"]} out of spec for {row["metric"]}. Value: {row["value"]}. Acceptable range: [{row["min"]}, {row["max"]}].\n')
+samples_out_of_spec.to_csv('~{output_basename}.qc_failures.tsv', sep='\t', index=False)
 
 with open('~{output_basename}.qc_passed.txt', 'w') as qc_passed:
     qc_passed.write('true\n' if len(samples_out_of_spec) == 0 else 'false\n')
@@ -79,6 +76,6 @@ EOF
 
     output {
         Boolean qc_passed = read_boolean("~{output_basename}.qc_passed.txt")
-        File qc_failures = "~{output_basename}.qc_failures.txt"
+        File qc_failures = "~{output_basename}.qc_failures.tsv"
     }
 }
