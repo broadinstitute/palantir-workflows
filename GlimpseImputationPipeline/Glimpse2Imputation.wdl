@@ -285,9 +285,9 @@ import pandas as pd
 hl.init(default_reference='GRCh38', idempotent=True)
 vcf = hl.import_vcf('~{imputed_vcf}', force_bgz=True)
 qc = hl.sample_qc(vcf).cache()
-qc = qc.cols().flatten().cache()
-qc = qc.rename({'sample_qc.' + col: col for col in list(qc['sample_qc'])}).cache()
-qc.export('~{output_basename}.qc_metrics.tsv')
+qc_flat = qc.cols().flatten().cache()
+qc_renamed = qc_flat.rename({'sample_qc.' + col: col for col in list(qc['sample_qc'])}).cache()
+qc_renamed.export('~{output_basename}.qc_metrics.tsv')
 EOF
         python3 script.py
     >>>
