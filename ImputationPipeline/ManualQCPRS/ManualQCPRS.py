@@ -274,8 +274,8 @@ class ResultsModificationGUI(WidgetGUI):
             print("Done")
 
     def save_modified_batch_results(self):
-        modified_batch_results = self.selected_batch_gui.modified_results.append(
-            self.selected_batch_gui.failed_imputation_samples).fillna("NA")
+        modified_batch_results = pd.concat([self.selected_batch_gui.modified_results,
+            self.selected_batch_gui.failed_imputation_samples]).fillna("NA")
         now = datetime.now(self.eastern_tz).strftime("%Y-%m-%d_%H:%M:%S_%Z")
         path = os.path.join(self.workspace_bucket_name,
                             "manually_qcd_prs_results",
