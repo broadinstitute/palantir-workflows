@@ -163,6 +163,13 @@ task GlimpsePhase {
         cram_paths=( ~{sep=" " crams} )
         sample_ids=( ~{sep=" " sample_ids} )
 
+        duplicate_cram_filenames=$(printf "%s\n" "${cram_paths[@]}" | xargs -I {} basename {} | uniq -d)
+        if [ -z "$duplicate_cram_filenames" ]; then
+            echo "The input CRAMs contain multiple files with the same basename, which leads to an error due to the way that htslib is implemented. Duplicate filenames:"
+            echo $duplicate_cram_filenames
+            exit 1
+        fi
+
         for i in "${!cram_paths[@]}" ; do
             echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
         done
