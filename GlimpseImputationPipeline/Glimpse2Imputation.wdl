@@ -136,7 +136,7 @@ task GlimpsePhase {
 
         Int mem_gb = 4
         Int cpu = 4
-        Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + size(reference_chunk, "GiB") + 5)
+        Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + size(reference_chunk, "GiB") + 10)
         Int preemptible = 9
         Int max_retries = 3
         String docker
@@ -284,10 +284,10 @@ import pandas as pd
 # Calculate metrics
 hl.init(default_reference='GRCh38', idempotent=True)
 vcf = hl.import_vcf('~{imputed_vcf}', force_bgz=True)
-qc = hl.sample_qc(vcf).cache()
-qc_flat = qc.cols().flatten().cache()
-qc_renamed = qc_flat.rename({'sample_qc.' + col: col for col in list(qc['sample_qc'])}).cache()
-qc_renamed.export('~{output_basename}.qc_metrics.tsv')
+qc = hl.sample_qc(vcf)
+qc_pandas = qc.cols().flatten().to_pandas()
+qc_pandas_renamed = qc_pandas.rename(columns={col: col.replace('sample_qc.', '') for col in qc_pandas.columns if 'sample_qc.' in col})
+qc_pandas_renamed.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t', index=False)
 EOF
         python3 script.py
     >>>
