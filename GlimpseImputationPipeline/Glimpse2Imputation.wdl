@@ -311,8 +311,6 @@ EOF
 
     output {
         File qc_metrics = "~{output_basename}.qc_metrics.tsv"
-        Boolean qc_passed = read_boolean("~{output_basename}.qc_passed.txt")
-        File qc_failures = "~{output_basename}.qc_failures.txt"
         File? monitoring = "monitoring.log"
     }
 }
