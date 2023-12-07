@@ -292,11 +292,7 @@ import pandas as pd
 hl.init(default_reference='GRCh38', idempotent=True)
 vcf = hl.import_vcf('~{imputed_vcf}', force_bgz=True)
 qc = hl.sample_qc(vcf)
-qc.cols().flatten().export('~{output_basename}.hail_qc_metrics.tsv')
-
-qc_pandas = pd.read_csv('~{output_basename}.hail_qc_metrics.tsv', sep='\t')
-qc_pandas_renamed = qc_pandas.rename(columns={col: col.replace('sample_qc.', '') for col in qc_pandas.columns if 'sample_qc.' in col})
-qc_pandas_renamed.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t', index=False)
+qc.cols().flatten().rename({'sample_qc.' + col: col for col in list(qc['sample_qc'])}).export('~{output_basename}.qc_metrics.tsv')
 EOF
         python3 script.py
     >>>
