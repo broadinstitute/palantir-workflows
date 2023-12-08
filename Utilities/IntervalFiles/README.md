@@ -27,6 +27,7 @@ were computed.
       1. [Exome](#exome)
       2. [CodingRegions](#codingregions)
       3. [BadPromoters](#badpromoters)
+      4. [CMRG](#cmrg)
    3. [Sequence Process Specific](#sequence-process-specific)
       1. [UGHiConf](#ughiconf)
 2. [Using on Terra](#using-on-terra)
@@ -166,6 +167,7 @@ These are interval files which are related to inferred biological functioning of
   * % of Exome in AllDifficult: 28% (Jaccard = 1.5%)
   * % of Exome in CodingRegions: 95% (Jaccard = 94%)
   * % of Exome in UGHiConf: 97% (Jaccard = 1.2%)
+  * % of Exome in CMRG: 1.8%
 
 #### CodingRegions
 * Summary: Contains regions strictly formed from coding regions, as identified by RefSeq. In essence, this is conceptually 
@@ -198,6 +200,19 @@ a stricter exome interval file, though there is not a strict containment.
   * % of BadPromoters in SegDup: 4% (Jaccard = 0.0055%)
   * % of BadPromoters in Exome: 6.4% (Jaccard = 0.035%)
   * % of BadPromoters in CodingRegions: 6.5% (Jaccard = 0.037%)
+
+#### CMRG
+* Summary: A list of Challenging Medically Relevant Genes sequenced specifically for HG002. Note this also pairs with a separate truth VCF for HG002.
+* Bucket Mirrors:
+  * bed: `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/GIAB_CMRG/v1.00/HG002_GRCh38_CMRG_smallvar_v1.00.bed`
+  * interval_list: `gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/HG002_GRCh38_CMRG_smallvar_v1.00.interval_list`
+  * interval_list (no-alt): `gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/HG002_GRCh38-noalt_CMRG_smallvar_v1.00.interval_list`
+  * truth vcf: `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/GIAB_CMRG/v1.00/HG002_GRCh38_CMRG_smallvar_v1.00.broad-header.vcf.gz`
+* Original File: [here](https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/CMRG_v1.00/GRCh38/SmallVariant/HG002_GRCh38_CMRG_smallvar_v1.00.bed)
+* Original Documentation: [here](https://data.nist.gov/od/id/mds2-2475)
+* Percent of Genome: 0.38%
+* Interesting Overlaps:
+  * % of CMRG in Exome: 5.4%
 
 
 ### Sequence Process Specific
@@ -237,6 +252,7 @@ strat_intervals_bed = [
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/exome_evaluation_regions.v1.bed",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_refseq_cds.bed",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_BadPromoters.bed",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/GIAB_CMRG/v1.00/HG002_GRCh38_CMRG_smallvar_v1.00.bed",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/ug_hcr.bed"
 ]
 
@@ -252,6 +268,7 @@ strat_interval_lists = [
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/exome_evaluation_regions.v1.interval_list",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_refseq_cds.interval_list",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38_BadPromoters.interval_list",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/HG002_GRCh38_CMRG_smallvar_v1.00.interval_list",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/ug_hcr.interval_list"
 ]
 
@@ -267,6 +284,7 @@ strat_interval_lists_no_alt = [
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/exome_evaluation_regions.v1-noalt.interval_list",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38-noalt_refseq_cds.interval_list",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/GRCh38-noalt_BadPromoters.interval_list",
+"gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/HG002_GRCh38-noalt_CMRG_smallvar_v1.00.interval_list",
 "gs://broad-dsde-methods-hydro-gen-truth-data-public/IntervalFiles/ug_hcr-noalt.interval_list"
 ]
 
@@ -281,6 +299,7 @@ strat_labels = [
 "Exome",
 "CodingRegions",
 "BadPromoters",
+"CMRG",
 "UGHiConf",
 ]
 ```

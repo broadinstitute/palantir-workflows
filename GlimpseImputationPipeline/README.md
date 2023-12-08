@@ -91,7 +91,7 @@ This implementation uses Cromwell's [checkpoint feature](https://cromwell.readth
 
 ## Glimpse2MergeBatches
 
-This workflow merges multiple batches of imputed multi-sample VCFs into one and recalculates the AF and INFO score annotations based on [this calculation](#glimpse2mergebatches-af-and-info-score-recalculation). If QC metrics for those batches are provided this workflow will also concatenate those metrics into one QC metrics table.
+This workflow merges multiple batches of imputed multi-sample VCFs into one and recalculates the AF and INFO score annotations based on [this calculation](#glimpse2mergebatches-af-and-info-score-recalculation). If QC metrics for those batches are provided then this workflow will also concatenate those metrics into one QC metrics table.
 
 ### Input
 - **Array[File] imputed_vcf**: GLIMPSE2 output imputed VCFs.
