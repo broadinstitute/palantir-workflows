@@ -56,7 +56,7 @@ data = data.melt(id_vars=['s'], var_name='metric', value_name='value', value_var
 data = data.merge(qc_metric_thresholds, on=['metric'])
 
 samples_out_of_spec = data.loc[(data['value'] < data['min']) | (data['value'] > data['max'])].sort_values(['s', 'metric'])
-samples_out_of_spec.to_csv('~{output_basename}.qc_failures.tsv', sep='\t', index=False)
+samples_out_of_spec.rename(columns={'s': 'sample_id'}).to_csv('~{output_basename}.qc_failures.tsv', sep='\t', index=False)
 
 with open('~{output_basename}.qc_passed.txt', 'w') as qc_passed:
     qc_passed.write('true\n' if len(samples_out_of_spec) == 0 else 'false\n')
