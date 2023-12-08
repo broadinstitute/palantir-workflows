@@ -248,6 +248,11 @@ workflow GlimpseCheckpointTest {
         input:
             correlations = flatten([[AnnotateCorrelation.annotated_correlation], AnnotateCorrelationMain.annotated_correlation, AnnotateCorrelationBurnin.annotated_correlation])
     }
+
+    output {
+        File combined_correlations = CombineCorrelations.combined_correlations
+        File correlations_plot = CombineCorrelations.correlations_plot
+    }
 }
 
 
@@ -390,6 +395,8 @@ task CombineCorrelations {
                 filter(!is.na(correlation)) %>%
                 ggplot(aes(x=BIN_CENTER, y=correlation^2)) +
                     geom_line(aes(color=annotation)) +
+                    facet_grid(.~variant_type) +
+                    scale_x_log10() +
                     theme_bw()
 
         ggsave(filename = "checkpoint_test_correlation_plot.png", dpi=300, width = 6, height = 6)
