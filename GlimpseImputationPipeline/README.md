@@ -54,6 +54,10 @@ This workflow performs the actual imputation using the reference panel chunks ge
 
 The input to this workflow can bei either single-sample or multi-sample VCFs with existing GT and PL annotations or CRAMs, in which case GLIMPSE2 will calculate the PLs using pileup calling.
 
+This implementation uses Cromwell's [checkpoint feature](https://cromwell.readthedocs.io/en/stable/optimizations/CheckpointFiles/) to drastically reduce cost by being able to run entirely on preemptible machines and preserving the computation progress made leading up to a preemption event. It is therefore recommended to allow for a relatively high number of preemptible attempts (the default value for the `preemptible` input is 9).
+
+**Note:** _The checkpointing feature, as well as a separate binary required to extract the number of sites in a given reference chunk for resource selection, is not available in the official GLIMPSE repo yet. Therefore, the default value for the `docker` input is set to `us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:checkpointing_and_extract_num_sites`._
+
 **Note**: _GLIMPSE2 does not support the input of multiple CRAM files with the same basename when streaming (e.g. `gs://a/file.cram`, `gs://b/file.cram`), due to the way that htslib is implemented. This workflow will check for a potential filename collision and will fail with an error message if such a collision occurs._
 
 ### Input
@@ -101,7 +105,11 @@ This workflow merges multiple batches of imputed multi-sample VCFs into one and 
 
 ## Glimpse2ImputationInBatches
 
-This workflow splits the provided CRAMs into batches, performs imputation using [Glimpse2Imputation](#Glimpse2Imputation), and merges the batches back together using [Glimpse2MergeBatches](#Glimpse2MergeBatches). In addition to the inputs to imputation, this workflow takes an **Int batch_size**. This workflow can only operate on CRAM inputs, it does not support VCF inputs to imputation. 
+This workflow splits the provided CRAMs into batches, performs imputation using [Glimpse2Imputation](#Glimpse2Imputation), and merges the batches back together using [Glimpse2MergeBatches](#Glimpse2MergeBatches). In addition to the inputs to imputation, this workflow takes an **Int batch_size**. This workflow can only operate on CRAM inputs, it does not support VCF inputs to imputation.
+
+## Glimpse2ImputationCheckQC
+
+TODO
 
 ## Appendix
 ### Glimpse2MergeBatches AF and INFO score recalculation
