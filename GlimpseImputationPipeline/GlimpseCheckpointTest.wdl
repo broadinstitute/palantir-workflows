@@ -395,7 +395,7 @@ task CombineCorrelations {
                 filter(!is.na(correlation)) %>%
                 ggplot(aes(x=BIN_CENTER, y=correlation^2)) +
                     geom_line(aes(color=annotation)) +
-                    facet_grid(.~variant_type) +
+                    facet_grid(SAMPLE~variant_type) +
                     scale_x_log10() +
                     theme_bw()
 
