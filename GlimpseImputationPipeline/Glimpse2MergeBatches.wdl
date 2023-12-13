@@ -50,7 +50,7 @@ workflow Glimpse2MergeBatches {
         }
     }
 
-    if (length(imputed_vcfs) == 1) {
+    if (defined(qc_metrics) && length(imputed_vcfs) == 1) {
         File? qc_metrics_1 = select_first([qc_metrics, []])[0]
     }
 
@@ -58,11 +58,8 @@ workflow Glimpse2MergeBatches {
         File merged_imputed_vcf = select_first([MergeAndRecomputeAndAnnotate.merged_imputed_vcf, imputed_vcfs[0]])
         File merged_imputed_vcf_index = select_first([MergeAndRecomputeAndAnnotate.merged_imputed_vcf_index, imputed_vcf_indices[0]])
 
-        # If input qc_metrics are defined then we want to return the merged qc_metrics here.
-        # This can either be the output of MergeAndRecomputeAndAnnotate, or if there is only one batch then this
-        # is simply the first qc_metrics element, which has to be accessed through select_first([qc_metrics])[0].
-        # If input qc_metrics are not defined or only contains null values (the conditional statement checks for
-        # both) then we also want to return null, which is achieved with the null_file trick.
+        # If input qc_metrics are defined then we want to return the merged qc_metrics here. We know that
+        # the length of qc_metrics equals the length of imputed_vcfs, so if there are multiple 
         File? merged_qc_metrics = if length(imputed_vcfs) > 1 then MergeAndRecomputeAndAnnotate.merged_qc_metrics else qc_metrics_1
     }
 }
