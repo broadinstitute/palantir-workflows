@@ -50,7 +50,11 @@ workflow Glimpse2MergeBatches {
         }
     }
 
-    if (defined(qc_metrics) && length(imputed_vcfs) == 1) {
+    # This handles the qc_metrics in the case of only one batch. If qc_metrics is not
+    # defined then this if statement will be false and qc_metrics_1 will be null.
+    # If qc_metrics is defined then set qc_metrics_1 to the first element, which
+    # may or may not be null.
+    if (length(imputed_vcfs) == 1 && defined(qc_metrics)) {
         File? qc_metrics_1 = select_first([qc_metrics, []])[0]
     }
 
@@ -58,8 +62,10 @@ workflow Glimpse2MergeBatches {
         File merged_imputed_vcf = select_first([MergeAndRecomputeAndAnnotate.merged_imputed_vcf, imputed_vcfs[0]])
         File merged_imputed_vcf_index = select_first([MergeAndRecomputeAndAnnotate.merged_imputed_vcf_index, imputed_vcf_indices[0]])
 
-        # If input qc_metrics are defined then we want to return the merged qc_metrics here. We know that
-        # the length of qc_metrics equals the length of imputed_vcfs, so if there are multiple 
+        # If input qc_metrics are defined then we want to return the merged qc_metrics here.
+        # MergeAndRecomputeAndAnnotate handles all possible null cases if there are multiple
+        # batches. If there is only one batch (and MergeAndRecomputeAndAnnotate is therefore
+        # not called), return qc_metrics_1, which implements that logic above.
         File? merged_qc_metrics = if length(imputed_vcfs) > 1 then MergeAndRecomputeAndAnnotate.merged_qc_metrics else qc_metrics_1
     }
 }
@@ -169,7 +175,7 @@ task MergeAndRecomputeAndAnnotate {
     }
 
     # We need this variable because it's tricky to expand a Array[File?]? in the command block.
-    # This statements converts the Array[File?]? to an Array[File] according to the following rule:
+    # This statement converts the Array[File?]? to an Array[File] according to the following rule:
     # If qc_metrics is either not defined or only contains null values (the conditional statement
     # checks for both) then this returns an empty array, otherwise it returns qc_metrics.
     Array[File] qc_metrics_expanded = if length(select_first([qc_metrics, []])) > 0 then select_all(select_first([qc_metrics, []])) else []
