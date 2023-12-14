@@ -70,25 +70,44 @@ workflow Glimpse2ImputationInBatches {
         }
     }
 
-    call MergeBatches.Glimpse2MergeBatches {
-        input:
-            imputed_vcfs = Glimpse2Imputation.imputed_vcf,
-            imputed_vcf_indices = Glimpse2Imputation.imputed_vcf_index,
-            output_basename = output_basename,
-            qc_metrics = Glimpse2Imputation.qc_metrics,
-            docker_extract_annotations = docker_extract_annotations,
-            docker_count_samples = docker_count_samples,
-            docker_merge = docker_merge
+    # We can't access collect_qc_metrics here because we want to inherit the default value
+    # from of the Glimpse2Imputation workflow. But we know that if collect_qc_metrics has
+    # been set there then the qc_metrics output will be defined, so just check if the output
+    # exists for the first batch.
+    Boolean merge_qc_metrics = defined(Glimpse2Imputation.qc_metrics[0])
+
+    if (merge_qc_metrics) {
+        call MergeBatches.Glimpse2MergeBatches as MergeBatchesWithQCMetrics {
+            input:
+                imputed_vcfs = Glimpse2Imputation.imputed_vcf,
+                imputed_vcf_indices = Glimpse2Imputation.imputed_vcf_index,
+                output_basename = output_basename,
+                qc_metrics = select_all(Glimpse2Imputation.qc_metrics),
+                docker_extract_annotations = docker_extract_annotations,
+                docker_count_samples = docker_count_samples,
+                docker_merge = docker_merge
+        }
+    }
+    if (!merge_qc_metrics) {
+        call MergeBatches.Glimpse2MergeBatches as MergeBatchesWithoutQCMetrics {
+            input:
+                imputed_vcfs = Glimpse2Imputation.imputed_vcf,
+                imputed_vcf_indices = Glimpse2Imputation.imputed_vcf_index,
+                output_basename = output_basename,
+                docker_extract_annotations = docker_extract_annotations,
+                docker_count_samples = docker_count_samples,
+                docker_merge = docker_merge
+        }
     }
 
     output {
-        File merged_imputed_vcf = Glimpse2MergeBatches.merged_imputed_vcf
-        File merged_imputed_vcf_index = Glimpse2MergeBatches.merged_imputed_vcf_index
-        File? merged_qc_metrics = Glimpse2MergeBatches.merged_qc_metrics
+        File merged_imputed_vcf = select_first([MergeBatchesWithQCMetrics.merged_imputed_vcf, MergeBatchesWithoutQCMetrics.merged_imputed_vcf])
+        File merged_imputed_vcf_index = select_first([MergeBatchesWithQCMetrics.merged_imputed_vcf_index, MergeBatchesWithoutQCMetrics.merged_imputed_vcf_index])
+        
+        # No select_first here because we want this to be null if merge_qc_metrics is false
+        File? merged_qc_metrics = MergeBatchesWithQCMetrics.merged_qc_metrics
     }
 }
-
-
 
 task SplitIntoBatches {
     input {

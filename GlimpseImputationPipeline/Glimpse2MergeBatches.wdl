@@ -5,7 +5,7 @@ workflow Glimpse2MergeBatches {
         Array[File] imputed_vcfs
         Array[File] imputed_vcf_indices
 
-        Array[File?]? qc_metrics
+        Array[File]? qc_metrics
 
         String output_basename
 
@@ -52,10 +52,9 @@ workflow Glimpse2MergeBatches {
 
     # This handles the qc_metrics in the case of only one batch. If qc_metrics is not
     # defined then this if statement will be false and qc_metrics_1 will be null.
-    # If qc_metrics is defined then set qc_metrics_1 to the first element, which
-    # may or may not be null.
+    # If qc_metrics is defined then set qc_metrics_1 to the first element
     if (length(imputed_vcfs) == 1 && defined(qc_metrics)) {
-        File? qc_metrics_1 = select_first([qc_metrics, []])[0]
+        File qc_metrics_1 = select_first([qc_metrics, []])[0]
     }
 
     output {
@@ -63,9 +62,9 @@ workflow Glimpse2MergeBatches {
         File merged_imputed_vcf_index = select_first([MergeAndRecomputeAndAnnotate.merged_imputed_vcf_index, imputed_vcf_indices[0]])
 
         # If input qc_metrics are defined then we want to return the merged qc_metrics here.
-        # MergeAndRecomputeAndAnnotate handles all possible null cases if there are multiple
-        # batches. If there is only one batch (and MergeAndRecomputeAndAnnotate is therefore
-        # not called), return qc_metrics_1, which implements that logic above.
+        # MergeAndRecomputeAndAnnotate handles the null case if there are multiple batches.
+        # If there is only one batch (and MergeAndRecomputeAndAnnotate is therefore not called),
+        # return qc_metrics_1, which implements that logic above.
         File? merged_qc_metrics = if length(imputed_vcfs) > 1 then MergeAndRecomputeAndAnnotate.merged_qc_metrics else qc_metrics_1
     }
 }
@@ -151,7 +150,7 @@ task MergeAndRecomputeAndAnnotate {
         Array[File] annotations
         Array[Int] num_samples
 
-        Array[File?]? qc_metrics
+        Array[File]? qc_metrics
 
         String output_basename
 
@@ -161,7 +160,6 @@ task MergeAndRecomputeAndAnnotate {
         Int cpu = 2
         Int preemptible = 1
     }
-
 
     parameter_meta {
         imputed_vcfs:
@@ -173,12 +171,6 @@ task MergeAndRecomputeAndAnnotate {
                 localization_optional: true
             }
     }
-
-    # We need this variable because it's tricky to expand a Array[File?]? in the command block.
-    # This statement converts the Array[File?]? to an Array[File] according to the following rule:
-    # If qc_metrics is either not defined or only contains null values (the conditional statement
-    # checks for both) then this returns an empty array, otherwise it returns qc_metrics.
-    Array[File] qc_metrics_expanded = if length(select_first([qc_metrics, []])) > 0 then select_all(select_first([qc_metrics, []])) else []
 
     command <<<
         set -xeuo pipefail
@@ -211,8 +203,8 @@ annotations_merged['AF'] = annotations_merged.apply(lambda row: calculate_af(row
 annotations_merged['INFO'] = annotations_merged.apply(lambda row: calculate_info(row), axis=1)
 annotations_merged.to_csv('aggregated_annotations.tsv', sep='\t', columns=['CHROM', 'POS', 'REF', 'ALT', 'AF', 'INFO'], header=False, index=False)
 
-if ~{if length(qc_metrics_expanded) > 0 then "True" else "False"}:
-    qc_metrics = ['~{sep="', '" qc_metrics_expanded}']
+if ~{if defined(qc_metrics) then "True" else "False"}:
+    qc_metrics = ['~{sep="', '" select_first([qc_metrics, []])}']
     merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t') for qc_metric in qc_metrics])
     merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t')
 EOF
