@@ -1,0 +1,11 @@
+"Type","Precision","Recall","F1_Score","TP_Eval","TP_Base","FP","FN","Stratifier","IGV_Session","UNK","Name","Truth_Set","Summary_Type","Comparison_Engine","IndelLength"
+"SNP",999,999,999,999,500,500,250,NA,igvsession,999,"sample1","truth1","summary","VcfEval",NA
+"INDEL",999,999,999,999,520,480,240,NA,igvsession,999,"sample1","truth1","summary","VcfEval",NA
+"SNP",999,999,999,999,600,400,200,strat1,igvsession,999,"sample1","truth1","summary","VcfEval",NA
+"INDEL",999,999,999,999,620,380,190,strat1,igvsession,999,"sample1","truth1","summary","VcfEval",NA
+"SNP",999,999,999,999,700,300,150,strat2,igvsession,999,"sample1","truth1","summary","VcfEval",NA
+"INDEL",999,999,999,999,720,280,140,strat2,igvsession,999,"sample1","truth1","summary","VcfEval",NA
+"SNP",999,999,999,999,800,200,100,gc1,igvsession,999,"sample1","truth1","summary","VcfEval",NA
+"INDEL",999,999,999,999,820,180,90,gc1,igvsession,999,"sample1","truth1","summary","VcfEval",NA
+"SNP",999,999,999,999,900,100,50,gc2,igvsession,999,"sample1","truth1","summary","VcfEval",NA
+"INDEL",999,999,999,999,920,80,40,gc2,igvsession,999,"sample1","truth1","summary","VcfEval",NA

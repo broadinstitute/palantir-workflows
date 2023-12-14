@@ -188,12 +188,12 @@ task LDPruning {
     Array[File] imputed_typed_sites
     Array[File]? selected_sites
     Int mem = 8
+    Int disk_size = 1000
     String basename
   }
    
   # all these numbers are from Wallace Wang
-  command {
-  
+  command <<<
     /plink2 --vcf ~{vcf} \
     --rm-dup force-first \
     --geno 0.05 \
@@ -213,8 +213,7 @@ task LDPruning {
     --allow-extra-chr \
     --not-chr X \
     --out ~{basename}
-
-  }
+  >>>
 
   output {
     File prune_in = "~{basename}.prune.in"
@@ -226,7 +225,7 @@ task LDPruning {
 
   runtime {
     docker: "skwalker/plink2:first"
-    disks: "local-disk 400 HDD"
+    disks: "local-disk " + disk_size + " HDD"
     memory: mem + " GB"
   }
 }
@@ -236,14 +235,17 @@ task SeparateMultiallelics {
     File original_vcf
     File original_vcf_index
     String output_basename
-    Int disk_size =  2*ceil(size(original_vcf, "GB"))
+    Int disk_size =  2 * ceil(size(original_vcf, "GB")) + 300
   }
-  command {
+
+  command <<<
     bcftools norm -m - ~{original_vcf} -Ou | bcftools annotate --set-id '%CHROM\:%POS\:%REF\:%FIRST_ALT' -Oz -o ~{output_basename}.vcf.gz
-  }
+  >>>
+
   output {
     File output_vcf = "~{output_basename}.vcf.gz"
   }
+
   runtime {
     docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
     disks: "local-disk " + disk_size + " HDD"
@@ -317,15 +319,16 @@ task LDPruneToSites {
     String basename
   }
   
-  command {
-    /plink2 --vcf ~{vcf} \
+  command <<<
+    /plink2 \
+    --vcf ~{vcf} \
     --rm-dup force-first \
     --keep-allele-order \
     --extract ~{pruning_sites} \
     --make-bed \
     --allow-extra-chr \
     --out ~{basename}
-  }
+  >>>
 
   output {
     File bed = "~{basename}.bed"
@@ -396,12 +399,12 @@ task SubsetToArrayVCF {
     Array[File] intervals
     Array[File] intervals_index
     String basename 
-    Int disk_size = 3*ceil(size([vcf, intervals, vcf_index], "GB")) + 20
+    Int disk_size = 3 * ceil(size([vcf, intervals, vcf_index], "GB")) + 300
   }
 
-    command {
-   gatk SelectVariants -V ~{vcf} -L ~{sep =" -L " intervals} --interval-set-rule INTERSECTION -O ~{basename}.vcf.gz
-   }
+    command <<<
+        gatk SelectVariants -V ~{vcf} -L ~{sep =" -L " intervals} --interval-set-rule INTERSECTION -O ~{basename}.vcf.gz
+    >>>
 
   runtime {
     docker: "us.gcr.io/broad-gatk/gatk:4.1.9.0"
@@ -412,5 +415,4 @@ task SubsetToArrayVCF {
   output {
     File output_vcf = "~{basename}.vcf.gz"
   }
-
 }

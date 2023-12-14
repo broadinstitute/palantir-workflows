@@ -12,11 +12,45 @@ This directory contains `Dockerfile` files and descriptions of what each is inte
 
 * Directory: BCFTools
 * Description: A docker image containing an installation of [bcftools](https://samtools.github.io/bcftools/bcftools.html). Also includes some minimal Python tools (pandas) for data processing.
-* Location: `us.gcr.io/broad-dsde-methods/bcftools:v1.0`
+* Location: `us.gcr.io/broad-dsde-methods/bcftools:v1.3`
 * Used By: [SimpleBenchmark](../../BenchmarkVCFs/SimpleBenchmark.wdl)
 * Usage: `bcftools [COMMAND]`
 * Version Notes:
   * 1.0: Versions are `bcftools` 1.16.
+  * 1.1: Added the `python-is-python3` package so that `python` is a valid command.
+  * 1.2: Versions are `bcftools` 1.18 (and Ubuntu from 22.10 to 23.10).
+  * 1.3: Added gcloud SDK to allow streaming
+
+## bedtools
+
+* Directory: Bedtools
+* Description: A docker image containing an installation of [bedtools](https://bedtools.readthedocs.io/en/latest/).
+* Location: `us.gcr.io/broad-dsde-methods/bedtools:v1.0`
+* Used By: [BenchmarkPhasing](../../BenchmarkPhasing/BenchmarkPhasing.wdl)
+* Usage: `bedtools [COMMAND]`
+* Version Notes:
+  * 1.0: Versions are `bedtools` 2.30.0
+
+## samtools
+
+* Directory: Samtools
+* Description: A docker image containing an installation of [samtools](https://github.com/samtools/samtools). Also
+includes some minimal Python tools (pandas) for data processing.
+* Location: `us.gcr.io/broad-dsde-methods/samtools:v1`
+* Used By: [ComputeIntervalBamStats](../IntervalFiles/ComputeIntervalBamStats.wdl)
+* Usage: `samtools [COMMAND]`
+* Version Notes:
+  * 1.0: Versions are `samtools` 1.16.1.
+  * 1.1: Added gcloud SDK
+
+## samtools-suite
+
+* Directory: Samtools-Suite
+* Description: A docker image containing an installation of htslib, samtools, and bcftools.
+* Location: `us.gcr.io/broad-dsde-methods/samtools-suite:v1.1`
+* Version Notes:
+  * 1.0: All versions are 1.18.
+  * 1.1: Added pandas
 
 ## pysam
 
@@ -58,16 +92,6 @@ This directory contains `Dockerfile` files and descriptions of what each is inte
 * Version Notes: 
   * 1.0: Versions are `rtg` 3.12.1
 
-## samtools
-
-* Directory: Samtools
-* Description: A docker image containing an installation of [samtools](https://github.com/samtools/samtools). Also includes some minimal Python tools (pandas) for data processing.
-* Location: `us.gcr.io/broad-dsde-methods/samtools:v1`
-* Used By: [ComputeIntervalBamStats](../IntervalFiles/ComputeIntervalBamStats.wdl)
-* Usage: `samtools [COMMAND]`
-* Version Notes:
-  * 1.0: Versions are `samtools` 1.16.1.
-
 ## sv_docker
 
 * Directory: SVDocker
@@ -77,3 +101,33 @@ This directory contains `Dockerfile` files and descriptions of what each is inte
 * Usage: Various; e.g. `bcftools [COMMAND]`, `bedtools [COMMAND]`, `truvari [COMMAND]`, and in Python scripts.
 * Version Notes:
   * 1.0: Versions are `htslib` 1.18, `bcftools` 1.18, `bedtools` 2.31.0, `truvari` 4.0.0, `pandas` 2.1.3, `pysam` 0.22.0 
+
+## vcfdist
+* Directory: Vcfdist
+* Description: A docker image containing an installation of [vcfdist](https://github.com/TimD1/vcfdist).
+* Location: `us.gcr.io/broad-dsde-methods/vcfdist:v0.1`
+* Used By: [VcfdistBenchmark](../../BenchmarkVCFs/VcfdistBenchmark.wdl)
+* Usage: `vcfdist [COMMAND]`
+* Version Notes:
+  * 1.0: Versions are `htslib` 1.17, `vcfdist` 2.0.0
+
+
+## vcfeval
+* Directory: VCFEval
+* Description: A docker image containing various tools used for running `rtg vcfeval` in benchmarking. These include `rtg`,
+`python`, `bedtools`, and `bcftools`.
+* Location: `"us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.0`
+* Used By: [SimpleBenchmark](../../BenchmarkVCFs/SimpleBenchmark.wdl)
+* Usage: `rtg [COMMAND]`, etc.
+* Version Notes:
+  * 1.0: Versions are `rtg` 3.12.1, `bedtools` 2.31.0, `bcftools` 1.16 
+
+## whatshap
+
+* Directory: WhatsHap
+* Description: A docker image containing an installation of [WhatsHap](https://whatshap.readthedocs.io/en/latest/).
+* Location: `us.gcr.io/broad-dsde-methods/whatshap:v1`
+* Used By: [BenchmarkPhasing](../../BenchmarkPhasing/BenchmarkPhasing.wdl), [PhaseVCF](../../BenchmarkPhasing/PhaseVCF.wdl)
+* Usage: `whatshap [COMMAND]`
+* Version Notes:
+  * 1.0: Versions are `whatshap` 1.7

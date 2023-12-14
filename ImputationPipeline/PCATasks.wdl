@@ -7,24 +7,30 @@ task PerformPCA {
     File fam
     String basename
     Int mem = 8
+    Int nthreads = 16
   }
 
   # again, based on Wallace commands
-  command {
+  command <<<
     cp ~{bim} ~{basename}.bim
     cp ~{bed} ~{basename}.bed
     cp ~{fam} ~{basename}.fam
 
-    ~/flashpca/flashpca --bfile ~{basename} -n 16 -d 20 --outpc ${basename}.pc \
-    --outpve ${basename}.pc.variance --outload ${basename}.pc.loadings \
-    --outmeansd ${basename}.pc.meansd
-  }
+    ~/flashpca/flashpca \
+      --bfile ~{basename} \
+      -n ~{nthreads} \
+      -d 20 \
+      --outpc ~{basename}.pc \
+      --outpve ~{basename}.pc.variance \
+      --outload ~{basename}.pc.loadings \
+      --outmeansd ~{basename}.pc.meansd
+  >>>
 
   output {
-    File pcs = "${basename}.pc"
-    File pc_variance = "${basename}.pc.variance"
-    File pc_loadings = "${basename}.pc.loadings"
-    File mean_sd = "${basename}.pc.meansd"
+    File pcs = "~{basename}.pc"
+    File pc_variance = "~{basename}.pc.variance"
+    File pc_loadings = "~{basename}.pc.loadings"
+    File mean_sd = "~{basename}.pc.meansd"
     File eigenvectors = "eigenvectors.txt"
     File eigenvalues = "eigenvalues.txt"
   }
@@ -46,10 +52,10 @@ task ProjectArray {
     File pc_meansd
     String basename
     Int mem = 8
+    Int nthreads = 16
   }
 
   command <<<
-
     cp ~{bim} ~{basename}.bim
     cp ~{bed} ~{basename}.bed
     cp ~{fam} ~{basename}.fam
@@ -80,8 +86,14 @@ task ProjectArray {
     exit 1
     fi
 
-    ~/flashpca/flashpca --bfile ~{basename} --project --inmeansd meansd.txt \
-    --outproj projections.txt --inload loadings.txt -v
+    ~/flashpca/flashpca \
+      --bfile ~{basename} \
+      --numthreads ~{nthreads} \
+      --project \
+      --inmeansd meansd.txt \
+      --outproj projections.txt \
+      --inload loadings.txt \
+      -v
   >>>
 
   output {
@@ -104,13 +116,19 @@ task ArrayVcfToPlinkDataset {
     Int mem = 8
   }
 
-  Int disk_space =  3*ceil(size(vcf, "GB")) + 20
+  Int disk_space =  3 * ceil(size(vcf, "GB")) + 20
 
-  command {
-
-    /plink2 --vcf ~{vcf} --extract-intersect ~{pruning_sites} ~{subset_to_sites} --allow-extra-chr --set-all-var-ids @:#:\$1:\$2 \
-    --new-id-max-allele-len 1000 missing --out ~{basename} --make-bed --rm-dup force-first
-  }
+  command <<<
+    /plink2 \
+      --vcf ~{vcf} \
+      --extract-intersect ~{pruning_sites} ~{subset_to_sites} \
+      --allow-extra-chr \
+      --set-all-var-ids @:#:\$1:\$2 \
+      --new-id-max-allele-len 1000 missing \
+      --out ~{basename} \
+      --make-bed \
+      --rm-dup force-first
+  >>>
 
   output {
     File bed = "~{basename}.bed"

@@ -3,6 +3,7 @@ library(reshape2)
 library(DT)
 
 options(DT.options = list(pageLength=25))
+options(shiny.maxRequestSize=30*1024^2)
 
 server <- function(input, output) {
   source("loadData.R",local=TRUE)
