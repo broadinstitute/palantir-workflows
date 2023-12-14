@@ -116,7 +116,7 @@ if docker images | grep "temp_glimpse_base" > /dev/null; then
     exit 1
 fi
 
-git clone $repo --branch $branch --single-branch glimpse_base
+git clone $repo --branch $branch --single-branch ${script_dir}/glimpse_base
 
 docker build -t temp_glimpse_base ${script_dir}/glimpse_base
 docker build -t ${tag} ${script_dir}
