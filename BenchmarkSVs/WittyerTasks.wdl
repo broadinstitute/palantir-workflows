@@ -1,9 +1,15 @@
 version 1.0
 
 # Legacy tasks from old BenchmarkSVs pipeline, preserved for anyone looking to experiment with Wittyer
-
 # Base for this task was originally written by Yueyao Gao here:
 # https://github.com/broadinstitute/TAG-public/blob/yg_subset_callset/BenchmarkCNV/BenchmarkCNV/BenchmarkCNV.wdl
+
+struct RuntimeAttributes {
+    Int disk_size
+    Int cpu
+    Int memory
+}
+
 task WittyerEval {
     input {
         File truth_vcf
