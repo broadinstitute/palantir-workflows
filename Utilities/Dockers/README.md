@@ -1,7 +1,6 @@
 # Docker Files
 
-This directory contains `Dockerfile` files and descriptions of what each is intended for. Here is a description of how
-the fields are populated:
+This directory contains `Dockerfile` files and descriptions of what each is intended for. Here is a description of how the fields are populated:
 * Directory: where to find the Dockerfile, under `palantir-workflows/Utilities/Dockers/`.
 * Description: description of the packages installed on the docker.
 * Location: where a pre-built copy of the docker is stored.
@@ -12,8 +11,7 @@ the fields are populated:
 ## bcftools
 
 * Directory: BCFTools
-* Description: A docker image containing an installation of [bcftools](https://samtools.github.io/bcftools/bcftools.html).
-Also includes some minimal Python tools (pandas) for data processing.
+* Description: A docker image containing an installation of [bcftools](https://samtools.github.io/bcftools/bcftools.html). Also includes some minimal Python tools (pandas) for data processing.
 * Location: `us.gcr.io/broad-dsde-methods/bcftools:v1.3`
 * Used By: [SimpleBenchmark](../../BenchmarkVCFs/SimpleBenchmark.wdl)
 * Usage: `bcftools [COMMAND]`
@@ -67,12 +65,9 @@ includes some minimal Python tools (pandas) for data processing.
 ## python-data-slim
 
 * Directory: Python-Data-Slim
-* Description: A small docker image with essential data processing and Terra packages in python. Comes with `python3`, along 
-with the libraries `pandas`, `numpy`, `scipy`, `firecloud`, `fsspec` (a `firecloud` optional dependency), and `gcsfs` 
-(for accessing Google bucket files) explicitly installed.
+* Description: A small docker image with essential data processing and Terra packages in python. Comes with `python3`, along with the libraries `pandas`, `numpy`, `scipy`, `firecloud`, `fsspec` (a `firecloud` optional dependency), and `gcsfs` (for accessing Google bucket files) explicitly installed.
 * Location: `us.gcr.io/broad-dsde-methods/python-data-slim`
-* Used By: [FindSamplesAndBenchmark](../../BenchmarkVCFs/FindSamplesAndBenchmark.wdl), 
-  [CollectBenchmarkSucceeded](../WDLs/CollectBenchmarkSucceeded.wdl)
+* Used By: [FindSamplesAndBenchmark](../../BenchmarkVCFs/FindSamplesAndBenchmark.wdl), [CollectBenchmarkSucceeded](../WDLs/CollectBenchmarkSucceeded.wdl)
 * Usage: `python <<CODE [CODE HERE] CODE`
 * Version Notes: 
   * 1.0: Versions are `python3` 3.9.9, `pandas` 1.3.4, `numpy` 1.21.4, `scipy` 1.7.2, `firecloud` 0.16.32, 
@@ -86,18 +81,36 @@ with the libraries `pandas`, `numpy`, `scipy`, `firecloud`, `fsspec` (a `fireclo
 * Used By: [FunctionalEquivalence](../../FunctionalEquivalence/FunctionalEquivalence.wdl)
 * Version Notes:
   * 1.0: Versions are `matplotlib` 3.5.3, `plotly` 5.10.0.
-    
+
 ## rtg
 
 * Directory: RTG
-* Description: A docker image containing an installation of [RTG Tools](https://github.com/RealTimeGenomics/rtg-tools). 
-In particular, this includes `vcfeval`, and all their other VCF manipulation tools. Also comes with Python (pandas) for
-convenient data manipulation tools.
+* Description: A docker image containing an installation of [RTG Tools](https://github.com/RealTimeGenomics/rtg-tools). In particular, this includes `vcfeval`, and all their other VCF manipulation tools. Also comes with Python (pandas) for convenient data manipulation tools.
 * Location: `us.gcr.io/broad-dsde-methods/rtg:v1.0`
 * Used By: [SimpleBenchmark](../../BenchmarkVCFs/SimpleBenchmark.wdl)
 * Usage: `rtg [COMMAND]`
 * Version Notes: 
   * 1.0: Versions are `rtg` 3.12.1
+
+## sv_docker
+
+* Directory: SVDocker
+* Description: A docker image containing various tools used in workflows for benchmarking SV files. It contains htslib, bcftools, bedtools, truvari, pandas, and pysam.
+* Location: `us.gcr.io/broad-dsde-methods/sv_docker:v1.0`
+* Used By: [BenchmarkSVs](/BenchmarkSVs/BenchmarkSVs.wdl), [CleanSVs](/BenchmarkSVs/CleanSVs.wdl)
+* Usage: Various; e.g. `bcftools [COMMAND]`, `bedtools [COMMAND]`, `truvari [COMMAND]`, and in Python scripts.
+* Version Notes:
+  * 1.0: Versions are `htslib` 1.18, `bcftools` 1.18, `bedtools` 2.31.0, `truvari` 4.0.0, `pandas` 2.1.3, `pysam` 0.22.0 
+
+## vcfdist
+* Directory: Vcfdist
+* Description: A docker image containing an installation of [vcfdist](https://github.com/TimD1/vcfdist).
+* Location: `us.gcr.io/broad-dsde-methods/vcfdist:v0.1`
+* Used By: [VcfdistBenchmark](../../BenchmarkVCFs/VcfdistBenchmark.wdl)
+* Usage: `vcfdist [COMMAND]`
+* Version Notes:
+  * 1.0: Versions are `htslib` 1.17, `vcfdist` 2.0.0
+
 
 ## vcfeval
 * Directory: VCFEval
@@ -118,14 +131,3 @@ convenient data manipulation tools.
 * Usage: `whatshap [COMMAND]`
 * Version Notes:
   * 1.0: Versions are `whatshap` 1.7
-
-
-## vcfdist
-
-* Directory: Vcfdist
-* Description: A docker image containing an installation of [vcfdist](https://github.com/TimD1/vcfdist).
-* Location: `us.gcr.io/broad-dsde-methods/vcfdist:v0.1`
-* Used By: [VcfdistBenchmark](../../BenchmarkVCFs/VcfdistBenchmark.wdl)
-* Usage: `vcfdist [COMMAND]`
-* Version Notes:
-  * 1.0: Versions are `htslib` 1.17, `vcfdist` 2.0.0
