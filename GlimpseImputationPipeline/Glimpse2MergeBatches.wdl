@@ -54,7 +54,7 @@ workflow Glimpse2MergeBatches {
     # defined then this if statement will be false and qc_metrics_1 will be null.
     # If qc_metrics is defined then set qc_metrics_1 to the first element
     if (length(imputed_vcfs) == 1 && defined(qc_metrics)) {
-        File qc_metrics_1 = select_first([qc_metrics, []])[0]
+        File qc_metrics_1 = select_first([qc_metrics])[0]
     }
 
     output {

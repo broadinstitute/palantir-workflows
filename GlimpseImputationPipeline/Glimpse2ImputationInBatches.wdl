@@ -28,6 +28,7 @@ workflow Glimpse2ImputationInBatches {
         
         Int? preemptible
         String? docker
+        String? docker_extract_num_sites_from_reference_chunk
         Int? cpu_ligate
         Int? mem_gb_ligate
         File? monitoring_script
@@ -64,6 +65,7 @@ workflow Glimpse2ImputationInBatches {
                 effective_population_size = effective_population_size,
                 preemptible = preemptible,
                 docker = docker,
+                docker_extract_num_sites_from_reference_chunk = docker_extract_num_sites_from_reference_chunk,
                 cpu_ligate = cpu_ligate,
                 mem_gb_ligate = mem_gb_ligate,
                 monitoring_script = monitoring_script
@@ -77,35 +79,26 @@ workflow Glimpse2ImputationInBatches {
     Boolean merge_qc_metrics = defined(Glimpse2Imputation.qc_metrics[0])
 
     if (merge_qc_metrics) {
-        call MergeBatches.Glimpse2MergeBatches as MergeBatchesWithQCMetrics {
-            input:
-                imputed_vcfs = Glimpse2Imputation.imputed_vcf,
-                imputed_vcf_indices = Glimpse2Imputation.imputed_vcf_index,
-                output_basename = output_basename,
-                qc_metrics = select_all(Glimpse2Imputation.qc_metrics),
-                docker_extract_annotations = docker_extract_annotations,
-                docker_count_samples = docker_count_samples,
-                docker_merge = docker_merge
-        }
+        Array[File] qc_metrics = select_all(Glimpse2Imputation.qc_metrics)
     }
-    if (!merge_qc_metrics) {
-        call MergeBatches.Glimpse2MergeBatches as MergeBatchesWithoutQCMetrics {
-            input:
-                imputed_vcfs = Glimpse2Imputation.imputed_vcf,
-                imputed_vcf_indices = Glimpse2Imputation.imputed_vcf_index,
-                output_basename = output_basename,
-                docker_extract_annotations = docker_extract_annotations,
-                docker_count_samples = docker_count_samples,
-                docker_merge = docker_merge
-        }
+
+    call MergeBatches.Glimpse2MergeBatches {
+        input:
+            imputed_vcfs = Glimpse2Imputation.imputed_vcf,
+            imputed_vcf_indices = Glimpse2Imputation.imputed_vcf_index,
+            output_basename = output_basename,
+            qc_metrics = qc_metrics,
+            docker_extract_annotations = docker_extract_annotations,
+            docker_count_samples = docker_count_samples,
+            docker_merge = docker_merge
     }
 
     output {
-        File merged_imputed_vcf = select_first([MergeBatchesWithQCMetrics.merged_imputed_vcf, MergeBatchesWithoutQCMetrics.merged_imputed_vcf])
-        File merged_imputed_vcf_index = select_first([MergeBatchesWithQCMetrics.merged_imputed_vcf_index, MergeBatchesWithoutQCMetrics.merged_imputed_vcf_index])
+        File merged_imputed_vcf = Glimpse2MergeBatches.merged_imputed_vcf
+        File merged_imputed_vcf_index = Glimpse2MergeBatches.merged_imputed_vcf_index
         
         # No select_first here because we want this to be null if merge_qc_metrics is false
-        File? merged_qc_metrics = MergeBatchesWithQCMetrics.merged_qc_metrics
+        File? merged_qc_metrics = Glimpse2MergeBatches.merged_qc_metrics
     }
 }
 

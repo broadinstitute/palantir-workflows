@@ -13,6 +13,12 @@ This directory contains the following WDLs:
 - *ReduceAndMergeForGlimpse*: Remove all annotations except GT and PL from single-sample VCFs and merge them into a multi-sample VCF
 - *Glimpse1Imputation*: Run GLIMPSE1 imputation (not well-tested or optimized)
 
+### Docker Images
+The tasks in these workflows require a few features that are not present in the original GLIMPSE2 docker image, notably, bcftools and picard. This extension to the original docker image can be generated with the `build_base_and_extension_docker.sh` script in the `glimpse_docker` directory. Call the script with the `--help` argument for instructions. This docker image can be used as the `docker` argument to [Glimpse2SplitReference](#Glimpse2SplitReference), [Glimpse2Imputation](#Glimpse2Imputation), and [Glimpse2ImputationInBatches](#Glimpse2ImputationInBatches). The default value to these arguments should represent a recent version and follows the naming convention `us.gcr.io/broad-dsde-methods/glimpse:{github_namespace}_{commit_id}`.
+
+#### Docker Image for Extracting Number of Sites from Reference Panel
+For selecting the correct resources for imputation, one task of the [Glimpse2Imputation](#Glimpse2Imputation) needs to extract the number of common and rare sites from each chunk in the reference panel. For this purpose, we added a binary to the GLIMPSE2 code, which lives in [this branch](https://github.com/michaelgatzen/GLIMPSE/tree/extract_num_sites_from_reference_chunk). This image should be rebuilt if there is a major change to the GLIMPSE2 code following the instructions in the provided README, especially if the data representation is affected. After cloning that branch, the docker image can be directly built from the Dockerfile. Use this docker image as the `docker_extract_num_sites_from_reference_chunks` argument to [Glimpse2Imputation](#Glimpse2Imputation) and [Glimpse2ImputationInBatches](#Glimpse2ImputationInBatches). The default value to these arguments should represent a recent version and follows the naming convention `us.gcr.io/broad-dsde-methods/glimpse_extract_num_sites_from_reference_chunks:{github_namespace}_{commit_id}`.
+
 ## Glimpse2SplitReference
 
 This workflow splits the provided reference panel into a series of chunks that each span a specified region of the genome, and converts the reference panel into a binary representation that can be ingested by the `Glimpse2Imputation` workflow. This significantly speeds up the imputation process since this step only has to be performed once per reference panel instead of once per sample.
@@ -39,7 +45,7 @@ contig_name_in_reference_panel = "chr1"
 - **Int? seed**: Optional integer seed for the generation of chunks
 - **Int? min_window_cm**: Optional minimum window size in [Centimorgan](https://en.wikipedia.org/wiki/Centimorgan). See note on chunk sizes above.
 - **Boolean uniform_number_variants = false**: When set to true, each chunk will have approximately the same number of sites while. Each chunk will cover a different (Centimorgan) genetic linkage region with the smallest chunk still being larger than `min_window_cm`.
-- **Int preemtible = 1**: Number of preemptible attempts
+- **Int preemtible = 1**: Number of preemptible attempts.
 - **File? monitoring_script**: Optional path to monitoring script. If ommitted, no monitoring will occur and the `split_reference_monitoring** output will not be available.
 
 ### Output
@@ -78,7 +84,9 @@ This implementation uses Cromwell's [checkpoint feature](https://cromwell.readth
 - **Int? n_burnin**: See [GLIMPSE2 documentation](https://odelaneau.github.io/GLIMPSE/docs/documentation/phase/#model-parameters).
 - **Int? n_main**: See [GLIMPSE2 documentation](https://odelaneau.github.io/GLIMPSE/docs/documentation/phase/#model-parameters).
 - **Int? effective_population_size**: See [GLIMPSE2 documentation](https://odelaneau.github.io/GLIMPSE/docs/documentation/phase/#model-parameters).
-- **Int preemtible = 9**: Number of preemptible attempts
+- **String docker**: Docker image to run imputation with. This docker image requires a few features that the original GLIMPSE2 does not include, see the [Docker section](#Docker-Images) of this README for more information.
+- **String docker_extract_num_sites_from_reference_chunk**: Docker image to extract the number of common and rare sites from each reference chunk. See the [Docker section](#docker-image-for-extracting-number-of-sites-from-reference-panel) of this README for more information.
+- **Int preemtible = 9**: Number of preemptible attempts.
 - **File? monitoring_script**: Optional path to monitoring script. If ommitted, no monitoring will occur and the `split_reference_monitoring** output will not be available.
 
 ### Output

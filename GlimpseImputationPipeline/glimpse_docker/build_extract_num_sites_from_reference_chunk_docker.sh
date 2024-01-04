@@ -2,7 +2,7 @@
 
 # This branch is using the following configuration.
 # To replicate this branch, run this script with the following arguments:
-# build_base_and_extension_docker.sh -r "https://github.com/kachulis/GLIMPSE.git" -b ck_checkpoint_clean -t "glimpse_build_test"
+# build_extract_num_sites_from_reference_chunk_docker.sh -r "https://github.com/kachulis/GLIMPSE.git" -b ck_checkpoint_clean -t "glimpse_build_test"
 
 set -Eeuo pipefail
 
@@ -12,26 +12,26 @@ usage() {
   cat <<EOF
 Usage: $(basename "${BASH_SOURCE[0]}") [-h] [-p] -t docker_tag -r glimpse_repo -b glimpse_branch
 
-Build docker image to be used in the Glimpse2Imputation WDL. This script will clone the
-specified GLIMPSE repo on the specified branch and build the docker image. Subsequently,
-it will build the extension docker image for the WDL based on the previously built
-GLIMPSE docker image, tag it, and optionally push the image.
+Build docker image to be used as the special docker to extract the number of sites from a
+reference chunk used in the Glimpse2Imputation WDL. This script will clone the specified
+GLIMPSE repo on the specified branch and build the docker image, tag it, and optionally
+push the image.
 
 Available options:
 
 -h, --help      Print this help and exit.
 -p, --push      If set, push image.
 -y, --yes       If set, don't ask for confirmation.
--t, --tag       Tag for the newly created docker image. Suggestion: Use {github_namespace}_{commit_id} as the version tag, e.g. odelaneau_e0b9b56.
--r, --repo      Repo URL for the GLIMPSE2 base image (e.g. https://github.com/odelaneau/GLIMPSE.git).
--b, --branch    Branch name for the GLIMPSE2 base image (e.g. master).
+-t, --tag       Tag for the newly created docker image. Suggestion: Use {github_namespace}_{commit_id} as the version tag, e.g. michaelgatzen_edc7f3a.
+-r, --repo      Repo URL for the GLIMPSE2_extract_num_sites_from_reference_panel image (e.g. https://github.com/michaelgatzen/GLIMPSE.git).
+-b, --branch    Branch name for the GLIMPSE2_extract_num_sites_from_reference_panel image (e.g. extract_num_sites_from_reference_chunk).
 EOF
   exit
 }
 
 cleanup() {
   trap - SIGINT SIGTERM ERR EXIT
-  rm -rf "${script_dir}/glimpse_base"
+  rm -rf "${script_dir}/glimpse_extract_num_sites_from_reference_chunk"
 }
 
 setup_colors() {
@@ -50,7 +50,6 @@ die() {
   local msg=$1
   local code=${2-1} # default exit status 1
   msg "$msg"
-  msg "Run $(basename "${BASH_SOURCE[0]}") --help for usage information."
   exit "$code"
 }
 
@@ -96,7 +95,7 @@ setup_colors
 
 pushing=$(if [ "${push}" -eq "1" ]; then echo "pushing"; else echo "not pushing"; fi)
 
-msg "Building docker image based on GLIMPSE repo ${YELLOW}${repo}${NOFORMAT} on branch ${YELLOW}${branch}${NOFORMAT} and tagging it as ${YELLOW}${tag}${NOFORMAT} and ${YELLOW}${pushing}${NOFORMAT} it."
+msg "Building ${YELLOW}extraction${NOFORMAT} docker image from GLIMPSE repo ${YELLOW}${repo}${NOFORMAT} on branch ${YELLOW}${branch}${NOFORMAT} and tagging it as ${YELLOW}${tag}${NOFORMAT} and ${YELLOW}${pushing}${NOFORMAT} it."
 
 if [ "${yes}" -eq "0" ]; then
     read -p "Continue (y/n)? " choice
@@ -106,26 +105,15 @@ if [ "${yes}" -eq "0" ]; then
     esac
 fi
 
-if [ -d "${script_dir}/glimpse_base" ]; then
-    die "The glimpse_base subdirectory already exist. Please remove it before building the docker."
+if [ -d "${script_dir}/glimpse_extract_num_sites_from_reference_chunk" ]; then
+    die "The glimpse_extract_num_sites_from_reference_chunk subdirectory already exist. Please remove it before building the docker."
 fi
 
 trap cleanup SIGINT SIGTERM ERR EXIT
 
-if ! docker images > /dev/null; then
-    die "Couldn't determine docker images, probably because the docker deamon isn't running. Please start docker and restart this script."
-    exit 1
-fi
+git clone $repo --branch $branch --single-branch ${script_dir}/glimpse_extract_num_sites_from_reference_chunk
 
-if docker images | grep "temp_glimpse_base" > /dev/null; then
-    die "temp_glimpse_base Docker image exists already. Please remove it before building to ensure that the correct base image is used: docker image rm temp_glimpse_base"
-    exit 1
-fi
-
-git clone $repo --branch $branch --single-branch ${script_dir}/glimpse_base
-
-docker build -t temp_glimpse_base ${script_dir}/glimpse_base
-docker build -t ${tag} ${script_dir}
+docker build -t ${tag} ${script_dir}/glimpse_extract_num_sites_from_reference_chunk
 
 if [ "$push" -eq "1" ]; then
     msg "Pushing docker image to ${tag}"

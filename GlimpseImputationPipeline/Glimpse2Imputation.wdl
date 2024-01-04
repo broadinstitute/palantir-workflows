@@ -25,7 +25,8 @@ workflow Glimpse2Imputation {
         Boolean collect_qc_metrics = true
         
         Int preemptible = 9
-        String docker = "us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:checkpointing_and_extract_num_sites"
+        String docker = "us.gcr.io/broad-dsde-methods/glimpse:odelaneau_e0b9b56"
+        String docker_extract_num_sites_from_reference_chunk = "us.gcr.io/broad-dsde-methods/glimpse_extract_num_sites_from_reference_chunks:michaelgatzen_edc7f3a"
         Int cpu_ligate = 4
         Int mem_gb_ligate = 4
         File? monitoring_script
@@ -34,7 +35,8 @@ workflow Glimpse2Imputation {
     scatter (reference_chunk in read_lines(reference_chunks)) {
         call GetNumberOfSitesInChunk {
             input:
-                reference_chunk = reference_chunk
+                reference_chunk = reference_chunk,
+                docker = docker_extract_num_sites_from_reference_chunk
         }
 
         Int n_rare = GetNumberOfSitesInChunk.n_rare
@@ -315,7 +317,7 @@ task GetNumberOfSitesInChunk {
     input {
         File reference_chunk
 
-        String docker = "us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:checkpointing_and_extract_num_sites "
+        String docker
         Int mem_gb = 4
         Int cpu = 4
         Int disk_size_gb = ceil(size(reference_chunk, "GiB") + 10)
