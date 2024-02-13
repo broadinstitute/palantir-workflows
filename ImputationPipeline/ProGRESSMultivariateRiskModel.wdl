@@ -2,11 +2,15 @@ version 1.0
 import "Structs.wdl"
 import "ScoringTasks.wdl" as ScoringTasks
 import "PCATasks.wdl" as PCATasks
+import "ScoringWithAlternativeSource.wdl" as ScoringWithAlternativeSource
 
 workflow ProGRESSMultivariateRiskModel {
     input {
-        File vcf
+        File imputed_wgs_vcf
+        File exome_vcf
         File prs_weights
+        File sites_to_extract_from_exome_vcf
+
         File fam_history
         String basename
         
@@ -27,18 +31,20 @@ workflow ProGRESSMultivariateRiskModel {
 			weights = prs_weights
 	}
 
-	call ScoringTasks.ScoreVcf {
-		input:
-			vcf = vcf,
-			basename = basename,
-			weights = prs_weights,
-			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
+    call ScoringWithAlternativeSource.ScoreVcfWithSecondarySource {
+        input:
+            primary_vcf = imputed_wgs_vcf,
+            secondary_vcf = exome_vcf,
+            primary_weights = prs_weights,
+            basename = basename,
+            sites_to_extract_from_secondary_source = sites_to_extract_from_exome_vcf,
+            chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
             use_ref_alt_for_ids = use_ref_alt_for_ids
-	}
+    }
 
     call PCATasks.ArrayVcfToPlinkDataset {
         input:
-			vcf = vcf,
+			vcf = imputed_wgs_vcf,
 			pruning_sites = pc_sites,
 			basename = basename,
             use_ref_alt_for_ids = use_ref_alt_for_ids,
@@ -58,7 +64,7 @@ workflow ProGRESSMultivariateRiskModel {
 
     call ComputeRiskValue {
         input:
-            prs = ScoreVcf.score,
+            prs = ScoreVcfWithSecondarySource.score,
             pcs = ProjectArray.projections,
             family_history = fam_history,
             prs_beta = prs_beta,
