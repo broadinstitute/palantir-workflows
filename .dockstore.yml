@@ -111,3 +111,6 @@ workflows:
   - name: DetectPCANovelties
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/DetectPCANovelties.wdl
+  - name: FindSamplesAndSimpleBenchmark
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/FindSamplesAndSimpleBenchmark.wdl
