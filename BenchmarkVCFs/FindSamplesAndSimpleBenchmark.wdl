@@ -60,7 +60,7 @@ workflow FindSamplesAndSimpleBenchmark {
         Int preemptible = 3
     }
 
-    call MatchFingerprints {
+    call MatchFingerprints.MatchFingerprints as MatchFingerprints {
         input:
             input_files=query_vcfs,
             input_indices=query_vcf_indices,
@@ -78,8 +78,8 @@ workflow FindSamplesAndSimpleBenchmark {
         VcfData base_vcf_data = {"vcf": base_data.left.left, "index": base_data.left.right, "output_name": base_data.right.left, "sample_name": base_data.right.right}
     }
 
-    scatter(eval_base_data in zip(base_vcf_data, evaluation_intervals)) {
-        BaseVcfData eval_base_data = {"data": eval_base_data.left, "eval_intervals": eval_base_data.right}
+    scatter(base_interval_data in zip(base_vcf_data, evaluation_intervals)) {
+        BaseVcfData eval_base_data = {"data": base_interval_data.left, "eval_intervals": base_interval_data.right}
     }
 
     scatter(query_data in zip(zip(query_vcfs, query_vcf_indices), zip(query_sample_output_names, query_vcf_sample_names))) {
@@ -101,10 +101,10 @@ workflow FindSamplesAndSimpleBenchmark {
         }
     }
 
-    Array[Pair[VcfData, VcfData]] all_matched_vcf_data = select_all(matched_vcf_data)
+    Array[Pair[BaseVcfData, VcfData]] all_matched_vcf_data = select_all(matched_vcf_data)
 
     scatter(matched_samples in all_matched_vcf_data) {
-        call SimpleBenchmark {
+        call SimpleBenchmark.SimpleBenchmark as SimpleBenchmark {
             input:
                 base_vcf=matched_samples.left.data.vcf,
                 base_vcf_index=matched_samples.left.data.index,
@@ -137,7 +137,7 @@ workflow FindSamplesAndSimpleBenchmark {
         Array[File] snp_stats = SimpleBenchmark.SNPSubstitutionStats
         Array[File] roc_stats = SimpleBenchmark.ROCStats
 
-        Array[File] igv_sessions = SimpleBenchmark.igv_session
+        Array[File] igv_sessions = select_all(SimpleBenchmark.igv_session)
     }
 }
 
@@ -158,7 +158,7 @@ task MatchVcfData {
         print(matched_files)
 
         with open("results.txt", "w") as file:
-            search_string = "(~{base_vcf_data.vcf}, ~{query_vcf_data.vcf})"
+            search_string = "(~{base_vcf_data.data.vcf}, ~{query_vcf_data.vcf})"
             print(f"Search string is: {search_string}")
             if search_string in matched_files:
                 file.write("true")
