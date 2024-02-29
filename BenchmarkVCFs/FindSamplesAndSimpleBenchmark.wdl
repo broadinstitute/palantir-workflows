@@ -1,7 +1,7 @@
 version 1.0
 
 import "SimpleBenchmark.wdl" as SimpleBenchmark
-import "/Utilities/WDLs/MatchFingerprints.wdl" as MatchFingerprints
+import "../Utilities/WDLs/MatchFingerprints.wdl" as MatchFingerprints
 
 struct VcfData {
     File vcf
