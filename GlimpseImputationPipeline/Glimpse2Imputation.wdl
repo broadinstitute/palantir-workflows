@@ -180,10 +180,6 @@ task GlimpsePhase {
             echo "Processed CRAM ${i}: ${cram_paths[$i]} -> cram${i}.cram"
         done
 
-        for i in "${!cram_paths[@]}" ; do
-            echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
-        done
-
         cmd="/bin/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
         --reference ~{reference_chunk} \
