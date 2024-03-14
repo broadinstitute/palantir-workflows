@@ -11,6 +11,7 @@ workflow CleanSVs {
 
         Boolean split_MA = true
         Boolean add_annotations = true
+        Boolean normalize_and_clean = true
         Boolean convert_to_abstract = true
     }
 
@@ -33,8 +34,8 @@ workflow CleanSVs {
         }
     }
 
-    if (convert_to_abstract) {
-        call ConvertToAbstract {
+    if (normalize_and_clean) {
+        call NormalizeAndClean {
             input:
                 input_vcf=select_first([AddAnnotations.output_vcf, SplitMASites.output_vcf, input_vcf]),
                 input_vcf_index=select_first([AddAnnotations.output_vcf_index, SplitMASites.output_vcf_index, input_vcf_index]),
@@ -42,9 +43,18 @@ workflow CleanSVs {
         }
     }
 
+    if (convert_to_abstract) {
+        call ConvertToAbstract {
+            input:
+                input_vcf=select_first([NormalizeAndClean.output_vcf, AddAnnotations.output_vcf, SplitMASites.output_vcf, input_vcf]),
+                input_vcf_index=select_first([NormalizeAndClean.output_vcf_index, AddAnnotations.output_vcf_index, SplitMASites.output_vcf_index, input_vcf_index]),
+                output_name=output_name
+        }
+    }
+
     output {
-        File output_vcf = select_first([ConvertToAbstract.output_vcf, AddAnnotations.output_vcf, SplitMASites.output_vcf, input_vcf])
-        File output_vcf_index = select_first([ConvertToAbstract.output_vcf_index, AddAnnotations.output_vcf_index, SplitMASites.output_vcf_index, input_vcf_index])
+        File output_vcf = select_first([ConvertToAbstract.output_vcf, NormalizeAndClean.output_vcf, AddAnnotations.output_vcf, SplitMASites.output_vcf, input_vcf])
+        File output_vcf_index = select_first([ConvertToAbstract.output_vcf_index, NormalizeAndClean.output_vcf_index, AddAnnotations.output_vcf_index, SplitMASites.output_vcf_index, input_vcf_index])
     }
 }
 
@@ -155,8 +165,71 @@ task AddAnnotations {
     }
 }
 
-# Replaces explicit INDEL sequences with abstractions, e.g. <DEL> or <INS>
+# Removes SVs other than INS, DEL, and DUP, i.e. no BND, UNK, etc. and any less than min length
 # Also converts '.' FILTER to 'PASS' which is needed for Witty.er evaluation
+task NormalizeAndClean {
+    input {
+        File input_vcf
+        File input_vcf_index
+
+        String output_name = "output"
+        String output_suffix = "-normalized"
+
+        Int min_size = 50
+
+        Boolean restrict_sv_types = true
+        Array[String] sv_types = ['DEL', 'INS', 'DUP']    # Restrict to just given types
+        Boolean normalize_missing_filter_to_pass = true    # Convert . FILTER to PASS
+        Boolean strip_filters = false    # Remove any filters regardless of . or not and replace with PASS
+
+        # Runtime parameters
+        Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
+        Int cpu = 4
+        Int memory_ram = 16
+    }
+
+    command <<<
+        set -xe
+
+        python3 << CODE
+        import pysam
+        import numpy as np
+
+        with pysam.VariantFile("~{input_vcf}") as vcf:
+            with pysam.VariantFile("~{output_name}~{output_suffix}.vcf.gz", "w", header=vcf.header) as output_vcf:
+                for record in vcf:
+                    # If SVTYPE has Number=A in header, record.info["SVTYPE"] would be a tuple
+                    if isinstance(record.info['SVTYPE'], tuple):
+                        svtype = record.info['SVTYPE'][0]    # Multiallelics already split, so just one entry
+                    else:
+                        svtype = record.info['SVTYPE']    # Should be string in this case
+                    if (('~{restrict_sv_types}' == 'true') and (svtype in ["~{sep="\", \"" sv_types}"]) or ('~{restrict_sv_types}' == 'false')):
+                        # Normalize FILTER to be PASS rather than missing
+                        if ((len(record.filter.values()) == 0) and ('~{normalize_missing_filter_to_pass}' == 'true')) or ('~{strip_filters}' == 'true'):
+                            record.filter.clear()
+                            record.filter.add('PASS')
+                        if (np.abs(len(ref) - len(alt)) >= ~{min_size}) or (record.info['SVLEN'] >= ~{min_size}):
+                            if record.info['SVLEN'] > 0:    # sniffles actually will write variants with abstract alleles SVLEN = 0, which causes problem in Wittyer...
+                                output_vcf.write(record)
+        CODE
+
+        bcftools index -t -f "~{output_name}~{output_suffix}.vcf.gz"
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
+        disks: "local-disk " + disk_size + " HDD"
+        memory: memory_ram + " GB"
+        cpu: cpu
+    }
+
+    output {
+        File output_vcf = "~{output_name}~{output_suffix}.vcf.gz"
+        File output_vcf_index = "~{output_name}~{output_suffix}.vcf.gz.tbi"
+    }
+}
+
+# Replaces explicit INDEL sequences with abstractions, e.g. <DEL> or <INS>
 task ConvertToAbstract {
     input {
         File input_vcf
@@ -164,11 +237,6 @@ task ConvertToAbstract {
 
         String output_name = "converted"
         String output_suffix = "-converted_abs"
-
-        Int min_size = 50
-
-        Boolean normalize_missing_filter_to_pass = true
-        Boolean remove_bnd = true
 
         # Runtime parameters
         Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
@@ -192,7 +260,7 @@ task ConvertToAbstract {
 
                     # Check relative difference in size meets size threshold or already abstract
                     # Also convert BND notation using ] or [ to abstract allele
-                    if (np.abs(len(ref) - len(alt)) >= ~{min_size}) or (alt[0] == '<') or ('[' in alt) or (']' in alt):
+                    if (alt[0] == '<') or ('[' in alt) or (']' in alt):
                         # If SVTYPE has Number=A in header, record.info["SVTYPE"] would be a tuple
                         if isinstance(record.info['SVTYPE'], tuple):
                             svtype = record.info['SVTYPE'][0]    # Multiallelics already split, so just one entry
@@ -208,15 +276,7 @@ task ConvertToAbstract {
                             new_alt = f'<{svtype}>' if alt[0] != '<' else alt
                             record.alleles = (record.alleles[0][0].upper(), new_alt)    # upper since Wittyer dislikes lowercase ref...
 
-                        # Normalize FILTER to be PASS rather than missing
-                        if (len(record.filter.values()) == 0) and ('~{normalize_missing_filter_to_pass}' == 'true'):
-                            record.filter.clear()
-                            record.filter.add('PASS')
-
-                        # Check for BND and write only if not asked to remove
-                        if not ( ('~{remove_bnd}' == 'true') and (svtype == 'BND') ):
-                            if record.info['SVLEN'] > 0:    # sniffles actually will write variants with abstract alleles SVLEN = 0, which causes problem in Wittyer...
-                                output_vcf.write(record)
+                        output_vcf.write(record)
         CODE
 
         bcftools index -t -f "~{output_name}~{output_suffix}.vcf.gz"
