@@ -208,6 +208,8 @@ task NormalizeAndClean {
                         if ((len(record.filter.values()) == 0) and ('~{normalize_missing_filter_to_pass}' == 'true')) or ('~{strip_filters}' == 'true'):
                             record.filter.clear()
                             record.filter.add('PASS')
+                        ref = record.alleles[0]
+                        alt = record.alleles[1]
                         if (np.abs(len(ref) - len(alt)) >= ~{min_size}) or (record.info['SVLEN'] >= ~{min_size}):
                             if record.info['SVLEN'] > 0:    # sniffles actually will write variants with abstract alleles SVLEN = 0, which causes problem in Wittyer...
                                 output_vcf.write(record)
