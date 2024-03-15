@@ -105,10 +105,10 @@ workflow FindSamplesAndSimpleBenchmark {
     scatter(matched_samples in all_matched_vcf_data) {
         call SimpleBenchmark.SimpleBenchmark as SimpleBenchmark {
             input:
-                base_vcf=matched_samples.left.data.vcf,
-                base_vcf_index=matched_samples.left.data.index,
-                base_output_sample_name=matched_samples.left.data.output_name,
-                base_vcf_sample_name=matched_samples.left.data.sample_name,
+                base_vcf=matched_samples.left.vcf,
+                base_vcf_index=matched_samples.left.index,
+                base_output_sample_name=matched_samples.left.output_name,
+                base_vcf_sample_name=matched_samples.left.sample_name,
                 query_vcf=matched_samples.right.vcf,
                 query_vcf_index=matched_samples.right.index,
                 query_output_sample_name=matched_samples.right.output_name,
