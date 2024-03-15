@@ -106,6 +106,7 @@ Some tools are particular about the format required to process SV VCFs, like Wit
 - `min_size` - (default = 50) minimum (absolute value) size of variants to keep
 - `split_MA` - (default = true) split multiallelic sites into biallelic sites
 - `add_annotations` - (default = true) add annotations like `END`, etc. required by the benchmarking pipeline if not already included
+- `normalize_and_clean` - (default = true) remove `SVTYPE`s outside specified list, and convert missing filter to `PASS` optionally; also includes option to set min length bound and replace all filters with `PASS` in task inputs
 - `convert_to_abstract` - (default = true) convert SVs represented by long sequences into variants with symbolic alleles (`INS` or `DEL` only)
 
 ### Outputs
