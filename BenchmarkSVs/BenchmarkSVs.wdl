@@ -455,7 +455,7 @@ task CollectQcMetrics {
 
         # Bin AF
         AF_Bin_cutoffs = [~{default="" sep=", " af_bin_cutoffs}]
-        AF_Bin_start = [f'< {AF_Bin_cutoffs[0]}%']
+        AF_Bin_start = [f'<{AF_Bin_cutoffs[0]}%']
         AF_Bins_middle = [f'{AF_Bin_cutoffs[i]}-{AF_Bin_cutoffs[i+1]}%' for i in range(len(AF_Bin_cutoffs)-1)]
         AF_Bin_end = [f'>{AF_Bin_cutoffs[-1]}%']
         AF_Bins = AF_Bin_start + AF_Bins_middle + AF_Bin_end
