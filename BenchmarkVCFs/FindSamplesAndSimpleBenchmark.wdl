@@ -163,12 +163,15 @@ task MatchVcfData {
         print("Here is matched files")
         print(matched_files)
 
+        # Returns true iff base file matches i and query file matches j bytewise
+        def compare(i, j):
+            return filecmp.cmp("~{base_vcf_data.vcf}", i, shallow=False) and filecmp.cmp("~{query_vcf_data.vcf}", j, shallow=False)
+
         with open("results.txt", "w") as file:
-            for i, j in zip(matched_files[0::2], matched_files[1::2]):
-                if filecmp.cmp("~{base_vcf_data.vcf}", i, shallow=False) and filecmp.cmp("~{query_vcf_data.vcf}", j, shallow=False):
-                    file.write("true")
-                    break
-            file.write("false")
+            if any([compare(x[0], x[1]) for x in zip(matched_files[0::2], matched_files[1::2])]):
+                file.write("true")
+            else:
+                file.write("false")
 
         CODE
     >>>
