@@ -167,7 +167,7 @@ task MatchVcfData {
             for i, j in zip(matched_files[0::2], matched_files[1::2]):
                 if filecmp.cmp("~{base_vcf_data.vcf}", i, shallow=False) and filecmp.cmp("~{query_vcf_data.vcf}", j, shallow=False):
                     file.write("true")
-                break
+                    break
             file.write("false")
 
         CODE
