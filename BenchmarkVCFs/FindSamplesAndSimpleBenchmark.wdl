@@ -11,7 +11,10 @@ struct VcfData {
 }
 
 struct BaseVcfData {
-    VcfData data
+    File vcf
+    File index
+    String output_name
+    String sample_name
     File eval_intervals
 }
 
@@ -74,19 +77,15 @@ workflow FindSamplesAndSimpleBenchmark {
             lod_threshold=lod_threshold
     }
 
-    scatter(base_data in zip(zip(base_vcfs, base_vcf_indices), zip(base_sample_output_names, base_vcf_sample_names))) {
-        VcfData base_vcf_data = {"vcf": base_data.left.left, "index": base_data.left.right, "output_name": base_data.right.left, "sample_name": base_data.right.right}
-    }
-
-    scatter(base_interval_data in zip(base_vcf_data, evaluation_intervals)) {
-        BaseVcfData eval_base_data = {"data": base_interval_data.left, "eval_intervals": base_interval_data.right}
+    scatter(base_data in zip(zip(zip(base_vcfs, base_vcf_indices), zip(base_sample_output_names, base_vcf_sample_names)), evaluation_intervals)) {
+        BaseVcfData base_vcf_data = {"vcf": base_data.left.left.left, "index": base_data.left.left.right, "output_name": base_data.left.right.left, "sample_name": base_data.left.right.right, "eval_intervals": base_data.right}
     }
 
     scatter(query_data in zip(zip(query_vcfs, query_vcf_indices), zip(query_sample_output_names, query_vcf_sample_names))) {
         VcfData query_vcf_data = {"vcf": query_data.left.left, "index": query_data.left.right, "output_name": query_data.right.left, "sample_name": query_data.right.right}
     }
 
-    scatter(paired_data in cross(eval_base_data, query_vcf_data)) {
+    scatter(paired_data in cross(base_vcf_data, query_vcf_data)) {
         call MatchVcfData {
             input:
                 fingerprint_matched_pairs=MatchFingerprints.all_matched_pairs,
@@ -158,7 +157,7 @@ task MatchVcfData {
         print(matched_files)
 
         with open("results.txt", "w") as file:
-            search_string = "(~{base_vcf_data.data.vcf}, ~{query_vcf_data.vcf})"
+            search_string = "(~{base_vcf_data.vcf}, ~{query_vcf_data.vcf})"
             print(f"Search string is: {search_string}")
             if search_string in matched_files:
                 file.write("true")
