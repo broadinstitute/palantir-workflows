@@ -148,7 +148,7 @@ workflow FindSamplesAndSimpleBenchmark {
 
 task MatchVcfData {
     input {
-        Array[Pair[File, File]] fingerprint_matched_pairs    # Assumes matched pairs adjacent in Array, as computed in main workflow block
+        Array[File] fingerprint_matched_pairs    # Assumes matched pairs adjacent in Array, as computed in main workflow block
         BaseVcfData base_vcf_data
         VcfData query_vcf_data
     }
