@@ -85,10 +85,16 @@ workflow FindSamplesAndSimpleBenchmark {
         VcfData query_vcf_data = {"vcf": query_data.left.left, "index": query_data.left.right, "output_name": query_data.right.left, "sample_name": query_data.right.right}
     }
 
+    scatter(pair in MatchFingerprints.all_matched_pairs) {
+        Array[File] array_fingerprint_pairs = [pair.left, pair.right]
+    }
+
+    Array[File] flat_fingerprint_pairs = flatten(array_fingerprint_pairs)
+
     scatter(paired_data in cross(base_vcf_data, query_vcf_data)) {
         call MatchVcfData {
             input:
-                fingerprint_matched_pairs=MatchFingerprints.all_matched_pairs,
+                fingerprint_matched_pairs=flat_fingerprint_pairs,
                 base_vcf_data=paired_data.left,
                 query_vcf_data=paired_data.right
         }
@@ -142,7 +148,7 @@ workflow FindSamplesAndSimpleBenchmark {
 
 task MatchVcfData {
     input {
-        Array[Pair[File, File]] fingerprint_matched_pairs
+        Array[Pair[File, File]] fingerprint_matched_pairs    # Assumes matched pairs adjacent in Array, as computed in main workflow block
         BaseVcfData base_vcf_data
         VcfData query_vcf_data
     }
@@ -152,12 +158,12 @@ task MatchVcfData {
 
         python3 << CODE
 
-        matched_files = "~{fingerprint_matched_pairs}"
+        matched_files = "~{sep=" " fingerprint_matched_pairs}"
         print("Here is matched files")
         print(matched_files)
 
         with open("results.txt", "w") as file:
-            search_string = "(~{base_vcf_data.vcf}, ~{query_vcf_data.vcf})"
+            search_string = "~{base_vcf_data.vcf} ~{query_vcf_data.vcf}"
             print(f"Search string is: {search_string}")
             if search_string in matched_files:
                 file.write("true")
