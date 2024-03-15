@@ -152,7 +152,7 @@ task MatchVcfData {
 
         python3 << CODE
 
-        matched_files = ["~{sep="\", \"" fingerprint_matched_pairs}"]
+        matched_files = "~{fingerprint_matched_pairs}"
         print("Here is matched files")
         print(matched_files)
 
