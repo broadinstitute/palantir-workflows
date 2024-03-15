@@ -289,7 +289,7 @@ task SubsetEvaluation {
 
         # Subset input VCF to only sites which intersect evaluation regions over pct overlap threshold
         bcftools view -h ~{input_vcf} > header.txt
-        bedtools intersect -a ~{input_vcf} -b ~{evaluation_bed} ~{"-f" + evaluation_pct} -u > variants.vcf
+        bedtools intersect -a ~{input_vcf} -b ~{evaluation_bed} ~{"-f " + evaluation_pct} -u > variants.vcf
 
         cat header.txt variants.vcf | bcftools view -o output.vcf.gz -
         bcftools index -t output.vcf.gz
