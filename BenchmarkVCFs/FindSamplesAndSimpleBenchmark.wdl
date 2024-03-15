@@ -157,18 +157,18 @@ task MatchVcfData {
         set -xueo pipefail
 
         python3 << CODE
+        import filecmp
 
-        matched_files = "~{sep=" " fingerprint_matched_pairs}"
+        matched_files = ["~{sep="\", \"" fingerprint_matched_pairs}"]
         print("Here is matched files")
         print(matched_files)
 
         with open("results.txt", "w") as file:
-            search_string = "~{base_vcf_data.vcf} ~{query_vcf_data.vcf}"
-            print(f"Search string is: {search_string}")
-            if search_string in matched_files:
-                file.write("true")
-            else:
-                file.write("false")
+            for i, j in zip(matched_files[0::2], matched_files[1::2]):
+                if filecmp.cmp("~{base_vcf_data.vcf}", i, shallow=False) and filecmp.cmp("~{query_vcf_data.vcf}", j, shallow=False):
+                    file.write("true")
+                break
+            file.write("false")
 
         CODE
     >>>
