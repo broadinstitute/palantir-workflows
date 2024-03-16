@@ -74,10 +74,10 @@ workflow FindSamplesAndSimpleBenchmark {
     scatter(paired_data in cross(base_vcf_data, query_vcf_data)) {
         call MatchFingerprints.MatchFingerprints as MatchFingerprints {
             input:
-                input_files=paired_data.right.vcf,
-                input_indices=paired_data.right.index,
-                reference_files=paired_data.left.vcf,
-                reference_indices=paired_data.left.index,
+                input_files=[paired_data.right.vcf],
+                input_indices=[paired_data.right.index],
+                reference_files=[paired_data.left.vcf],
+                reference_indices=[paired_data.left.index],
                 haplotype_map=haplotype_map,
                 check_all_file_pairs=check_all_file_pairs,
                 fail_on_mismatch=fail_on_mismatch,
@@ -164,12 +164,12 @@ workflow FindSamplesAndSimpleBenchmark {
 #    }
 
     output {
-        Array[File] fingerprint_files = MatchFingerprints.fingerprint_files
+        Array[File] fingerprint_files = flatten(MatchFingerprints.fingerprint_files)
 
-        Array[File] benchmark_summaries = SimpleBenchmark.SimpleSummary
-        Array[File] indel_stats = SimpleBenchmark.IndelDistributionStats
-        Array[File] snp_stats = SimpleBenchmark.SNPSubstitutionStats
-        Array[File] roc_stats = SimpleBenchmark.ROCStats
+        Array[File] benchmark_summaries = select_all(SimpleBenchmark.SimpleSummary)
+        Array[File] indel_stats = select_all(SimpleBenchmark.IndelDistributionStats)
+        Array[File] snp_stats = select_all(SimpleBenchmark.SNPSubstitutionStats)
+        Array[File] roc_stats = select_all(SimpleBenchmark.ROCStats)
 
         Array[File] igv_sessions = select_all(SimpleBenchmark.igv_session)
     }
