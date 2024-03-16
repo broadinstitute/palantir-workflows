@@ -87,7 +87,7 @@ workflow FindSamplesAndSimpleBenchmark {
         }
 
         # If the two files were a fingerprint match, run Benchmark
-        if (len(MatchFingerprints.all_matched_pairs) > 0) {
+        if (length(MatchFingerprints.all_matched_pairs) > 0) {
             call SimpleBenchmark.SimpleBenchmark as SimpleBenchmark {
                 input:
                     base_vcf=paired_data.left.vcf,
