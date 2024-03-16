@@ -158,14 +158,24 @@ task MatchVcfData {
 
         python3 << CODE
         import filecmp
+        import gzip
 
         matched_files = ["~{sep="\", \"" fingerprint_matched_pairs}"]
-        print("Here is matched files")
-        print(matched_files)
+
+        def get_file_contents(path):
+            if path.split('.')[-1] == '.gz':
+                with gzip.open(path, 'r') as file:
+                    return file.read()
+            else:
+                with open(path, 'r') as file:
+                    return file.read()
+
+        base_contents = get_file_contents("~{base_vcf_data.vcf}")
+        query_contents = get_file_contents("~{query_vcf_data.vcf}")
 
         # Returns true iff base file matches i and query file matches j bytewise
         def compare(i, j):
-            return filecmp.cmp("~{base_vcf_data.vcf}", i, shallow=False) and filecmp.cmp("~{query_vcf_data.vcf}", j, shallow=False)
+            return base_contents == get_file_contents(i) and query_contents == get_file_contents(j)
 
         with open("results.txt", "w") as file:
             if any([compare(x[0], x[1]) for x in zip(matched_files[0::2], matched_files[1::2])]):
@@ -179,8 +189,8 @@ task MatchVcfData {
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
         disks: "local-disk " + 200 + " HDD"
-        cpu: 2
-        memory: 4 + "GB"
+        cpu: 4
+        memory: 8 + "GB"
     }
 
     output {
