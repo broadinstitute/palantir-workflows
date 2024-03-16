@@ -107,6 +107,7 @@ workflow FindSamplesAndSimpleBenchmark {
                     experiment=experiment,
                     extra_column_name=extra_column_name,
                     extra_column_value=extra_column_value,
+                    check_fingerprint=false,
                     create_igv_session=create_igv_sessions,
                     igv_session_name=igv_session_name,
                     preemptible=preemptible
