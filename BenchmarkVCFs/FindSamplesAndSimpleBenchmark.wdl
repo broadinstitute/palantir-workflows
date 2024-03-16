@@ -63,20 +63,6 @@ workflow FindSamplesAndSimpleBenchmark {
         Int preemptible = 3
     }
 
-    call MatchFingerprints.MatchFingerprints as MatchFingerprints {
-        input:
-            input_files=query_vcfs,
-            input_indices=query_vcf_indices,
-            reference_files=base_vcfs,
-            reference_indices=base_vcf_indices,
-            haplotype_map=haplotype_map,
-            check_all_file_pairs=check_all_file_pairs,
-            fail_on_mismatch=fail_on_mismatch,
-            check_only_matching_sample_names=check_only_matching_sample_names,
-            crosscheck_by=crosscheck_by,
-            lod_threshold=lod_threshold
-    }
-
     scatter(base_data in zip(zip(zip(base_vcfs, base_vcf_indices), zip(base_sample_output_names, base_vcf_sample_names)), evaluation_intervals)) {
         BaseVcfData base_vcf_data = {"vcf": base_data.left.left.left, "index": base_data.left.left.right, "output_name": base_data.left.right.left, "sample_name": base_data.left.right.right, "eval_intervals": base_data.right}
     }
@@ -85,54 +71,97 @@ workflow FindSamplesAndSimpleBenchmark {
         VcfData query_vcf_data = {"vcf": query_data.left.left, "index": query_data.left.right, "output_name": query_data.right.left, "sample_name": query_data.right.right}
     }
 
-    scatter(pair in MatchFingerprints.all_matched_pairs) {
-        Array[File] array_fingerprint_pairs = [pair.left, pair.right]
-    }
-
-    Array[File] flat_fingerprint_pairs = flatten(array_fingerprint_pairs)
-
     scatter(paired_data in cross(base_vcf_data, query_vcf_data)) {
-        call MatchVcfData {
+        call MatchFingerprints.MatchFingerprints as MatchFingerprints {
             input:
-                fingerprint_matched_pairs=flat_fingerprint_pairs,
-                base_vcf_data=paired_data.left,
-                query_vcf_data=paired_data.right
+                input_files=paired_data.right.vcf,
+                input_indices=paired_data.right.index,
+                reference_files=paired_data.left.vcf,
+                reference_indices=paired_data.left.index,
+                haplotype_map=haplotype_map,
+                check_all_file_pairs=check_all_file_pairs,
+                fail_on_mismatch=fail_on_mismatch,
+                check_only_matching_sample_names=check_only_matching_sample_names,
+                crosscheck_by=crosscheck_by,
+                lod_threshold=lod_threshold
+        }
+
+        # If the two files were a fingerprint match, run Benchmark
+        if (len(MatchFingerprints.all_matched_pairs) > 0) {
+            call SimpleBenchmark.SimpleBenchmark as SimpleBenchmark {
+                input:
+                    base_vcf=paired_data.left.vcf,
+                    base_vcf_index=paired_data.left.index,
+                    base_output_sample_name=paired_data.left.output_name,
+                    base_vcf_sample_name=paired_data.left.sample_name,
+                    query_vcf=paired_data.right.vcf,
+                    query_vcf_index=paired_data.right.index,
+                    query_output_sample_name=paired_data.right.output_name,
+                    query_vcf_sample_name=paired_data.right.sample_name,
+                    ref_fasta=ref_fasta,
+                    ref_index=ref_index,
+                    stratifier_intervals=stratifier_intervals,
+                    stratifier_labels=stratifier_labels,
+                    evaluation_intervals=paired_data.left.eval_intervals,
+                    score_field=score_field,
+                    experiment=experiment,
+                    extra_column_name=extra_column_name,
+                    extra_column_value=extra_column_value,
+                    create_igv_session=create_igv_sessions,
+                    igv_session_name=igv_session_name,
+                    preemptible=preemptible
+            }
         }
     }
 
-    scatter(pair_status in MatchVcfData.sample_pair_status) {
-        if (pair_status.right) {
-            Pair[BaseVcfData, VcfData] matched_vcf_data = pair_status.left
-        }
-    }
-
-    Array[Pair[BaseVcfData, VcfData]] all_matched_vcf_data = select_all(matched_vcf_data)
-
-    scatter(matched_samples in all_matched_vcf_data) {
-        call SimpleBenchmark.SimpleBenchmark as SimpleBenchmark {
-            input:
-                base_vcf=matched_samples.left.vcf,
-                base_vcf_index=matched_samples.left.index,
-                base_output_sample_name=matched_samples.left.output_name,
-                base_vcf_sample_name=matched_samples.left.sample_name,
-                query_vcf=matched_samples.right.vcf,
-                query_vcf_index=matched_samples.right.index,
-                query_output_sample_name=matched_samples.right.output_name,
-                query_vcf_sample_name=matched_samples.right.sample_name,
-                ref_fasta=ref_fasta,
-                ref_index=ref_index,
-                stratifier_intervals=stratifier_intervals,
-                stratifier_labels=stratifier_labels,
-                evaluation_intervals=matched_samples.left.eval_intervals,
-                score_field=score_field,
-                experiment=experiment,
-                extra_column_name=extra_column_name,
-                extra_column_value=extra_column_value,
-                create_igv_session=create_igv_sessions,
-                igv_session_name=igv_session_name,
-                preemptible=preemptible
-        }
-    }
+#    scatter(pair in MatchFingerprints.all_matched_pairs) {
+#        Array[File] array_fingerprint_pairs = [pair.left, pair.right]
+#    }
+#
+#    Array[File] flat_fingerprint_pairs = flatten(array_fingerprint_pairs)
+#
+#    scatter(paired_data in cross(base_vcf_data, query_vcf_data)) {
+#        call MatchVcfData {
+#            input:
+#                fingerprint_matched_pairs=flat_fingerprint_pairs,
+#                base_vcf_data=paired_data.left,
+#                query_vcf_data=paired_data.right
+#        }
+#    }
+#
+#    scatter(pair_status in MatchVcfData.sample_pair_status) {
+#        if (pair_status.right) {
+#            Pair[BaseVcfData, VcfData] matched_vcf_data = pair_status.left
+#        }
+#    }
+#
+#    Array[Pair[BaseVcfData, VcfData]] all_matched_vcf_data = select_all(matched_vcf_data)
+#
+#    scatter(matched_samples in all_matched_vcf_data) {
+#        call SimpleBenchmark.SimpleBenchmark as SimpleBenchmark {
+#            input:
+#                base_vcf=matched_samples.left.vcf,
+#                base_vcf_index=matched_samples.left.index,
+#                base_output_sample_name=matched_samples.left.output_name,
+#                base_vcf_sample_name=matched_samples.left.sample_name,
+#                query_vcf=matched_samples.right.vcf,
+#                query_vcf_index=matched_samples.right.index,
+#                query_output_sample_name=matched_samples.right.output_name,
+#                query_vcf_sample_name=matched_samples.right.sample_name,
+#                ref_fasta=ref_fasta,
+#                ref_index=ref_index,
+#                stratifier_intervals=stratifier_intervals,
+#                stratifier_labels=stratifier_labels,
+#                evaluation_intervals=matched_samples.left.eval_intervals,
+#                score_field=score_field,
+#                experiment=experiment,
+#                extra_column_name=extra_column_name,
+#                extra_column_value=extra_column_value,
+#                create_igv_session=create_igv_sessions,
+#                igv_session_name=igv_session_name,
+#                preemptible=preemptible
+#        }
+#    }
 
     output {
         Array[File] fingerprint_files = MatchFingerprints.fingerprint_files
