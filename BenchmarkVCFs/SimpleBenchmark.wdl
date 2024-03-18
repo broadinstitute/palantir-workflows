@@ -226,7 +226,7 @@ task VCFEval {
 
         # Runtime params
         Int? preemptible
-        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(size(query_vcf, "GB") + size(base_vcf, "GB") + size(reference.fasta, "GB")) + 10,
+        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(2 * size(query_vcf, "GB") + 2 * size(base_vcf, "GB") + size(reference.fasta, "GB")) + 50,
                                                   "cpu": 8, "memory": 16}
     }
 
