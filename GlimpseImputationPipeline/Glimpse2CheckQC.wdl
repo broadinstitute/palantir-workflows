@@ -1,15 +1,45 @@
 version 1.0
 
+import "../ImputationPipeline/PCATasks.wdl" as PCATasks
+import "../Utilities/WDLs/DetectPCANovelties.wdl" as NoveltyDetection
+
 workflow Glimpse2CheckQC {
     input {
         File qc_metrics
         File qc_metrics_thresholds
+
+        Boolean run_pca_outlier_detection
+
         String output_basename
         
         Int preemptible = 3
         String docker = "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
         Int cpu = 1
         Int mem_gb = 4
+    }
+
+    if (run_pca_outlier_detection) {
+        call PCATasks.ArrayVcfToPlinkDataset {
+			input:
+			vcf = imputed_array_vcf,
+			pruning_sites = select_first([pruning_sites_for_pca]),
+			basename = basename,
+			mem = vcf_to_plink_mem
+		}
+
+        call PCATasks.ProjectArray {
+			input:
+				pc_loadings = select_first([population_loadings]),
+				pc_meansd = select_first([population_meansd]),
+				bed = ArrayVcfToPlinkDataset.bed,
+				bim = ArrayVcfToPlinkDataset.bim,
+				fam = ArrayVcfToPlinkDataset.fam,
+				basename = basename
+		}
+
+        call NoveltyDetection.DetectPCANovelties {
+
+        }
     }
 
     call Glimpse2CheckQCTask {
