@@ -134,7 +134,7 @@ task CheckFingerprints {
 
         fp_df = pd.read_csv("~{output_name}.txt", sep="\t", comment="#")
         matching_rows = fp_df["RESULT"].apply(lambda x: "_MATCH" in x)
-        fp_df[matching_rows][["LEFT_SAMPLE", "RIGHT_SAMPLE"]].to_csv("matching_sample_pairs.tsv", sep="\t", index=False)
+        fp_df[matching_rows][["LEFT_SAMPLE", "RIGHT_SAMPLE"]].to_csv("matching_sample_pairs.tsv", sep="\t", index=False, header=False)
 
         CODE
 
@@ -148,7 +148,6 @@ task CheckFingerprints {
     }
 
     output {
-        Boolean contains_match = read_boolean("result.txt")
         File fingerprint_file = "~{output_name}.txt"
         Array[Array[String]] matching_sample_pairs = read_tsv("matching_sample_pairs.tsv")
 

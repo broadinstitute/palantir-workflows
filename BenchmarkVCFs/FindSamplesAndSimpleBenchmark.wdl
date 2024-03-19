@@ -86,31 +86,33 @@ workflow FindSamplesAndSimpleBenchmark {
                 lod_threshold=lod_threshold
         }
 
-        # If the two files were a fingerprint match, run Benchmark
-        if (length(MatchFingerprints.all_matched_pairs) > 0) {
-            call SimpleBenchmark.SimpleBenchmark as SimpleBenchmark {
-                input:
-                    base_vcf=paired_data.left.vcf,
-                    base_vcf_index=paired_data.left.index,
-                    base_output_sample_name=paired_data.left.output_name,
-                    base_vcf_sample_name=paired_data.left.sample_name,
-                    query_vcf=paired_data.right.vcf,
-                    query_vcf_index=paired_data.right.index,
-                    query_output_sample_name=paired_data.right.output_name,
-                    query_vcf_sample_name=paired_data.right.sample_name,
-                    ref_fasta=ref_fasta,
-                    ref_index=ref_index,
-                    stratifier_intervals=stratifier_intervals,
-                    stratifier_labels=stratifier_labels,
-                    evaluation_intervals=paired_data.left.eval_intervals,
-                    score_field=score_field,
-                    experiment=experiment,
-                    extra_column_name=extra_column_name,
-                    extra_column_value=extra_column_value,
-                    check_fingerprint=false,
-                    create_igv_session=create_igv_sessions,
-                    igv_session_name=igv_session_name,
-                    preemptible=preemptible
+        # If the two files had a fingerprint match, run Benchmark over the matching sample name pairs
+        scatter(matched_files in MatchFingerprints.all_matched_pairs_and_samples) {
+            scatter(matched_sample_pair in matched_files.right) {
+                call SimpleBenchmark.SimpleBenchmark as SimpleBenchmark {
+                    input:
+                        base_vcf=paired_data.left.vcf,
+                        base_vcf_index=paired_data.left.index,
+                        base_output_sample_name=matched_sample_pair[0],
+                        base_vcf_sample_name=matched_sample_pair[0],
+                        query_vcf=paired_data.right.vcf,
+                        query_vcf_index=paired_data.right.index,
+                        query_output_sample_name=matched_sample_pair[1],
+                        query_vcf_sample_name=matched_sample_pair[1],
+                        ref_fasta=ref_fasta,
+                        ref_index=ref_index,
+                        stratifier_intervals=stratifier_intervals,
+                        stratifier_labels=stratifier_labels,
+                        evaluation_intervals=paired_data.left.eval_intervals,
+                        score_field=score_field,
+                        experiment=experiment,
+                        extra_column_name=extra_column_name,
+                        extra_column_value=extra_column_value,
+                        check_fingerprint=false,
+                        create_igv_session=create_igv_sessions,
+                        igv_session_name=igv_session_name,
+                        preemptible=preemptible
+                }
             }
         }
     }
