@@ -76,8 +76,8 @@ workflow FindSamplesAndSimpleBenchmark {
             input:
                 input_files=[paired_data.right.vcf],
                 input_indices=[paired_data.right.index],
-                reference_files=[paired_data.left.vcf],
-                reference_indices=[paired_data.left.index],
+                second_input_files=[paired_data.left.vcf],
+                second_input_indices=[paired_data.left.index],
                 haplotype_map=haplotype_map,
                 check_all_file_pairs=check_all_file_pairs,
                 fail_on_mismatch=fail_on_mismatch,
