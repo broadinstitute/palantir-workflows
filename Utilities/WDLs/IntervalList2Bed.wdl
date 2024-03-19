@@ -6,12 +6,17 @@ workflow IntervalList2Bed {
         Array[String]? interval_labels
     }
 
+    String IL_EXT = ".interval_list"
+    String IL_EXT_COMP = ".interval_list.gz"
+    String BED_EXT = ".bed"
+    String BED_EXT_COMP = ".bed.gz"
+
     if (defined(interval_labels)) {
         Array[Pair[String, File]] paired_intervals = zip(select_first([interval_labels]), interval_files)
 
         scatter (p in paired_intervals) {
             # Check that file extension is .interval_list, i.e. removing it shortens the basename
-            if (basename(p.right, ".interval_list") != basename(p.right)) {
+            if (basename(basename(p.right, IL_EXT), IL_EXT_COMP) != basename(p.right)) {
                 call Convert as ConvertPairs {
                     input:
                         interval_list=p.right,
@@ -19,7 +24,7 @@ workflow IntervalList2Bed {
                 }
             }
 
-            if (basename(p.right, ".bed") != basename(p.right)) {
+            if (basename(basename(p.right, BED_EXT), BED_EXT_COMP) != basename(p.right)) {
                 File bed_file_pair = p.right
                 File bed_label_pair = p.left
             }
@@ -31,17 +36,17 @@ workflow IntervalList2Bed {
 
     if (!defined(interval_labels)) {
         scatter (f in interval_files) {
-            if (basename(f, ".interval_list") != basename(f)) {
+            if (basename(basename(f, IL_EXT), IL_EXT_COMP) != basename(f)) {
                 call Convert as ConvertUnlabeled {
                     input:
                         interval_list=f,
-                        interval_label=basename(f, ".interval_list")
+                        interval_label=basename(basename(f, IL_EXT), IL_EXT_COMP)
                 }
             }
 
-            if (basename(f, ".bed") != basename(f)) {
+            if (basename(basename(f, BED_EXT), BED_EXT_COMP) != basename(f)) {
                 File bed_file = f
-                String bed_label = basename(f, ".bed")
+                String bed_label = basename(basename(f, BED_EXT), BED_EXT_COMP)
             }
         }
 
