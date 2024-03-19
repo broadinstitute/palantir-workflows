@@ -120,11 +120,11 @@ workflow FindSamplesAndSimpleBenchmark {
     output {
         Array[File] fingerprint_files = flatten(MatchFingerprints.fingerprint_files)
 
-        Array[File] benchmark_summaries = select_all(SimpleBenchmark.SimpleSummary)
-        Array[File] indel_stats = select_all(SimpleBenchmark.IndelDistributionStats)
-        Array[File] snp_stats = select_all(SimpleBenchmark.SNPSubstitutionStats)
-        Array[File] roc_stats = select_all(SimpleBenchmark.ROCStats)
+        Array[File] benchmark_summaries = select_all(flatten(flatten(SimpleBenchmark.SimpleSummary)))
+        Array[File] indel_stats = select_all(flatten(flatten(SimpleBenchmark.IndelDistributionStats)))
+        Array[File] snp_stats = select_all(flatten(flatten(SimpleBenchmark.SNPSubstitutionStats)))
+        Array[File] roc_stats = select_all(flatten(flatten(SimpleBenchmark.ROCStats)))
 
-        Array[File] igv_sessions = select_all(SimpleBenchmark.igv_session)
+        Array[File] igv_sessions = select_all(flatten(flatten(SimpleBenchmark.igv_session)))
     }
 }

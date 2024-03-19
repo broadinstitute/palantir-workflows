@@ -110,8 +110,8 @@ workflow SimpleBenchmark {
             input:
                 input_files=[query_vcf],
                 input_indices=[query_vcf_index],
-                reference_files=[base_vcf],
-                reference_indices=[base_vcf_index],
+                second_input_files=[base_vcf],
+                second_input_indices=[base_vcf_index],
                 haplotype_map=select_first([haplotype_map]),
                 fail_on_mismatch=true
         }
