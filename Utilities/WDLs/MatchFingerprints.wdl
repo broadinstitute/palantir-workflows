@@ -57,7 +57,7 @@ workflow MatchFingerprints {
 
     # Collect all the matched pairs detected with GATK
     scatter (matched_samples in CheckFingerprints.sample_pairs) {
-        if (length(matched_samples.right) > 0) {
+        if (length(select_first(matched_samples.right)) > 1) {
             Pair[Pair[File, File], Array[Array[String]]] matched_pairs_and_samples = matched_samples
         }
     }
@@ -149,7 +149,7 @@ task CheckFingerprints {
 
     output {
         File fingerprint_file = "~{output_name}.txt"
-        Array[Array[String]] matching_sample_pairs = read_tsv("matching_sample_pairs.tsv")
+        Array[Array[String]] matching_sample_pairs = read_tsv("matching_sample_pairs.tsv")   # Returns [[""]] if empty
 
         # Output tuple using Pairs since mixed types: pair of given files and list of matching samples in each
         Pair[Pair[File, File], Array[Array[String]]] sample_pairs = ((input_file, second_input_file), matching_sample_pairs)
