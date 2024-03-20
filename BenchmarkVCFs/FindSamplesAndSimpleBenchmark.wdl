@@ -2,6 +2,7 @@ version 1.0
 
 import "SimpleBenchmark.wdl" as SimpleBenchmark
 import "../Utilities/WDLs/MatchFingerprints.wdl" as MatchFingerprints
+import "../Utilities/WDLs/CombineTables.wdl" as CombineTables
 
 struct VcfData {
     File vcf
@@ -117,10 +118,15 @@ workflow FindSamplesAndSimpleBenchmark {
         }
     }
 
+    call CombineTables.CombineTables as CombineBenchmarkSummaries {
+        input:
+            tables=select_all(flatten(flatten(SimpleBenchmark.SimpleSummary)))
+    }
+
     output {
         Array[File] fingerprint_files = flatten(MatchFingerprints.fingerprint_files)
 
-        Array[File] benchmark_summaries = select_all(flatten(flatten(SimpleBenchmark.SimpleSummary)))
+        File benchmark_summaries = CombineBenchmarkSummaries.combined_table
         Array[File] indel_stats = select_all(flatten(flatten(SimpleBenchmark.IndelDistributionStats)))
         Array[File] snp_stats = select_all(flatten(flatten(SimpleBenchmark.SNPSubstitutionStats)))
         Array[File] roc_stats = select_all(flatten(flatten(SimpleBenchmark.ROCStats)))
