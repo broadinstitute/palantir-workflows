@@ -5,6 +5,8 @@ struct IndexedFile {
     File index_file
 }
 
+# Workflow for fingerprinting input_files against set of second_input_files
+# Outputs list of files with matching
 workflow MatchFingerprints {
     input {
         Array[File] input_files
@@ -14,9 +16,9 @@ workflow MatchFingerprints {
 
         File haplotype_map
 
-        Boolean check_all_file_pairs = true
-        Boolean fail_on_mismatch = false
-        Boolean check_only_matching_sample_names = false
+        Boolean check_all_file_pairs = true    # Check all possible combinations of input files to fingerprint against each other
+        Boolean fail_on_mismatch = false    # If any file compared fails to find a fingerprint match, fail the workflow
+        Boolean check_only_matching_sample_names = false    # Check fingerprints only against matching sample names
 
         String crosscheck_by = "FILE"    # Or: READGROUP, LIBRARY, SAMPLE
         Float lod_threshold = -5
