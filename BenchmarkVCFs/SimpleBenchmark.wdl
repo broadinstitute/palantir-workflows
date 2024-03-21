@@ -57,9 +57,9 @@ workflow SimpleBenchmark {
         String score_field = "GQ"
 
         # Columns to add to output files
-        String? experiment
-        String? extra_column_name
-        String? extra_column_value
+        String experiment = ""
+        String extra_column_name = ""
+        String extra_column_value = ""
 
         Boolean check_fingerprint = true
         File? haplotype_map
