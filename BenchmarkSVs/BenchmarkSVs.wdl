@@ -289,7 +289,7 @@ task SubsetEvaluation {
 
         # Subset input VCF to only sites which intersect evaluation regions over pct overlap threshold
         bcftools view -h ~{input_vcf} > header.txt
-        bedtools intersect -a ~{input_vcf} -b ~{evaluation_bed} ~{"-f" + evaluation_pct} -u > variants.vcf
+        bedtools intersect -a ~{input_vcf} -b ~{evaluation_bed} ~{"-f " + evaluation_pct} -u > variants.vcf
 
         cat header.txt variants.vcf | bcftools view -o output.vcf.gz -
         bcftools index -t output.vcf.gz
@@ -455,7 +455,7 @@ task CollectQcMetrics {
 
         # Bin AF
         AF_Bin_cutoffs = [~{default="" sep=", " af_bin_cutoffs}]
-        AF_Bin_start = [f'< {AF_Bin_cutoffs[0]}%']
+        AF_Bin_start = [f'<{AF_Bin_cutoffs[0]}%']
         AF_Bins_middle = [f'{AF_Bin_cutoffs[i]}-{AF_Bin_cutoffs[i+1]}%' for i in range(len(AF_Bin_cutoffs)-1)]
         AF_Bin_end = [f'>{AF_Bin_cutoffs[-1]}%']
         AF_Bins = AF_Bin_start + AF_Bins_middle + AF_Bin_end
