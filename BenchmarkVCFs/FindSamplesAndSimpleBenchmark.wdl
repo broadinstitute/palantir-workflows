@@ -7,29 +7,23 @@ import "../Utilities/WDLs/CombineTables.wdl" as CombineTables
 struct VcfData {
     File vcf
     File index
-    String output_name
-    String sample_name
 }
 
 struct BaseVcfData {
     File vcf
     File index
-    String output_name
-    String sample_name
     File eval_intervals
 }
 
+# Searches for matching samples in base_vcfs vs query_vcfs and then runs benchmarking on them
+# Sample names are inferred from the VCFs and collected from the fingerprinting step
 workflow FindSamplesAndSimpleBenchmark {
     input {
         Array[File] base_vcfs
         Array[File] base_vcf_indices
-        Array[String] base_sample_output_names
-        Array[String] base_vcf_sample_names
 
         Array[File] query_vcfs
         Array[File] query_vcf_indices
-        Array[String] query_sample_output_names
-        Array[String] query_vcf_sample_names
 
         # Reference information
         File ref_fasta
@@ -64,12 +58,12 @@ workflow FindSamplesAndSimpleBenchmark {
         Int preemptible = 3
     }
 
-    scatter(base_data in zip(zip(zip(base_vcfs, base_vcf_indices), zip(base_sample_output_names, base_vcf_sample_names)), evaluation_intervals)) {
-        BaseVcfData base_vcf_data = {"vcf": base_data.left.left.left, "index": base_data.left.left.right, "output_name": base_data.left.right.left, "sample_name": base_data.left.right.right, "eval_intervals": base_data.right}
+    scatter(base_data in zip(zip(base_vcfs, base_vcf_indices), evaluation_intervals)) {
+        BaseVcfData base_vcf_data = {"vcf": base_data.left.left, "index": base_data.left.right, "eval_intervals": base_data.right}
     }
 
-    scatter(query_data in zip(zip(query_vcfs, query_vcf_indices), zip(query_sample_output_names, query_vcf_sample_names))) {
-        VcfData query_vcf_data = {"vcf": query_data.left.left, "index": query_data.left.right, "output_name": query_data.right.left, "sample_name": query_data.right.right}
+    scatter(query_data in zip(query_vcfs, query_vcf_indices)) {
+        VcfData query_vcf_data = {"vcf": query_data.left, "index": query_data.right}
     }
 
     scatter(paired_data in cross(base_vcf_data, query_vcf_data)) {
