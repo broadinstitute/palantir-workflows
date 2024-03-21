@@ -79,6 +79,7 @@ workflow FindSamplesAndSimpleBenchmark {
                 input_indices=[paired_data.right.index],
                 second_input_files=[paired_data.left.vcf],
                 second_input_indices=[paired_data.left.index],
+                second_input_extra_files=[paired_data.left.eval_intervals],
                 haplotype_map=haplotype_map,
                 check_all_file_pairs=check_all_file_pairs,
                 fail_on_mismatch=fail_on_mismatch,
@@ -86,51 +87,66 @@ workflow FindSamplesAndSimpleBenchmark {
                 crosscheck_by=crosscheck_by,
                 lod_threshold=lod_threshold
         }
+    }
 
-        # If the two files had a fingerprint match, run Benchmark over the matching sample name pairs
-        scatter(matched_files in MatchFingerprints.all_matched_pairs_and_samples) {
-            scatter(matched_sample_pair in matched_files.right) {
-                call SimpleBenchmark.SimpleBenchmark as SimpleBenchmark {
-                    input:
-                        base_vcf=paired_data.left.vcf,
-                        base_vcf_index=paired_data.left.index,
-                        base_output_sample_name=matched_sample_pair[1],
-                        base_vcf_sample_name=matched_sample_pair[1],
-                        query_vcf=paired_data.right.vcf,
-                        query_vcf_index=paired_data.right.index,
-                        query_output_sample_name=matched_sample_pair[0],
-                        query_vcf_sample_name=matched_sample_pair[0],
-                        ref_fasta=ref_fasta,
-                        ref_index=ref_index,
-                        stratifier_intervals=stratifier_intervals,
-                        stratifier_labels=stratifier_labels,
-                        evaluation_intervals=paired_data.left.eval_intervals,
-                        score_field=score_field,
-                        experiment=experiment,
-                        extra_column_name=extra_column_name,
-                        extra_column_value=extra_column_value,
-                        check_fingerprint=false,
-                        create_igv_session=create_igv_sessions,
-                        igv_session_name=igv_session_name,
-                        preemptible=preemptible
-                }
+    # If the two files had a fingerprint match, run Benchmark over the matching sample name pairs
+    scatter(matched_files in flatten(MatchFingerprints.all_matched_pairs_and_samples)) {
+        scatter(matched_sample_pair in matched_files.right) {
+            call SimpleBenchmark.SimpleBenchmark as SimpleBenchmark {
+                input:
+                    base_vcf=matched_files.left.left.main_file,
+                    base_vcf_index=matched_files.left.left.index_file,
+                    base_output_sample_name=matched_sample_pair[1],
+                    base_vcf_sample_name=matched_sample_pair[1],
+                    query_vcf=matched_files.left.right.main_file,
+                    query_vcf_index=matched_files.left.right.index_file,
+                    query_output_sample_name=matched_sample_pair[0],
+                    query_vcf_sample_name=matched_sample_pair[0],
+                    ref_fasta=ref_fasta,
+                    ref_index=ref_index,
+                    stratifier_intervals=stratifier_intervals,
+                    stratifier_labels=stratifier_labels,
+                    evaluation_intervals=matched_files.left.left.extra_file,
+                    score_field=score_field,
+                    experiment=experiment,
+                    extra_column_name=extra_column_name,
+                    extra_column_value=extra_column_value,
+                    check_fingerprint=false,
+                    create_igv_session=create_igv_sessions,
+                    igv_session_name=igv_session_name,
+                    preemptible=preemptible
             }
         }
     }
 
     call CombineTables.CombineTables as CombineBenchmarkSummaries {
         input:
-            tables=select_all(flatten(flatten(SimpleBenchmark.SimpleSummary)))
+            tables=select_all(flatten(SimpleBenchmark.SimpleSummary))
+    }
+
+    call CombineTables.CombineTables as CombineSnpStats {
+        input:
+            tables=select_all(flatten(SimpleBenchmark.SNPSubstitutionStats))
+    }
+
+    call CombineTables.CombineTables as CombineIndelStats {
+        input:
+            tables=select_all(flatten(SimpleBenchmark.IndelDistributionStats))
+    }
+
+    call CombineTables.CombineTables as CombineRocStats {
+        input:
+            tables=select_all(flatten(SimpleBenchmark.ROCStats))
     }
 
     output {
         Array[File] fingerprint_files = flatten(MatchFingerprints.fingerprint_files)
 
         File benchmark_summaries = CombineBenchmarkSummaries.combined_table
-        Array[File] indel_stats = select_all(flatten(flatten(SimpleBenchmark.IndelDistributionStats)))
-        Array[File] snp_stats = select_all(flatten(flatten(SimpleBenchmark.SNPSubstitutionStats)))
-        Array[File] roc_stats = select_all(flatten(flatten(SimpleBenchmark.ROCStats)))
+        File snp_stats = CombineSnpStats.combined_table
+        File indel_stats = CombineIndelStats.combined_table
+        File roc_stats = CombineRocStats.combined_table
 
-        Array[File] igv_sessions = select_all(flatten(flatten(SimpleBenchmark.igv_session)))
+        Array[File] igv_sessions = select_all(flatten(SimpleBenchmark.igv_session))
     }
 }

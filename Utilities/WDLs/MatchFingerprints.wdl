@@ -3,16 +3,19 @@ version 1.0
 struct IndexedFile {
     File main_file
     File index_file
+    File extra_file    # For custom use cases to ensure main files stay "connected" to this when subsetting to matches
 }
 
 # Workflow for fingerprinting input_files against set of second_input_files
-# Outputs list of files with matching
+# Outputs list of files with matching samples inside. See below for full description of output type
 workflow MatchFingerprints {
     input {
         Array[File] input_files
         Array[File] input_indices
+        Array[File]? input_extra_files
         Array[File] second_input_files
         Array[File] second_input_indices
+        Array[File]? second_input_extra_files
 
         File haplotype_map
 
@@ -24,12 +27,16 @@ workflow MatchFingerprints {
         Float lod_threshold = -5
     }
 
-    scatter (file_pair in zip(input_files, input_indices)) {
-        IndexedFile indexed_input_files = {"main_file": file_pair.left, "index_file": file_pair.right}
+    # Default "extra_file" to another copy of index if nothing provided
+    Array[File] final_input_extra_files = select_first([input_extra_files, input_indices])
+    Array[File] final_second_input_extra_files = select_first([second_input_extra_files, second_input_indices])
+
+    scatter (file_pair in zip(zip(input_files, input_indices), final_input_extra_files)) {
+        IndexedFile indexed_input_files = {"main_file": file_pair.left.left, "index_file": file_pair.left.right, "extra_file": file_pair.right}
     }
 
-    scatter (file_pair in zip(second_input_files, second_input_indices)) {
-        IndexedFile indexed_second_input_files = {"main_file": file_pair.left, "index_file": file_pair.right}
+    scatter (file_pair in zip(zip(second_input_files, second_input_indices), final_second_input_extra_files)) {
+        IndexedFile indexed_second_input_files = {"main_file": file_pair.left.left, "index_file": file_pair.left.right, "extra_file": file_pair.right}
     }
 
     if (check_all_file_pairs) {
@@ -45,10 +52,8 @@ workflow MatchFingerprints {
     scatter (pair in pair_iterates) {
         call CheckFingerprints {
             input:
-                input_file=pair.left.main_file,
-                input_index=pair.left.index_file,
-                second_input_file=pair.right.main_file,
-                second_input_index=pair.right.index_file,
+                indexed_input_file=pair.left,
+                indexed_second_input_file=pair.right,
                 haplotype_map=haplotype_map,
                 fail_on_mismatch=fail_on_mismatch,
                 check_only_matching_sample_names=check_only_matching_sample_names,
@@ -60,7 +65,7 @@ workflow MatchFingerprints {
     # Collect all the matched pairs detected with GATK
     scatter (matched_samples in CheckFingerprints.sample_pairs) {
         if (length(select_first(matched_samples.right)) > 1) {
-            Pair[Pair[File, File], Array[Array[String]]] matched_pairs_and_samples = matched_samples
+            Pair[Pair[IndexedFile, IndexedFile], Array[Array[String]]] matched_pairs_and_samples = matched_samples
         }
     }
 
@@ -68,18 +73,16 @@ workflow MatchFingerprints {
         Array[File] fingerprint_files = CheckFingerprints.fingerprint_file
 
         # Final output: Array of Pairs ("matches") which contain
-        # left: a Pair of input file with matching sample in given second_input file
+        # left: a Pair of indexed input files with matching sample in given second_input file
         # right: an Array of Array[String] (each should be length = 2) taking an input sample name to a matching second_input sample name
-        Array[Pair[Pair[File, File], Array[Array[String]]]] all_matched_pairs_and_samples = select_all(matched_pairs_and_samples)
+        Array[Pair[Pair[IndexedFile, IndexedFile], Array[Array[String]]]] all_matched_pairs_and_samples = select_all(matched_pairs_and_samples)
     }
 }
 
 task CheckFingerprints {
     input {
-        File input_file
-        File input_index
-        File second_input_file
-        File second_input_index
+        IndexedFile indexed_input_file
+        IndexedFile indexed_second_input_file
 
         File haplotype_map
         Boolean fail_on_mismatch
@@ -93,16 +96,10 @@ task CheckFingerprints {
     }
 
     parameter_meta {
-        input_file: {
+        indexed_input_file: {
             localization_optional: true
         }
-        input_index: {
-            localization_optional: true
-        }
-        second_input_file: {
-            localization_optional: true
-        }
-        second_input_index: {
+        indexed_second_input_file: {
             localization_optional: true
         }
     }
@@ -114,14 +111,14 @@ task CheckFingerprints {
         set -xueo pipefail
 
         # Create input index maps to handle cases when index file is not adjacent to main files
-        echo -e "~{input_file}\t~{input_index}" > input_index_map.tsv
-        echo -e "~{second_input_file}\t~{second_input_index}" > second_input_index_map.tsv
+        echo -e "~{indexed_input_file.main_file}\t~{indexed_input_file.index_file}" > input_index_map.tsv
+        echo -e "~{indexed_second_input_file.main_file}\t~{indexed_second_input_file.index_file}" > second_input_index_map.tsv
 
         # Allow "UNEXPECTED_MATCH" at this stage using exit code 0 arg; otherwise causes exit code 1
         gatk --java-options "-Xmx~{memory-1}g" CrosscheckFingerprints \
-            -I ~{input_file} \
+            -I ~{indexed_input_file.main_file} \
             --INPUT_INDEX_MAP input_index_map.tsv \
-            -SI ~{second_input_file} \
+            -SI ~{indexed_second_input_file.main_file} \
             --SECOND_INPUT_INDEX_MAP second_input_index_map.tsv \
             -H ~{haplotype_map} \
             -O "~{output_name}.txt" \
@@ -145,7 +142,7 @@ task CheckFingerprints {
     runtime {
         docker: "us.gcr.io/broad-gatk/gatk:" + gatk_tag
         preemptible: 2
-        disks: "local-disk " + ceil(size(input_file, "GB") + size(second_input_file, "GB") + 20) + " HDD"
+        disks: "local-disk " + ceil(size(indexed_input_file.main_file, "GB") + size(indexed_second_input_file.main_file, "GB") + 50) + " HDD"
         memory: memory + " GB"
     }
 
@@ -154,6 +151,6 @@ task CheckFingerprints {
         Array[Array[String]] matching_sample_pairs = read_tsv("matching_sample_pairs.tsv")   # Returns [[""]] if empty
 
         # Output tuple using Pairs since mixed types: pair of given files and list of matching samples in each
-        Pair[Pair[File, File], Array[Array[String]]] sample_pairs = ((input_file, second_input_file), matching_sample_pairs)
+        Pair[Pair[IndexedFile, IndexedFile], Array[Array[String]]] sample_pairs = ((indexed_input_file, indexed_second_input_file), matching_sample_pairs)
     }
 }
