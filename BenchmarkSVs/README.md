@@ -70,7 +70,7 @@ The SVisualizer is a python script based on [Dash](https://plotly.com/dash/) and
 
 Follow these steps to ensure your environment is prepared.
 
-1. Make sure you have the Python package `quickboard` installed. It's recommended to pin the version to avoid any breaking changes in the future. The version `quickboard==0.3.5` should work with this current version.
+1. Make sure you have the Python package `quickboard` installed. It's recommended to pin the version to avoid any breaking changes in the future. The version `quickboard==0.4.0` should work with this current version.
 2. Copy all the files from the [SVisualizer](SVisualizer) directory to a fresh directory on your local system. 
 3. Copy all the files from the WDL outputs into a subdirectory called `wdl_outputs`. You can also use the gathering script [provided](#optional-data-gathering-script) to make this step easier.
 
