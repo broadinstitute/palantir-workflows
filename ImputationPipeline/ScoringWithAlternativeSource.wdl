@@ -2,63 +2,180 @@ version 1.0
 
 import "ScoringTasks.wdl"
 
-workflow ScoreVcfWithSecondarySource {
+workflow ScoreVcfWithPreferredGvcf {
     input {
-        File primary_vcf
-        File? secondary_vcf
+        File preferred_vcf
+        File secondary_vcf
         String basename
-        File primary_weights
-        File? secondary_weights
+        File weights
+        File? weights_as_vcf
         Int? base_mem
         String? extra_args
-        File? sites_to_extract_from_secondary_source
         String? chromosome_encoding
         Boolean? use_ref_alt_for_ids
 
+        File ref_fasta
+        File ref_fasta_index
+
         Int preemptible = 1
+    }
+
+    if (!defined(weights_as_vcf)) {
+        call ConvertWeightsTsvToVcf {
+            input:
+                weights_tsv = weights
+        }
+    }
+
+    call ExtractSitesFromGvcf {
+        input:
+            gvcf = preferred_vcf,
+            ref_fasta = ref_fasta,
+            ref_fasta_index = ref_fasta_index,
+            basename = basename,
+            sites_to_extract = select_first([weights_as_vcf, ConvertWeightsTsvToVcf.weights_vcf])
+    }
+
+    call FilterSitesAndGetExtractedSiteIDs {
+        input:
+            extracted_vcf = ExtractSitesFromGvcf.vcf,
+            basename = basename
     }
   
     call ScoringTasks.ScoreVcf as PrimaryScore {
         input:
-            vcf = primary_vcf,
+            vcf = FilterSitesAndGetExtractedSiteIDs.extracted_filtered_vcf,
             basename = basename,
-            weights = primary_weights,
-            exclude_sites = sites_to_extract_from_secondary_source,
+            weights = weights,
+            sites = FilterSitesAndGetExtractedSiteIDs.extracted_filtered_sites,
             base_mem = base_mem,
             extra_args = extra_args,
             chromosome_encoding = chromosome_encoding,
             use_ref_alt_for_ids = use_ref_alt_for_ids
     }
 
-    # Check for any of these parameters to be set, in order to make sure
-    # that this workflow fails if only some of the parameters are set.
-    if (defined(secondary_vcf) || defined(secondary_weights) || defined(sites_to_extract_from_secondary_source)) {
-        call ScoringTasks.ScoreVcf as SecondaryScore {
-            input:
-                vcf = select_first([secondary_vcf]),
-                basename = basename,
-                weights = select_first([secondary_weights]),
-                sites = sites_to_extract_from_secondary_source,
-                base_mem = base_mem,
-                extra_args = extra_args,
-                chromosome_encoding = chromosome_encoding,
-                use_ref_alt_for_ids = use_ref_alt_for_ids
-        }
+    call ScoringTasks.ScoreVcf as SecondaryScore {
+        input:
+            vcf = secondary_vcf,
+            basename = basename,
+            weights = weights,
+            exclude_sites = FilterSitesAndGetExtractedSiteIDs.extracted_filtered_sites,
+            base_mem = base_mem,
+            extra_args = extra_args,
+            chromosome_encoding = chromosome_encoding,
+            use_ref_alt_for_ids = use_ref_alt_for_ids
+    }
 
-        call CombinePrimaryAndSecondaryScores {
-            input:
-                primary_score = PrimaryScore.score,
-                secondary_score = SecondaryScore.score,
-                primary_sites_scored = PrimaryScore.sites_scored,
-                secondary_sites_scored = SecondaryScore.sites_scored,
-                basename = basename,
-                preemptible = preemptible
-        }
+    call CombinePrimaryAndSecondaryScores {
+        input:
+            primary_score = PrimaryScore.score,
+            secondary_score = SecondaryScore.score,
+            primary_sites_scored = PrimaryScore.sites_scored,
+            secondary_sites_scored = SecondaryScore.sites_scored,
+            basename = basename,
+            preemptible = preemptible
     }
 
     output {
-        File score = select_first([CombinePrimaryAndSecondaryScores.score, PrimaryScore.score])
-        File sites_scored = select_first([CombinePrimaryAndSecondaryScores.sites_scored, PrimaryScore.sites_scored])
+        File score = CombinePrimaryAndSecondaryScores.score
+        File sites_scored = CombinePrimaryAndSecondaryScores.sites_scored
+    }
+}
+
+task ConvertWeightsTsvToVcf {
+    input {
+        File weights_tsv
+        Int mem_gb = 4
+        Int cpu = 4
+        Int preemptible = 1
+    }
+
+    String weights_basename = basename(weights_tsv)
+
+    command <<<
+        set -xeuo pipefail
+
+        echo -e '##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO' > ~{weights_basename}.vcf
+        awk -F'\t' 'BEGIN {OFS="\t"} {split($1, a, ":"); print a[1], a[2], ".", a[3], a[4], ".", ".", "."}' ~{weights_tsv} >> ~{weights_basename}.vcf
+    >>>
+
+    runtime {
+        docker: "ubuntu:latest"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        preemptible: preemptible
+    }
+
+    output {
+        File weights_vcf = "~{weights_basename}.vcf"
+    }
+}
+
+task ExtractSitesFromGvcf {
+    input {
+        File gvcf
+        File ref_fasta
+        File ref_fasta_index
+        String basename
+        File sites_to_extract
+        Int mem_gb = 4
+        Int cpu = 4
+        Int preemptible = 1
+        String gatk_tag = "4.5.0.0"
+    }
+
+    command <<<
+        set -xeuo pipefail
+
+        gatk GenotypeGVCFs \
+            -R ~{ref_fasta} \
+            -V ~{gvcf} \
+            -O ~{basename}.extracted.vcf.gz \
+            --force-output-intervals ~{sites_to_extract}
+    >>>
+
+    runtime {
+        docker: "broadinstitute/gatk:" + gatk_tag
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        preemptible: preemptible
+    }
+
+    output {
+        File vcf = "~{basename}.extracted.vcf.gz"
+        File vcf_index = "~{basename}.extracted.vcf.gz"
+    }
+}
+
+task FilterSitesAndGetExtractedSiteIDs {
+    input {
+        File extracted_vcf
+        String basename
+        Int mem_gb = 4
+        Int cpu = 4
+        Int preemptible = 1
+    }
+
+    command <<<
+        set -xeuo pipefail
+
+        bcftools view -O z -o ~{basename}.extracted.filtered.vcf.gz -e 'QUAL<=20' ~{extracted_vcf}
+        bcftools index ~{basename}.extracted.filtered.vcf.gz
+
+        bcftools query -f '%CHROM:%POS:%REF:%ALT\n' ~{basename}.extracted.filtered.vcf.gz > ~{basename}.extracted.filtered.sites
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        preemptible: preemptible
+    }
+
+    output {
+        File extracted_filtered_vcf = "~{basename}.extracted.filtered.vcf.gz"
+        File extracted_filtered_vcf_index = "~{basename}.extracted.filtered.vcf.gz"
+        File extracted_filtered_sites = "~{basename}.extracted.filtered.sites"
     }
 }
 
