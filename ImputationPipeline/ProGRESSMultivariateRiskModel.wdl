@@ -10,7 +10,6 @@ workflow ProGRESSMultivariateRiskModel {
         Array[File] exome_gvcfs
         Array[File] exome_gvcf_indices
         File prs_weights
-        File sites_to_extract_from_exome_vcf
 
         File fam_history
         String basename
