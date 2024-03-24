@@ -4,7 +4,7 @@ import "ScoringTasks.wdl"
 
 workflow ScoreVcfWithPreferredGvcf {
     input {
-        File preferred_vcf
+        File preferred_gvcf
         File secondary_vcf
         String basename
         File weights
@@ -29,7 +29,7 @@ workflow ScoreVcfWithPreferredGvcf {
 
     call ExtractSitesFromGvcf {
         input:
-            gvcf = preferred_vcf,
+            gvcf = preferred_gvcf,
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
             basename = basename,

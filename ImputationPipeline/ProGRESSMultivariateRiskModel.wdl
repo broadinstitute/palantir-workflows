@@ -6,7 +6,7 @@ import "ScoringWithAlternativeSource.wdl" as ScoringWithAlternativeSource
 
 workflow ProGRESSMultivariateRiskModel {
     input {
-        File imputed_wgs_vcf
+        Array[File] imputed_wgs_gvcfs
         File exome_gvcf
         File prs_weights
         File sites_to_extract_from_exome_vcf
@@ -29,6 +29,14 @@ workflow ProGRESSMultivariateRiskModel {
         File ref_fasta_index
     }
 
+    call CombineGVCFs {
+        input:
+            gvcfs = imputed_wgs_gvcfs,
+            ref_fasta = ref_fasta,
+            ref_fasta_index = ref_fasta_index,
+            basename = basename
+    }
+
     call ScoringTasks.DetermineChromosomeEncoding {
 		input:
 			weights = prs_weights
@@ -36,7 +44,7 @@ workflow ProGRESSMultivariateRiskModel {
 
     call ScoringWithAlternativeSource.ScoreVcfWithPreferredGvcf {
         input:
-            preferred_vcf = exome_gvcf,
+            preferred_gvcf = CombineGVCFs.combined_gvcf,
             secondary_vcf = imputed_wgs_vcf,
             weights = prs_weights,
             basename = basename,
@@ -80,6 +88,38 @@ workflow ProGRESSMultivariateRiskModel {
 
     output {
         File full_risk = ComputeRiskValue.full_risk
+    }
+}
+
+task CombineGVCFs {
+    input {
+        Array[File] gvcfs
+        Array[File] gvcf_indices
+        File ref_fasta
+        File ref_fasta_index
+        String basename
+        Int mem_gb = 4
+        Int cpu = 4
+        Int preemptible = 1
+        String gatk_tag = "4.5.0.0"
+    }
+
+    command <<<
+        set -xeuo pipefail
+
+        gatk CombineGVCFs -R ~{ref_fasta} -V ~{write_lines(gvcfs)} -O ~{basename}.combined.g.vcf.gz
+    >>>
+
+    runtime {
+        docker: "broadinstitute/gatk:" + gatk_tag
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        preemptible: preemptible
+    }
+
+    output {
+        File combined_gvcf = "~{basename}.combined.g.vcf.gz"
+        File combined_gvcf_index = "~{basename}.combined.g.vcf.gz.tbi"
     }
 }
 
