@@ -6,8 +6,9 @@ import "ScoringWithAlternativeSource.wdl" as ScoringWithAlternativeSource
 
 workflow ProGRESSMultivariateRiskModel {
     input {
-        Array[File] imputed_wgs_gvcfs
-        File exome_gvcf
+        File imputed_wgs_vcf
+        Array[File] exome_gvcfs
+        Array[File] exome_gvcf_indices
         File prs_weights
         File sites_to_extract_from_exome_vcf
 
@@ -31,7 +32,8 @@ workflow ProGRESSMultivariateRiskModel {
 
     call CombineGVCFs {
         input:
-            gvcfs = imputed_wgs_gvcfs,
+            gvcfs = exome_gvcfs,
+            gvcf_indices = exome_gvcf_indices,
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
             basename = basename
