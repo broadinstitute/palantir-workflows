@@ -89,9 +89,11 @@ task ConvertWeightsTsvToVcf {
         File weights_tsv
         Int mem_gb = 4
         Int cpu = 4
+        Int? disk_gb
         Int preemptible = 1
     }
 
+    Int disk_size_gb = select_first([disk_gb, ceil(size(weights_tsv, "GiB") * 3 + 50)])
     String weights_basename = basename(weights_tsv)
 
     command <<<
@@ -105,6 +107,7 @@ task ConvertWeightsTsvToVcf {
         docker: "ubuntu:latest"
         memory: mem_gb + " GiB"
         cpu: cpu
+        disks: "local-disk " + disk_size_gb + " HDD"
         preemptible: preemptible
     }
 
@@ -123,9 +126,12 @@ task ExtractSitesFromGvcf {
         File sites_to_extract
         Int mem_gb = 4
         Int cpu = 4
+        Int? disk_gb
         Int preemptible = 1
         String gatk_tag = "4.5.0.0"
     }
+
+    Int disk_size_gb = select_first([disk_gb, ceil(size(gvcf, "GiB") * 2 + size(ref_fasta, "GiB") + 50)])
 
     command <<<
         set -xeuo pipefail
@@ -141,6 +147,7 @@ task ExtractSitesFromGvcf {
         docker: "broadinstitute/gatk:" + gatk_tag
         memory: mem_gb + " GiB"
         cpu: cpu
+        disks: "local-disk " + disk_size_gb + " HDD"
         preemptible: preemptible
     }
 
@@ -156,8 +163,11 @@ task FilterSitesAndGetExtractedSiteIDs {
         String basename
         Int mem_gb = 4
         Int cpu = 4
+        Int? disk_gb
         Int preemptible = 1
     }
+
+    Int disk_size_gb = select_first([disk_gb, ceil(size(extracted_vcf, "GiB") + 50)])
 
     command <<<
         set -xeuo pipefail
@@ -172,6 +182,7 @@ task FilterSitesAndGetExtractedSiteIDs {
         docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
         memory: mem_gb + " GiB"
         cpu: cpu
+        disks: "local-disk " + disk_size_gb + " HDD"
         preemptible: preemptible
     }
 
@@ -191,7 +202,7 @@ task CombinePrimaryAndSecondaryScores {
 
         String basename
 
-        Int disk_size_gb = 50
+        Int disk_gb = 50
         Int mem_gb = 2
         Int cpu = 1
         Int preemptible = 1
@@ -219,7 +230,7 @@ EOF
 
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
-        disks: "local-disk " + disk_size_gb + " HDD"
+        disks: "local-disk " + disk_gb + " HDD"
         memory: mem_gb + " GiB"
         cpu: cpu
         preemptible: preemptible
