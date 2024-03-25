@@ -7,8 +7,8 @@ import "ScoringWithAlternativeSource.wdl" as ScoringWithAlternativeSource
 workflow ProGRESSMultivariateRiskModel {
     input {
         File imputed_wgs_vcf
-        Array[File] exome_gvcfs
-        Array[File] exome_gvcf_indices
+        File exome_gvcf
+        File exome_gvcf_index
         File prs_weights
 
         File fam_history
@@ -30,16 +30,6 @@ workflow ProGRESSMultivariateRiskModel {
         File ref_dict
     }
 
-    call CombineGVCFs {
-        input:
-            gvcfs = exome_gvcfs,
-            gvcf_indices = exome_gvcf_indices,
-            ref_fasta = ref_fasta,
-            ref_fasta_index = ref_fasta_index,
-            ref_dict = ref_dict,
-            basename = basename
-    }
-
     call ScoringTasks.DetermineChromosomeEncoding {
 		input:
 			weights = prs_weights
@@ -47,7 +37,8 @@ workflow ProGRESSMultivariateRiskModel {
 
     call ScoringWithAlternativeSource.ScoreVcfWithPreferredGvcf {
         input:
-            preferred_gvcf = CombineGVCFs.combined_gvcf,
+            preferred_gvcf = exome_gvcf,
+            preferred_gvcf_index = exome_gvcf_index,
             secondary_vcf = imputed_wgs_vcf,
             weights = prs_weights,
             basename = basename,
