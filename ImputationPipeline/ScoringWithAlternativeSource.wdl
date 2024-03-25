@@ -16,6 +16,7 @@ workflow ScoreVcfWithPreferredGvcf {
 
         File ref_fasta
         File ref_fasta_index
+        File ref_dict
 
         Int preemptible = 1
     }
@@ -32,6 +33,7 @@ workflow ScoreVcfWithPreferredGvcf {
             gvcf = preferred_gvcf,
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
+            ref_dict = ref_dict,
             basename = basename,
             sites_to_extract = select_first([weights_as_vcf, ConvertWeightsTsvToVcf.weights_vcf])
     }
@@ -116,6 +118,7 @@ task ExtractSitesFromGvcf {
         File gvcf
         File ref_fasta
         File ref_fasta_index
+        File ref_dict
         String basename
         File sites_to_extract
         Int mem_gb = 4
