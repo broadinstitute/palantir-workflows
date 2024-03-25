@@ -27,6 +27,7 @@ workflow ProGRESSMultivariateRiskModel {
 
         File ref_fasta
         File ref_fasta_index
+        File ref_dict
     }
 
     call CombineGVCFs {
@@ -35,6 +36,7 @@ workflow ProGRESSMultivariateRiskModel {
             gvcf_indices = exome_gvcf_indices,
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
+            ref_dict = ref_dict,
             basename = basename
     }
 
@@ -52,7 +54,8 @@ workflow ProGRESSMultivariateRiskModel {
             chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
             use_ref_alt_for_ids = use_ref_alt_for_ids,
             ref_fasta = ref_fasta,
-            ref_fasta_index = ref_fasta_index
+            ref_fasta_index = ref_fasta_index,
+            ref_dict = ref_dict
     }
 
     call PCATasks.ArrayVcfToPlinkDataset {
@@ -98,6 +101,7 @@ task CombineGVCFs {
         Array[File] gvcf_indices
         File ref_fasta
         File ref_fasta_index
+        File ref_dict
         String basename
         Int mem_gb = 4
         Int cpu = 4
