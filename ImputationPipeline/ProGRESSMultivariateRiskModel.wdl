@@ -103,11 +103,14 @@ task CombineGVCFs {
         File ref_fasta_index
         File ref_dict
         String basename
-        Int mem_gb = 4
+        Int mem_gb = 16
         Int cpu = 4
+        Int? disk_gb
         Int preemptible = 1
         String gatk_tag = "4.5.0.0"
     }
+
+    Int disk_size_gb = select_first([disk_gb, ceil(size(gvcfs, "GiB") * 3 + size(ref_fasta, "GiB") + 50)])
 
     command <<<
         set -xeuo pipefail
@@ -119,6 +122,7 @@ task CombineGVCFs {
         docker: "broadinstitute/gatk:" + gatk_tag
         memory: mem_gb + " GiB"
         cpu: cpu
+        disks: "local-disk " + disk_size_gb + " HDD"
         preemptible: preemptible
     }
 
