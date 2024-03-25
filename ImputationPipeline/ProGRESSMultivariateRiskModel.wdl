@@ -112,7 +112,7 @@ task CombineGVCFs {
     command <<<
         set -xeuo pipefail
 
-        gatk CombineGVCFs -R ~{ref_fasta} -V ~{write_lines(gvcfs)} -O ~{basename}.combined.g.vcf.gz
+        gatk CombineGVCFs -R ~{ref_fasta} -V ~{sep=" -V " gvcfs} -O ~{basename}.combined.g.vcf.gz
     >>>
 
     runtime {
