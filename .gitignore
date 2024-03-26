@@ -50,3 +50,6 @@ old_*
 
 #Intellij stuff
 .idea
+
+#Jupyter
+.ipynb_checkpoints
