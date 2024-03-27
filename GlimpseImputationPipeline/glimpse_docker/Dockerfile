@@ -17,6 +17,18 @@ make install && \
 cd .. && \
 rm -r bcftools-1.16
 
+# Download and build samtools
+RUN wget https://github.com/samtools/samtools/releases/download/1.16/samtools-1.16.tar.bz2 && \
+tar -xf samtools-1.16.tar.bz2 && \
+rm samtools-1.16.tar.bz2 && \
+cd samtools-1.16 && \
+autoheader && \
+autoconf && \
+./configure --enable-libcurl --without-curses && \
+make install && \
+cd .. && \
+rm -r samtools-1.16
+
 # Download picard (for updating sequence dictionary)
 RUN wget https://github.com/broadinstitute/picard/releases/download/2.26.11/picard.jar && \
 mv picard.jar /

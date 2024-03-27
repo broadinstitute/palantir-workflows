@@ -12,6 +12,8 @@ workflow Glimpse2MergeBatches {
         String docker_extract_annotations = "us.gcr.io/broad-gatk/gatk:4.3.0.0"
         String docker_count_samples = "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
         String docker_merge = "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
+
+        Int mem_gb_merge = 16
     }
 
     if (defined(qc_metrics) && (length(imputed_vcfs) != length(select_first([qc_metrics, []])))) {
@@ -46,6 +48,7 @@ workflow Glimpse2MergeBatches {
                 annotations = ExtractAnnotations.annotations,
                 num_samples = CountSamples.num_samples,
                 output_basename = output_basename,
+                mem_gb = mem_gb_merge,
                 docker_merge = docker_merge
         }
     }
@@ -156,7 +159,7 @@ task MergeAndRecomputeAndAnnotate {
 
         String docker_merge
         Int disk_size_gb = ceil(2.2 * size(imputed_vcfs, "GiB") + 50)
-        Int mem_gb = 2
+        Int mem_gb
         Int cpu = 2
         Int preemptible = 1
     }
