@@ -167,8 +167,9 @@ def make_closest_plot(df, sort_by, asc, mode, disq_values):
     title = f'Counts of Disqualified ({disq_values}) Sites (N = {len(df)})'
     asc = asc == 'Ascending'
     disq_df = make_disqualified_df(df, dist_threshold=500, size_ratio_threshold=0.7, color='Experiment')
+    category_orders = {'Experiment': EXPERIMENT_ORDER} if EXPERIMENT_ORDER is not None else None
     fig = create_upset(disq_df, title=title, sort_by=sort_by, asc=asc, mode=mode, color='Experiment', 
-                       category_orders={'Experiment': EXPERIMENT_ORDER}, color_discrete_sequence=EXPERIMENT_COLORS, 
+                       category_orders=category_orders, color_discrete_sequence=EXPERIMENT_COLORS, 
                        color_discrete_map=EXPERIMENT_COLOR_DICT)
     return fig
 

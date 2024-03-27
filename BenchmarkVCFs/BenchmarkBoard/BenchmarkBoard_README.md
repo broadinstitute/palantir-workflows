@@ -5,7 +5,7 @@ BenchmarkBoard is an interactive visualizer meant to complement the [SimpleBench
 ## Quickstart
 
 To use the BenchmarkBoard, you must satisfy the following requirements:
-1. Have a Python environment with [Quickboard](https://github.com/broadinstitute/quickboard) installed, e.g. `pip install quickboard`. The current version of this app should use `quickboard==0.3.3`. 
+1. Have a Python environment with [Quickboard](https://github.com/broadinstitute/quickboard) installed, e.g. `pip install quickboard`. The current version of this app should use `quickboard==0.4.0`. 
 2. Have the files output by the SimpleBenchmark tool saved locally with their default names.
 3. Have a copy of the `BenchmarkBoard.py` or `BenchmarkBoard.ipynb` file saved in the *same* directory as the files from the WDL.
 
