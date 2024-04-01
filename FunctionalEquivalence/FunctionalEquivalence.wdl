@@ -20,7 +20,7 @@ struct TruthVcf {
     String dataset
 }
 
-workflow NewFunctionalEquivalence {
+workflow FunctionalEquivalence {
     input {
         Array[String] sample_id
         Array[String] dataset
@@ -34,6 +34,7 @@ workflow NewFunctionalEquivalence {
 
         Array[String] truth_vcf
         Array[String] truth_vcf_index
+        Array[String] truth_vcf_sample_names
 
         Array[File]? stratifier_intervals
         Array[String]? stratifier_labels
@@ -64,7 +65,7 @@ workflow NewFunctionalEquivalence {
     }
 
     scatter (i in range(length(truth_vcf))) {
-        TruthVcf truth_inputs = {"sample_id": sample_id[i], "file": truth_vcf[i], "index": truth_vcf_index[i], "dataset": dataset[i], "confidence_intervals": confidence_intervals[i]}
+        TruthVcf truth_inputs = {"sample_id": truth_vcf_sample_names[i], "file": truth_vcf[i], "index": truth_vcf_index[i], "dataset": dataset[i], "confidence_intervals": confidence_intervals[i]}
     }
 
     ## Evaluate against the truth files
@@ -368,5 +369,33 @@ task FEEvaluation {
         Array[File] fe_plots = glob("fe_plot_*.png")
         File fe_summary = "fe_summary.tsv"
         Int fe_status = read_int("fe_status.txt")
+    }
+}
+
+task F1EvaluationTask {
+    input {
+        Array[File] roc_tables
+        String tool1_label
+        String tool2_label
+        String? additional_label
+        Boolean signed_difference = false
+        Int? mem_gb
+        Int? preemptible
+    }
+
+    Int machine_mem_gb = select_first([mem_gb, 8])
+
+    String additional_label_arg = if defined(additional_label) then "--additional-label \"" + additional_label + "\"" else ""
+
+    command <<<
+
+    >>>
+
+    runtime {
+
+    }
+
+    output {
+
     }
 }
