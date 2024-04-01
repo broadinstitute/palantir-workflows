@@ -3,11 +3,15 @@ version 1.0
 workflow CombineTables {
     input {
         Array[File] tables
+        Array[String] extra_column_names = []    # Names of extra columns to add to output
+        Array[String] extra_column_values = []    # Values to put in extra columns; one value per column name
     }
 
     call CombineTablesScript {
         input:
-            tables=tables
+            tables=tables,
+            extra_column_names=extra_column_names,
+            extra_column_values=extra_column_values
     }
 
     output {
@@ -18,6 +22,9 @@ workflow CombineTables {
 task CombineTablesScript {
     input {
         Array[File] tables
+        Array[String] extra_column_names
+        Array[String] extra_column_values
+
         String comment_char = "#"
         String output_name = "combined_table"
     }
@@ -31,6 +38,10 @@ task CombineTablesScript {
         combined_df = pd.DataFrame()
         for table in ["~{sep="\", \"" tables}"]:
             combined_df = pd.concat([combined_df, pd.read_csv(table, sep="\t", comment="~{comment_char}")])
+
+        name_val_dict = dict(zip(["~{sep="\", \"" extra_column_names}"], ["~{sep="\", \"" extra_column_values}"]))
+        for key, value in name_val_dict.items():
+            combined_df[key] = value
 
         combined_df.to_csv("~{output_name}.tsv", sep="\t", index=False)
 

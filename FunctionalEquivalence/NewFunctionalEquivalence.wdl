@@ -1,6 +1,7 @@
 version 1.0
 
-import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/BenchmarkVCFs/SimpleBenchmark.wdl" as BenchmarkVCFs
+#import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/BenchmarkVCFs/SimpleBenchmark.wdl" as BenchmarkVCFs
+import "../BenchmarkVCFs/SimpleBenchmark.wdl" as BenchmarkVCFs
 
 struct VcfFile {
     String sample_id
@@ -66,55 +67,55 @@ workflow NewFunctionalEquivalence {
         TruthVcf truth_inputs = {"sample_id": sample_id[i], "file": truth_vcf[i], "index": truth_vcf_index[i], "dataset": dataset[i], "confidence_intervals": confidence_intervals[i]}
     }
 
-    # Evaluate against the truth files
+    ## Evaluate against the truth files
     # Only used for F1Evaluation half of pipeline (ROC data)
-#    scatter (paired_vcfs in zip(tool1_inputs, truth_inputs)) {
-#        call BenchmarkVCFs.SimpleBenchmark as EvalVsTruthTool1 {
-#            input:
-#                base_vcf=paired_vcfs.right.file,
-#                base_vcf_index=paired_vcfs.right.index,
-#                base_output_sample_name=paired_vcfs.right.sample_id,
-#                base_vcf_sample_name=paired_vcfs.right.sample_id,
-#                query_vcf=paired_vcfs.left.file,
-#                query_vcf_index=paired_vcfs.left.index,
-#                query_output_sample_name=paired_vcfs.left.sample_id,
-#                query_vcf_sample_name=paired_vcfs.left.sample_id,
-#                ref_fasta=ref_fasta,
-#                ref_index=ref_index,
-#                haplotype_map=haplotype_map,
-#                stratifier_intervals=stratifier_intervals,
-#                stratifier_labels=stratifier_labels,
-#                evaluation_intervals=paired_vcfs.right.confidence_intervals,
-#                experiment="EvalVsTruthTool1",
-#                extra_column_name="Dataset",
-#                extra_column_value=paired_vcfs.left.dataset
-#        }
-#    }
-#
-#    scatter (paired_vcfs in zip(tool2_inputs, truth_inputs)) {
-#        call BenchmarkVCFs.SimpleBenchmark as EvalVsTruthTool1 {
-#            input:
-#                base_vcf=paired_vcfs.right.file,
-#                base_vcf_index=paired_vcfs.right.index,
-#                base_output_sample_name=paired_vcfs.right.sample_id,
-#                base_vcf_sample_name=paired_vcfs.right.sample_id,
-#                query_vcf=paired_vcfs.left.file,
-#                query_vcf_index=paired_vcfs.left.index,
-#                query_output_sample_name=paired_vcfs.left.sample_id,
-#                query_vcf_sample_name=paired_vcfs.left.sample_id,
-#                ref_fasta=ref_fasta,
-#                ref_index=ref_index,
-#                haplotype_map=haplotype_map,
-#                stratifier_intervals=stratifier_intervals,
-#                stratifier_labels=stratifier_labels,
-#                evaluation_intervals=paired_vcfs.right.confidence_intervals,
-#                experiment="EvalVsTruthTool2",
-#                extra_column_name="Dataset",
-#                extra_column_value=paired_vcfs.left.dataset
-#        }
-#    }
+    scatter (paired_vcfs in zip(tool1_inputs, truth_inputs)) {
+        call BenchmarkVCFs.SimpleBenchmark as EvalVsTruthTool1 {
+            input:
+                base_vcf=paired_vcfs.right.file,
+                base_vcf_index=paired_vcfs.right.index,
+                base_output_sample_name=paired_vcfs.right.sample_id,
+                base_vcf_sample_name=paired_vcfs.right.sample_id,
+                query_vcf=paired_vcfs.left.file,
+                query_vcf_index=paired_vcfs.left.index,
+                query_output_sample_name=paired_vcfs.left.sample_id,
+                query_vcf_sample_name=paired_vcfs.left.sample_id,
+                ref_fasta=ref_fasta,
+                ref_index=ref_index,
+                haplotype_map=haplotype_map,
+                stratifier_intervals=stratifier_intervals,
+                stratifier_labels=stratifier_labels,
+                evaluation_intervals=paired_vcfs.right.confidence_intervals,
+                experiment="EvalVsTruthTool1",
+                extra_column_names=["Dataset", "Replicate"],
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num]
+        }
+    }
 
-    # Evaluate across the two tools
+    scatter (paired_vcfs in zip(tool2_inputs, truth_inputs)) {
+        call BenchmarkVCFs.SimpleBenchmark as EvalVsTruthTool2 {
+            input:
+                base_vcf=paired_vcfs.right.file,
+                base_vcf_index=paired_vcfs.right.index,
+                base_output_sample_name=paired_vcfs.right.sample_id,
+                base_vcf_sample_name=paired_vcfs.right.sample_id,
+                query_vcf=paired_vcfs.left.file,
+                query_vcf_index=paired_vcfs.left.index,
+                query_output_sample_name=paired_vcfs.left.sample_id,
+                query_vcf_sample_name=paired_vcfs.left.sample_id,
+                ref_fasta=ref_fasta,
+                ref_index=ref_index,
+                haplotype_map=haplotype_map,
+                stratifier_intervals=stratifier_intervals,
+                stratifier_labels=stratifier_labels,
+                evaluation_intervals=paired_vcfs.right.confidence_intervals,
+                experiment="EvalVsTruthTool2",
+                extra_column_names=["Dataset", "Replicate"],
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num]
+        }
+    }
+
+    ## Evaluate across the two tools
     # Only used for FEEvaluation half of pipeline
     scatter (paired_vcfs in zip(tool1_inputs, tool2_inputs)) {
         call BenchmarkVCFs.SimpleBenchmark as EvalInterTool {
@@ -134,12 +135,12 @@ workflow NewFunctionalEquivalence {
                 stratifier_intervals=stratifier_intervals,
                 stratifier_labels=stratifier_labels,
                 experiment="EvalInterTool",
-                extra_column_name="Dataset",
-                extra_column_value=paired_vcfs.left.dataset
+                extra_column_names=["Dataset", "Replicate"],
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num]
         }
     }
 
-    # Evaluate within the same tool all possible pairs for both tools
+    ## Evaluate within the same tool all possible pairs for both tools
     scatter (index in cross(range(length(tool1_inputs)), range(length(tool1_inputs)))) {
         if (index.left < index.right) {    # Only check when first has index less than second in cross product so no repeats
             call BenchmarkVCFs.SimpleBenchmark as EvalIntraTool1 {
@@ -159,8 +160,8 @@ workflow NewFunctionalEquivalence {
                     stratifier_intervals=stratifier_intervals,
                     stratifier_labels=stratifier_labels,
                     experiment="EvalIntraTool1",
-                    extra_column_name="Dataset",
-                    extra_column_value=tool1_inputs[index.left].dataset
+                    extra_column_names=["Dataset", "Replicate"],
+                    extra_column_values=[tool1_inputs[index.left].dataset, tool1_inputs[index.left].num]
             }
         }
     }
@@ -184,8 +185,8 @@ workflow NewFunctionalEquivalence {
                     stratifier_intervals=stratifier_intervals,
                     stratifier_labels=stratifier_labels,
                     experiment="EvalIntraTool2",
-                    extra_column_name="Dataset",
-                    extra_column_value=tool2_inputs[index.left].dataset
+                    extra_column_names=["Dataset", "Replicate"],
+                    extra_column_values=[tool2_inputs[index.left].dataset, tool2_inputs[index.left].num]
             }
         }
     }
@@ -276,7 +277,7 @@ task FEEvaluation {
         full_df['Interval'] = pd.Categorical(full_df['Interval'], intervals)
         full_df = full_df.sort_values('Interval')
 
-        ## Clean/augment the full_df a bit
+        ## Subset/augment the full_df a bit
         full_df = full_df[full_df['Type'].isin(VARIANT_TYPES)]
         full_df['Jaccard'] = full_df['TP_Base'] / (full_df['TP_Base'] + full_df['FP'] + full_df['FN'])
 
