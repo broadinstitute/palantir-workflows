@@ -58,8 +58,8 @@ workflow SimpleBenchmark {
 
         # Columns to add to output files
         String experiment = ""
-        String extra_column_name = ""
-        String extra_column_value = ""
+        Array[String] extra_column_names = []
+        Array[String] extra_column_values = []
 
         Boolean check_fingerprint = true
         File? haplotype_map
@@ -169,8 +169,8 @@ workflow SimpleBenchmark {
             IDD_summaries=select_all(flatten([WholeGenomeStats.full_idd, SubsetStats.full_idd])),
             ST_summaries=select_all(flatten([WholeGenomeStats.full_st, SubsetStats.full_st])),
             experiment=experiment,
-            extra_column_name=extra_column_name,
-            extra_column_value=extra_column_value
+            extra_column_names=extra_column_names,
+            extra_column_values=extra_column_values
     }
 
     if (create_igv_session) {
@@ -533,8 +533,8 @@ task CombineSummaries {
         Array[File] ST_summaries
 
         String? experiment
-        String? extra_column_name
-        String? extra_column_value
+        Array[String]? extra_column_names
+        Array[String]? extra_column_values
 
         RuntimeAttributes runtimeAttributes = {"disk_size": ceil(size(ROC_summaries, "GB") + size(SN_summaries, "GB")
                                              + size(IDD_summaries, "GB") + size(ST_summaries, "GB")) + 10, "cpu": 2, "memory": 8}
@@ -546,21 +546,26 @@ task CombineSummaries {
         python << CODE
         import pandas as pd
 
+        EXTRA_COL_NAMES = ["~{sep="\", \"" extra_column_names}"]
+        EXTRA_COL_VALUES = ["~{sep="\", \"" extra_column_values}"]
+        def add_extra_cols(df):
+            if "~{experiment}" != "":
+                df['Experiment'] = "~{experiment}"
+
+            name_val_dict = dict(zip(EXTRA_COL_NAMES, EXTRA_COL_VALUES))
+            for key, value in name_val_dict.items():
+                df[key] = value
+            return df
+
         # Concat all ROC summaries into one file
         full_ROC = pd.DataFrame()
         for file in ["~{default="" sep="\", \"" ROC_summaries}"]:
             df = pd.read_csv(file, sep='\t')
             full_ROC = pd.concat([full_ROC, df])
 
-        if "~{experiment}" != "":
-            full_ROC['Experiment'] = "~{experiment}"
+        add_extra_cols(full_ROC).to_csv('ROCStats.tsv', sep='\t', index=False)
 
-        if ("~{extra_column_name}" != "") and ("~{extra_column_value}" != ""):
-            full_ROC["~{extra_column_name}"] = "~{extra_column_value}"
-
-        full_ROC.to_csv('ROCStats.tsv', sep='\t', index=False)
-
-        # Gather all tables for bcftools stats outputs
+        # Gather all other tables for bcftools stats outputs
         full_SN = pd.DataFrame()
         for file in ["~{default="" sep="\", \"" SN_summaries}"]:
             df = pd.read_csv(file, sep='\t')
@@ -608,15 +613,11 @@ task CombineSummaries {
 
         # Add optional labels
         for df in [full_SN, full_IDD, full_ST, simple_summary]:
-            if "~{experiment}" != "":
-                df['Experiment'] = "~{experiment}"
-
-            if ("~{extra_column_name}" != "") and ("~{extra_column_value}" != ""):
-                df["~{extra_column_name}"] = "~{extra_column_value}"
+            df = add_extra_cols(df)
 
         # Reorder columns
         metadata_cols = ['Query_Name', 'Base_Name', 'Interval', 'Type']
-        metadata_cols = metadata_cols + ["~{extra_column_name}"] if "~{extra_column_name}" != "" else metadata_cols
+        metadata_cols = metadata_cols + EXTRA_COL_NAMES if len(EXTRA_COL_NAMES) > 0 else metadata_cols
         metadata_cols = ['Experiment'] + metadata_cols if "~{experiment}" != "" else metadata_cols
         stat_cols = ['TP_Query', 'TP_Base', 'FP', 'FN', 'Precision', 'Recall', 'F1_Score', 'IGN', 'OUT']
 
