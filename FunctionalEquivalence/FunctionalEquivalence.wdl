@@ -202,6 +202,16 @@ workflow FunctionalEquivalence {
             additional_title_label=additional_title_label
     }
 
+    Array[File] roc_tables = flatten([select_all(EvalVsTruthTool1.ROCStats), select_all(EvalVsTruthTool2.ROCStats)])
+
+    call F1Evaluation {
+        input:
+            roc_tables=roc_tables,
+            tool1_label=tool1_label,
+            tool2_label=tool2_label,
+            additional_label=additional_title_label
+    }
+
     # Also combine all plots into one image
     call MergePNGs as MergeFE {
         input:
@@ -372,30 +382,58 @@ task FEEvaluation {
     }
 }
 
-task F1EvaluationTask {
+task F1Evaluation {
     input {
         Array[File] roc_tables
         String tool1_label
         String tool2_label
+
+        Int plot_qual_limit = 30
         String? additional_label
         Boolean signed_difference = false
+
         Int? mem_gb
         Int? preemptible
     }
 
     Int machine_mem_gb = select_first([mem_gb, 8])
 
-    String additional_label_arg = if defined(additional_label) then "--additional-label \"" + additional_label + "\"" else ""
-
     command <<<
+        set -xueo pipefail
 
+        python3 << CODE
+        import numpy as np
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        import matplotlib
+
+        ## A few settings for the rest of the script
+        VARIANT_TYPES = ['SNP', 'INDEL']
+        PLOT_QUAL_LIMIT = ~{plot_qual_limit}
+        matplotlib.rcParams['text.usetex'] = False
+        matplotlib.rcParams['mathtext.default'] = 'regular'
+        matplotlib.rcParams['font.family'] = 'serif'
+
+        roc_df = pd.DataFrame()
+        for file in ["~{sep="\", \"" roc_tables}"]:
+            df = pd.read_csv(file, sep="\t")
+            roc_df = pd.concat([roc_df, df])
+
+        roc_df.to_csv("combined_table.tsv", sep="\t", index=False)
+        CODE
     >>>
 
     runtime {
-
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim-plots:1.0"
+        preemptible: select_first([preemptible, 0])
+        memory: machine_mem_gb + " GB"
+        disks: "local-disk 20 HDD"
     }
 
     output {
-
+        File combined_table = "combined_table.tsv"
+#        Array[File] f1_plots = glob("*.png")
+#        File f1_summary = "f1_summary.tsv"
+#        Int fe_status = read_int("fe_status.txt")
     }
 }
