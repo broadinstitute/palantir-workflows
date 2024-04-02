@@ -87,9 +87,10 @@ workflow FunctionalEquivalence {
                 stratifier_intervals=stratifier_intervals,
                 stratifier_labels=stratifier_labels,
                 evaluation_intervals=paired_vcfs.right.confidence_intervals,
+                score_field="QUAL",
                 experiment="EvalVsTruthTool1",
                 extra_column_names=["Dataset", "Replicate"],
-                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num]
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num],
         }
     }
 
@@ -110,6 +111,7 @@ workflow FunctionalEquivalence {
                 stratifier_intervals=stratifier_intervals,
                 stratifier_labels=stratifier_labels,
                 evaluation_intervals=paired_vcfs.right.confidence_intervals,
+                score_field="QUAL",
                 experiment="EvalVsTruthTool2",
                 extra_column_names=["Dataset", "Replicate"],
                 extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num]
@@ -133,6 +135,7 @@ workflow FunctionalEquivalence {
                 ref_index=ref_index,
                 haplotype_map=haplotype_map,
                 evaluation_intervals=paired_vcfs.left.confidence_intervals,
+                score_field="QUAL",
                 stratifier_intervals=stratifier_intervals,
                 stratifier_labels=stratifier_labels,
                 experiment="EvalInterTool",
@@ -158,6 +161,7 @@ workflow FunctionalEquivalence {
                     ref_index=ref_index,
                     haplotype_map=haplotype_map,
                     evaluation_intervals=tool1_inputs[index.left].confidence_intervals,
+                    score_field="QUAL",
                     stratifier_intervals=stratifier_intervals,
                     stratifier_labels=stratifier_labels,
                     experiment="EvalIntraTool1",
@@ -183,6 +187,7 @@ workflow FunctionalEquivalence {
                     ref_index=ref_index,
                     haplotype_map=haplotype_map,
                     evaluation_intervals=tool2_inputs[index.left].confidence_intervals,
+                    score_field="QUAL",
                     stratifier_intervals=stratifier_intervals,
                     stratifier_labels=stratifier_labels,
                     experiment="EvalIntraTool2",
