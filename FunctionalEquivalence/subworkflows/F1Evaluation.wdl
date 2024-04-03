@@ -67,7 +67,7 @@ task F1EvaluationTask {
         def read_file(filename):
             # Rename columns from newer ROC output table to be backwards compatible with following script
             file_data = pd.read_csv(filename, sep='\t')
-            file_data.rename(columns={
+            file_data = file_data.rename(columns={
                 'Interval-test': 'region',
                 'Type': 'var_type',
                 'Dataset': 'dataset',
