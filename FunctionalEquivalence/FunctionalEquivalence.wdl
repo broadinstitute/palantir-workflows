@@ -92,7 +92,7 @@ workflow FunctionalEquivalence {
                 score_field="QUAL",
                 experiment="EvalVsTruthTool1",
                 extra_column_names=["Dataset", "Replicate", "Tool", "Interval-test"],
-                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, tool1_label, "WholeGenome"],
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, "tool1", "WholeGenome"],
         }
     }
 
@@ -116,7 +116,7 @@ workflow FunctionalEquivalence {
                 score_field="QUAL",
                 experiment="EvalVsTruthTool2",
                 extra_column_names=["Dataset", "Replicate", "Tool", "Interval-test"],
-                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, tool2_label, "WholeGenome"]
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, "tool2", "WholeGenome"]
         }
     }
 

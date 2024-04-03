@@ -73,7 +73,8 @@ task F1EvaluationTask {
                 'Dataset': 'dataset',
                 'Replicate': 'replicate',
                 'Tool': 'tool',
-                'F1_Score': 'f1'
+                'F1_Score': 'f1',
+                'Score': 'score'
             })
             return file_data
 
