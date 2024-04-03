@@ -121,14 +121,14 @@ workflow FunctionalEquivalence {
     }
 
     # Pair sample IDs with pairs of ROC table outputs from above two benchmarks
-    Pair[Array[String], Array[Pair[File, File]]] roc_tables = zip(sample_id, zip(EvalVsTruthTool1.ROCStats, EvalVsTruthTool2.ROCStats))
+    Array[Pair[String, Pair[File, File]]] plot_roc_tables = zip(sample_id, zip(EvalVsTruthTool1.ROCStats, EvalVsTruthTool2.ROCStats))
 
     # Make ROC plot for each sample ID with paired ROC table outputs between the two tools
-    scatter(table in roc_tables) {
+    scatter(table in plot_roc_tables) {
         call PlotROC.PlotROC as PlotROC {
             input:
                 sample_id = table.left,
-                roc_tables = flatten(table.right),
+                roc_tables = [table.right.left, table.right.right],
                 tool1_label = tool1_label,
                 tool2_label = tool2_label,
                 additional_label = additional_label,
@@ -225,11 +225,11 @@ workflow FunctionalEquivalence {
             additional_label=additional_label
     }
 
-    Array[File] roc_tables = flatten([select_all(EvalVsTruthTool1.ROCStats), select_all(EvalVsTruthTool2.ROCStats)])
+    Array[File] f1_roc_tables = flatten([EvalVsTruthTool1.ROCStats, EvalVsTruthTool2.ROCStats])
 
     call F1Evaluation.F1Evaluation as F1Evaluation {
         input:
-            roc_tables=roc_tables,
+            roc_tables=f1_roc_tables,
             tool1_label=tool1_label,
             tool2_label=tool2_label,
             additional_label=additional_label
