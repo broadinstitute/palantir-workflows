@@ -2,6 +2,8 @@ version 1.0
 
 #import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/BenchmarkVCFs/SimpleBenchmark.wdl" as BenchmarkVCFs
 import "../BenchmarkVCFs/SimpleBenchmark.wdl" as BenchmarkVCFs
+import "subworkflows/F1Evaluation.wdl" as F1Evaluation
+import "subworkflows/PlotROC.wdl" as PlotROC
 
 struct VcfFile {
     String sample_id
@@ -45,7 +47,7 @@ workflow FunctionalEquivalence {
 
         String tool1_label
         String tool2_label
-        String? additional_title_label
+        String? additional_label
 
         Boolean signed_difference = false
 
@@ -89,8 +91,8 @@ workflow FunctionalEquivalence {
                 evaluation_intervals=paired_vcfs.right.confidence_intervals,
                 score_field="QUAL",
                 experiment="EvalVsTruthTool1",
-                extra_column_names=["Dataset", "Replicate"],
-                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num],
+                extra_column_names=["Dataset", "Replicate", "Tool", "Interval-test"],
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, tool1_label, "WholeGenome"],
         }
     }
 
@@ -113,8 +115,24 @@ workflow FunctionalEquivalence {
                 evaluation_intervals=paired_vcfs.right.confidence_intervals,
                 score_field="QUAL",
                 experiment="EvalVsTruthTool2",
-                extra_column_names=["Dataset", "Replicate"],
-                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num]
+                extra_column_names=["Dataset", "Replicate", "Tool", "Interval-test"],
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, tool2_label, "WholeGenome"]
+        }
+    }
+
+    # Pair sample IDs with pairs of ROC table outputs from above two benchmarks
+    Pair[Array[String], Array[Pair[File, File]]] roc_tables = zip(sample_id, zip(EvalVsTruthTool1.ROCStats, EvalVsTruthTool2.ROCStats))
+
+    # Make ROC plot for each sample ID with paired ROC table outputs between the two tools
+    scatter(table in roc_tables) {
+        call PlotROC.PlotROC as PlotROC {
+            input:
+                sample_id = table.left,
+                roc_tables = flatten(table.right),
+                tool1_label = tool1_label,
+                tool2_label = tool2_label,
+                additional_label = additional_label,
+                preemptible = preemptible
         }
     }
 
@@ -204,33 +222,62 @@ workflow FunctionalEquivalence {
             benchmark_summaries=fe_eval_summaries,
             tool1_label=tool1_label,
             tool2_label=tool2_label,
-            additional_title_label=additional_title_label
+            additional_label=additional_label
     }
 
     Array[File] roc_tables = flatten([select_all(EvalVsTruthTool1.ROCStats), select_all(EvalVsTruthTool2.ROCStats)])
 
-    call F1Evaluation {
+    call F1Evaluation.F1Evaluation as F1Evaluation {
         input:
             roc_tables=roc_tables,
             tool1_label=tool1_label,
             tool2_label=tool2_label,
-            additional_label=additional_title_label
+            additional_label=additional_label
     }
+
+    Int fe_status_combined = if FEEvaluation.fe_status > F1Evaluation.fe_status then FEEvaluation.fe_status else F1Evaluation.fe_status
+
 
     # Also combine all plots into one image
     call MergePNGs as MergeFE {
         input:
-            pngs = FEEvaluation.fe_plots,
-            preemptible = 2
+            pngs=FEEvaluation.fe_plots,
+            preemptible=2
     }
 
-    Int fe_status_combined = FEEvaluation.fe_status
+    call MergePNGs as MergeF1 {
+        input:
+            pngs=F1Evaluation.f1_plots,
+            preemptible=preemptible
+    }
+
+    call MergePNGs as MergeROC {
+        input:
+            pngs = flatten(PlotROC.plots),
+            preemptible = preemptible
+    }
+
+    call CreateHTMLReport {
+        input:
+            merged_fe_plots=MergeFE.plots,
+            merged_f1_plots=MergeF1.plots,
+            fe_status=fe_status_combined,
+            additional_label=additional_label,
+            preemptible=preemptible
+    }
+
 
     output {
         Array[File] fe_plots = FEEvaluation.fe_plots
+        Array[File] f1_plots = F1Evaluation.f1_plots
+        Array[File] roc_plots = flatten(PlotROC.plots)
         File merged_fe_plots = MergeFE.plots
+        File merged_f1_plots = MergeF1.plots
+        File merged_roc_plots = MergeROC.plots
         File fe_summary = FEEvaluation.fe_summary
+        File f1_summary = F1Evaluation.f1_summary
         Int fe_status = fe_status_combined
+        File html_report = CreateHTMLReport.report
     }
 }
 
@@ -262,10 +309,10 @@ task FEEvaluation {
         Array[File] benchmark_summaries
         String tool1_label
         String tool2_label
-        String? additional_title_label
+        String? additional_label
     }
 
-    String title_label = if (defined(additional_title_label)) then additional_title_label else ", "
+    String title_label = if (defined(additional_label)) then additional_label else ", "
 
     command <<<
         set -xueo pipefail
@@ -387,58 +434,86 @@ task FEEvaluation {
     }
 }
 
-task F1Evaluation {
+task CreateHTMLReport {
     input {
-        Array[File] roc_tables
-        String tool1_label
-        String tool2_label
-
-        Int plot_qual_limit = 30
-        String? additional_label
-        Boolean signed_difference = false
-
-        Int? mem_gb
+        File merged_fe_plots
+        File merged_f1_plots
+        Int fe_status
+        String additional_label = ""
         Int? preemptible
     }
 
-    Int machine_mem_gb = select_first([mem_gb, 8])
+    String fe_status_string = if fe_status == 0 then "The analysis suggests that the tools are functionally equivalent." else "The analysis suggests that the tools are NOT functionally equivalent."
+    String fe_status_color = if fe_status == 0 then "#008000" else "#FF0000"
 
     command <<<
-        set -xueo pipefail
+        set -xeuo pipefail
 
-        python3 << CODE
-        import numpy as np
-        import pandas as pd
-        import matplotlib.pyplot as plt
-        import matplotlib
+        fe_plots_base64=$(base64 -w 0 ~{merged_fe_plots})
+        f1_plots_base64=$(base64 -w 0 ~{merged_f1_plots})
 
-        ## A few settings for the rest of the script
-        VARIANT_TYPES = ['SNP', 'INDEL']
-        PLOT_QUAL_LIMIT = ~{plot_qual_limit}
-        matplotlib.rcParams['text.usetex'] = False
-        matplotlib.rcParams['mathtext.default'] = 'regular'
-        matplotlib.rcParams['font.family'] = 'serif'
-
-        roc_df = pd.DataFrame()
-        for file in ["~{sep="\", \"" roc_tables}"]:
-            df = pd.read_csv(file, sep="\t")
-            roc_df = pd.concat([roc_df, df])
-
-        roc_df.to_csv("combined_table.tsv", sep="\t", index=False)
-        CODE
+        cat <<EOF > report.html
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>FE Report ~{additional_label}</title>
+        <style>
+            body {
+                font-family: sans-serif;
+                font-size: 14px;
+                padding: 0 26px;
+                line-height: 1.6;
+            }
+            img {
+                max-width: 100%;
+                max-height: 100%;
+            }
+            table {
+                border-collapse: collapse;
+            }
+            th, td {
+                padding: 5px 10px;
+            }
+            table, td {
+                border: 1px solid black;
+            }
+        </style>
+    </head>
+    <body>
+        <h2 style="color: ~{fe_status_color};">~{fe_status_string}</h2>
+        <h3>For more information about how to interpret the plots, please refer to the <a href="https://github.com/broadinstitute/palantir-workflows/tree/main/FunctionalEquivalence">documentation on GitHub</a>.</h3>
+        <h2>FE plots</h2>
+        <table>
+            <tr>
+                <th style="text-align: center;">~{additional_label}</th>
+            </tr>
+            <tr>
+                <td><img src="data:image/png;base64,$fe_plots_base64" /></td>
+            </tr>
+        </table>
+        <h2>F1 plots</h2>
+        <table>
+            <tr>
+                <th style="text-align: center;">~{additional_label}</th>
+            </tr>
+            <tr>
+                <td><img src="data:image/png;base64,$f1_plots_base64" /></td>
+            </tr>
+        </table>
+    </body>
+</html>
+EOF
     >>>
 
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/python-data-slim-plots:1.0"
         preemptible: select_first([preemptible, 0])
-        memory: machine_mem_gb + " GB"
+        memory: "2 GB"
         disks: "local-disk 20 HDD"
     }
 
     output {
-        File combined_table = "combined_table.tsv"
-#        Array[File] f1_plots = glob("*.png")
-#        File f1_summary = "f1_summary.tsv"
-#        Int fe_status = read_int("fe_status.txt")
+        File report = "report.html"
     }
 }

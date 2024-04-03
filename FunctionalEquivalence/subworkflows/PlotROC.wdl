@@ -6,7 +6,6 @@ workflow PlotROC {
         Array[File] roc_tables
         String tool1_label
         String tool2_label
-        Array[String] stratifiers
         String? additional_label
         Int? mem_gb
         Int? preemptible
@@ -18,7 +17,6 @@ workflow PlotROC {
             roc_tables = roc_tables,
             tool1_label = tool1_label,
             tool2_label = tool2_label,
-            stratifiers = stratifiers,
             additional_label = additional_label,
             mem_gb = mem_gb,
             preemptible = preemptible
@@ -35,7 +33,6 @@ task PlotROCTask {
         Array[File] roc_tables
         String tool1_label
         String tool2_label
-        Array[String] stratifiers
         String? additional_label
         Int? mem_gb
         Int? preemptible
@@ -49,10 +46,9 @@ task PlotROCTask {
         set -xeuo pipefail
 
         cat <<'EOF' > script.py
+        import pandas as pd
         import matplotlib
         import matplotlib.pyplot as plt
-        import csv
-        import gzip
         import argparse
         import os
 
@@ -61,47 +57,28 @@ task PlotROCTask {
         matplotlib.rcParams['font.family'] = 'serif'
 
 
-        def f1(tp, fp, fn):
-            return tp / (tp + 0.5 * (fp + fn))
-
-        def read_roc_data(filename):
-            data = dict()
+        def parse_roc_to_dicts(df):
+            data = {}
             max_f1 = 0
             best_qual = None
-            with gzip.open(filename, 'rt') as roc_file:
-                for line in roc_file:
-                    if line.startswith('#score field'):
-                        break
-                for line in csv.DictReader(roc_file, delimiter='\t'):
-                    qual = float(line['#score'])
-                    f1_score = f1(float(line['true_positives_baseline']), float(line['false_positives']), float(line['false_negatives']))
-                    if f1_score > max_f1:
-                        best_qual = (qual, f1_score)
-                    false_positives = float(line['false_positives'])
-                    sensitivity = float(line['sensitivity'])
-                    data[qual] = (false_positives, sensitivity)
+
+            # Transform these columns into a list of dicts over the rows with keys column names
+            for d in df[['Score', 'FP', 'Recall', 'F1_Score']].to_dict(orient='records'):
+                data[d['Score']] = (d['FP'], d['Recall'])
+                if d['F1_Score'] > max_f1:
+                    best_qual = (d['Score'], d['F1_Score'])
+
             return data, best_qual
 
 
-        def read_file(data, best_qual, filename, stratifiers):
-            basename = os.path.basename(filename)
-            info = basename.split('_')
-            evalinfo = info[0].split('.')
-            tool = evalinfo[2]
+        def read_file(data, best_qual, filename):
+            df = pd.read_csv(filename, sep='\t')
 
-            if info[2] == 'vcfeval':
-                region = 'all'
-            else:
-                region = info[2]
-            if region not in stratifiers:
-                raise RuntimeError('Invalid stratifier {} in file {}'.format(region, filename))
-
-            if info[3 if region == 'all' else 4] == 'non':
-                var_type = 'indel'
-            else:
-                var_type = 'snp'
-
-            data[(region, var_type, tool)], best_qual[(region, var_type, tool)] = read_roc_data(filename)
+            for region in df['Interval-test'].unique():
+                for var_type in df['Type'].unique():
+                    for tool in df['Tool'].unique():
+                        sub_df = df[(df['Interval-test'] == region) & (df['Type'] == var_type) & (df['Tool'] == tool)
+                        data[(region, var_type, tool)], best_qual[(region, var_type, tool)] = parse_roc_to_dicts(sub_df)
 
         def plot_roc(ax, data, best_qual, region, var_type):
             X1 = [x[0] for x in data[(region, var_type, 'tool1')].values()]
@@ -161,33 +138,29 @@ task PlotROCTask {
             plt.tight_layout()
             fig.savefig('roc_plot_{}.png'.format(sample_id), dpi=100)
 
-        def main(roc_tables, sample_id, tool1_label, tool2_label, stratifiers, additional_label):
-            if stratifiers is None:
-                stratifiers = ['all']
-            else:
-                stratifiers.insert(0, 'all')
+        def main(roc_tables, sample_id, tool1_label, tool2_label, additional_label):
+            stratifiers = list(pd.read_csv(roc_tables[0], sep='\t')['Interval-test'].unique())    # Grab list of stratifiers used from first file
 
             data = dict()
             best_qual = dict()
             for filename in roc_tables:
-                read_file(data, best_qual, filename, stratifiers)
+                read_file(data, best_qual, filename)
 
             plot_data(data, best_qual, stratifiers, sample_id, tool1_label, tool2_label, additional_label)
 
         if __name__ == '__main__':
             parser = argparse.ArgumentParser(description='Create F1 functional equivalence plots.')
             parser.add_argument('--additional-label', type=str)
-            parser.add_argument('--stratifiers', type=str, nargs='*')
             required_named = parser.add_argument_group('Required named arguments')
             required_named.add_argument('--sample-id', type=str)
             required_named.add_argument('--tool1', required=True, type=str)
             required_named.add_argument('--tool2', required=True, type=str)
             required_named.add_argument('--roc-tables', type=str, nargs='+')
             args = parser.parse_args()
-            main(args.roc_tables, args.sample_id, args.tool1, args.tool2, args.stratifiers, args.additional_label)
+            main(args.roc_tables, args.sample_id, args.tool1, args.tool2, args.additional_label)
         EOF
 
-        python script.py --sample-id "~{sample_id}" --tool1 "~{tool1_label}" --tool2 "~{tool2_label}" ~{additional_label_arg} --roc-tables ~{sep=' ' roc_tables} --stratifiers ~{sep=' ' stratifiers}
+        python script.py --sample-id "~{sample_id}" --tool1 "~{tool1_label}" --tool2 "~{tool2_label}" ~{additional_label_arg} --roc-tables ~{sep=' ' roc_tables}
     >>>
 
     output {
