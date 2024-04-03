@@ -77,7 +77,7 @@ task PlotROCTask {
             for region in df['Interval-test'].unique():
                 for var_type in df['Type'].unique():
                     for tool in df['Tool'].unique():
-                        sub_df = df[(df['Interval-test'] == region) & (df['Type'] == var_type) & (df['Tool'] == tool)
+                        sub_df = df[(df['Interval-test'] == region) & (df['Type'] == var_type) & (df['Tool'] == tool)]
                         data[(region, var_type, tool)], best_qual[(region, var_type, tool)] = parse_roc_to_dicts(sub_df)
 
         def plot_roc(ax, data, best_qual, region, var_type):
