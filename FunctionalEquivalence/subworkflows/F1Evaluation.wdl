@@ -37,6 +37,7 @@ task F1EvaluationTask {
         String tool2_label
         String? additional_label
         Boolean signed_difference = false
+        Int plot_qual_limit = 30
         Int? mem_gb
         Int? preemptible
     }
@@ -61,36 +62,19 @@ task F1EvaluationTask {
         matplotlib.rcParams['mathtext.default'] = 'regular'
         matplotlib.rcParams['font.family'] = 'serif'
 
-        plot_qual_limit = 30
-
-        def f1(tp, fp, fn):
-            return tp / (tp + 0.5 * (fp + fn))
+        plot_qual_limit = ~{plot_qual_limit}
 
         def read_file(filename):
-            basename = os.path.basename(filename)
-            info = basename.split('_')
-            evalinfo = info[0].split('.')
-            dataset = evalinfo[0]
-            replicate = evalinfo[1]
-            tool = evalinfo[2]
-
-            if info[2] == 'vcfeval':
-                region = 'all'
-            else:
-                region = info[2]
-            if info[3 if region == 'all' else 4] == 'non':
-                var_type = 'indel'
-            else:
-                var_type = 'snp'
-
-            file_data = pd.read_csv(filename, header=6, delimiter='\t')
-            file_data['region'] = region
-            file_data['var_type'] = var_type
-            file_data['dataset'] = dataset
-            file_data['replicate'] = replicate
-            file_data['tool'] = tool
-            file_data['f1'] = f1(file_data['true_positives_baseline'], file_data['false_positives'], file_data['false_negatives'])
-            file_data.rename(columns={'#score': 'score'}, inplace=True)
+            # Rename columns from newer ROC output table to be backwards compatible with following script
+            file_data = pd.read_csv(filename, sep='\t')
+            file_data.rename(columns={
+                'Interval-test': 'region',
+                'Type': 'var_type',
+                'Dataset': 'dataset',
+                'Replicate': 'replicate',
+                'Tool': 'tool'
+                'F1_Score': 'f1'
+            })
             return file_data
 
         def read_datasets(roc_tables):
