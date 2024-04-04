@@ -38,7 +38,7 @@ workflows:
     primaryDescriptorPath: /BenchmarkVCFs/FindSamplesAndBenchmark.wdl
   - name: CreateIGVSession
     subclass: WDL
-    primaryDescriptorPath: /BenchmarkVCFs/CreateIGVSession.wdl
+    primaryDescriptorPath: /Utilities/WDLs/CreateIGVSession.wdl
   - name: IndexCramOrBam
     subclass: WDL
     primaryDescriptorPath: /Utilities/IndexCramOrBam.wdl
