@@ -46,7 +46,7 @@ workflow BenchmarkAndCompareVCFs {
 
 
     scatter(i in range(length(base_vcfs))) {
-        call BenchmarkVCFs.Benchmark as Benchmark {
+        call BenchmarkVCFs.BenchmarkVCFs as Benchmark {
             input:
                 base_vcf=base_vcfs[i],
                 base_vcf_index=base_vcf_indices[i],
@@ -68,10 +68,10 @@ workflow BenchmarkAndCompareVCFs {
 
     call CompareBenchmarks.CompareBenchmarks as CompareBenchmarks {
         input:
-            benchmark_summaries = Benchmark.summary,
+            benchmark_summaries = Benchmark.SimpleSummary,
             sample_ids = sample_ids,
             configurations = configurations,
-            stratifiers = stratLabels,
+            stratifiers = stratifier_labels,
             include_counts = include_counts,
             generate_gc_plots = generate_gc_plots,
             order_of_samples = order_of_samples,
@@ -83,7 +83,7 @@ workflow BenchmarkAndCompareVCFs {
     scatter(i in range(length(sample_ids))) {
         call RenameSummary {
             input:
-                input_summary = Benchmark.summary[i],
+                input_summary = Benchmark.SimpleSummary[i],
                 suffix = sample_ids[i] + "_" + configurations[i],
                 preemptible = preemptible
         }
