@@ -3,6 +3,7 @@ version 1.0
 workflow CombineTables {
     input {
         Array[File] tables
+        String output_name = "combined_table"
         Array[String] extra_column_names = []    # Names of extra columns to add to output
         Array[String] extra_column_values = []    # Values to put in extra columns; one value per column name
     }
@@ -11,7 +12,8 @@ workflow CombineTables {
         input:
             tables=tables,
             extra_column_names=extra_column_names,
-            extra_column_values=extra_column_values
+            extra_column_values=extra_column_values,
+            output_name=output_name
     }
 
     output {
@@ -26,7 +28,7 @@ task CombineTablesScript {
         Array[String] extra_column_values
 
         String comment_char = "#"
-        String output_name = "combined_table"
+        String output_name
     }
 
     command <<<
