@@ -107,25 +107,24 @@ task CheckFingerprints {
     String crosscheck_mode = if check_only_matching_sample_names then "CHECK_SAME_SAMPLE" else "CHECK_ALL_OTHERS"
     Int memory = 8
 
-    Boolean first_is_vcf = basename(indexed_input_file.main_file, ".vcf.gz") == indexed_input_file.main_file
-    Boolean second_is_vcf = basename(indexed_second_input_file.main_file, ".vcf.gz") == indexed_second_input_file.main_file
-
     command <<<
         set -xueo pipefail
 
         ## If inputs are VCFs then localize them
         # This avoids a Picard bug and requester-pays which hold our truth data VCFs we use often with this workflow
         # See https://github.com/broadinstitute/picard/issues/1927 for details
-        if [ ~{first_is_vcf} ]; then
+        if [ $(basename -s .vcf.gz "~{indexed_input_file.main_file}") = "~{indexed_input_file.main_file}" ]; then
+            # Case where input is VCF
             gsutil cp ~{indexed_input_file.main_file} first_input.vcf.gz
             gsutil cp ~{indexed_input_file.index_file} first_input.vcf.gz.tbi
             TOOL_INPUT="first_input.vcf.gz"
             TOOL_INPUT_INDEX="first_input.vcf.gz.tbi"
         else
+            # Not VCF input
             TOOL_INPUT="~{indexed_input_file.main_file}"
             TOOL_INPUT_INDEX="~{indexed_input_file.index_file}"
         fi
-        if [ ~{second_is_vcf} ]; then
+        if [ $(basename -s .vcf.gz "~{indexed_second_input_file.main_file}" = "~{indexed_second_input_file.main_file}" ]; then
             gsutil cp ~{indexed_second_input_file.main_file} second_input.vcf.gz
             gsutil cp ~{indexed_second_input_file.index_file} second_input.vcf.gz.tbi
             TOOL_SECOND_INPUT="second_input.vcf.gz"
