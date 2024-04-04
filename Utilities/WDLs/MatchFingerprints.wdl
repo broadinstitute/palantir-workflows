@@ -113,7 +113,7 @@ task CheckFingerprints {
         ## If inputs are VCFs then localize them
         # This avoids a Picard bug and requester-pays which hold our truth data VCFs we use often with this workflow
         # See https://github.com/broadinstitute/picard/issues/1927 for details
-        if [ $(basename -s .vcf.gz "~{indexed_input_file.main_file}") = "~{indexed_input_file.main_file}" ]; then
+        if [ $(basename -s .vcf.gz "~{indexed_input_file.main_file}") = $(basename "~{indexed_input_file.main_file}") ]; then
             # Case where input is VCF
             gsutil cp ~{indexed_input_file.main_file} first_input.vcf.gz
             gsutil cp ~{indexed_input_file.index_file} first_input.vcf.gz.tbi
@@ -124,7 +124,7 @@ task CheckFingerprints {
             TOOL_INPUT="~{indexed_input_file.main_file}"
             TOOL_INPUT_INDEX="~{indexed_input_file.index_file}"
         fi
-        if [ $(basename -s .vcf.gz "~{indexed_second_input_file.main_file}") = "~{indexed_second_input_file.main_file}" ]; then
+        if [ $(basename -s .vcf.gz "~{indexed_second_input_file.main_file}") = $(basename "~{indexed_second_input_file.main_file}") ]; then
             gsutil cp ~{indexed_second_input_file.main_file} second_input.vcf.gz
             gsutil cp ~{indexed_second_input_file.index_file} second_input.vcf.gz.tbi
             TOOL_SECOND_INPUT="second_input.vcf.gz"
