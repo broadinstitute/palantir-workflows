@@ -1,5 +1,7 @@
 # vcfdistBenchmark Guide
 
+*Original author: Dill de Silva*
+
 This guide describes an overview of the [vcfdistBenchmark](vcfdistBenchmark.wdl) WDL used for evaluating VCF performance 
 against a known baseline.
 
