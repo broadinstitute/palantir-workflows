@@ -99,12 +99,14 @@ task FEEvaluation {
                 for col, stratifier in enumerate(intervals[:3]):
                     fe_status = max(fe_status, make_grid_plot(axes[row, col], dataset_plot_df, var_type, stratifier))
 
-            sub_df = dataset_plot_df[(dataset_plot_df['Type'] == 'SNP') & (dataset_plot_df['Interval'] == 'WholeGenome')]
+            ## Collect number of replicates per experiment
+            sub_df = full_df[(full_df['Type'] == 'SNP') & (full_df['Interval'] == 'WholeGenome') & (full_df['Dataset'] == dataset)]
             tool1_conc_count = len(sub_df[sub_df['Experiment'] == 'EvalIntraTool1'])
             tool2_conc_count = len(sub_df[sub_df['Experiment'] == 'EvalIntraTool2'])
             inter_conc_count = len(sub_df[sub_df['Experiment'] == 'EvalInterTool'])
+
             concordance_text = f'Concordance (# values ~{tool1_label}: {tool1_conc_count} / ~{tool2_label}: {tool2_conc_count} / inter: {inter_conc_count})'
-            title = f'Dataset: {dataset} ~{title_label}\n{concordance_text}'
+            title = f'Dataset: {dataset}~{title_label}\n{concordance_text}'
             fig.suptitle(title)
             fig.tight_layout()
             fig.savefig(f'fe_plot_{dataset}.png', dpi=100)
