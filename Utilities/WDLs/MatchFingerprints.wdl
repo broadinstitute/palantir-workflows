@@ -107,18 +107,43 @@ task CheckFingerprints {
     String crosscheck_mode = if check_only_matching_sample_names then "CHECK_SAME_SAMPLE" else "CHECK_ALL_OTHERS"
     Int memory = 8
 
+    Boolean first_is_vcf = basename(indexed_input_file.main_file, ".vcf.gz") == indexed_input_file.main_file
+    Boolean second_is_vcf = basename(indexed_second_input_file.main_file, ".vcf.gz") == indexed_second_input_file.main_file
+
     command <<<
         set -xueo pipefail
 
+        ## If inputs are VCFs then localize them
+        # This avoids a Picard bug and requester-pays which hold our truth data VCFs we use often with this workflow
+        # See https://github.com/broadinstitute/picard/issues/1927 for details
+        if [ ~{first_is_vcf} ]; then
+            gsutil cp ~{indexed_input_file.main_file} first_input.vcf.gz
+            gsutil cp ~{indexed_input_file.index_file} first_input.vcf.gz.tbi
+            TOOL_INPUT="first_input.vcf.gz"
+            TOOL_INPUT_INDEX="first_input.vcf.gz.tbi"
+        else
+            TOOL_INPUT="~{indexed_input_file.main_file}"
+            TOOL_INPUT_INDEX="~{indexed_input_file.index_file}"
+        fi
+        if [ ~{second_is_vcf} ]; then
+            gsutil cp ~{indexed_second_input_file.main_file} second_input.vcf.gz
+            gsutil cp ~{indexed_second_input_file.index_file} second_input.vcf.gz.tbi
+            TOOL_SECOND_INPUT="second_input.vcf.gz"
+            TOOL_SECOND_INPUT_INDEX="second_input.vcf.gz.tbi"
+        else
+            TOOL_SECOND_INPUT="~{indexed_second_input_file.main_file}"
+            TOOL_SECOND_INPUT_INDEX="~{indexed_second_input_file.index_file}"
+        fi
+
         # Create input index maps to handle cases when index file is not adjacent to main files
-        echo -e "~{indexed_input_file.main_file}\t~{indexed_input_file.index_file}" > input_index_map.tsv
-        echo -e "~{indexed_second_input_file.main_file}\t~{indexed_second_input_file.index_file}" > second_input_index_map.tsv
+        echo -e "${TOOL_INPUT}\t${TOOL_INPUT_INDEX}" > input_index_map.tsv
+        echo -e "${TOOL_SECOND_INPUT}\t${TOOL_SECOND_INPUT_INDEX}" > second_input_index_map.tsv
 
         # Allow "UNEXPECTED_MATCH" at this stage using exit code 0 arg; otherwise causes exit code 1
         gatk --java-options "-Xmx~{memory-1}g" CrosscheckFingerprints \
-            -I ~{indexed_input_file.main_file} \
+            -I ${TOOL_INPUT} \
             --INPUT_INDEX_MAP input_index_map.tsv \
-            -SI ~{indexed_second_input_file.main_file} \
+            -SI ${TOOL_SECOND_INPUT} \
             --SECOND_INPUT_INDEX_MAP second_input_index_map.tsv \
             -H ~{haplotype_map} \
             -O "~{output_name}.txt" \
