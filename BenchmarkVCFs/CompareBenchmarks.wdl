@@ -149,6 +149,9 @@ def main(sample_ids, configurations, summaries, order_of_samples, order_of_confi
     samples_data = []
     for i in range(len(sample_ids)):
         sample_data = pd.read_csv(summaries[i], sep='\t')
+        sample_data = sample_data.rename(columns={
+            'Interval': 'Stratifier'
+        })
 
         # Filter out everything other than SNP or INDEL rows, and stratifiers starting with "gc"
         sample_data = sample_data.loc[((sample_data['Type'] == 'SNP') | (sample_data['Type'] == 'INDEL')) & (sample_data['Stratifier'].str.startswith("gc"))]
@@ -380,7 +383,7 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
     for i in range(len(sample_ids)):
         sample_data = pd.read_csv(summaries[i], sep='\t')
         sample_data = sample_data.rename(columns={
-            'Interval-test': 'Stratifier'
+            'Interval': 'Stratifier'
         })
 
         # Filter out everything other than SNP or INDEL rows
