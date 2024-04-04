@@ -99,7 +99,7 @@ task FEEvaluation {
                 for col, stratifier in enumerate(intervals[:3]):
                     fe_status = max(fe_status, make_grid_plot(axes[row, col], dataset_plot_df, var_type, stratifier))
 
-            sub_df = dataset_plot_df[(dataset_plot_df['Type'] == 'SNP') & (dataset_plot_df['Interval-test'] == 'WholeGenome')]
+            sub_df = dataset_plot_df[(dataset_plot_df['Type'] == 'SNP') & (dataset_plot_df['Interval'] == 'WholeGenome')]
             tool1_conc_count = len(sub_df[sub_df['Experiment'] == 'EvalIntraTool1'])
             tool2_conc_count = len(sub_df[sub_df['Experiment'] == 'EvalIntraTool2'])
             inter_conc_count = len(sub_df[sub_df['Experiment'] == 'EvalInterTool'])
