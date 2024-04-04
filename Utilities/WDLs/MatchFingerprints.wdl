@@ -124,7 +124,7 @@ task CheckFingerprints {
             TOOL_INPUT="~{indexed_input_file.main_file}"
             TOOL_INPUT_INDEX="~{indexed_input_file.index_file}"
         fi
-        if [ $(basename -s .vcf.gz "~{indexed_second_input_file.main_file}" = "~{indexed_second_input_file.main_file}" ]; then
+        if [ $(basename -s .vcf.gz "~{indexed_second_input_file.main_file}") = "~{indexed_second_input_file.main_file}" ]; then
             gsutil cp ~{indexed_second_input_file.main_file} second_input.vcf.gz
             gsutil cp ~{indexed_second_input_file.index_file} second_input.vcf.gz.tbi
             TOOL_SECOND_INPUT="second_input.vcf.gz"
