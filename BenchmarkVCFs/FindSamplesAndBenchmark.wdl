@@ -106,6 +106,7 @@ workflow FindSamplesAndBenchmark {
                     extra_column_names=extra_column_names,
                     extra_column_values=extra_column_values,
                     check_fingerprint=false,
+                    haplotype_map=haplotype_map,
                     create_igv_session=create_igv_sessions,
                     igv_session_name=igv_session_name,
                     preemptible=preemptible
@@ -115,22 +116,30 @@ workflow FindSamplesAndBenchmark {
 
     call CombineTables.CombineTables as CombineBenchmarkSummaries {
         input:
-            tables=select_all(flatten(BenchmarkVCFs.SimpleSummary))
+            tables=select_all(flatten(BenchmarkVCFs.SimpleSummary)),
+            extra_column_names=extra_column_names,
+            extra_column_values=extra_column_values
     }
 
     call CombineTables.CombineTables as CombineSnpStats {
         input:
-            tables=select_all(flatten(BenchmarkVCFs.SNPSubstitutionStats))
+            tables=select_all(flatten(BenchmarkVCFs.SNPSubstitutionStats)),
+            extra_column_names=extra_column_names,
+            extra_column_values=extra_column_values
     }
 
     call CombineTables.CombineTables as CombineIndelStats {
         input:
-            tables=select_all(flatten(BenchmarkVCFs.IndelDistributionStats))
+            tables=select_all(flatten(BenchmarkVCFs.IndelDistributionStats)),
+            extra_column_names=extra_column_names,
+            extra_column_values=extra_column_values
     }
 
     call CombineTables.CombineTables as CombineRocStats {
         input:
-            tables=select_all(flatten(BenchmarkVCFs.ROCStats))
+            tables=select_all(flatten(BenchmarkVCFs.ROCStats)),
+            extra_column_names=extra_column_names,
+            extra_column_values=extra_column_values
     }
 
     output {

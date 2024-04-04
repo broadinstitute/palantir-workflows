@@ -69,7 +69,7 @@ workflow FunctionalEquivalence {
     ## Evaluate against the truth files
     # Only used for F1Evaluation half of pipeline (ROC data)
     scatter (paired_vcfs in zip(tool1_inputs, truth_inputs)) {
-        call BenchmarkVCFs.SimpleBenchmark as EvalVsTruthTool1 {
+        call BenchmarkVCFs.BenchmarkVCFs as EvalVsTruthTool1 {
             input:
                 base_vcf=paired_vcfs.right.file,
                 base_vcf_index=paired_vcfs.right.index,
@@ -93,7 +93,7 @@ workflow FunctionalEquivalence {
     }
 
     scatter (paired_vcfs in zip(tool2_inputs, truth_inputs)) {
-        call BenchmarkVCFs.SimpleBenchmark as EvalVsTruthTool2 {
+        call BenchmarkVCFs.BenchmarkVCFs as EvalVsTruthTool2 {
             input:
                 base_vcf=paired_vcfs.right.file,
                 base_vcf_index=paired_vcfs.right.index,
@@ -135,7 +135,7 @@ workflow FunctionalEquivalence {
     ## Evaluate across the two tools
     # Only used for FEEvaluation half of pipeline
     scatter (paired_vcfs in zip(tool1_inputs, tool2_inputs)) {
-        call BenchmarkVCFs.SimpleBenchmark as EvalInterTool {
+        call BenchmarkVCFs.BenchmarkVCFs as EvalInterTool {
             input:
                 base_vcf=paired_vcfs.right.file,
                 base_vcf_index=paired_vcfs.right.index,
@@ -161,7 +161,7 @@ workflow FunctionalEquivalence {
     ## Evaluate within the same tool all possible pairs for both tools
     scatter (index in cross(range(length(tool1_inputs)), range(length(tool1_inputs)))) {
         if (index.left < index.right) {    # Only check when first has index less than second in cross product so no repeats
-            call BenchmarkVCFs.SimpleBenchmark as EvalIntraTool1 {
+            call BenchmarkVCFs.BenchmarkVCFs as EvalIntraTool1 {
                 input:
                     base_vcf=tool1_inputs[index.left].file,
                     base_vcf_index=tool1_inputs[index.left].index,
@@ -187,7 +187,7 @@ workflow FunctionalEquivalence {
 
     scatter (index in cross(range(length(tool2_inputs)), range(length(tool2_inputs)))) {
         if (index.left < index.right) {    # Only check when first has index less than second in cross product so no repeats
-            call BenchmarkVCFs.SimpleBenchmark as EvalIntraTool2 {
+            call BenchmarkVCFs.BenchmarkVCFs as EvalIntraTool2 {
                 input:
                     base_vcf=tool2_inputs[index.left].file,
                     base_vcf_index=tool2_inputs[index.left].index,
