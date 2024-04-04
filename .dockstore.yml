@@ -21,9 +21,6 @@ workflows:
   - name: BenchmarkAndCompareVCFs
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/BenchmarkAndCompareVCFs.wdl
-  - name: SimpleBenchmark
-    subclass: WDL
-    primaryDescriptorPath: /BenchmarkVCFs/SimpleBenchmark.wdl
   - name: ValidateImputation
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/Validation/ValidateImputation.wdl
@@ -138,9 +135,6 @@ workflows:
   - name: DetectPCANovelties
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/DetectPCANovelties.wdl
-  - name: FindSamplesAndSimpleBenchmark
-    subclass: WDL
-    primaryDescriptorPath: /BenchmarkVCFs/FindSamplesAndSimpleBenchmark.wdl
   - name: PRSQC
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/PRSQC.wdl

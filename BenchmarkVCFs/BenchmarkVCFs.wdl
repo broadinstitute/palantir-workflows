@@ -1,1516 +1,649 @@
 version 1.0
 
+import "../Utilities/WDLs/IntervalList2Bed.wdl" as IntervalList2Bed
+import "../Utilities/WDLs/CreateIGVSession.wdl" as IGV
+import "../Utilities/WDLs/MatchFingerprints.wdl" as Fingerprint
 
-workflow Benchmark {
-    input{
-        String? analysisRegion
-        File evalVcf
-        String evalLabel
-        File evalVcfIndex
-        File truthVcf
-        File confidenceInterval
-        String truthLabel
-        File truthVcfIndex
-        File reference
-        File refIndex
-        File refDict
-        File hapMap
-        Array[File] stratIntervals = []
-        Array[String] stratLabels = []
-        Array[String]? jexlVariantSelectors
-        Array[String]? variantSelectorLabels
-        String referenceVersion
-        Int? threadsVcfEval=2
-        Boolean doIndelLengthStratification=true
-        Int? preemptible
-        String gatkTag="4.0.11.0"
-        Boolean requireMatchingGenotypes=true
-        File? gatkJarForAnnotation
-        Array[String]? annotationNames
-        Boolean enableRefOverlap = false
-        Boolean passingOnly=true
-        String? vcfScoreField
-        String? dummyInputForTerraCallCaching
-        Boolean runFingerprintCheck = true
+# Object holding configuration for runtime parameters to shorten number of optional inputs
+struct RuntimeAttributes {
+    Int disk_size
+    Int cpu
+    Int memory
+}
+
+# Object holding all reference files, to ensure all localized in tasks
+struct Reference {
+    File fasta
+    File index
+}
+
+# Object representing expression for subsetting VCFs into genotype categories
+struct GenotypeSelector {
+    String bcf_genotype_label
+    String bcf_genotype
+}
+
+# Object representing file with intervals to subset analysis over
+struct StratifierInterval {
+    String label
+    File intervals
+}
+
+# Main workflow: performs evaluation of query_vcf against base_vcf using vcfeval comparison engine,
+# over different analysis modes.
+workflow SimpleBenchmark {
+    input {
+        # VCF information
+        File base_vcf
+        File base_vcf_index
+        String base_output_sample_name
+        String? base_vcf_sample_name
+
+        File query_vcf
+        File query_vcf_index
+        String query_output_sample_name
+        String? query_vcf_sample_name
+
+        # Reference information
+        File ref_fasta
+        File ref_index
+
+        # Subsetting inputs using intervals
+        Array[File] stratifier_intervals = []
+        Array[String] stratifier_labels = []
+
+        # Evaluation inputs
+        File? evaluation_intervals
+        String score_field = "GQ"
+
+        # Columns to add to output files
+        String experiment = ""
+        Array[String] extra_column_names = []
+        Array[String] extra_column_values = []
+
+        Boolean check_fingerprint = true
+        File? haplotype_map
+
+        Boolean create_igv_session = false
+        Array[File]? optional_igv_bams
+        String igv_session_name = "igv_session"
+
+        # Toggle for more tries on preemptible machines for potentially cheaper runs at the risk of longer runtime
+        Int preemptible = 3
     }
 
-    meta {
-        description: "A workflow to calculate sensitivity and precision of a germline variant calling pipeline by comparing a 'call' vcf produced by the pipeline to a gold standard 'truth' vcf.  Allows for stratification based on interval lists, bed files, or variant types defined according to GATK SelectVariants."
-    }
+    # Create reference object
+    Reference reference = {"fasta": ref_fasta, "index": ref_index}
 
-    parameter_meta {
-        evalVcf: {description: "vcfs to be evaluated"}
-        evalLabel: {description: "label to identify vcf to be evaluated"}
-        evalVcfIndex: {description: "vcf index for evalVcf"}
-        truthVcf: {description: "truth vcf against which to evaluate"}
-        truthLabel: {description: "label by which to indentify truth set"}
-        confidenceInterval: {description: "confidence interval for truth set (can be bed or picard interval_list)"}
-        reference: {description: "reference fasta"}
-        refIndex: {description: "reference index"}
-        refDict: {description: "reference dict"}
-        hapMap: {description: "reference haplotype map for CrosscheckFingerprints"}
-        referenceVersion: {description: "reference version used, for igv xml session (must be either 'hg19' or 'hg38')"}
-        stratIntervals: {description: "intervals for stratifiction (can be picard interval_list or bed format)"}
-        stratLabels: {description: "labels by which to identify stratification intervals (must be same length as stratIntervals)"}
-        jexlVariantSelectors: {description: "variant types to select over (defined by jexl fed to GATK SelectVariants)"}
-        variantSelectorLabels: {description: "labels by which to identify variant selectors (must be same length as jexlVariantSelectors)"}
-        doIndelLengthStratification: {description: "whether or not to perform stratification by indel length"}
-        requireMatchingGenotypes: {description: "whether to require genotypes to match in order to be a true positive"}
-        gatkTag: {description: "version of gatk docker to use.  Defaults to 4.0.11.0"}
-        analysisRegion: {description: "if provided (gatk format, single interval e.g., 'chr20', or 'chr20:1-10') all the analysis will be performed only within the region."}
-        passingOnly: {description:"Have vcfEval only consider the passing variants"}
-        vcfScoreField: {description:"Have vcfEval use this field for making the roc-plot. If this is an info field (like VSQLOD) it should be provided as INFO.VQSLOD, otherewise it is assumed to be a format field."}
-        gatkJarForAnnotation: {description:"GATK jar that can calculate necessary annotations for jexl Selections when using VCFEval."}
-        annotationNames: {description:"Annotation arguments to GATK (-A argument, multiple OK)"}
-        runFingerprintCheck: {description:"No-input or true keeps fingerprinting on, but false turns fingerprinting off."}
-        dummyInputForTerraCallCaching: {description:"When running on Terra, use workspace.name as this input to ensure that all tasks will only cache hit to runs in your own workspace. This will prevent call caching from failing with 'Cache Miss (10 failed copy attempts)'. Outside of Terra this can be left empty. This dummy input is only needed for tasks that have no inputs specific to the sample being run (such as CreateIntervalList which does not take in any sample data)."}
-    }
-
-
-    if (defined(analysisRegion)) {
-        call CreateIntervalList {
+    # Convert any provided interval_lists to beds
+    if (defined(evaluation_intervals)) {
+        call IntervalList2Bed.IntervalList2Bed as ConvertEvalIntervals {
             input:
-                reference = reference,
-                reference_index = refIndex,
-                reference_dict = refDict,
-                interval_string = select_first([analysisRegion]),
-                gatkTag = gatkTag,
-                dummyInputForTerraCallCaching = dummyInputForTerraCallCaching
+                interval_files=select_all([evaluation_intervals]),
+                interval_labels=["Evaluation"]
         }
+
+        File converted_evaluation_bed = select_first(ConvertEvalIntervals.bed_files)
     }
 
-    Array[File] actualStratIntervals=flatten([[""], stratIntervals])
-    Array[String] actualStratLabels=flatten([[""], stratLabels])
-    Array[String] actualSelectorLabels=select_first([variantSelectorLabels,[""]])
-    Array[String] actualSelectorJEXL=select_first([jexlVariantSelectors,[""]])
-
-    #check that lengths of different arrays are compatible
-    if (length(actualStratLabels)!= length(actualStratIntervals)) {
-         call ErrorWithMessage as Error6 {
-             input:
-                 message="Stratification vcf list is length "+length(actualStratIntervals)+" while stratification labels list is length "+length(actualStratLabels)
-         }
-    }
-
-    if (length(actualSelectorLabels) != length(actualSelectorJEXL)) {
-        call ErrorWithMessage as Error7 {
-            input:
-                message="Variant selector list is length "+length(actualSelectorJEXL)+" while labels list is "+length(actualSelectorLabels)
-        }
-    }
-    if (runFingerprintCheck) {
-        call MatchEvalTruth as Match {
-            input:
-                evalVcf=evalVcf,
-                truthVcf=truthVcf,
-                evalVcfIndex=evalVcfIndex,
-                truthVcfIndex=truthVcfIndex,
-                hapMap=hapMap,
-                gatkTag=gatkTag,
-                preemptible=preemptible
-        }
-    }
-    Array[String] indelLabels=["deletion","insertion","indel_fine_m20","indel_fine_m19","indel_fine_m18","indel_fine_m17","indel_fine_m16","indel_fine_m15",
-                               "indel_fine_m14","indel_fine_m13","indel_fine_m12","indel_fine_m11","indel_fine_m10","indel_fine_m9","indel_fine_m8","indel_fine_m7",
-                               "indel_fine_m6","indel_fine_m5","indel_fine_m4","indel_fine_m3","indel_fine_m2","indel_fine_m1","indel_fine_1","indel_fine_2","indel_fine_3",
-                               "indel_fine_4","indel_fine_5","indel_fine_6","indel_fine_7","indel_fine_8","indel_fine_9","indel_fine_10","indel_fine_11","indel_fine_12",
-                               "indel_fine_13","indel_fine_14","indel_fine_15","indel_fine_16","indel_fine_17","indel_fine_18","indel_fine_19","indel_fine_20","indel_coarse_m30.0",
-                               "indel_coarse_m25.0","indel_coarse_m20.0","indel_coarse_m15.0","indel_coarse_m10.0","indel_coarse_m5.0","indel_coarse_0.0","indel_coarse_5.0",
-                               "indel_coarse_10.0","indel_coarse_15.0","indel_coarse_20.0","indel_coarse_25.0","indel_coarse_30.0"]
-
-    Array[String] indelJexl=["vc.isSimpleIndel()  && vc.getIndelLengths().0<0","vc.isSimpleIndel()  && vc.getIndelLengths().0>0","vc.isSimpleIndel()  && vc.getIndelLengths().0==-20",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0==-19","vc.isSimpleIndel()  && vc.getIndelLengths().0==-18","vc.isSimpleIndel()  && vc.getIndelLengths().0==-17",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0==-16","vc.isSimpleIndel()  && vc.getIndelLengths().0==-15","vc.isSimpleIndel()  && vc.getIndelLengths().0==-14",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0==-13","vc.isSimpleIndel()  && vc.getIndelLengths().0==-12","vc.isSimpleIndel()  && vc.getIndelLengths().0==-11",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0==-10","vc.isSimpleIndel()  && vc.getIndelLengths().0==-9","vc.isSimpleIndel()  && vc.getIndelLengths().0==-8",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0==-7","vc.isSimpleIndel()  && vc.getIndelLengths().0==-6","vc.isSimpleIndel()  && vc.getIndelLengths().0==-5",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0==-4","vc.isSimpleIndel()  && vc.getIndelLengths().0==-3","vc.isSimpleIndel()  && vc.getIndelLengths().0==-2",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0==-1","vc.isSimpleIndel()  && vc.getIndelLengths().0==1","vc.isSimpleIndel()  && vc.getIndelLengths().0==2",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0==3","vc.isSimpleIndel()  && vc.getIndelLengths().0==4","vc.isSimpleIndel()  && vc.getIndelLengths().0==5",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0==6","vc.isSimpleIndel()  && vc.getIndelLengths().0==7","vc.isSimpleIndel()  && vc.getIndelLengths().0==8",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0==9","vc.isSimpleIndel()  && vc.getIndelLengths().0==10","vc.isSimpleIndel()  && vc.getIndelLengths().0==11",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0==12","vc.isSimpleIndel()  && vc.getIndelLengths().0==13","vc.isSimpleIndel()  && vc.getIndelLengths().0==14",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0==15","vc.isSimpleIndel()  && vc.getIndelLengths().0==16","vc.isSimpleIndel()  && vc.getIndelLengths().0==17",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0==18","vc.isSimpleIndel()  && vc.getIndelLengths().0==19","vc.isSimpleIndel()  && vc.getIndelLengths().0==20",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0<-27.5 && vc.getIndelLengths().0>-32.5","vc.isSimpleIndel()  && vc.getIndelLengths().0<-22.5 && vc.getIndelLengths().0>-27.5",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0<-17.5 && vc.getIndelLengths().0>-22.5","vc.isSimpleIndel()  && vc.getIndelLengths().0<-12.5 && vc.getIndelLengths().0>-17.5",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0<-7.5 && vc.getIndelLengths().0>-12.5","vc.isSimpleIndel()  && vc.getIndelLengths().0<-2.5 && vc.getIndelLengths().0>-7.5",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0<2.5 && vc.getIndelLengths().0>-2.5","vc.isSimpleIndel()  && vc.getIndelLengths().0<7.5 && vc.getIndelLengths().0>2.5",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0<12.5 && vc.getIndelLengths().0>7.5","vc.isSimpleIndel()  && vc.getIndelLengths().0<17.5 && vc.getIndelLengths().0>12.5",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0<22.5 && vc.getIndelLengths().0>17.5","vc.isSimpleIndel()  && vc.getIndelLengths().0<27.5 && vc.getIndelLengths().0>22.5",
-                             "vc.isSimpleIndel()  && vc.getIndelLengths().0<32.5 && vc.getIndelLengths().0>27.5"]
-
-    scatter (indel in zip(indelLabels,indelJexl)) {
-        VariantSelector indelSelectors = object{ jexl : indel.right,
-                                         label : indel.left
-                                         }
-    }
-
-    if (defined(jexlVariantSelectors)) {
-        scatter (select in zip(actualSelectorLabels,actualSelectorJEXL)) {
-            VariantSelector variantSelectors = object{ jexl: select.right,
-                                                label : select.left
-                                                }
-        }
-    }
-
-    Array[VariantSelector] defaultVS = [object{ jexl: "vc.isIndel() && vc.getHetCount() == 1", label: "HetIndel" },
-                                        object{jexl: "vc.isIndel() && vc.getHomVarCount() == 1", label: "HomVarIndel"},
-                                        object{jexl: "vc.isSNP() && vc.getHetCount() == 1", label: "HetSNP"},
-                                        object{jexl: "vc.isSNP() && vc.getHomVarCount() == 1", label: "HomVarSNP"}]
-    Array[VariantSelector] actualVariantSelectors = flatten(select_all([defaultVS,variantSelectors]))
-
-    if (defined(stratIntervals)) {
-        scatter (stratIL in actualStratIntervals) {
-            if(stratIL+"" !="") { # coerce to String
-                call ConvertIntervals as StratConvertIntervals {
-                    input:
-                        inputIntervals=stratIL,
-                        refDict=refDict,
-                        gatkTag=gatkTag,
-                        subset_interval=CreateIntervalList.interval_list,
-                        preemptible=preemptible,
-                        dummyInputForTerraCallCaching=dummyInputForTerraCallCaching
-
-                }
-            }
-        }
-    }
-    Array[File] stratBeds=select_all(flatten(select_all([[""],StratConvertIntervals.bed])))
-    Array[File] stratILs=select_all(flatten(select_all([[""],StratConvertIntervals.intervalList])))
-
-    scatter (strat in zip(zip(stratILs,stratBeds),actualStratLabels)) {
-        Stratifier stratifiers = object {intervalList : strat.left.left,
-                                    bed : strat.left.right,
-                                    label : strat.right
-                                    }
-    }
-
-    call ConvertIntervals as ConfidenceConvertIntervals {
+    call IntervalList2Bed.IntervalList2Bed as ConvertIntervals {
         input:
-            inputIntervals=confidenceInterval,
-            refDict=refDict,
-            gatkTag=gatkTag,
-            preemptible=preemptible,
-            subset_interval=CreateIntervalList.interval_list,
-            dummyInputForTerraCallCaching=dummyInputForTerraCallCaching
+            interval_files=stratifier_intervals,
+            interval_labels=stratifier_labels
     }
 
-    scatter (stratifier in stratifiers) {
+    # Make StratifierInterval objects
+    scatter (interval_pair in zip(ConvertIntervals.bed_labels, ConvertIntervals.bed_files)) {
+        StratifierInterval stratifier_list = {"label": interval_pair.left, "intervals": interval_pair.right}
+    }
 
-        if (defined(stratifier.label)        && select_first([stratifier.label]) != "" && 
-            
-            # coerce to String   -------------------------------------------------->>  VVV
-            defined(stratifier.intervalList) && select_first([stratifier.intervalList])+"" != "" ) {
-            String stratLabel=select_first([stratifier.label,""])
-            File stratIL2=select_first([stratifier.intervalList,""])
-            File stratBed=select_first([stratifier.bed,""])
-            String outputPreStrat=evalLabel+"_"+truthLabel+"_"+stratLabel
-        }
-        String outputPrefix=select_first([outputPreStrat,evalLabel+"_"+truthLabel])
+    # Collect genotype categories to stratify by in bcftools stats
+    Array[String] bcf_genotypes = ["", "GT=\"het\"", "GT=\"AA\""]
+    Array[String] bcf_genotype_labels = ["", "Het", "HomVar"]
 
+    scatter (selection in zip(bcf_genotype_labels, bcf_genotypes)) {
+        GenotypeSelector genotype_selector_list = {"bcf_genotype_label": selection.left, "bcf_genotype": selection.right}
+    }
 
-
-        call CheckForVariants as CheckForVariantsEval {
+    if (check_fingerprint) {
+        call Fingerprint.MatchFingerprints as CheckFingerprint {
             input:
-                vcf=evalVcf,
-                vcfIndex=evalVcfIndex,
-                confidenceIL=ConfidenceConvertIntervals.intervalList,
-                stratIL=stratIL2,
-                gatkTag=gatkTag,
-                preemptible=preemptible
-        }
-
-        call CheckForVariants as CheckForVariantsTruth {
-            input:
-                vcf=truthVcf,
-                vcfIndex=truthVcfIndex,
-                confidenceIL=ConfidenceConvertIntervals.intervalList,
-                stratIL=stratIL2,
-                gatkTag=gatkTag,
-                preemptible=preemptible
-        }
-        if (CheckForVariantsTruth.variantsFound && CheckForVariantsEval.variantsFound) {
-            call VcfEval as StandardVcfEval {
-                input:
-                    truthVCF=truthVcf,
-                    truthVCFIndex=truthVcfIndex,
-                    evalVCF=evalVcf,
-                    evalVCFIndex=evalVcfIndex,
-                    confidenceBed=ConfidenceConvertIntervals.bed,
-                    stratBed=stratBed,
-                    ref=reference,
-                    refDict=refDict,
-                    refIndex=refIndex,
-                    outputPre=outputPrefix+"_vcfeval",
-                    threads=threadsVcfEval,
-                    preemptible=preemptible,
-                    requireMatchingGenotypes=requireMatchingGenotypes,
-                    passingOnly=passingOnly,
-                    vcfScoreField=vcfScoreField,
-                    enableRefOverlap=enableRefOverlap
-            }
-            
-            call WriteXMLfile as VcfEvalWriteXMLfile {
-                input:
-                    input_files=select_all([StandardVcfEval.outVcf,ConfidenceConvertIntervals.bed,stratifier.bed]),
-                    input_names=select_all([outputPrefix+"_vcfeval","confidence_intervals",stratifier.label]),
-                    reference_version=referenceVersion,
-                    file_name=outputPrefix+"_vcfeval"
-            }
-
-            call CountUNKVcfEval {
-                input:
-                    vcf=StandardVcfEval.outVcf,
-                    vcfIndex=StandardVcfEval.outVcfIndex,
-                    gatkTag=gatkTag,
-                    preemptible=preemptible
-            }
-        }
-
-        String areVariants=if(CheckForVariantsTruth.variantsFound && CheckForVariantsEval.variantsFound) then "yes" else "no"
-        call SummariseVcfEval {
-            input:
-                evalLabel=evalLabel,
-                truthLabel=truthLabel,
-                stratLabel=stratLabel,
-                summaryFile=StandardVcfEval.outSummary,
-                igvSession=VcfEvalWriteXMLfile.igv_session,
-                areVariants=areVariants,
-                unkSNP=CountUNKVcfEval.UNK_SNP,
-                unkINDEL=CountUNKVcfEval.UNK_INDEL,
-                preemptible=preemptible
+                input_files=[query_vcf],
+                input_indices=[query_vcf_index],
+                second_input_files=[base_vcf],
+                second_input_indices=[base_vcf_index],
+                haplotype_map=select_first([haplotype_map]),
+                fail_on_mismatch=true
         }
     }
 
-    scatter ( i in range(length(stratifiers)) ) {
-        AnnotatedVcfs annotatedVcfsList = object{vcfVcfEval : StandardVcfEval.outVcf[i],
-                                            vcfVcfEvalIndex : StandardVcfEval.outVcfIndex[i],
-                                            stratLabel : stratifiers[i].label,
-                                            evalLabel : evalLabel,
-                                            truthLabel : truthLabel,
-                                            stratBed : stratBed[i],
-                                            confidenceBed : ConfidenceConvertIntervals.bed,
-                                            namePrefix : outputPrefix[i]
-                                            }
-    }
-
-
-    scatter (indelCombo in cross(annotatedVcfsList,indelSelectors)) {
-        EvalStratSelectorCombo evalStratIndelCombos = object{annotatedVcfs : indelCombo.left,
-                                                    variantSelector : indelCombo.right
-                                                    }
-        }
-
-    scatter (evalStratIndelCombo in evalStratIndelCombos) {
-        String jexl=evalStratIndelCombo.variantSelector.jexl
-        File? vcfVcfEval=evalStratIndelCombo.annotatedVcfs.vcfVcfEval
-        File? vcfVcfEvalIndex=evalStratIndelCombo.annotatedVcfs.vcfVcfEvalIndex
-        String evalIndelLabel=evalStratIndelCombo.annotatedVcfs.evalLabel
-        String truthIndelLabel=evalStratIndelCombo.annotatedVcfs.truthLabel
-        String? stratIndelLabel=evalStratIndelCombo.annotatedVcfs.stratLabel
-        String indelLabel=evalStratIndelCombo.variantSelector.label
-        File? stratIndelBed=evalStratIndelCombo.annotatedVcfs.stratBed
-        File? confidenceBed=evalStratIndelCombo.annotatedVcfs.confidenceBed
-        String namePrefix=evalStratIndelCombo.annotatedVcfs.namePrefix+"_"+indelLabel
-
-        if (defined(vcfVcfEval) && defined(vcfVcfEvalIndex) && doIndelLengthStratification) {
-            call EvalForVariantSelection as EvalIndelLengthVcfEval {
-                input:
-                    vcf=vcfVcfEval,
-                    vcfIndex=vcfVcfEvalIndex,
-                    jexl=jexl,
-                    engine="VcfEval",
-                    selectTPCall="CALL == 'TP'",
-                    selectTPBase="BASE == 'TP'",
-                    selectFN="(BASE == 'FN' || BASE == 'FN_CA')",
-                    selectFP="(CALL == 'FP' || CALL == 'FP_CA')",
-                    sampleCall="CALLS",
-                    sampleBase="BASELINE",
-                    gatkTag=gatkTag,
-                    preemptible=preemptible,
-                    gatkJarForAnnotation=gatkJarForAnnotation,
-                    annotationNames=annotationNames,
-                    reference=reference,
-                    refDict=refDict,
-                    refIndex=refIndex
-            }
-
-            call WriteXMLfile as VcfEvalIndelWriteXMLfile {
-                        input:
-                            input_files=select_all([EvalIndelLengthVcfEval.selectedTPCall,EvalIndelLengthVcfEval.selectedTPBase,EvalIndelLengthVcfEval.selectedFP,EvalIndelLengthVcfEval.selectedFN,vcfVcfEval,confidenceBed,stratIndelBed]),
-                            input_names=select_all(["TP_Eval","TP_Base","FP","FN","All_Variants","confidence_intervals",stratIndelLabel]),
-                            reference_version=referenceVersion,
-                            file_name=namePrefix+"_vcfeval"
-            }
-
-            call SummariseForIndelSelection as VcfEvalSummariseForIndelSelection {
-                        input:
-                            evalLabel=evalIndelLabel,
-                            truthLabel=truthIndelLabel,
-                            stratLabel=stratIndelLabel,
-                            indelLabel=indelLabel,
-                            engine="VcfEval",
-                            igvSession=VcfEvalIndelWriteXMLfile.igv_session,
-                            TP_CALL=EvalIndelLengthVcfEval.TP_CALL,
-                            TP_BASE=EvalIndelLengthVcfEval.TP_BASE,
-                            FP=EvalIndelLengthVcfEval.FP,
-                            FN=EvalIndelLengthVcfEval.FN,
-                            preemptible=preemptible
-            }
-        }
-    }
-
-
-
-
-    scatter (selectorCombo in cross(annotatedVcfsList,actualVariantSelectors)) {
-       EvalStratSelectorCombo evalStratSelectorCombos = object{annotatedVcfs : selectorCombo.left,
-                                                    variantSelector : selectorCombo.right
-                                                    }
-    }
-    scatter (evalStratSelectorCombo in evalStratSelectorCombos) {
-                if (defined(evalStratSelectorCombo.annotatedVcfs.vcfVcfEval) && defined(evalStratSelectorCombo.annotatedVcfs.vcfVcfEvalIndex)) {
-                    call EvalForVariantSelection as EvalSelectorVcfEval {
-                        input:
-                            vcf=evalStratSelectorCombo.annotatedVcfs.vcfVcfEval,
-                            vcfIndex=evalStratSelectorCombo.annotatedVcfs.vcfVcfEvalIndex,
-                            jexl=evalStratSelectorCombo.variantSelector.jexl,
-                            engine="VcfEval",
-                            selectTPCall="CALL == 'TP'",
-                            selectTPBase="BASE == 'TP'",
-                            selectFN="(BASE == 'FN' || BASE == 'FN_CA')",
-                            selectFP="(CALL == 'FP' || CALL == 'FP_CA')",
-                            sampleCall="CALLS",
-                            sampleBase="BASELINE",
-                            gatkTag=gatkTag,
-                            preemptible=preemptible,
-                            gatkJarForAnnotation=gatkJarForAnnotation,
-                            annotationNames=annotationNames,
-                            reference=reference,
-                            refDict=refDict,
-                            refIndex=refIndex
-                    }
-                    
-                    call WriteXMLfile as VcfEvalSelectorWriteXMLfile {
-                                input:
-                                    input_files=select_all([EvalSelectorVcfEval.selectedTPCall,EvalSelectorVcfEval.selectedTPBase,EvalSelectorVcfEval.selectedFP,EvalSelectorVcfEval.selectedFN,
-                                        evalStratSelectorCombo.annotatedVcfs.vcfVcfEval,evalStratSelectorCombo.annotatedVcfs.confidenceBed,evalStratSelectorCombo.annotatedVcfs.stratBed]),
-                                    input_names=select_all(["TP_Eval","TP_Base","FP","FN","All_Variants","confidence_intervals",evalStratSelectorCombo.annotatedVcfs.stratLabel]),
-                                    reference_version=referenceVersion,
-                                    file_name=evalStratSelectorCombo.annotatedVcfs.namePrefix+"_"+evalStratSelectorCombo.variantSelector.label+"_vcfeval"
-                    }
-
-                    call SummariseForVariantSelection as VcfEvalSummariseForVariantSelection {
-                                input:
-                                    evalLabel=evalStratSelectorCombo.annotatedVcfs.evalLabel,
-                                    truthLabel=evalStratSelectorCombo.annotatedVcfs.truthLabel,
-                                    stratLabel=evalStratSelectorCombo.annotatedVcfs.stratLabel,
-                                    variantLabel=evalStratSelectorCombo.variantSelector.label,
-                                    engine="VcfEval",
-                                    igvSession=VcfEvalSelectorWriteXMLfile.igv_session,
-                                    TP_CALL=EvalSelectorVcfEval.TP_CALL,
-                                    TP_BASE=EvalSelectorVcfEval.TP_BASE,
-                                    FP=EvalSelectorVcfEval.FP,
-                                    FN=EvalSelectorVcfEval.FN,
-                                    preemptible=preemptible
-                    }
-                }
-    }
-
-    Array[File] summaries = flatten([SummariseVcfEval.summaryOut,select_all(VcfEvalSummariseForVariantSelection.summaryOut),
-                                    select_all(VcfEvalSummariseForIndelSelection.summaryOut)])
-
-    call CombineSummaries {
+    call VCFEval as StandardVCFEval {
         input:
-            summaries=summaries,
+            query_vcf=query_vcf,
+            query_vcf_index=query_vcf_index,
+            query_output_sample_name=query_output_sample_name,
+            query_vcf_sample_name=query_vcf_sample_name,
+            base_vcf=base_vcf,
+            base_vcf_index=base_vcf_index,
+            base_output_sample_name=base_output_sample_name,
+            base_vcf_sample_name=base_vcf_sample_name,
+            reference=reference,
+            evaluation_bed=converted_evaluation_bed,
+            score_field=score_field,
             preemptible=preemptible
     }
 
-
-    output {
-        File summary=CombineSummaries.summaryOut
-        Float snpPrecision=SummariseVcfEval.snpPrecision[0]
-        Float indelPrecision=SummariseVcfEval.indelPrecision[0]
-        Float snpRecall=SummariseVcfEval.snpRecall[0]
-        Float indelRecall=SummariseVcfEval.indelRecall[0]
-        Float snpF1Score=SummariseVcfEval.snpF1Score[0]
-        Float indelF1Score=SummariseVcfEval.indelF1Score[0]
-        Array[File?] snpRocs=StandardVcfEval.outSnpRoc
-        Array[File?] nonSnpRocs=StandardVcfEval.outNonSnpRoc
-    }
-}
-
-struct EvalTruthMatch {
-        File truthVcf
-        File truthVcfIndex
-        File confidenceIntervals
-        String truthLabel
-        File evalVcf
-        File evalVcfIndex
-        String evalLabel
-}
-
-struct VariantSelector {
-    String jexl
-    String label
-}
-
-struct Stratifier {
-    File? intervalList
-    File? bed
-    String? label
-}
-
-struct EvalStratCombo {
-    EvalTruthMatch evalTruthMatch
-    Stratifier stratifier
-}
-
-struct AnnotatedVcfs {
-    File? vcfVcfEval
-    File? vcfVcfEvalIndex
-    String? stratLabel
-    String evalLabel
-    String truthLabel
-    File? stratBed
-    File? confidenceBed
-    String namePrefix
-}
-struct EvalStratSelectorCombo {
-    AnnotatedVcfs annotatedVcfs
-    VariantSelector variantSelector
-}
-
-#Check to see if there are variants in the given vcf which overlap the confidence and stratification intervals
-task CheckForVariants {
-    input{
-        File vcf
-        File vcfIndex
-        File confidenceIL
-        File? stratIL
-        Int? preemptible
-        Int? memoryMaybe
-        String gatkTag
+    scatter (genotype_selector in genotype_selector_list) {
+        call BCFToolsStats as WholeGenomeStats {
+            input:
+                combined_vcfeval_output=StandardVCFEval.combined_output,
+                combined_vcfeval_output_index=StandardVCFEval.combined_output_index,
+                stratifier_label="WholeGenome",
+                bcf_genotype=genotype_selector.bcf_genotype,
+                bcf_genotype_label=genotype_selector.bcf_genotype_label,
+                query_output_sample_name=query_output_sample_name,
+                base_output_sample_name=base_output_sample_name
         }
-        Int memoryDefault=16
-        Int memoryJava=select_first([memoryMaybe,memoryDefault])
-        Int memoryRam=memoryJava+2
-
-        Int disk_size = 10 + ceil(size(vcf, "GB") + size(vcfIndex, "GB") + size(confidenceIL, "GB") + size(stratIL, "GB"))
-
-    command <<<
-        set -xeuo pipefail
-
-    nVariants="$(gatk --java-options "-Xmx~{memoryJava}G" CountVariants -V ~{vcf} -L ~{confidenceIL} ~{"-L " + stratIL} -isr INTERSECTION | tail -1)"
-    if [ "$nVariants" -gt "0" ]; then echo "true" > outBool.txt; else echo "false" > outBool.txt; fi
-    >>>
-
-    runtime {
-            docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
-            preemptible: select_first([preemptible,0])
-            disks: "local-disk " + disk_size + " HDD"
-            bootDiskSizeGb: "16"
-            memory: memoryRam + " GB"
     }
+
+    scatter (subset_condition in cross(stratifier_list, genotype_selector_list)) {
+        StratifierInterval stratifier = subset_condition.left
+        GenotypeSelector genotype_selector = subset_condition.right
+        call BCFToolsStats as SubsetStats {
+            input:
+                combined_vcfeval_output=StandardVCFEval.combined_output,
+                combined_vcfeval_output_index=StandardVCFEval.combined_output_index,
+                stratifier_interval=stratifier.intervals,
+                stratifier_label=stratifier.label,
+                bcf_genotype=genotype_selector.bcf_genotype,
+                bcf_genotype_label=genotype_selector.bcf_genotype_label,
+                query_output_sample_name=query_output_sample_name,
+                base_output_sample_name=base_output_sample_name
+        }
+    }
+
+    call CombineSummaries {
+        input:
+            ROC_summaries=[StandardVCFEval.ROC_summary],
+            SN_summaries=select_all(flatten([WholeGenomeStats.full_sn, SubsetStats.full_sn])),
+            IDD_summaries=select_all(flatten([WholeGenomeStats.full_idd, SubsetStats.full_idd])),
+            ST_summaries=select_all(flatten([WholeGenomeStats.full_st, SubsetStats.full_st])),
+            experiment=experiment,
+            extra_column_names=extra_column_names,
+            extra_column_values=extra_column_values
+    }
+
+    if (create_igv_session) {
+        call IGV.CreateIGVSession as IGVSession {
+            input:
+            bams=optional_igv_bams,
+            vcfs=[StandardVCFEval.combined_output],
+            interval_files=stratifier_intervals,
+            reference=ref_fasta,
+            output_name=igv_session_name
+        }
+    }
+
 
     output {
-        Boolean variantsFound=read_boolean("outBool.txt")
+        File SimpleSummary = CombineSummaries.simple_summary
+        File IndelDistributionStats = CombineSummaries.IDD_combined_summaries
+        File SNPSubstitutionStats = CombineSummaries.ST_combined_summaries
+        File ROCStats = CombineSummaries.ROC_combined_summaries
+
+        File? igv_session = IGVSession.igv_session
     }
+
 }
 
-#Evaluate evalVCF against truthVCF using vcfeval
-task VcfEval {
-    input{
-        File truthVCF
-        File truthVCFIndex
-        File evalVCF
-        File evalVCFIndex
-        File confidenceBed
-        File? stratBed
-        File ref
-        File refDict
-        File refIndex
-        String outputPre
-        Boolean passingOnly
-        String? vcfScoreField
-        Int? preemptible
-        String? memUser
-        Int? threads
-        Boolean requireMatchingGenotypes
-        Boolean enableRefOverlap = false
-    }
-    String memDefault="16 GB"
-    String mem=select_first([memUser,memDefault])
-
-    Int cpu=select_first([threads,1])
-    Int disk_size = 50 + ceil(size(truthVCF, "GB") + size(truthVCFIndex, "GB") + 2.2 * size(evalVCF, "GB") + size(evalVCFIndex, "GB") + size(confidenceBed, "GB") + size(stratBed, "GB") + size(ref, "GB") + size(refDict, "GB") + size(refIndex, "GB"))
-
-    command <<<
-    set -xeuo pipefail
-
-    rtg format -o rtg_ref ~{ref}
-    rtg vcfeval \
-        ~{false="--all-records" true="" passingOnly} \
-        ~{"--vcf-score-field=" + vcfScoreField} \
-        ~{false="--squash-ploidy" true="" requireMatchingGenotypes} \
-        ~{true="--ref-overlap" false="" enableRefOverlap} \
-        -b ~{truthVCF} -c ~{evalVCF} \
-        -e ~{confidenceBed} ~{"--bed-regions " + stratBed} \
-        --output-mode combine --decompose -t rtg_ref \
-        ~{"--threads "+threads} -o output_dir
-
-    for f in output_dir/*; do
-        mv $f ~{outputPre}_"$(basename "$f")";
-    done
-
-    rtg rocplot --precision-sensitivity --title="~{outputPre} SNP"   --svg=~{outputPre}.snp.svg   ~{outputPre}_snp_roc.tsv.gz
-    rtg rocplot --precision-sensitivity --title="~{outputPre} INDEL" --svg=~{outputPre}.indel.svg ~{outputPre}_non_snp_roc.tsv.gz
-
-    python3 -<<"EOF" ~{outputPre}_snp_roc.tsv.gz ~{outputPre}_non_snp_roc.tsv.gz ~{outputPre}_summary.csv
-    import gzip
-    import sys
-
-    indel_sensitivity=0
-    indel_precision=0
-    indel_fscore=0
-    indel_TP_Base=0
-    indel_TP_Eval=0
-    indel_FP=0
-    indel_FN=0
-
-    snp_sensitivity=0
-    snp_precision=0
-    snp_fscore=0
-    snp_TP_Base=0
-    snp_TP_Eval=0
-    snp_FP=0
-    snp_FN=0
-
-    with gzip.open(sys.argv[1],"rt") as f_snp:
-        for line in f_snp:
-            try:
-                snp_sensitivity=float(line.split()[6])
-                snp_precision=float(line.split()[5])
-                snp_fscore=float(line.split()[7])
-                snp_TP_Eval=float(line.split()[3])
-                snp_TP_Base=float(line.split()[1])
-                snp_FP=float(line.split()[2])
-                snp_FN=float(line.split()[4])
-            except (ValueError, IndexError):
-                continue
-
-    with gzip.open(sys.argv[2],"rt") as f_indel:
-        for line in f_indel:
-            try:
-                indel_sensitivity=float(line.split()[6])
-                indel_precision=float(line.split()[5])
-                indel_fscore=float(line.split()[7])
-                indel_TP_Eval=float(line.split()[3])
-                indel_TP_Base=float(line.split()[1])
-                indel_FP=float(line.split()[2])
-                indel_FN=float(line.split()[4])
-            except (ValueError, IndexError):
-                continue
-
-    str_indel_sensitivity=str(indel_sensitivity)
-    str_indel_precision=str(indel_precision)
-    str_indel_fscore=str(indel_fscore)
-    str_snp_sensitivity=str(snp_sensitivity)
-    str_snp_precision=str(snp_precision)
-    str_snp_fscore=str(snp_fscore)
-
-    if indel_TP_Eval+indel_FP==0:
-        str_indel_precision="NA"
-    if indel_TP_Base+indel_FN==0:
-        str_indel_sensitivity="NA"
-    if str_indel_sensitivity=="NA" or str_indel_precision=="NA":
-        str_indel_fscore="NA"
-
-    if snp_TP_Eval+snp_FP==0:
-        str_snp_precision="NA"
-    if snp_TP_Base+snp_FN==0:
-        str_snp_sensitivity="NA"
-    if str_snp_sensitivity=="NA" or str_snp_precision=="NA":
-        str_snp_fscore="NA"
-
-    with open(sys.argv[3],"wt") as f_out:
-        f_out.write(",".join(["Type","Precision","Recall","F1_Score","TP_Eval","TP_Base","FP","FN"])+"\n")
-        f_out.write(",".join(["SNP",str_snp_precision,str_snp_sensitivity,str_snp_fscore,str(snp_TP_Eval),str(snp_TP_Base),str(snp_FP),str(snp_FN)])+"\n")
-        f_out.write(",".join(["INDEL",str_indel_precision,str_indel_sensitivity,str_indel_fscore,str(indel_TP_Eval),str(indel_TP_Base),str(indel_FP),str(indel_FN)])+"\n")
-    EOF
-    >>>
-
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/rtg:v1.0"
-        preemptible: select_first([preemptible,0])
-        memory: mem
-        cpu: cpu
-        disks: "local-disk " + disk_size + " HDD"
-    }
-
-    output {
-        Array[File] outs=glob("${outputPre}_*")
-        File outSummary="${outputPre}_summary.csv"
-        File outVcf="${outputPre}_output.vcf.gz"
-        File outVcfIndex="${outputPre}_output.vcf.gz.tbi"
-        File outSnpRocPlot="~{outputPre}.snp.svg"
-        File outNonRocPlot="~{outputPre}.indel.svg"
-        File outSnpRoc="${outputPre}_snp_roc.tsv.gz"
-        File outNonSnpRoc="${outputPre}_non_snp_roc.tsv.gz"
-    }
-}
-
-#Evaluate evalVCF against truthVCF using hap.py
-task EvalHappy {
-    input{
-        File truthVCF
-        File truthVCFIndex
-        File evalVCF
-        File confidenceBed
-        File? stratBed
-        File ref
-        File refDict
-        File refIndex
-        String outputPre
-        String? memUser
-        Int? preemptible
-        Int? threads
-        String happyTag
-    }
-    String memDefault="16 GB"
-    String mem=select_first([memUser,memDefault])
-
-    Int cpu=select_first([threads,1])
-    Int disk_size = 10 + ceil(size(truthVCF, "GB") + size(truthVCFIndex, "GB") + 2.2 * size(evalVCF, "GB") + size(confidenceBed, "GB") + size(stratBed, "GB") + size(ref, "GB") + size(refDict, "GB") + size(refIndex, "GB"))
-
-
-    command <<<
-        /opt/hap.py/bin/hap.py ~{truthVCF} ~{evalVCF} -f ~{confidenceBed} -r ~{ref} -V ~{"-T " + stratBed} -L --preprocess-truth ~{"--threads "+threads} -o ~{outputPre}
-    >>>
-
-    runtime {
-        docker: "pkrusche/hap.py:"+happyTag
-        memory: mem
-        preemptible: select_first([preemptible,0])
-        cpu: cpu
-        disks: "local-disk " + disk_size + " HDD"
-    }
-
-    output {
-        Array[File] outs=glob("${outputPre}*")
-        File outSummary="${outputPre}.summary.csv"
-        File outVcf="${outputPre}.vcf.gz"
-        File outVcfIndex="${outputPre}.vcf.gz.tbi"
-    }
-}
-
-#Evaluate evalVCF against truthVCF using picard GenotypeConcordance
-task EvalGATKGC {
-    input{
-        File truthVCF
-        File truthVCFIndex
-        File evalVCF
-        File evalVCFIndex
-        File intervalList
-        File? stratIL
-        File ref
-        File refDict
-        File refIndex
-        String outputPre
-        Int? preemptible
-        Int? memoryMaybe
-        String gatkTag
-    }
-    Int memoryDefault=16
-    Int memoryJava=select_first([memoryMaybe,memoryDefault])
-    Int memoryRam=memoryJava+2
-    Int disk_size = 10 + ceil(size(truthVCF, "GB") + size(truthVCFIndex, "GB") + 2.2 * size(evalVCF, "GB") + size(intervalList, "GB") + size(stratIL, "GB") + size(evalVCFIndex, "GB") + size(ref, "GB") + size(refDict, "GB") + size(refIndex, "GB"))
-
-
-    command <<<
-        gatk --java-options "-Xmx~{memoryJava}G" GenotypeConcordance -TV ~{truthVCF} -CV ~{evalVCF} -R ~{ref} -INTERVALS ~{intervalList} ~{"-INTERVALS " + stratIL} -USE_VCF_INDEX -OUTPUT_VCF -O ~{outputPre}
-    >>>
-
-    runtime {
-        docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
-        preemptible: select_first([preemptible,0])
-        disks: "local-disk " + disk_size + " HDD"
-        bootDiskSizeGb: "16"
-        memory: memoryRam + " GB"
-    }
-
-    output {
-        Array[File] out=glob("${outputPre}*")
-        File outSummary="${outputPre}.genotype_concordance_summary_metrics"
-        File outCounts="${outputPre}.genotype_concordance_contingency_metrics"
-        File outVcf="${outputPre}.genotype_concordance.vcf.gz"
-        File outVcfIndex="${outputPre}.genotype_concordance.vcf.gz.tbi"
-    }
-}
-
-#takes in either a .bed or .intervallist and returns both a .bed and .intervallist version of the input
-task ConvertIntervals {
+task VCFEval {
     input {
-        File inputIntervals
-        File? subset_interval
-        Int? preemptible
-        Int? memoryMaybe
-        File refDict
-        String gatkTag
-        String? dummyInputForTerraCallCaching
-    }
+        # Input VCF Files
+        File query_vcf
+        File query_vcf_index
+        String query_output_sample_name
+        String? query_vcf_sample_name
+        File base_vcf
+        File base_vcf_index
+        String base_output_sample_name
+        String? base_vcf_sample_name
 
-    Int memoryDefault=16
-    Int memoryJava=select_first([memoryMaybe,memoryDefault])
-    Int memoryRam=memoryJava+2
-    Int disk_size = 10 + ceil(3 * size(inputIntervals, "GB") + size(refDict, "GB"))
+        Reference reference
+
+        # Interval File to Subset Analysis on given actual truth data
+        File? evaluation_bed
+
+        # Par File
+        File? par_bed
+
+        # String for VCF field to use as ROC score
+        String score_field
+
+        # vcfeval Arguments
+        Boolean passing_only = true
+        Boolean require_matching_genotypes = true
+        Boolean enable_ref_overlap = false
+
+        # Runtime params
+        Int? preemptible
+        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(2 * size(query_vcf, "GB") + 2 * size(base_vcf, "GB") + size(reference.fasta, "GB")) + 50,
+                                                  "cpu": 8, "memory": 16}
+    }
 
     command <<<
         set -xeuo pipefail
 
-        # convert bed to interval_list, or copy interval_list
-        if [[ ~{inputIntervals} == *.bed || ~{inputIntervals} == *.bed.gz ]]; then
-                gatk --java-options "-Xmx~{memoryJava}G" \
-                    BedToIntervalList \
-                    -I ~{inputIntervals} \
-                    -O initial_intervals.interval_list \
-                    -SD ~{refDict}
+        # Normal situation without any PAR bed file
+        if [ -z ~{par_bed} ];
+        then
+            rtg format -o rtg_ref ~{reference.fasta}
+            rtg vcfeval \
+                ~{false="--all-records" true="" passing_only} \
+                ~{false="--squash-ploidy" true="" require_matching_genotypes} \
+                ~{true="--ref-overlap" false="" enable_ref_overlap} \
+                -b ~{base_vcf} \
+                -c ~{query_vcf} \
+                ~{"-e " + evaluation_bed} \
+                --vcf-score-field="~{score_field}" \
+                --output-mode combine \
+                --decompose \
+                --roc-subset snp,indel \
+                -t rtg_ref \
+                ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
+                -o reg
+
+            mkdir output_dir
+            cp reg/*.vcf.gz* output_dir/
+
         else
-            cp ~{inputIntervals} initial_intervals.interval_list
+            # Handle case where user provides PAR bed by running with --squash-ploidy over haploid region
+            awk -v OFS="\t" '{print $1, 0, $2}' ~{reference.index} > genome_file.txt
+            bedtools complement -i ~{par_bed} -g genome_file.txt -L > 'non-par.bed'
+            bedtools complement -i non-par.bed -g genome_file.txt > 'regular-regions.bed'
+
+            rtg format -o rtg_ref ~{reference.fasta}
+
+            rtg vcfeval \
+                ~{false="--all-records" true="" passing_only} \
+                ~{true="--ref-overlap" false="" enable_ref_overlap} \
+                --squash-ploidy \
+                -b ~{base_vcf} \
+                -c ~{query_vcf} \
+                --bed-regions non-par.bed \
+                ~{"-e " + evaluation_bed} \
+                --vcf-score-field="~{score_field}" \
+                --output-mode combine \
+                --decompose \
+                --roc-subset snp,indel \
+                -t rtg_ref \
+                ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
+                -o par
+
+            rtg vcfeval \
+                ~{false="--all-records" true="" passing_only} \
+                ~{false="--squash-ploidy" true="" require_matching_genotypes} \
+                ~{true="--ref-overlap" false="" enable_ref_overlap} \
+                -b ~{base_vcf} \
+                -c ~{query_vcf} \
+                --bed-regions regular-regions.bed \
+                ~{"-e " + evaluation_bed} \
+                --vcf-score-field="~{score_field}" \
+                --output-mode combine \
+                --decompose \
+                --roc-subset snp,indel \
+                -t rtg_ref \
+                ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
+                -o reg
+
+            mkdir output_dir
+            bcftools merge --force-samples "par/output.vcf.gz" "reg/output.vcf.gz" | bcftools sort -Oz -o "output_dir/output.vcf.gz"
+            bcftools index -t "output_dir/output.vcf.gz"
+
         fi
 
-        # optionally intersect interval_list with subset_interval
+        # Format ROC stats into table
+        python3 << CODE
+        import gzip
+        import pandas as pd
 
-        if [ ! -z ~{subset_interval} ];  then
-            gatk --java-options "-Xmx~{memoryJava}G" \
-                IntervalListTools \
-                -I initial_intervals.interval_list \
-                -I ~{subset_interval} \
-                -ACTION INTERSECT \
-                -O intervals.interval_list
-        else
-            mv initial_intervals.interval_list intervals.interval_list
-        fi
+        def parse_data(root_dir):
+            full_df = pd.DataFrame()
+            for Type in ['snp', 'indel']:
+                file_path = f'{root_dir}/{Type}_roc.tsv.gz'
 
-        # convert result to BED
-        gatk --java-options "-Xmx~{memoryJava}G" \
-            IntervalListToBed \
-            -I intervals.interval_list \
-            -O intervals.bed
+                header_lines = []
+                # Read through file lines until hitting one without leading '#'
+                with gzip.open(file_path, 'rt') as file:
+                    for line in file:
+                        if line[0] == '#':
+                            header_lines += [line]
+                        else:
+                            break
+                header_names = header_lines[-1].replace('#', '').replace('\n', '').split('\t')
+                df = pd.read_csv(file_path, sep='\t', comment='#', header=None, names=header_names)
+
+                rename_columns = {'score': 'Score', 'true_positives_baseline': 'TP_Base',
+                      'false_positives': 'FP', 'true_positives_call': 'TP_Query', 'false_negatives': 'FN',
+                      'precision': 'Precision', 'sensitivity': 'Recall', 'f_measure': 'F1_Score'}
+
+                df = df.rename(columns=rename_columns)
+                df['Type'] = Type.upper()
+                df['Query_Name'] = "~{query_output_sample_name}"
+                df['Base_Name'] = "~{base_output_sample_name}"
+
+                full_df = pd.concat([full_df, df])
+
+            return full_df
+
+        reg_roc_summary = parse_data('reg')
+        roc_summary = reg_roc_summary
+
+        # If PAR bed file provided, also collect data from analysis over PAR region and combine stats
+        if len("~{par_bed}") > 0:
+            par_roc_summary = parse_data('par')
+            merged_df = reg_roc_summary.merge(par_roc_summary, on=['Score', 'Type', 'Interval', 'Query_Name', 'Base_Name'], how='outer').fillna(0)
+            for stat in ['TP_Base', 'FP', 'TP_Query', 'FN']:
+                merged_df[stat] = merged_df[f'{stat}_x'] + merged_df[f'{stat}_y']
+            merged_df['Precision'] = merged_df['TP_Query'] / (merged_df['TP_Query'] + merged_df['FP'])
+            merged_df['Recall'] = merged_df['TP_Base'] / (merged_df['TP_Base'] + merged_df['FN'])
+            merged_df['F1_Score'] = 2 * merged_df['Precision'] * merged_df['Recall'] / (merged_df['Precision'] + merged_df['Recall'])
+
+            roc_summary = merged_df[
+                ['Score', 'TP_Base', 'FP', 'TP_Query', 'FN', 'Precision', 'Recall', 'F1_Score', 'Type', 'Interval', 'Query_Name', 'Base_Name']
+            ]
+
+        roc_summary.to_csv('ROC_summary.tsv', sep='\t', index=False)
+
+        CODE
+
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
-        preemptible: select_first([preemptible,0])
-        disks: "local-disk " + disk_size + " HDD"
-        bootDiskSizeGb: "16"
-        memory: memoryRam + " GB"
+        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.0"
+        preemptible: select_first([preemptible, 0])
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        cpu: runtimeAttributes.cpu
+        memory: runtimeAttributes.memory + " GB"
     }
 
     output {
-        File bed="intervals.bed"
-        File intervalList="intervals.interval_list"
+        File ROC_summary = "ROC_summary.tsv"
+
+        File combined_output = "output_dir/output.vcf.gz"
+        File combined_output_index = "output_dir/output.vcf.gz.tbi"
     }
 }
 
-#For now, due to a bug, the ouput annotated VCF from hap.py has a hardcoded HG19 header, so the VCF header must be fixed to represent the correct reference.
-#Additionally, due to a separate bug, UpdateVCFSequenceDictionary crashes in this case when trying to index a bgzipped vcf.  So for now have to perform indexing in a separate command.
-task FixVcfHeader {
+task BCFToolsStats {
     input {
-        File vcf
-        File vcfIndex
-        File ref
-        File refDict
-        File refIndex
-        Int? preemptible
-        Int? memoryMaybe
-        String gatkTag
+        File combined_vcfeval_output
+        File combined_vcfeval_output_index
+
+        File? stratifier_interval
+        String stratifier_label
+
+        String bcf_genotype
+        String bcf_genotype_label
+
+        String query_output_sample_name
+        String base_output_sample_name
+
+        String targets_overlap = "record"
+
+        RuntimeAttributes runtimeAttributes = {"disk_size":2 * ceil(size(combined_vcfeval_output, "GB") + size(stratifier_interval, "GB")) + 10,
+                                                  "cpu": 4, "memory": 8}
     }
-    Int memoryDefault=16
-    Int memoryJava=select_first([memoryMaybe,memoryDefault])
-    Int memoryRam=memoryJava+2
-    Int disk_size = 10 + ceil(2.2 * size(vcf, "GB") + 2.2 * size(vcfIndex, "GB") + size(ref, "GB") + size(refDict, "GB") + size(refIndex, "GB"))
+
+    # Handle parsing bcf_genotype with surrounding quotes, with empty case handled separately
+    String selection = if bcf_genotype!= "" then " && " + bcf_genotype + "'" else "'"
+
+    String tp_base_selection = "-i 'INFO/BASE=\"TP\"" + selection
+    String tp_query_selection = "-i 'INFO/CALL=\"TP\"" + selection
+    String fp_selection = "-i '(INFO/CALL=\"FP\" || INFO/CALL=\"FP_CA\")" + selection
+    String fn_selection = "-i '(INFO/BASE=\"FN\" || INFO/BASE=\"FN_CA\")" + selection
+    String out_selection = "-i '(INFO/BASE=\"OUT\" || INFO/CALL=\"OUT\")" + selection
+    String ign_selection = "-i '(INFO/BASE=\"IGN\" || INFO/CALL=\"IGN\")" + selection
+
+    String targets_overlap_expression = " --targets-overlap " + targets_overlap
 
     command <<<
         set -xeuo pipefail
 
-        gatk --java-options "-Xmx~{memoryJava}G" UpdateVCFSequenceDictionary -V ~{vcf} -O fixed.vcf.gz --source-dictionary ~{refDict} --replace --create-output-variant-index false
-        gatk --java-options "-Xmx~{memoryJava}G" IndexFeatureFile -F fixed.vcf.gz
-    >>>
+        # Subset combined output to each stat category; run in parallel
+        # Note: subset to sample name and drop unused alts with -a BEFORE using above selector in stats command,
+        # otherwise selecting for GT/TYPE all at once will apply to ALL sample/allele fields, giving misleading stats
+        # Note: Use -T flag instead of -R for subsettng by region; the former streams the entire VCF file while latter does random
+        # access lookup for each entry, which is extremely slow for even interval lists with just a few thousand entries
+        # Also use --targets-overlap record to ensure events just overlapping the bed get counted (rather than being fully contained)
+        bcftools view -s BASELINE --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{tp_base_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > tp_base_stats.tsv &
+        bcftools view -s CALLS --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{tp_query_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > tp_query_stats.tsv &
+        bcftools view -s CALLS --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{fp_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > fp_stats.tsv &
+        bcftools view -s BASELINE --min-ac 1 -a -I ~{combined_vcfeval_output} | bcftools stats ~{fn_selection} ~{"-T " + stratifier_interval + targets_overlap_expression} > fn_stats.tsv &
+        bcftools stats ~{out_selection} -s- ~{"-T " + stratifier_interval + targets_overlap_expression} ~{combined_vcfeval_output} > out_stats.tsv &
+        bcftools stats ~{ign_selection} -s- ~{"-T " + stratifier_interval + targets_overlap_expression} ~{combined_vcfeval_output} > ign_stats.tsv &
 
-    runtime {
-            docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
-            preemptible: select_first([preemptible,0])
-            disks: "local-disk " + disk_size + " HDD"
-            bootDiskSizeGb: "16"
-            memory: memoryRam + " GB"
-    }
+        # Wait for bcftools stats to finish for all selectors
+        wait
 
-    output {
-        File outVcf="fixed.vcf.gz"
-        File outVcfIndex="fixed.vcf.gz.tbi"
-    }
+        python3 << CODE
+        import io
+        import pandas as pd
 
-}
+        def make_dfs(file_path):
+            with open(file_path, 'r') as file:
+                bcf_file = file.readlines()
 
-#Count number of variants which were outside confidence region based on vcfeval annotated vcf
-task CountUNKVcfEval {
-    input {
-        File? vcf=""
-        File? vcfIndex=""
-        Int? preemptible
-        Int? memoryMaybe
-        String gatkTag
-    }
-    Int memoryDefault=16
-    Int memoryJava=select_first([memoryMaybe,memoryDefault])
-    Int memoryRam=memoryJava+2
-    Int disk_size = 10 + ceil(size(vcf, "GB") + size(vcfIndex, "GB"))
+            # sample-specific stats
+            sn_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'SN\t' in x])), sep='\t')
+            final_sn_df = sn_df.drop(columns=['# SN', '[2]id']).rename(columns={'[3]key': 'Category', '[4]value': 'Count'})[3:]
+            final_sn_df['Category'] = final_sn_df['Category'].apply(lambda x: x.replace('number of ', '').replace(':', ''))
+            idd_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'IDD\t' in x])), sep='\t')
+            final_idd_df = idd_df.drop(columns=['# IDD', '[2]id', '[5]number of genotypes', '[6]mean VAF']).rename(columns={
+                '[3]length (deletions negative)': 'INDEL_Length', '[4]number of sites': 'Count'
+            })
+            st_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'ST\t' in x])), sep='\t')
+            final_st_df = st_df.drop(columns=['# ST', '[2]id']).rename(columns={'[3]type': 'Substitution', '[4]count': 'Count'})
 
-    command <<<
-        set -xeuo pipefail
+            # run-specific stats
+            qual_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'QUAL\t' in x])), sep='\t')
+            final_qual_df = qual_df.drop(columns=['# QUAL', '[2]id']).rename(columns={
+                '[3]Quality': 'QUAL', '[4]number of SNPs': 'SNP_Count', '[5]number of transitions (1st ALT)': 'Ti_Count',
+                '[6]number of transversions (1st ALT)': 'Tv_Count', '[7]number of indels': 'INDEL_Count'
+            })
+            dp_df = pd.read_csv(io.StringIO('\n'.join([x for x in bcf_file if 'DP\t' in x])), sep='\t')
+            final_dp_df = dp_df.drop(columns=['# DP', '[2]id', '[4]number of genotypes', '[5]fraction of genotypes (%)', '[7]fraction of sites (%)']).rename(columns={
+                '[3]bin': 'DP', '[6]number of sites': 'Count'
+            })
 
-        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcf} -O selected.unk.snp.vcf.gz -select "(CALL == 'OUT')" --select-type-to-include SNP
-        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcf} -O selected.unk.indel.vcf.gz -select "(CALL == 'OUT')" --select-type-to-include INDEL
-
-        UNK_SNP="$(gatk --java-options "-Xmx~{memoryJava}G" CountVariants -V selected.unk.snp.vcf.gz | tail -1)"
-        UNK_INDEL="$(gatk --java-options "-Xmx~{memoryJava}G" CountVariants -V selected.unk.indel.vcf.gz | tail -1)"
-
-        echo "$UNK_SNP" > unk_snp.txt
-        echo "$UNK_INDEL" > unk_indel.txt
-    >>>
-    runtime {
-                docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
-                preemptible: select_first([preemptible,0])
-                disks: "local-disk " + disk_size + " HDD"
-                bootDiskSizeGb: "16"
-                memory: memoryRam + " GB"
-    }
-    output {
-        Int UNK_SNP=read_int("unk_snp.txt")
-        Int UNK_INDEL=read_int("unk_indel.txt")
-    }
-}
-
-#Count number of variants which were outside confidence region based on GenotypeConcordance annotated vcf
-task CountUNKGC {
-        input {
-            File? vcfAnnotated=""
-            File? vcfIndexAnnotated=""
-            File vcfOrig
-            File vcfIndexOrig
-            Int? preemptible
-            Int? memoryMaybe
-            File? stratIL
-            String gatkTag
-        }
-        Int memoryDefault=16
-        Int memoryJava=select_first([memoryMaybe,memoryDefault])
-        Int memoryRam=memoryJava+2
-        Int disk_size = 10 + ceil(size(vcfAnnotated, "GB") + size(vcfIndexAnnotated, "GB") + 2 * size(vcfOrig, "GB") + size(vcfIndexOrig, "GB") + size(stratIL, "GB"))
-
-        command <<<
-                set -xeuo pipefail
-
-                gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcfOrig} -O selected.unk.snp.vcf.gz ~{"-L "+stratIL} --select-type-to-include SNP --discordance ~{vcfAnnotated}
-                gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V ~{vcfOrig} -O selected.unk.indel.vcf.gz ~{"-L "+stratIL} --select-type-to-include INDEL --discordance ~{vcfAnnotated}
-
-                UNK_SNP="$(gatk --java-options "-Xmx~{memoryJava}G" CountVariants -V selected.unk.snp.vcf.gz | tail -1)"
-                UNK_INDEL="$(gatk --java-options "-Xmx~{memoryJava}G" CountVariants -V selected.unk.indel.vcf.gz | tail -1)"
-
-                echo "$UNK_SNP" > unk_snp.txt
-                echo "$UNK_INDEL" > unk_indel.txt
-            >>>
-
-
-        runtime {
-                    docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
-                    preemptible: select_first([preemptible,0])
-                    disks: "local-disk " + disk_size + " HDD"
-                    bootDiskSizeGb: "16"
-                    memory: memoryRam + " GB"
-        }
-
-        output {
-            Int UNK_SNP=read_int("unk_snp.txt")
-            Int UNK_INDEL=read_int("unk_indel.txt")
-        }
-}
-
-#Count TP,FP,FN for a particular selection of variants given by jexl
-task EvalForVariantSelection {
-    input {
-        File? vcf=""
-        File? vcfIndex=""
-        String jexl
-        Int? preemptible
-        Int? memoryMaybe
-        String engine
-        String selectTPCall
-        String selectTPBase
-        String selectFN
-        String selectFP
-        String sampleCall
-        String sampleBase
-        String gatkTag
-
-        Array[String] annotationNames=[]
-        File? gatkJarForAnnotation
-        File reference
-        File refDict
-        File refIndex
-    }
-
-    Int memoryDefault=16
-    Int memoryJava=select_first([memoryMaybe,memoryDefault])
-    Int memoryRam=memoryJava+2
-
-    String selectionTPCall=jexl + " && " + selectTPCall
-    String selectionTPBase=jexl + " && " + selectTPBase
-    String selectionFN=jexl + " && " + selectFN
-    String selectionFP=jexl + " && " + selectFP
-
-    Int disk_size = 10 + ceil(4.2 * size(vcf, "GB") + 2.2 * size(vcfIndex, "GB") + size(reference, "GB"))
-    
-    command <<<
-        set -xeuo pipefail
-
-        VCF=~{vcf}
-        if [[ ! -z "~{gatkJarForAnnotation}" ]]; then
-            java -jar ~{gatkJarForAnnotation} VariantAnnotator -V ~{vcf} -O annotated.vcf.gz ~{true="-A" false="" length(annotationNames)>0} ~{sep=" -A " annotationNames} -R ~{reference}            
-            VCF=annotated.vcf.gz
-        else
-            touch annotated.vcf.gz
-        fi
-
-        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V $VCF -O selected.TP_CALL.vcf.gz -select "~{selectionTPCall}" -sn ~{sampleCall}
-        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V $VCF -O selected.TP_BASE.vcf.gz -select "~{selectionTPBase}" -sn ~{sampleBase}
-        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V $VCF -O selected.FN.vcf.gz -select "~{selectionFN}" -sn ~{sampleBase}
-        gatk --java-options "-Xmx~{memoryJava}G" SelectVariants -V $VCF -O selected.FP.vcf.gz -select "~{selectionFP}" -sn ~{sampleCall}
-
-        TP_CALL="$(gatk --java-options "-Xmx~{memoryJava}G" CountVariants -V selected.TP_CALL.vcf.gz | tail -1)"
-        TP_BASE="$(gatk --java-options "-Xmx~{memoryJava}G" CountVariants -V selected.TP_BASE.vcf.gz | tail -1)"
-        FN="$(gatk --java-options "-Xmx~{memoryJava}G" CountVariants -V selected.FN.vcf.gz | tail -1)"
-        FP="$(gatk --java-options "-Xmx~{memoryJava}G" CountVariants -V selected.FP.vcf.gz | tail -1)"
-
-        echo "$TP_CALL" > tp_call.txt
-        echo "$TP_BASE" > tp_base.txt
-        echo "$FN" > fn.txt
-        echo "$FP" > fp.txt
-    >>>
-
-    runtime {
-            docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
-            preemptible: select_first([preemptible,0])
-            disks: "local-disk " + disk_size + " HDD"
-            bootDiskSizeGb: "16"
-            memory: memoryRam + " GB"
-    }
-
-    output {
-        Int TP_CALL=read_int("tp_call.txt")
-        Int TP_BASE=read_int("tp_base.txt")
-        Int FP=read_int("fp.txt")
-        Int FN=read_int("fn.txt")
-        File selectedTPCall="selected.TP_CALL.vcf.gz"
-        File selectedTPBase="selected.TP_BASE.vcf.gz"
-        File selectedFP="selected.FP.vcf.gz"
-        File selectedFN="selected.FN.vcf.gz"
-
-        File annotated="annotated.vcf.gz"
-        File selectedTPCallIndex="selected.TP_CALL.vcf.gz.tbi"
-        File selectedTPBaseIndex="selected.TP_BASE.vcf.gz.tbi"
-        File selectedFPIndex="selected.FP.vcf.gz.tbi"
-        File selectedFNIndex="selected.FN.vcf.gz.tbi"
-    }
-
-}
-
-#create csv file of statistics based on TP,FP,FN
-task SummariseForIndelSelection {
-    input {
-        String evalLabel
-        String truthLabel
-        String? stratLabel
-        String indelLabel
-        String engine
-        String igvSession
-        Int TP_CALL
-        Int TP_BASE
-        Int FP
-        Int FN
-        Int? preemptible
-
-    }
-
-    command <<<
-        set -xeuo pipefail
-
-        Rscript -<<"EOF" ~{TP_CALL} ~{TP_BASE} ~{FN} ~{FP} ~{evalLabel} ~{truthLabel} ~{indelLabel} ~{engine} ~{default="" stratLabel} ~{igvSession}
-        GetSelectionValue<-function(name, target) {
-
-                  if(target=="insertion" || target=="deletion") {
-                    return(NA)
-                  }
-                  pos_start<-regexpr(target,name)
-                  sub=substring(name,pos_start+attr(pos_start,"match.length")+1,nchar(name))
-                  split_sub=strsplit(sub,"_")
-                  val=if(grepl("^m",split_sub[[1]][[1]])) -as.double(gsub("m","",split_sub[[1]][[1]])) else as.double(split_sub[[1]][[1]])
-                }
-
-        args <-commandArgs(trailingOnly=TRUE)
-        indel_options <-c("deletion","insertion","indel_fine","indel_coarse")
-        indel_type <- mapply(grepl,indel_options,args[7])
-        indel_type <- indel_options[indel_type[indel_options]]
-        indel_length <- GetSelectionValue(args[7],indel_type)
-        if (length(args)<10) {
-          stratifier <- NA
-        } else {
-          stratifier <- args[9]
-        }
-        table <- data.frame("Name"=args[5], "Truth_Set"=args[6],"Comparison_Engine"=args[8],"Stratifier"=stratifier,
-                            "IndelLength"= indel_length,
-                            "Recall"=as.numeric(args[2])/(as.numeric(args[2])+as.numeric(args[3])),"Precision"=as.numeric(args[1])/(as.numeric(args[1])+as.numeric(args[4])),"TP_Base"=as.numeric(args[2]),"TP_Eval"=as.numeric(args[1]),
-                            "FP"=as.numeric(args[4]),"FN"=as.numeric(args[3]),"IGV_Session"=args[length(args)],"Summary_Type"=indel_type)
-        table$F1_Score <- 2*table$Precision*table$Recall/(table$Precision+table$Recall)
-        write.csv(table,paste(args[8],".",indel_type,".summary.csv",sep=""),row.names=FALSE)
-        EOF
-    >>>
-
-    runtime {
-            docker: "rocker/tidyverse"
-            preemptible: select_first([preemptible,0])
-            disks: "local-disk 10 HDD"
-        }
-
-    output {
-        File summaryOut=glob("*.summary.csv")[0]
-    }
-
-}
-
-#create csv file of statistics based on TP,FP,FN
-task SummariseForVariantSelection {
-    input {
-        String evalLabel
-        String truthLabel
-        String? stratLabel
-        String variantLabel
-        String engine
-        String igvSession
-        Int TP_CALL
-        Int TP_BASE
-        Int FP
-        Int FN
-        Int? preemptible
-
-    }
-
-    command <<<
-        set -xeuo pipefail
-
-        Rscript -<<"EOF" ~{TP_CALL} ~{TP_BASE} ~{FN} ~{FP} ~{evalLabel} ~{truthLabel} ~{variantLabel} ~{engine} ~{default="" stratLabel} ~{igvSession}
-        args <-commandArgs(trailingOnly=TRUE)
-        if (length(args)<10) {
-          stratifier <- NA
-        } else {
-          stratifier <- args[9]
-        }
-        table <- data.frame("Name"=args[5], "Truth_Set"=args[6],"Comparison_Engine"=args[8],"Stratifier"=stratifier,
-                            "IndelLength"= NA,
-                            "Recall"=as.numeric(args[2])/(as.numeric(args[2])+as.numeric(args[3])),"Precision"=as.numeric(args[1])/(as.numeric(args[1])+as.numeric(args[4])),"TP_Base"=as.numeric(args[2]),"TP_Eval"=as.numeric(args[1]),
-                            "FP"=as.numeric(args[4]),"FN"=as.numeric(args[3]),"IGV_Session"=args[length(args)],"Summary_Type"="summary","Type"=args[7])
-        table$F1_Score <- 2*table$Precision*table$Recall/(table$Precision+table$Recall)
-        write.csv(table,paste(args[8],".",args[7],".summary.csv",sep=""),row.names=FALSE)
-        EOF
-    >>>
-
-    runtime {
-            docker: "rocker/tidyverse"
-            preemptible: select_first([preemptible,0])
-            disks: "local-disk 10 HDD"
-        }
-
-    output {
-        File summaryOut=glob("*.summary.csv")[0]
-    }
-
-}
-
-#Convert vcfeval output statistics to final output format
-task SummariseVcfEval {
-    input {
-        String evalLabel
-        String truthLabel
-        String areVariants
-        String? igvSession
-        String? stratLabel
-        File? summaryFile
-        Int? unkSNP
-        Int? unkINDEL
-        Int? preemptible
-    }
-    Int disk_size = 10 + ceil(2.2 * size(summaryFile, "GB"))
-
-    command <<<
-        set -xeuo pipefail
-
-        Rscript -<<"EOF" ~{evalLabel} ~{truthLabel} ~{default="" summaryFile} ~{default="" stratLabel} ~{default="" igvSession} ~{default="" unkSNP} ~{default="" unkINDEL} ~{areVariants}
-        args <- commandArgs(trailingOnly = TRUE)
-        if (args[length(args)]=="yes") {
-            table_vcfeval <- read.csv(args[3])
-            if (length(args)==7) {
-                table_vcfeval$Stratifier <- NA
-                table_vcfeval$IGV_Session <- args[4]
-                table_vcfeval$UNK[table_vcfeval$Type=="SNP"]=args[5]
-                table_vcfeval$UNK[table_vcfeval$Type=="INDEL"]=args[6]
-            } else {
-                table_vcfeval$Stratifier <- args[4]
-                table_vcfeval$IGV_Session <- args[5]
-                table_vcfeval$UNK[table_vcfeval$Type=="SNP"]=args[6]
-                table_vcfeval$UNK[table_vcfeval$Type=="INDEL"]=args[7]
+            return {
+                'SN_df': final_sn_df,
+                'IDD_df': final_idd_df,
+                'ST_df': final_st_df,
+                'QUAL_df': final_qual_df,
+                'DP_df': final_dp_df
             }
-            write(ifelse(is.na(table_vcfeval[table_vcfeval$Type=="SNP",  ]$Precision), 0, table_vcfeval[table_vcfeval$Type=="SNP",  ]$Precision), "snpPrecision.txt")
-            write(ifelse(is.na(table_vcfeval[table_vcfeval$Type=="INDEL",]$Precision), 0, table_vcfeval[table_vcfeval$Type=="INDEL",]$Precision), "indelPrecision.txt")
-            write(ifelse(is.na(table_vcfeval[table_vcfeval$Type=="SNP",  ]$Recall),    0, table_vcfeval[table_vcfeval$Type=="SNP",  ]$Recall),    "snpRecall.txt")
-            write(ifelse(is.na(table_vcfeval[table_vcfeval$Type=="INDEL",]$Recall),    0, table_vcfeval[table_vcfeval$Type=="INDEL",]$Recall),    "indelRecall.txt")
-            write(ifelse(is.na(table_vcfeval[table_vcfeval$Type=="SNP",  ]$F1_Score),  0, table_vcfeval[table_vcfeval$Type=="SNP",  ]$F1_Score),  "snpF1Score.txt")
-            write(ifelse(is.na(table_vcfeval[table_vcfeval$Type=="INDEL",]$F1_Score),  0, table_vcfeval[table_vcfeval$Type=="INDEL",]$F1_Score),  "indelF1Score.txt")
-        } else {
-            types <- c("INDEL","SNP")
-            recall <- c(NA,NA)
-            precision <- c(NA,NA)
-            f1_score <- c(NA,NA)
-            tp <- c(0,0)
-            fp <- c(0,0)
-            fn <- c(0,0)
-            unk <- c(0,0)
-            igv_session <- c(NA,NA)
-            table_vcfeval <- data.frame("Type"=types,"Recall"=recall,"Precision"=precision,"F1_Score"=f1_score,"TP_Base"=tp,"TP_Eval"=tp,"FP"=fp,"FN"=fn,"UNK"=unk,"IGV_Session"=igv_session)
-            if (length(args)==3) {
-                table_vcfeval$Stratifier <- NA
-            } else {
-                table_vcfeval$Stratifier <- args[3]
-            }
-            write(0,"snpPrecision.txt")
-            write(0,"indelPrecision.txt")
-            write(0,"snpRecall.txt")
-            write(0,"indelRecall.txt")
-            write(0,"snpF1Score.txt")
-            write(0,"indelF1Score.txt")
+
+        df_dict = {
+            "TP_Base" : make_dfs("tp_base_stats.tsv"),
+            "TP_Query": make_dfs("tp_query_stats.tsv"),
+            "FP": make_dfs("fp_stats.tsv"),
+            "FN": make_dfs("fn_stats.tsv"),
+            "OUT": make_dfs("out_stats.tsv"),
+            "IGN": make_dfs("ign_stats.tsv")
         }
-        table_vcfeval$Name <- args[1]
-        table_vcfeval$Truth_Set <- args[2]
-        table_vcfeval$Summary_Type <- "summary"
-        table_vcfeval$Comparison_Engine <-"VcfEval"
-        write.csv(table_vcfeval,"vcfeval.summary.csv",row.names=FALSE)
-        EOF
+
+        # Make full SN (Summary Numbers) df
+        full_sn_df = pd.DataFrame({'Category': df_dict['TP_Base']['SN_df']['Category']})
+        for stat in df_dict:
+            full_sn_df = df_dict[stat]['SN_df'].rename(columns={'Count': f'{stat}_Count'}).merge(full_sn_df, on='Category', how='outer')
+        full_sn_df = full_sn_df.fillna(0)
+        full_sn_df['Query_Name'] = "~{query_output_sample_name}"
+        full_sn_df['Base_Name'] = "~{base_output_sample_name}"
+        full_sn_df['Interval'] = "~{stratifier_label}"
+        full_sn_df['BCF_Label'] = "~{bcf_genotype_label}"
+
+        # Make full IDD (InDel Distribution) df
+        full_idd_df = pd.DataFrame({'INDEL_Length': df_dict['TP_Base']['IDD_df']['INDEL_Length']})
+        for stat in df_dict:
+            full_idd_df = df_dict[stat]['IDD_df'].rename(columns={'Count': f'{stat}_Count'}).merge(full_idd_df, on='INDEL_Length', how='outer')
+        full_idd_df = full_idd_df.fillna(0)
+        full_idd_df['Query_Name'] = "~{query_output_sample_name}"
+        full_idd_df['Base_Name'] = "~{base_output_sample_name}"
+        full_idd_df['Interval'] = "~{stratifier_label}"
+        full_idd_df['BCF_Label'] = "~{bcf_genotype_label}"
+
+        # Make full ST (Substitution) df
+        full_st_df = pd.DataFrame({'Substitution': df_dict['TP_Base']['ST_df']['Substitution']})
+        for stat in df_dict:
+            full_st_df = df_dict[stat]['ST_df'].rename(columns={'Count': f'{stat}_Count'}).merge(full_st_df, on='Substitution', how='outer')
+        full_st_df = full_st_df.fillna(0)
+        full_st_df['Query_Name'] = "~{query_output_sample_name}"
+        full_st_df['Base_Name'] = "~{base_output_sample_name}"
+        full_st_df['Interval'] = "~{stratifier_label}"
+        full_st_df['BCF_Label'] = "~{bcf_genotype_label}"
+
+        # Write files
+        full_sn_df.to_csv('Full_SN.tsv', sep='\t', index=False)
+        full_idd_df.to_csv('Full_IDD.tsv', sep='\t', index=False)
+        full_st_df.to_csv('Full_ST.tsv', sep='\t', index=False)
+
+        CODE
     >>>
 
     runtime {
-        docker: "rocker/tidyverse"
-        preemptible: select_first([preemptible,0])
-        disks: "local-disk " + disk_size + " HDD"
+        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.2"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        cpu: runtimeAttributes.cpu
+        memory: runtimeAttributes.memory + "GB"
     }
 
-    output{
-        File summaryOut="vcfeval.summary.csv"
-        Float snpPrecision=read_float("snpPrecision.txt")
-        Float indelPrecision=read_float("indelPrecision.txt")
-        Float snpRecall=read_float("snpRecall.txt")
-        Float indelRecall=read_float("indelRecall.txt")
-        Float snpF1Score=read_float("snpF1Score.txt")
-        Float indelF1Score=read_float("indelF1Score.txt")
+    output {
+        File full_sn = "Full_SN.tsv"
+        File full_idd = "Full_IDD.tsv"
+        File full_st = "Full_ST.tsv"
     }
 }
 
-#Convert hap.py output statistics to final output format
-task SummariseHappy {
-     input {
-        String evalLabel
-        String truthLabel
-        String areVariants
-        String? stratLabel
-        File? summaryFile
-        Int? preemptible
-        String? igvSession
-     }
-
-     Int disk_size = 10 + ceil(2.2 * size(summaryFile, "GB"))
-
-    command <<<
-        Rscript -<<"EOF" ~{evalLabel} ~{truthLabel} ~{default="" summaryFile} ~{default="" stratLabel} ~{default="" igvSession} ~{areVariants}
-        args <-commandArgs(trailingOnly = TRUE)
-        if (args[length(args)]=="yes") {
-          table_happy <- read.csv(args[3])
-          colnames(table_happy)[10]<-"Recall"
-          colnames(table_happy)[11]<-"Precision"
-          colnames(table_happy)[13]<-"F1_Score"
-          colnames(table_happy)[4]<-"TP_Base"
-          table_happy$TP_Eval=table_happy$TP_Base
-          colnames(table_happy)[5]<-"FN"
-          colnames(table_happy)[7]<-"FP"
-          colnames(table_happy)[8]<-"UNK"
-          if (length(args)==5) {
-            table_happy$Stratifier <- NA
-            table_happy$IGV_Session <- args[4]
-          } else {
-            table_happy$Stratifier <-args[4]
-            table_happy$IGV_Session <- args[5]
-          }
-
-
-        } else {
-          types <- c("INDEL","SNP")
-          recall <- c(NA,NA)
-          precision <- c(NA,NA)
-          f1_score <- c(NA,NA)
-          igv_session <- c(NA,NA)
-          tp <- c(0,0)
-          fp <- c(0,0)
-          fn <- c(0,0)
-          unk <- c(0,0)
-          filters <- c("PASS","PASS")
-          table_happy <- data.frame("Type"=types,"Recall"=recall,"Precision"=precision,"F1_Score"=f1_score,"TP_Base"=tp,"TP_Eval"=tp,"FP"=fp,"FN"=fn,"UNK"=unk,"Filter"=filters,"IGV_Session"=igv_session)
-          if (length(args)==3) {
-            table_happy$Stratifier <- NA
-          } else {
-            table_happy$Stratifier <-args[3]
-          }
-
-        }
-        table_happy$Name <- args[1]
-        table_happy$Truth_Set <- args[2]
-        table_happy$Comparison_Engine <-"Happy"
-        table_happy$Summary_Type <- "summary"
-        table_happy<-table_happy[table_happy$Filter=="PASS",c("Type","Recall","Precision","Name","Truth_Set","Comparison_Engine","F1_Score","TP_Eval","TP_Base","FP","FN","UNK","Stratifier","IGV_Session","Summary_Type")]
-        if (nrow(subset(table_happy,Type=="INDEL"))==0) {
-          table_add <- data.frame("Type"="INDEL","Recall"=NA,"Precision"=NA,"F1_Score"=NA,"TP_Eval"=0,"TP_Base"=0,"FP"=0,"FN"=0,"UNK"=0,"Name"=args[1],"Truth_Set"=args[2],"Comparison_Engine"="Happy","Stratifier"=table_happy$Stratifier[1],"IGV_Session"=NA,"Summary_Type"="summary")
-          table_happy <- rbind(table_happy,table_add)
-        }
-        write.csv(table_happy,"happy.summary.csv",row.names=FALSE)
-        EOF
-    >>>
-
-    runtime {
-        docker: "rocker/tidyverse"
-        preemptible: select_first([preemptible,0])
-        disks: "local-disk " + disk_size + " HDD"
-    }
-
-    output{
-        File summaryOut="happy.summary.csv"
-    }
-}
-
-#Convert GenotypeConcordance output statistics to final output format
-task SummariseGATKGC {
-    input {
-        String evalLabel
-        String truthLabel
-        String areVariants
-        String? stratLabel
-        File? summaryFile
-        File? summaryCounts
-        Int? unkSNP
-        Int? unkINDEL
-        Int? preemptible
-        String? igvSession
-    }
-
-    Int disk_size = 10 + ceil(2.2 * size(summaryFile, "GB") + 2.2 * size(summaryCounts, "GB"))
-
-    command <<<
-        set -xeuo pipefail
-
-        Rscript -<<"EOF" ~{evalLabel} ~{truthLabel} ~{default="" summaryFile} ~{default="" summaryCounts} ~{default="" stratLabel} ~{default="" igvSession} ~{default="" unkSNP} ~{default="" unkINDEL} ~{areVariants}
-        args <- commandArgs(trailingOnly = TRUE)
-        if (args[length(args)]=="yes") {
-            table_GC <- read.table(args[3],skip=6, header=TRUE,sep="\t",na.strings="?")
-            table_counts_GC <- read.table(args[4],skip=6, header=TRUE,sep="\t",na.strings="?")
-            table_GC$F1_Score <- 2*(table_GC$VAR_PPV*table_GC$VAR_SENSITIVITY)/(table_GC$VAR_PPV+table_GC$VAR_SENSITIVITY)
-            table_GC$TP_Eval <- table_counts_GC$TP_COUNT
-            table_GC$TP_Base <- table_counts_GC$TP_COUNT
-            table_GC$FP <- table_counts_GC$FP_COUNT
-            table_GC$FN <- table_counts_GC$FN_COUNT
-            colnames(table_GC)[10]<-"Recall"
-            colnames(table_GC)[11]<-"Precision"
-            colnames(table_GC)[1]<-"Type"
-            if (length(args)==8) {
-                table_GC$Stratifier <- NA
-                table_GC$IGV_Session <- args[5]
-                table_GC$UNK[table_GC$Type=="SNP"]=args[6]
-                table_GC$UNK[table_GC$Type=="INDEL"]=args[7]
-
-            } else {
-                table_GC$Stratifier <- args[5]
-                table_GC$IGV_Session <- args[6]
-                table_GC$UNK[table_GC$Type=="SNP"]=args[7]
-                table_GC$UNK[table_GC$Type=="INDEL"]=args[8]
-            }
-        } else {
-            types <- c("INDEL","SNP")
-            recall <- c(NA,NA)
-            precision <- c(NA,NA)
-            f1_score <- c(NA,NA)
-            tp <- c(0,0)
-            fp <- c(0,0)
-            fn <- c(0,0)
-            unk <- c(0,0)
-            igv_session <- c(NA,NA)
-            table_GC <- data.frame("Type"=types,"Recall"=recall,"Precision"=precision,"F1_Score"=f1_score,"TP_Eval"=tp,"TP_Base"=tp,"FP"=fp,"FN"=fn,"UNK"=unk,"IGV_Session"=igv_session)
-            if (length(args)==3) {
-                table_GC$Stratifier <- NA
-            } else {
-                table_GC$Stratifier <- args[3]
-            }
-        }
-        table_GC$Name <- args[1]
-        table_GC$Truth_Set <- args[2]
-        table_GC$Comparison_Engine <-"GATK_GC"
-        table_GC$Summary_Type <- "summary"
-        table_GC <- table_GC[,c("Type","Recall","Precision","Name","Truth_Set","Comparison_Engine","F1_Score","TP_Eval","TP_Base","FP","FN","UNK","Stratifier","IGV_Session","Summary_Type")]
-        write.csv(table_GC,"gatkgc.summary.csv",row.names=FALSE)
-        EOF
-    >>>
-
-    runtime {
-        docker: "rocker/tidyverse"
-        preemptible: select_first([preemptible,0])
-        disks: "local-disk " + disk_size + " HDD"
-    }
-
-    output{
-        File summaryOut="gatkgc.summary.csv"
-    }
-}
-
-#Combine summaries from multiple csv into a single csv
 task CombineSummaries {
     input {
-        Array[File] summaries
-        Int? preemptible
-    }
-    String dollar="$"
+        Array[File] ROC_summaries
 
-    Int disk_size = 10 + ceil(2 * size(summaries, "GB"))
+        Array[File] SN_summaries
+        Array[File] IDD_summaries
+        Array[File] ST_summaries
+
+        String? experiment
+        Array[String]? extra_column_names
+        Array[String]? extra_column_values
+
+        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(size(ROC_summaries, "GB") + size(SN_summaries, "GB")
+                                             + size(IDD_summaries, "GB") + size(ST_summaries, "GB")) + 10, "cpu": 2, "memory": 8}
+    }
+
     command <<<
         set -xeuo pipefail
 
-        Rscript -<<"EOF"
-        library(readr)
-        library(dplyr)
-        library(purrr)
-        summary_files <- read_csv("~{write_lines(summaries)}", col_names=FALSE)
-        merged<- as.list(summary_files$X1) %>% map(read_csv) %>% reduce(bind_rows)
-        write.csv(merged,"summary.csv",row.names=FALSE)
-        EOF
+        python << CODE
+        import pandas as pd
+
+        EXTRA_COL_NAMES = ["~{sep="\", \"" extra_column_names}"]
+        EXTRA_COL_VALUES = ["~{sep="\", \"" extra_column_values}"]
+        def add_extra_cols(df):
+            if "~{experiment}" != "":
+                df['Experiment'] = "~{experiment}"
+
+            name_val_dict = dict(zip(EXTRA_COL_NAMES, EXTRA_COL_VALUES))
+            for key, value in name_val_dict.items():
+                df[key] = value
+            return df
+
+        # Concat all ROC summaries into one file
+        full_ROC = pd.DataFrame()
+        for file in ["~{default="" sep="\", \"" ROC_summaries}"]:
+            df = pd.read_csv(file, sep='\t')
+            full_ROC = pd.concat([full_ROC, df])
+
+        add_extra_cols(full_ROC).to_csv('ROCStats.tsv', sep='\t', index=False)
+
+        # Gather all other tables for bcftools stats outputs
+        full_SN = pd.DataFrame()
+        for file in ["~{default="" sep="\", \"" SN_summaries}"]:
+            df = pd.read_csv(file, sep='\t')
+            full_SN = pd.concat([full_SN, df])
+
+        full_IDD = pd.DataFrame()
+        for file in ["~{default="" sep="\", \"" IDD_summaries}"]:
+            df = pd.read_csv(file, sep='\t')
+            full_IDD = pd.concat([full_IDD, df])
+
+        full_ST = pd.DataFrame()
+        for file in ["~{default="" sep="\", \"" ST_summaries}"]:
+            df = pd.read_csv(file, sep='\t')
+            full_ST = pd.concat([full_ST, df])
+
+        # Label INDEL types
+        full_IDD['INDEL_Type'] = full_IDD['INDEL_Length'].apply(lambda x: 'Ins' if x > 0 else 'Del')
+        full_IDD['Type'] = full_IDD['BCF_Label'].fillna("") + 'INDEL'
+        full_IDD = full_IDD.drop(columns=['BCF_Label'])
+
+        # Label SNP sub types
+        def ti_tv(sub):
+            if (set(sub.split('>')) == {'A', 'G'}) or (set(sub.split('>')) == {'C', 'T'}):
+                return 'Ti'
+            else:
+                return 'Tv'
+
+        full_ST['Substitution_Type'] = full_ST['Substitution'].apply(ti_tv)
+        full_ST['Type'] = full_ST['BCF_Label'].fillna("") + 'SNP'
+        full_ST = full_ST.drop(columns=['BCF_Label'])
+
+        # Clean up for simple summary
+        simple_renaming = {'SNPs': 'SNP', 'MNPs': 'MNP', 'indels': 'INDEL', 'others': 'Other', 'multiallelic sites': 'MA', 'multiallelic SNP sites': 'MASNP'}
+        simple_summary = full_SN.copy()
+        simple_summary['Category'] = simple_summary['Category'].replace(simple_renaming)
+        simple_summary['Type'] = simple_summary['BCF_Label'].fillna("") + simple_summary['Category']
+        simple_summary = simple_summary.drop(columns=['BCF_Label', 'Category'])
+
+        # Compute simple stats
+        for df in [full_SN, full_IDD, full_ST, simple_summary]:
+            df.columns = [c.replace('_Count', '') for c in df.columns]
+            df['Precision'] = df['TP_Query'] / (df['TP_Query'] + df['FP'])
+            df['Recall'] = df['TP_Base'] / (df['TP_Base'] + df['FN'])
+            df['F1_Score'] = 2 * df['Precision'] * df['Recall'] / (df['Precision'] + df['Recall'])
+
+        # Add optional labels
+        for df in [full_SN, full_IDD, full_ST, simple_summary]:
+            df = add_extra_cols(df)
+
+        # Reorder columns
+        metadata_cols = ['Query_Name', 'Base_Name', 'Interval', 'Type']
+        metadata_cols = metadata_cols + EXTRA_COL_NAMES if len(EXTRA_COL_NAMES) > 0 else metadata_cols
+        metadata_cols = ['Experiment'] + metadata_cols if "~{experiment}" != "" else metadata_cols
+        stat_cols = ['TP_Query', 'TP_Base', 'FP', 'FN', 'Precision', 'Recall', 'F1_Score', 'IGN', 'OUT']
+
+        full_IDD = full_IDD[metadata_cols + ['INDEL_Type', 'INDEL_Length'] + stat_cols]
+        full_ST = full_ST[metadata_cols + ['Substitution', 'Substitution_Type'] + stat_cols]
+        simple_summary = simple_summary[metadata_cols + stat_cols]
+
+        # Skip returning full_SN since it is redundant with simple_summary
+        simple_summary.to_csv('SimpleSummary.tsv', sep='\t', index=False)
+        full_IDD.to_csv('IndelDistributionStats.tsv', sep='\t', index=False)
+        full_ST.to_csv('SNPSubstitutionStats.tsv', sep='\t', index=False)
+
+        CODE
     >>>
 
     runtime {
-            docker: "rocker/tidyverse"
-            preemptible: select_first([preemptible,0])
-            disks: "local-disk " + disk_size + " HDD"
-        }
-
-    output{
-        File summaryOut="summary.csv"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
+        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
+        cpu: runtimeAttributes.cpu
+        memory: runtimeAttributes.memory + "GB"
     }
-}
 
-#Use CrosscheckFingerprints to match evaluation vcfs to appropriate truth vcfs
-task MatchEvalTruth {
-    input{
-        File evalVcf
-        File truthVcf
-        File evalVcfIndex
-        File truthVcfIndex
-        File hapMap
-        Int? preemptible
-        Int? memoryMaybe
-        String gatkTag
-    }
-    Int memoryDefault=16
-    Int memoryJava=select_first([memoryMaybe,memoryDefault])
-    Int memoryRam=memoryJava+2
-    Int disk_size = 10 + ceil(size(hapMap, "GB") + size(evalVcf, "GB") + size(evalVcfIndex, "GB") + size(truthVcf, "GB") + size(truthVcfIndex, "GB"))
-
-    command <<<
-        gatk --java-options "-Xmx~{memoryJava}G" CrosscheckFingerprints -I ~{evalVcf} -SI ~{truthVcf} -H ~{hapMap} --CROSSCHECK_MODE CHECK_ALL_OTHERS --CROSSCHECK_BY FILE --EXPECT_ALL_GROUPS_TO_MATCH
-    >>>
-
-    runtime {
-            docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
-            preemptible: select_first([preemptible,0])
-            disks: "local-disk " + disk_size + " HDD"
-            bootDiskSizeGb: "16"
-            memory: memoryRam + " GB"
-        }
-}
-
-# creates an IGV session
-# given a list of IGV compatible file paths
-task WriteXMLfile {
-    input {
-        Array[String] input_files
-        String reference_version
-        String file_name
-
-        Array[String] input_names
-        Array[String] input_names_prefix = if defined(input_names) then prefix('-n ', select_first([input_names])) else []
-    }
-    command {
-        /usr/writeIGV.sh ~{reference_version} ~{sep=" " input_files} ~{sep=" " input_names_prefix}  > "~{file_name}.xml"
-    }
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/igv-xml:v1.0"
-    }
     output {
-        File igv_session = "${file_name}.xml"
-    }
-}
-
-task CreateIntervalList{
-    input {
-        File reference
-        File reference_index
-        File reference_dict
-        String interval_string
-        String gatkTag
-        String? dummyInputForTerraCallCaching
-    }
-    command {
-        gatk PreprocessIntervals \
-        -R ~{reference} \
-        -L ~{interval_string} \
-        -O output.interval_list \
-        --bin-length 0 \
-        -imr OVERLAPPING_ONLY \
-        -padding 0
-    }
-    output {
-        File interval_list = "output.interval_list"
-    }
-    runtime {
-        preemptible: 3
-        docker: "us.gcr.io/broad-gatk/gatk:"+gatkTag
-        disks: "local-disk 100 HDD"
-        memory: "4 GB"
-    }
-}
-
-#Print given message to stderr and return an error
-task ErrorWithMessage{
-    input {
-        String message
-    }
-    command <<<
-    >&2 echo "Error: ~{message}"
-    exit 1
-    >>>
-
-    runtime {
-        docker: "ubuntu"
+        File simple_summary = "SimpleSummary.tsv"
+        File IDD_combined_summaries = "IndelDistributionStats.tsv"
+        File ST_combined_summaries = "SNPSubstitutionStats.tsv"
+        File ROC_combined_summaries = "ROCStats.tsv"
     }
 }

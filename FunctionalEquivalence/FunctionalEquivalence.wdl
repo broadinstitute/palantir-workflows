@@ -51,10 +51,6 @@ workflow FunctionalEquivalence {
 
         Boolean signed_difference = false
 
-        Boolean passingOnly = true
-        Boolean requireMatchingGenotypes = true
-        String vcfScoreField = "QUAL"
-        Int? threadsVcfEval = 2
         Int? preemptible = 3
     }
 
