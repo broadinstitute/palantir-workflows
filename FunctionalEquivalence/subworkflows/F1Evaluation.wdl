@@ -1,36 +1,6 @@
 version 1.0
 
-workflow F1Evaluation {
-    input {
-        Array[File] roc_tables
-        String tool1_label
-        String tool2_label
-        String? additional_label
-        Boolean signed_difference = false
-        Int? mem_gb
-        Int? preemptible
-    }
-    
-    call F1EvaluationTask {
-        input:
-            roc_tables = roc_tables,
-            tool1_label = tool1_label,
-            tool2_label = tool2_label,
-            additional_label = additional_label,
-            signed_difference = signed_difference,
-            mem_gb = mem_gb,
-            preemptible = preemptible
-    }
-
-    output {
-        Array[File] f1_plots = F1EvaluationTask.f1_plots
-        File f1_summary = F1EvaluationTask.f1_summary
-        Int fe_status = F1EvaluationTask.fe_status
-    }
-}
-
-
-task F1EvaluationTask {
+task F1Evaluation {
     input {
         Array[File] roc_tables
         String tool1_label
