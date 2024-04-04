@@ -1,6 +1,6 @@
 version 1.0
 
-import "../BenchmarkVCFs/SimpleBenchmark.wdl" as BenchmarkVCFs
+import "../BenchmarkVCFs/BenchmarkVCFs.wdl" as BenchmarkVCFs
 import "subworkflows/FEEvaluation.wdl" as FEEvaluation
 import "subworkflows/F1Evaluation.wdl" as F1Evaluation
 import "subworkflows/PlotROC.wdl" as PlotROC
