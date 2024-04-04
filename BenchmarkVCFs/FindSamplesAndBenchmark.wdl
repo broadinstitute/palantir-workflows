@@ -39,8 +39,8 @@ workflow FindSamplesAndBenchmark {
 
         # Columns to add to output files
         String experiment = ""
-        String extra_column_names = []
-        String extra_column_values = []
+        Array[String] extra_column_names = []
+        Array[String] extra_column_values = []
 
         # Fingerprint arguments
         File haplotype_map

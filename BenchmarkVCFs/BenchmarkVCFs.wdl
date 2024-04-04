@@ -31,7 +31,7 @@ struct StratifierInterval {
 
 # Main workflow: performs evaluation of query_vcf against base_vcf using vcfeval comparison engine,
 # over different analysis modes.
-workflow SimpleBenchmark {
+workflow BenchmarkVCFs {
     input {
         # VCF information
         File base_vcf
