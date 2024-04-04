@@ -62,6 +62,7 @@ task F1EvaluationTask {
         matplotlib.rcParams['mathtext.default'] = 'regular'
         matplotlib.rcParams['font.family'] = 'serif'
 
+        VARIANT_TYPES = ["SNP", "INDEL"]
         plot_qual_limit = ~{plot_qual_limit}
 
         def read_file(filename):
@@ -245,7 +246,7 @@ task F1EvaluationTask {
 
             num_columns = max(len(stratifiers), 3)
             fig, axes = plt.subplots(3, num_columns, figsize=(3*num_columns,8))
-            for row, var_type in enumerate(['snp', 'indel']):
+            for row, var_type in enumerate(VARIANT_TYPES):
                 for col, region in enumerate(stratifiers):
                     column_to_plot = col if len(stratifiers) > 1 else 1
                     ax = axes[row, column_to_plot]
