@@ -2,6 +2,7 @@ import hail as hl
 import pandas as pd
 import subprocess
 import collections.abc
+import argparse
 
 def format_input(line, header):
     fields = line.split('\t')
@@ -13,7 +14,7 @@ def format_input(line, header):
     effect_allele = fields[1]
     weight = fields[2]
     site_id = fields[0]
-    return InputRow(chrom, pos, a1, a2, effect_allele, {'weight': weight, 'site_id': site_id})
+    return LiftoverSites.InputRow(chrom, pos, a1, a2, effect_allele, {'weight': weight, 'site_id': site_id})
 
 def format_output(sites):
     #CHR:BP:A1:A2    A1      BETA    CHR     BP      A1      A2
@@ -25,11 +26,13 @@ def format_output(sites):
 
 class LiftoverSites:
     class LiftoverArguments:
-        def __init__(self, run_java_picard_jar_instead_of_gatk:bool, path_to_gakt_or_picard_jar:str, chain_file_path:str, reference_path:str) -> None:
+        def __init__(self, run_java_picard_jar_instead_of_gatk:bool, path_to_gakt_or_picard_jar:str, chain_file_path:str, reference_path:str, gatk_java_version:str, hail_java_version:str) -> None:
             self.run_java_picard_jar_instead_of_gatk = run_java_picard_jar_instead_of_gatk
             self.path_to_gakt_or_picard_jar = path_to_gakt_or_picard_jar
             self.chain_file_path = chain_file_path
             self.reference_path = reference_path
+            self.gatk_java_version = gatk_java_version
+            self.hail_java_version = hail_java_version
     
     class InputRow:
         def __init__(self, chrom, pos, a1, a2, effect_allele, custom_columns) -> None:
@@ -42,7 +45,7 @@ class LiftoverSites:
             self.effect_allele = effect_allele
             self.custom_columns = custom_columns
     
-    def __init__(self, output_dir:str, input_function:collections.abc.Callable[[str, str], InputRow], output_function:collections.abc.Callable[[hl.Table], hl.Table], annotations_to_save:collections.abc.Iterable[str], liftover_arguments:LiftoverArguments, contains_effect_allele:bool, reference_panel_path:str, input_has_header:bool=True, input_encoding:str ='utf-8', ) -> None:
+    def __init__(self, output_dir:str, input_function:collections.abc.Callable[[str, str], InputRow], output_function:collections.abc.Callable[[hl.Table], hl.Table], annotations_to_save:collections.abc.Iterable[str], liftover_arguments:LiftoverArguments, contains_effect_allele:bool, reference_panel_path:str, input_has_header:bool=True, input_encoding:str ='utf-8', min_af:float=5e-2) -> None:
         self.output_dir = output_dir
         self.input_function = input_function
         self.output_function = output_function
@@ -53,6 +56,7 @@ class LiftoverSites:
         self.input_has_header = input_has_header
         self.input_encoding = input_encoding
         self.reference_panel = None
+        self.min_af = min_af
     
     @staticmethod
     def _print_rejected_site(df_group):
@@ -101,7 +105,8 @@ class LiftoverSites:
                     output_vcf.write(f"{chrom}\t{input_row.pos}\t{i_line}\t{input_row.a2}\t{input_row.a1}\t30\tPASS\t{effect_allele_2 if self.contains_effect_allele else ''}{original_columns}\n")
 
     def run_liftover(self, basename):
-        java_or_not = ['java'] if self.liftover_arguments.run_java_picard_jar_instead_of_gatk else []
+        java_or_not = ['java', '-jar'] if self.liftover_arguments.run_java_picard_jar_instead_of_gatk else []
+        subprocess.run(['jenv', 'local', self.liftover_arguments.gatk_java_version])
         process = subprocess.run(java_or_not + [self.liftover_arguments.path_to_gakt_or_picard_jar,
                     'LiftoverVcf',
                     '-I', f'{self.output_dir}/{basename}.hg19.vcf',
@@ -143,6 +148,7 @@ class LiftoverSites:
             print('No rejected sites.')
 
     def disambiguate(self, basename):
+        subprocess.run(['jenv', 'local', self.liftover_arguments.hail_java_version])
         # Init hail
         hl.init(default_reference='GRCh38', idempotent=True)
 
@@ -153,6 +159,11 @@ class LiftoverSites:
 
         # Filter out sites that are not in the reference panel
         sites_in_panel = sites.key_by('locus', 'alleles').semi_join(self.reference_panel).cache()
+        num_sites = sites.count()
+        num_sites_in_panel = sites_in_panel.count()
+
+        sites_not_in_panel = sites.key_by('locus', 'alleles').anti_join(self.reference_panel).cache()
+        snps_not_in_panel = sites_not_in_panel.filter(hl.is_snp(sites_not_in_panel.alleles[0], sites_not_in_panel.alleles[1])).cache()
 
         # Find ambiguous sites
         ambiguous_sites_in_panel = LiftoverSites._get_ambiguous_sites(sites_in_panel)
@@ -161,7 +172,7 @@ class LiftoverSites:
         num_ambiguous_sites_in_panel = ambiguous_sites_in_panel.count()
 
         # Select sites based on AF filtering threshold
-        ambiguous_sites_in_panel_selected = ambiguous_sites_in_panel.filter(ambiguous_sites_in_panel.af > 5e-2).cache()
+        ambiguous_sites_in_panel_selected = ambiguous_sites_in_panel.filter(ambiguous_sites_in_panel.af > self.min_af).cache()
         num_ambiguous_sites_in_panel_selected = ambiguous_sites_in_panel_selected.count()
 
         # This will catch if we couldn't disambiguate any sites
@@ -183,6 +194,7 @@ class LiftoverSites:
         # Remove all ambiguous sites and add only the selected sites
         sites_in_panel_without_ambiguous_sites = sites_in_panel.anti_join(ambiguous_sites_in_panel).cache()
         sites_disambiguated = sites_in_panel_without_ambiguous_sites.union(ambiguous_sites_in_panel_selected.drop('af')).cache()
+        sites_disambiguated = sites_disambiguated.union(snps_not_in_panel).cache()
 
         # If we use an effect_allele, write the correct allele into the "effect" column
         if self.contains_effect_allele:
@@ -199,9 +211,34 @@ class LiftoverSites:
         self.disambiguate(basename)
 
 if __name__ == '__main__':
-    liftover = LiftoverSites(
-        'test/output', format_input, format_output, ['weight'],
-        LiftoverSites.LiftoverArguments(False, '/Users/mgatzen/code/gatk/gatk', '/Users/mgatzen/liftover/b37ToHg38.over.chain', '/Users/mgatzen/reference/hg38/Homo_sapiens_assembly38.fasta'),
-        True, 'gs://fc-f0032a5f-c108-4b69-aeb0-9d665405bfdc/_data/1000G_HGDP_no_singletons.sites.vcf.gz')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output_dir', required=True)
+    gatk_picard_group = parser.add_mutually_exclusive_group(required=True)
+    gatk_picard_group.add_argument("--gatk_path")
+    gatk_picard_group.add_argument("--picard_path")
+    parser.add_argument("--chain_path", required=True)
+    parser.add_argument("--new_reference", required=True)
+    parser.add_argument("--panel", required=True)
+    parser.add_argument("--weights", required=True)
+    parser.add_argument("--output-basename", required=True)
+    parser.add_argument("--liftover_java_version", default='17')
+    parser.add_argument("--hail_java_version", default='11.0')
+    args = parser.parse_args()
+    use_picard_jar = args.picard_path
+    liftover= LiftoverSites(
+        args.output_dir, format_input, format_output, ['weight'],
+        LiftoverSites.LiftoverArguments(
+            use_picard_jar, args.picard_path if use_picard_jar else args.gatk_path, args.chain_path, args.new_reference,
+            args.liftover_java_version, args.hail_java_version
+        ),
+        True, args.panel
+    )
 
-    liftover.run_all('test/input/hcl.txt', 'hcl2')
+    liftover.run_all(args.weights, args.output_basename)
+    # liftover = LiftoverSites(
+    #     'test/output', format_input, format_output, ['weight'],
+    #     LiftoverSites.LiftoverArguments(False, '/Users/mgatzen/code/gatk/gatk', '/Users/mgatzen/liftover/b37ToHg38.over.chain', '/Users/mgatzen/reference/hg38/Homo_sapiens_assembly38.fasta'),
+    #     True, 'gs://fc-f0032a5f-c108-4b69-aeb0-9d665405bfdc/_data/1000G_HGDP_no_singletons.sites.vcf.gz')
+
+    # liftover.run_all('test/input/hcl.txt', 'hcl2')
+
