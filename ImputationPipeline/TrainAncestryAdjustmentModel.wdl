@@ -13,6 +13,11 @@ workflow TrainAncestryAdjustmentModel {
 
     String population_basename
     File? sites # set of sites to limit scoring to
+
+    Boolean assume_missing_hom_ref = false # this can be used when using a whole genome vcf, where any uncalled sites can be assumed to be hom-ref.
+	  #  In this case, you must also provide ref_fasta and ref_fai
+	  File? ref_fasta
+    File? ref_fai
   }
 
   call ScoringTasks.ScoreVcf {
@@ -20,7 +25,10 @@ workflow TrainAncestryAdjustmentModel {
       vcf = population_vcf,
       basename = population_basename,
       weights = named_weight_set.weight_set.linear_weights,
-      sites = sites
+      sites = sites,
+      assume_missing_hom_ref = assume_missing_hom_ref,
+			ref_fasta = ref_fasta,
+			ref_fai = ref_fai
   }
 
   if (defined(named_weight_set.weight_set.interaction_weights)) {

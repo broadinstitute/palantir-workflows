@@ -32,6 +32,12 @@ workflow ScoringImputedDataset {
 	# is the effect allele, and the 13th column is the effect weight
 	Boolean redoPCA = false
 	Boolean adjustScores = true
+
+
+    Boolean assume_missing_hom_ref = false # this can be used when using a whole genome vcf, where any uncalled sites can be assumed to be hom-ref.
+	#  In this case, you must also provide ref_fasta and ref_fai
+	File? ref_fasta
+    File? ref_fai
   }
 
   if (adjustScores) {
@@ -115,7 +121,10 @@ workflow ScoringImputedDataset {
 			base_mem = scoring_mem,
 			extra_args = columns_for_scoring,
 			sites = sites_to_use_in_scoring,
-			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
+			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
+			assume_missing_hom_ref = assume_missing_hom_ref,
+			ref_fasta = ref_fasta,
+			ref_fai = ref_fai
 	}
 
 	if (defined(named_weight_set.weight_set.interaction_weights)) {

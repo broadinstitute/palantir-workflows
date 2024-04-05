@@ -13,6 +13,9 @@ task ScoreVcf {
     File? sites
     String? chromosome_encoding
     Boolean use_ref_alt_for_ids = false
+    File? ref_fasta
+    File? ref_fai
+    Boolean assume_missing_hom_ref = false
   }
 
   Int runtime_mem = base_mem + 2
@@ -20,11 +23,69 @@ task ScoreVcf {
   Int disk_space =  3*ceil(size(vcf, "GB")) + 20
   String var_ids_string = "@:#:" + if use_ref_alt_for_ids then "\\$r:\\$a" else "\\$1:\\$2"
 
-  command {
+  command <<<
     /plink2 --score ~{weights} header ignore-dup-ids list-variants no-mean-imputation \
     cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --set-all-var-ids ~{var_ids_string} --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
     --new-id-max-allele-len 1000 missing ~{"--extract " + sites} --out ~{basename} --memory ~{plink_mem} ~{"--output-chr " + chromosome_encoding}
-  }
+
+    python3 << "EOF"
+    if ~{if assume_missing_hom_ref then "True" else "False"}:
+      if ~{if defined(ref_fasta) then "False" else "True"}:
+        raise FileNotFoundError("ref_fasta must be defined when assume_missing_hom_ref is set to true.")
+      if ~{if defined(ref_fai) then "False" else "True"}:
+        raise FileNotFoundError("ref_fai must be defined when assume_missing_hom_ref is set to true.")
+      import csv
+      import pysam
+      import pandas as pd
+      from sortedcontainers import SortedList
+
+      with open("~{basename}.sscore.vars") as sites_file:
+        sites = set(sites_file.read().splitlines())
+      
+      def sites_filter(s):
+        if ~{if defined(sites) then "True" else "False"}:
+          with open("~{sites}") as sites_filter_file:
+            sites_filter = set(sites_filter_file.read().splitlines())
+            return s in sites_filter
+        else:
+            return True
+
+      def sort_fn(s):
+        s_split = s.split(":")
+        return (s_split[0], int(s_split[1]), s_split[2], s_split[3])
+      
+      all_sites = SortedList(sites, key=sort_fn)
+
+      with open("~{weights}") as weights:
+          reader=csv.reader(weights, delimiter='\t')
+          next(reader)
+          with pysam.FastaFile("~{ref_fasta}") as ref:
+              hom_ref_score_addition=0
+              hom_ref_dosage_addition = 0
+              for row in reader:
+                  if row[0] not in sites and sites_filter(row[0]):
+                      all_sites.add(row[0])
+                      id_split = row[0].split(":")
+                      contig = id_split[0]
+                      pos = int(id_split[1])
+                      ref_base = ref.fetch(contig, pos-1, pos)
+                      if ref_base == row[1]:
+                          hom_ref_score_addition+=2*float(row[2])
+                          hom_ref_dosage_addition+=2
+      
+      scores = pd.read_csv("~{basename}.sscore",sep="\t")
+      scores['SCORE1_SUM']=scores['SCORE1_SUM'] + hom_ref_score_addition
+      scores['NAMED_ALLELE_DOSAGE_SUM']=scores['NAMED_ALLELE_DOSAGE_SUM'] + hom_ref_dosage_addition
+      scores['SCORE1_AVG'] = scores['SCORE1_SUM']/len(all_sites)/2
+
+      scores.to_csv("~{basename}.sscore",sep="\t", index=False)
+      with open("~{basename}.sscore.vars","w") as sites_out_file:
+        for s in all_sites:
+          sites_out_file.write(f'{s}\n') 
+
+
+    EOF
+  >>>
 
   output {
     File score = "~{basename}.sscore"
@@ -33,7 +94,7 @@ task ScoreVcf {
   }
 
   runtime {
-    docker: "us.gcr.io/broad-dsde-methods/plink2_docker@sha256:4455bf22ada6769ef00ed0509b278130ed98b6172c91de69b5bc2045a60de124"
+    docker: "us.gcr.io/broad-dsde-methods/ckachulis/plink2_docker:missing_hom_ref_testing "
     disks: "local-disk " + disk_space + " HDD"
     memory: runtime_mem + " GB"
   }
