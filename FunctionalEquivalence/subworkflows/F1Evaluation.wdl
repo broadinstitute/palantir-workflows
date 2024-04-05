@@ -47,6 +47,9 @@ task F1Evaluation {
                 'F1_Score': 'f1',
                 'Score': 'score'
             })
+
+            # Recompute F1 Score
+            file_data['F1_Score'] = file_data['TP_Base'] / (file_data['TP_Base'] + 0.5 * (file_data['FP'] + file_data['FN']))
             return file_data
 
         def read_datasets(roc_tables):
