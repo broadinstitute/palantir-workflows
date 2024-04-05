@@ -36,6 +36,9 @@ Required arguments:
 
 Optional arguments:
 - `String? additional_label`: Optional label that will be displayed on the plots to distinguish, for example, different tool versions.
+- `Boolean? passing_only = true`: Only consider unfiltered sites for comparison.
+- `Boolean? require_matching_genotypes = true`: Require genotypes to also match to label true positives.
+- `Boolean? enable_ref_overlap = false`: Argument for vcfeval. 
 - `Int? preemptible = 3`: Number of preemtible attempts for all tasks.
 
 ### Outputs

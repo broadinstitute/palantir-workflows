@@ -49,6 +49,11 @@ workflow FunctionalEquivalence {
         String tool2_label
         String? additional_label
 
+        # vcfeval Arguments
+        Boolean passing_only = true
+        Boolean require_matching_genotypes = true
+        Boolean enable_ref_overlap = false
+
         Boolean signed_difference = false
 
         Int? preemptible = 3
@@ -89,6 +94,9 @@ workflow FunctionalEquivalence {
                 experiment="EvalVsTruthTool1",
                 extra_column_names=["Dataset", "Replicate", "Tool", "Interval-test"],
                 extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, "tool1", "WholeGenome"],
+                passing_only=passing_only,
+                require_matching_genotypes=require_matching_genotypes,
+                enable_ref_overlap=enable_ref_overlap,
         }
     }
 
@@ -112,7 +120,10 @@ workflow FunctionalEquivalence {
                 score_field="QUAL",
                 experiment="EvalVsTruthTool2",
                 extra_column_names=["Dataset", "Replicate", "Tool", "Interval-test"],
-                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, "tool2", "WholeGenome"]
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, "tool2", "WholeGenome"],
+                passing_only=passing_only,
+                require_matching_genotypes=require_matching_genotypes,
+                enable_ref_overlap=enable_ref_overlap,
         }
     }
 
@@ -154,7 +165,10 @@ workflow FunctionalEquivalence {
                 stratifier_labels=stratifier_labels,
                 experiment="EvalInterTool",
                 extra_column_names=["Dataset", "Replicate"],
-                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num]
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num],
+                passing_only=passing_only,
+                require_matching_genotypes=require_matching_genotypes,
+                enable_ref_overlap=enable_ref_overlap,
         }
     }
 
@@ -180,7 +194,10 @@ workflow FunctionalEquivalence {
                     stratifier_labels=stratifier_labels,
                     experiment="EvalIntraTool1",
                     extra_column_names=["Dataset", "Replicate"],
-                    extra_column_values=[tool1_inputs[index.left].dataset, tool1_inputs[index.left].num]
+                    extra_column_values=[tool1_inputs[index.left].dataset, tool1_inputs[index.left].num],
+                    passing_only=passing_only,
+                    require_matching_genotypes=require_matching_genotypes,
+                    enable_ref_overlap=enable_ref_overlap,
             }
         }
     }
@@ -206,7 +223,10 @@ workflow FunctionalEquivalence {
                     stratifier_labels=stratifier_labels,
                     experiment="EvalIntraTool2",
                     extra_column_names=["Dataset", "Replicate"],
-                    extra_column_values=[tool2_inputs[index.left].dataset, tool2_inputs[index.left].num]
+                    extra_column_values=[tool2_inputs[index.left].dataset, tool2_inputs[index.left].num],
+                    passing_only=passing_only,
+                    require_matching_genotypes=require_matching_genotypes,
+                    enable_ref_overlap=enable_ref_overlap,
             }
         }
     }

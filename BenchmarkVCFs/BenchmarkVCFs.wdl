@@ -64,6 +64,11 @@ workflow BenchmarkVCFs {
         Boolean check_fingerprint = true
         File? haplotype_map
 
+        # vcfeval Arguments
+        Boolean passing_only = true
+        Boolean require_matching_genotypes = true
+        Boolean enable_ref_overlap = false
+
         Boolean create_igv_session = false
         Array[File]? optional_igv_bams
         String igv_session_name = "igv_session"
@@ -130,6 +135,9 @@ workflow BenchmarkVCFs {
             reference=reference,
             evaluation_bed=converted_evaluation_bed,
             score_field=score_field,
+            passing_only=passing_only,
+            require_matching_genotypes=require_matching_genotypes,
+            enable_ref_overlap=enable_ref_overlap,
             preemptible=preemptible
     }
 
@@ -220,9 +228,9 @@ task VCFEval {
         String score_field
 
         # vcfeval Arguments
-        Boolean passing_only = true
-        Boolean require_matching_genotypes = true
-        Boolean enable_ref_overlap = false
+        Boolean passing_only
+        Boolean require_matching_genotypes
+        Boolean enable_ref_overlap
 
         # Runtime params
         Int? preemptible

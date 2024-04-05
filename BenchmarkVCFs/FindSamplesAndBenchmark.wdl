@@ -42,6 +42,11 @@ workflow FindSamplesAndBenchmark {
         Array[String] extra_column_names = []
         Array[String] extra_column_values = []
 
+        # vcfeval Arguments
+        Boolean passing_only = true
+        Boolean require_matching_genotypes = true
+        Boolean enable_ref_overlap = false
+
         # Fingerprint arguments
         File haplotype_map
         Boolean check_all_file_pairs = true
@@ -105,6 +110,9 @@ workflow FindSamplesAndBenchmark {
                     experiment=experiment,
                     extra_column_names=extra_column_names,
                     extra_column_values=extra_column_values,
+                    passing_only=passing_only,
+                    require_matching_genotypes=require_matching_genotypes,
+                    enable_ref_overlap=enable_ref_overlap,
                     check_fingerprint=false,
                     haplotype_map=haplotype_map,
                     create_igv_session=create_igv_sessions,
