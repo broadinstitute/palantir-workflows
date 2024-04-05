@@ -38,6 +38,11 @@ task F1Evaluation {
         def read_file(filename):
             # Rename columns from newer ROC output table to be backwards compatible with following script
             file_data = pd.read_csv(filename, sep='\t')
+
+            # Recompute F1 Score
+            file_data['F1_Score'] = file_data['TP_Base'] / (file_data['TP_Base'] + 0.5 * (file_data['FP'] + file_data['FN']))
+
+            # Relabel columns for backwards compatibility with rest of script
             file_data = file_data.rename(columns={
                 'Interval-test': 'region',
                 'Type': 'var_type',
@@ -48,8 +53,6 @@ task F1Evaluation {
                 'Score': 'score'
             })
 
-            # Recompute F1 Score
-            file_data['F1_Score'] = file_data['TP_Base'] / (file_data['TP_Base'] + 0.5 * (file_data['FP'] + file_data['FN']))
             return file_data
 
         def read_datasets(roc_tables):
