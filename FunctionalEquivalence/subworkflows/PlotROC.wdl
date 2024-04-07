@@ -75,10 +75,10 @@ task PlotROCTask {
         def read_file(data, best_qual, filename):
             df = pd.read_csv(filename, sep='\t')
 
-            for region in df['Interval-test'].unique():
+            for region in df['Interval'].unique():
                 for var_type in df['Type'].unique():
                     for tool in df['Tool'].unique():
-                        sub_df = df[(df['Interval-test'] == region) & (df['Type'] == var_type) & (df['Tool'] == tool)]
+                        sub_df = df[(df['Interval'] == region) & (df['Type'] == var_type) & (df['Tool'] == tool)]
                         data[(region, var_type, tool)], best_qual[(region, var_type, tool)] = parse_roc_to_dicts(sub_df)
 
         def plot_roc(ax, data, best_qual, region, var_type):
@@ -140,7 +140,7 @@ task PlotROCTask {
             fig.savefig('roc_plot_{}.png'.format(sample_id), dpi=100)
 
         def main(roc_tables, sample_id, tool1_label, tool2_label, additional_label):
-            stratifiers = list(pd.read_csv(roc_tables[0], sep='\t')['Interval-test'].unique())    # Grab list of stratifiers used from first file
+            stratifiers = list(pd.read_csv(roc_tables[0], sep='\t')['Interval'].unique())    # Grab list of stratifiers used from first file
 
             data = dict()
             best_qual = dict()
