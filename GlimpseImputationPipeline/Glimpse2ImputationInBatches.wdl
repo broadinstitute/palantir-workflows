@@ -31,6 +31,7 @@ workflow Glimpse2ImputationInBatches {
         String? docker_extract_num_sites_from_reference_chunk
         Int? cpu_ligate
         Int? mem_gb_ligate
+        Int? mem_gb_merge
         File? monitoring_script
 
         String? docker_extract_annotations
@@ -88,6 +89,7 @@ workflow Glimpse2ImputationInBatches {
             imputed_vcf_indices = Glimpse2Imputation.imputed_vcf_index,
             output_basename = output_basename,
             qc_metrics = qc_metrics,
+            mem_gb_merge = mem_gb_merge,
             docker_extract_annotations = docker_extract_annotations,
             docker_count_samples = docker_count_samples,
             docker_merge = docker_merge

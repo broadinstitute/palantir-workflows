@@ -22,7 +22,7 @@ Available options:
 -h, --help      Print this help and exit.
 -p, --push      If set, push image.
 -y, --yes       If set, don't ask for confirmation.
--t, --tag       Tag for the newly created docker image. Suggestion: Use {github_namespace}_{commit_id} as the version tag, e.g. odelaneau_e0b9b56.
+-t, --tag       Tag for the newly created docker image. Suggestion: Use {github_namespace}_{commit_id} as the version tag. E.g. us.gcr.io/broad-dsde-methods/glimpse:odelaneau_e0b9b56.
 -r, --repo      Repo URL for the GLIMPSE2 base image (e.g. https://github.com/odelaneau/GLIMPSE.git).
 -b, --branch    Branch name for the GLIMPSE2 base image (e.g. master).
 EOF
