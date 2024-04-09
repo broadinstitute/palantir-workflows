@@ -1,10 +1,7 @@
-# default ubuntu version: 20.04
-ARG UBUNTU_VERSION=20.04
-FROM ubuntu:${UBUNTU_VERSION}
+# just getting this to work
+FROM us.gcr.io/broad-dsde-methods/plink2_docker@sha256:4455bf22ada6769ef00ed0509b278130ed98b6172c91de69b5bc2045a60de124
 
 RUN apt-get update \
-  && apt-get install -y wget \
-  && apt-get install -y unzip \
   && apt-get install -y python3 \
   && apt-get install -y python3-pip \
   && apt-get install -y libbz2-dev \
@@ -13,9 +10,5 @@ RUN apt-get update \
 RUN pip install pysam==0.20.0
 RUN pip install sortedcontainers
 RUN pip install pandas
-
-RUN wget https://s3.amazonaws.com/plink2-assets/alpha5/plink2_linux_avx2_20240105.zip
-RUN unzip plink2_linux_avx2_20240105.zip -d /
-RUN rm plink2_linux_avx2_20240105.zip
 
 WORKDIR /
