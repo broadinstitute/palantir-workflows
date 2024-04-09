@@ -84,6 +84,9 @@ workflows:
   - name: Glimpse2ImputationInBatches
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2ImputationInBatches.wdl
+  - name: Glimpse2CheckQC
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2CheckQC.wdl
   - name: RNAMetrics
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/RNAMetrics.wdl

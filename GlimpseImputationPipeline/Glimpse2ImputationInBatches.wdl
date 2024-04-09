@@ -19,23 +19,24 @@ workflow Glimpse2ImputationInBatches {
 
         File ref_dict
 
-        Boolean impute_reference_only_variants = false
-        Boolean call_indels = false
+        Boolean? collect_qc_metrics
+        Boolean? impute_reference_only_variants
+        Boolean? call_indels
         Int? n_burnin
         Int? n_main
         Int? effective_population_size
         
-        Int preemptible = 1
-        String docker = "us.gcr.io/broad-dsde-methods/glimpse:palantir-workflows_20c9de0"
-        Int cpu_phase = 4
-        Int mem_gb_phase = 8
-        Int cpu_ligate = 4
-        Int mem_gb_ligate = 4
+        Int? preemptible
+        String? docker
+        String? docker_extract_num_sites_from_reference_chunk
+        Int? cpu_ligate
+        Int? mem_gb_ligate
+        Int? mem_gb_merge
         File? monitoring_script
 
-        String docker_extract_annotations = "us.gcr.io/broad-gatk/gatk:4.3.0.0"
-        String docker_count_samples = "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
-        String docker_merge = "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
+        String? docker_extract_annotations
+        String? docker_count_samples
+        String? docker_merge
     }
 
     call SplitIntoBatches {
@@ -56,6 +57,7 @@ workflow Glimpse2ImputationInBatches {
                 fasta = fasta,
                 fasta_index = fasta_index,
                 output_basename = output_basename + "_batch_" + i,
+                collect_qc_metrics = collect_qc_metrics,
                 ref_dict = ref_dict,
                 impute_reference_only_variants = impute_reference_only_variants,
                 call_indels = call_indels,
@@ -64,12 +66,21 @@ workflow Glimpse2ImputationInBatches {
                 effective_population_size = effective_population_size,
                 preemptible = preemptible,
                 docker = docker,
-                cpu_phase = cpu_phase,
-                mem_gb_phase = mem_gb_phase,
+                docker_extract_num_sites_from_reference_chunk = docker_extract_num_sites_from_reference_chunk,
                 cpu_ligate = cpu_ligate,
                 mem_gb_ligate = mem_gb_ligate,
                 monitoring_script = monitoring_script
         }
+    }
+
+    # We can't access collect_qc_metrics here because we want to inherit the default value
+    # from of the Glimpse2Imputation workflow. But we know that if collect_qc_metrics has
+    # been set there then the qc_metrics output will be defined, so just check if the output
+    # exists for the first batch.
+    Boolean merge_qc_metrics = defined(Glimpse2Imputation.qc_metrics[0])
+
+    if (merge_qc_metrics) {
+        Array[File] qc_metrics = select_all(Glimpse2Imputation.qc_metrics)
     }
 
     call MergeBatches.Glimpse2MergeBatches {
@@ -77,6 +88,8 @@ workflow Glimpse2ImputationInBatches {
             imputed_vcfs = Glimpse2Imputation.imputed_vcf,
             imputed_vcf_indices = Glimpse2Imputation.imputed_vcf_index,
             output_basename = output_basename,
+            qc_metrics = qc_metrics,
+            mem_gb_merge = mem_gb_merge,
             docker_extract_annotations = docker_extract_annotations,
             docker_count_samples = docker_count_samples,
             docker_merge = docker_merge
@@ -85,10 +98,11 @@ workflow Glimpse2ImputationInBatches {
     output {
         File merged_imputed_vcf = Glimpse2MergeBatches.merged_imputed_vcf
         File merged_imputed_vcf_index = Glimpse2MergeBatches.merged_imputed_vcf_index
+        
+        # No select_first here because we want this to be null if merge_qc_metrics is false
+        File? merged_qc_metrics = Glimpse2MergeBatches.merged_qc_metrics
     }
 }
-
-
 
 task SplitIntoBatches {
     input {

@@ -21,17 +21,48 @@ workflow Glimpse2Imputation {
         Int? n_burnin
         Int? n_main
         Int? effective_population_size
+
+        Boolean collect_qc_metrics = true
         
-        Int preemptible = 1
-        String docker = "us.gcr.io/broad-dsde-methods/glimpse:palantir-workflows_20c9de0"
-        Int cpu_phase = 4
-        Int mem_gb_phase = 16
+        Int preemptible = 9
+        String docker = "us.gcr.io/broad-dsde-methods/glimpse:odelaneau_f310862"
+        String docker_extract_num_sites_from_reference_chunk = "us.gcr.io/broad-dsde-methods/glimpse_extract_num_sites_from_reference_chunks:michaelgatzen_edc7f3a"
         Int cpu_ligate = 4
         Int mem_gb_ligate = 4
         File? monitoring_script
     }
 
     scatter (reference_chunk in read_lines(reference_chunks)) {
+        call GetNumberOfSitesInChunk {
+            input:
+                reference_chunk = reference_chunk,
+                docker = docker_extract_num_sites_from_reference_chunk
+        }
+
+        Int n_rare = GetNumberOfSitesInChunk.n_rare
+        Int n_common = GetNumberOfSitesInChunk.n_common
+
+        if (defined(input_vcf)) {
+            call CountSamples {
+                input:
+                    vcf = select_first([input_vcf])
+            }
+        }
+
+        Int n_samples = select_first([CountSamples.nSamples, length(select_first([crams]))])
+
+        call SelectResourceParameters {
+            input:
+                n_rare = n_rare,
+                n_common = n_common,
+                n_samples = n_samples
+        }
+
+        if (SelectResourceParameters.memory_gb > 256 || SelectResourceParameters.request_n_cpus > 32) {
+            # force failure if we're accidently going to request too much resources and spend too much money
+            Int safety_check_memory_gb = -1
+            Int safety_check_n_cpu = -1
+        }
         call GlimpsePhase {
             input:
                 reference_chunk = reference_chunk,
@@ -49,8 +80,8 @@ workflow Glimpse2Imputation {
                 fasta_index = fasta_index,
                 preemptible = preemptible,
                 docker = docker,
-                cpu = cpu_phase,
-                mem_gb = mem_gb_phase,
+                cpu = select_first([safety_check_n_cpu, SelectResourceParameters.request_n_cpus]),
+                mem_gb = select_first([safety_check_memory_gb, SelectResourceParameters.memory_gb]),
                 monitoring_script = monitoring_script
         }
     }
@@ -68,9 +99,21 @@ workflow Glimpse2Imputation {
             monitoring_script = monitoring_script
     }
 
+    if (collect_qc_metrics) {
+        call CollectQCMetrics {
+            input:
+                imputed_vcf = GlimpseLigate.imputed_vcf,
+                output_basename = output_basename,
+                monitoring_script = monitoring_script
+        }
+    }
+
     output {
         File imputed_vcf = GlimpseLigate.imputed_vcf
         File imputed_vcf_index = GlimpseLigate.imputed_vcf_index
+        
+        File? qc_metrics = CollectQCMetrics.qc_metrics
+
         Array[File?] glimpse_phase_monitoring = GlimpsePhase.monitoring
         File? glimpse_ligate_monitoring = GlimpseLigate.monitoring
     }
@@ -95,8 +138,8 @@ task GlimpsePhase {
 
         Int mem_gb = 4
         Int cpu = 4
-        Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + size(reference_chunk, "GiB") + 100)
-        Int preemptible = 1
+        Int disk_size_gb = ceil(2.2 * size(input_vcf, "GiB") + size(reference_chunk, "GiB") + 0.003 * length(select_first([crams, []])) + 10)
+        Int preemptible = 9
         Int max_retries = 3
         String docker
         File? monitoring_script
@@ -117,16 +160,27 @@ task GlimpsePhase {
 
         export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
 
+        seq_cache_populate.pl -root ./ref/cache ~{fasta}
+        export REF_PATH=:
+        export REF_CACHE=./ref/cache/%2s/%2s/%s
+
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
         cram_paths=( ~{sep=" " crams} )
+        cram_index_paths=( ~{sep=" " cram_indices} )
         sample_ids=( ~{sep=" " sample_ids} )
 
+        chunk_region=$(echo "~{reference_chunk}"|sed 's/^.*chr/chr/'|sed 's/\.bin//'|sed 's/_/:/1'|sed 's/_/-/1')
+
+        echo "Region for CRAM extraction: ${chunk_region}"
         for i in "${!cram_paths[@]}" ; do
-            echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
+            samtools view -h -C -X -T ~{fasta} -o cram${i}.cram "${cram_paths[$i]}" "${cram_index_paths[$i]}" ${chunk_region}
+            samtools index cram${i}.cram
+            echo -e "cram${i}.cram ${sample_ids[$i]}" >> crams.list
+            echo "Processed CRAM ${i}: ${cram_paths[$i]} -> cram${i}.cram"
         done
 
-        /bin/GLIMPSE2_phase \
+        cmd="/bin/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
         --reference ~{reference_chunk} \
         --output phase_output.bcf \
@@ -135,7 +189,14 @@ task GlimpsePhase {
         ~{"--burnin " + n_burnin} ~{"--main " + n_main} \
         ~{"--ne " + effective_population_size} \
         ~{bam_file_list_input} \
-        ~{"--fasta " + fasta}
+        ~{"--fasta " + fasta} \
+        --checkpoint-file-out checkpoint.bin"
+
+        if [ -s "checkpoint.bin" ]; then
+            cmd="$cmd --checkpoint-file-in checkpoint.bin" 
+        fi
+
+        eval $cmd
     >>>
 
     runtime {
@@ -145,6 +206,7 @@ task GlimpsePhase {
         cpu: cpu
         preemptible: preemptible
         maxRetries: max_retries
+        checkpointFile: "checkpoint.bin"
     }
 
     output {
@@ -200,5 +262,157 @@ task GlimpseLigate {
         File imputed_vcf = "~{output_basename}.imputed.vcf.gz"
         File imputed_vcf_index = "~{output_basename}.imputed.vcf.gz.tbi"
         File? monitoring = "monitoring.log"
+    }
+}
+
+task CollectQCMetrics {
+    input {
+        File imputed_vcf
+        String output_basename
+        
+        Int preemptible = 1
+        String docker = "hailgenetics/hail:0.2.126-py3.11"
+        Int cpu = 4
+        Int mem_gb = 16
+        File? monitoring_script
+    }
+
+    parameter_meta {
+        imputed_vcf: {
+                        localization_optional: true
+                    }
+    }
+
+    Int disk_size_gb = 100
+    
+    command <<<
+        set -euo pipefail
+
+        ~{"bash " + monitoring_script + " > monitoring.log &"}
+
+        cat <<'EOF' > script.py
+import hail as hl
+import pandas as pd
+
+# Calculate metrics
+hl.init(default_reference='GRCh38', idempotent=True)
+vcf = hl.import_vcf('~{imputed_vcf}', force_bgz=True)
+qc = hl.sample_qc(vcf)
+qc.cols().flatten().rename({'sample_qc.' + col: col for col in list(qc['sample_qc'])}).export('~{output_basename}.qc_metrics.tsv')
+EOF
+        python3 script.py
+    >>>
+
+    runtime {
+        docker: docker
+        disks: "local-disk " + disk_size_gb + " HDD"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        preemptible: preemptible
+    }
+
+    output {
+        File qc_metrics = "~{output_basename}.qc_metrics.tsv"
+        File? monitoring = "monitoring.log"
+    }
+}
+
+task GetNumberOfSitesInChunk {
+    input {
+        File reference_chunk
+
+        String docker
+        Int mem_gb = 4
+        Int cpu = 4
+        Int disk_size_gb = ceil(size(reference_chunk, "GiB") + 10)
+        Int preemptible = 1
+        Int max_retries = 3
+    }
+
+    command <<<
+        set -xeuo pipefail
+        /bin/GLIMPSE2_extract_num_sites_from_reference_chunk ~{reference_chunk} > n_sites.txt
+        cat n_sites.txt
+        grep "Lrare" n_sites.txt | sed 's/Lrare=//' > n_rare.txt
+        grep "Lcommon" n_sites.txt | sed 's/Lcommon=//' > n_common.txt
+    >>>
+
+    runtime {
+        docker: docker
+        disks: "local-disk " + disk_size_gb + " HDD"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        preemptible: preemptible
+        maxRetries: max_retries
+    }
+
+    output {
+        Int n_rare = read_int("n_rare.txt")
+        Int n_common = read_int("n_common.txt")
+    }
+}
+
+task CountSamples {
+  input {
+    File vcf
+
+    String bcftools_docker = "us.gcr.io/broad-gotc-prod/imputation-bcf-vcf:1.0.7-1.10.2-0.1.16-1669908889"
+    Int cpu = 1
+    Int memory_mb = 3000
+    Int disk_size_gb = 10 + ceil(size(vcf, "GiB"))
+  }
+
+  command <<<
+    bcftools query -l ~{vcf} | wc -l
+  >>>
+
+  runtime {
+    docker: bcftools_docker
+    disks: "local-disk ${disk_size_gb} HDD"
+    memory: "${memory_mb} MiB"
+    cpu: cpu
+  }
+  output {
+    Int nSamples = read_int(stdout())
+  }
+}
+
+task SelectResourceParameters {
+    input {
+        Int n_rare
+        Int n_common
+        Int n_samples
+    }
+
+    command <<<
+        python3 << EOF
+        import math
+        n_rare = ~{n_rare}
+        n_common = ~{n_common}
+        n_samples = ~{n_samples}
+        n_sites = n_common + n_rare
+
+        # try to keep expected runtime under 4 hours, but don't ask for more than 32 cpus, or 256 GB memory
+        estimated_needed_threads = min(math.ceil(5e-6*n_sites*n_samples/240), 32)
+        estimated_needed_memory_gb = min(math.ceil((800e-3 + 0.97e-6 * n_rare * estimated_needed_threads + 14.6e-6 * n_common * estimated_needed_threads + 6.5e-9 * (n_rare + n_common) * n_samples + 13.7e-3 * n_samples + 1.8e-6*(n_rare + n_common)*math.log(n_samples))), 256)
+        # recalc allowable threads, may be some additional threads available due to rounding memory up
+        threads_to_use = max(math.floor((estimated_needed_memory_gb - (800e-3 + 6.5e-9 * (n_rare + n_common) * n_samples + 13.7e-3 * n_samples + 1.8e-6*(n_rare + n_common)*math.log(n_samples)))/(0.97e-6 * n_rare + 14.6e-6 * n_common)), 1) 
+        #estimated_needed_memory_gb = math.ceil(1.2 * estimated_needed_memory_gb)
+
+        with open("n_cpus_request.txt", "w") as f_cpus_request:
+            f_cpus_request.write(f'{int(threads_to_use)}')
+
+        with open("memory_gb.txt", "w") as f_mem:
+            f_mem.write(f'{int(estimated_needed_memory_gb)}')
+        EOF
+    >>>
+
+    runtime {
+        docker : "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
+    }
+
+    output {
+        Int memory_gb = read_int("memory_gb.txt")
+        Int request_n_cpus = read_int("n_cpus_request.txt")
     }
 }
