@@ -167,7 +167,11 @@ task GlimpsePhase {
         sample_ids=( ~{sep=" " sample_ids} )
 
         for i in "${!cram_paths[@]}" ; do
-            echo -e "${cram_paths[i]} ~{if defined(cram_indices) then '${cram_index_paths[i]} ' else ' '}${sample_ids[$i]}" >> crams.list
+            if [ "${#cram_paths[@]}" -eq "${#cram_index_paths[@]}" ]; then
+                echo -e "${cram_paths[i]} ${cram_index_paths[i]} ${sample_ids[$i]}" >> crams.list
+            else
+                echo -e "${cram_paths[i]} ${sample_ids[$i]}" >> crams.list
+            fi
         done
 
         cmd="/bin/GLIMPSE2_phase \
