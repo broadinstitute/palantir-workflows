@@ -25,7 +25,7 @@ workflow Glimpse2Imputation {
         Boolean collect_qc_metrics = true
         
         Int preemptible = 9
-        String docker = "us.gcr.io/broad-dsde-methods/glimpse:odelaneau_f310862"
+        String docker = "us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:specify_cram "
         String docker_extract_num_sites_from_reference_chunk = "us.gcr.io/broad-dsde-methods/glimpse_extract_num_sites_from_reference_chunks:michaelgatzen_edc7f3a"
         Int cpu_ligate = 4
         Int mem_gb_ligate = 4
@@ -160,24 +160,14 @@ task GlimpsePhase {
 
         export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
 
-        seq_cache_populate.pl -root ./ref/cache ~{fasta}
-        export REF_PATH=:
-        export REF_CACHE=./ref/cache/%2s/%2s/%s
-
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
         cram_paths=( ~{sep=" " crams} )
         cram_index_paths=( ~{sep=" " cram_indices} )
         sample_ids=( ~{sep=" " sample_ids} )
 
-        chunk_region=$(echo "~{reference_chunk}"|sed 's/^.*chr/chr/'|sed 's/\.bin//'|sed 's/_/:/1'|sed 's/_/-/1')
-
-        echo "Region for CRAM extraction: ${chunk_region}"
         for i in "${!cram_paths[@]}" ; do
-            samtools view -h -C -X -T ~{fasta} -o cram${i}.cram "${cram_paths[$i]}" "${cram_index_paths[$i]}" ${chunk_region}
-            samtools index cram${i}.cram
-            echo -e "cram${i}.cram ${sample_ids[$i]}" >> crams.list
-            echo "Processed CRAM ${i}: ${cram_paths[$i]} -> cram${i}.cram"
+            echo -e "${cram_paths[i]} ~{if defined(cram_indices) then '${cram_index_paths[i]} ' else ' '}${sample_ids[$i]}" >> crams.list
         done
 
         cmd="/bin/GLIMPSE2_phase \
