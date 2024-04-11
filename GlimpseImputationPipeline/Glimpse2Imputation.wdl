@@ -25,7 +25,7 @@ workflow Glimpse2Imputation {
         Boolean collect_qc_metrics = true
         
         Int preemptible = 9
-        String docker = "us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:specify_cram "
+        String docker = "us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:specify_cram_index"
         String docker_extract_num_sites_from_reference_chunk = "us.gcr.io/broad-dsde-methods/glimpse_extract_num_sites_from_reference_chunks:michaelgatzen_edc7f3a"
         Int cpu_ligate = 4
         Int mem_gb_ligate = 4
