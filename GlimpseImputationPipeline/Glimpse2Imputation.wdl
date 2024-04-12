@@ -186,8 +186,8 @@ task GlimpsePhase {
                 printf "%s\n" "${duplicate_cram_filenames[@]}"
                 exit 1
             fi
-            
-            for i in "${!cram_paths[@}]}"; do
+
+            for i in "${!cram_paths[@]}"; do
                 echo -e "${cramp_paths[$i]} ${sample_ids[$i]}" >> cram.list
             done
         fi
