@@ -188,7 +188,7 @@ task GlimpsePhase {
             fi
 
             for i in "${!cram_paths[@]}"; do
-                echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> cram.list
+                echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
             done
         fi
 
