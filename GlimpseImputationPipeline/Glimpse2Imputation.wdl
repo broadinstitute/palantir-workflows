@@ -161,15 +161,15 @@ task GlimpsePhase {
         export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
+        cram_paths=( ~{sep=" " crams} )
+        cram_index_paths=( ~{sep=" " cram_indices} )
+        sample_ids=( ~{sep=" " sample_ids} )
+
         if ~{if defined(cram_indices) then "true" else "false"}; then
             seq_cache_populate.pl -root ./ref/cache ~{fasta}
             export REF_PATH=:
             export REF_CACHE=./ref/cache/%2s/%2s/%s
-
-            cram_paths=( ~{sep=" " crams} )
-            cram_index_paths=( ~{sep=" " cram_indices} )
-            sample_ids=( ~{sep=" " sample_ids} )
-
+        
             chunk_region=$(echo "~{reference_chunk}"|sed 's/^.*chr/chr/'|sed 's/\.bin//'|sed 's/_/:/1'|sed 's/_/-/1')
 
             echo "Region for CRAM extraction: ${chunk_region}"
