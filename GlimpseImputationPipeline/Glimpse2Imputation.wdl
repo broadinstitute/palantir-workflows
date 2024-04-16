@@ -159,26 +159,39 @@ task GlimpsePhase {
         set -euo pipefail
 
         export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
-
-        seq_cache_populate.pl -root ./ref/cache ~{fasta}
-        export REF_PATH=:
-        export REF_CACHE=./ref/cache/%2s/%2s/%s
-
         ~{"bash " + monitoring_script + " > monitoring.log &"}
 
         cram_paths=( ~{sep=" " crams} )
         cram_index_paths=( ~{sep=" " cram_indices} )
         sample_ids=( ~{sep=" " sample_ids} )
 
-        chunk_region=$(echo "~{reference_chunk}"|sed 's/^.*chr/chr/'|sed 's/\.bin//'|sed 's/_/:/1'|sed 's/_/-/1')
+        if ~{if defined(cram_indices) then "true" else "false"}; then
+            seq_cache_populate.pl -root ./ref/cache ~{fasta}
+            export REF_PATH=:
+            export REF_CACHE=./ref/cache/%2s/%2s/%s
+        
+            chunk_region=$(echo "~{reference_chunk}"|sed 's/^.*chr/chr/'|sed 's/\.bin//'|sed 's/_/:/1'|sed 's/_/-/1')
 
-        echo "Region for CRAM extraction: ${chunk_region}"
-        for i in "${!cram_paths[@]}" ; do
-            samtools view -h -C -X -T ~{fasta} -o cram${i}.cram "${cram_paths[$i]}" "${cram_index_paths[$i]}" ${chunk_region}
-            samtools index cram${i}.cram
-            echo -e "cram${i}.cram ${sample_ids[$i]}" >> crams.list
-            echo "Processed CRAM ${i}: ${cram_paths[$i]} -> cram${i}.cram"
-        done
+            echo "Region for CRAM extraction: ${chunk_region}"
+            for i in "${!cram_paths[@]}" ; do
+                samtools view -h -C -X -T ~{fasta} -o cram${i}.cram "${cram_paths[$i]}" "${cram_index_paths[$i]}" ${chunk_region}
+                samtools index cram${i}.cram
+                echo -e "cram${i}.cram ${sample_ids[$i]}" >> crams.list
+                echo "Processed CRAM ${i}: ${cram_paths[$i]} -> cram${i}.cram"
+            done
+        else
+            duplicate_cram_filenames=$(printf "%s\n" "${cram_paths[@]}" | xargs -I {} basename {} | uniq -d)
+            if [ ! -z "$duplicate_cram_filenames" ]; then
+                echo "ERROR: The input CRAMs contain multiple files with the same basename, which leads to an error due to the way that htslib is implemented. Duplicate filenames:"
+                printf "%s\n" "${duplicate_cram_filenames[@]}"
+                exit 1
+            fi
+
+            for i in "${!cram_paths[@]}"; do
+                echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
+            done
+        fi
+
 
         cmd="/bin/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
