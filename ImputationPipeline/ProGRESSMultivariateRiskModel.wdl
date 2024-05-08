@@ -35,18 +35,27 @@ workflow ProGRESSMultivariateRiskModel {
 			weights = prs_weights
 	}
 
-    call ScoringWithAlternativeSource.ScoreVcfWithPreferredGvcf {
+    # call ScoringWithAlternativeSource.ScoreVcfWithPreferredGvcf {
+    #     input:
+    #         preferred_gvcf = exome_gvcf,
+    #         preferred_gvcf_index = exome_gvcf_index,
+    #         secondary_vcf = imputed_wgs_vcf,
+    #         weights = prs_weights,
+    #         basename = basename,
+    #         chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
+    #         use_ref_alt_for_ids = use_ref_alt_for_ids,
+    #         ref_fasta = ref_fasta,
+    #         ref_fasta_index = ref_fasta_index,
+    #         ref_dict = ref_dict
+    # }
+
+    call ScoringTasks.ScoreVcf {
         input:
-            preferred_gvcf = exome_gvcf,
-            preferred_gvcf_index = exome_gvcf_index,
-            secondary_vcf = imputed_wgs_vcf,
+            vcf = imputed_wgs_vcf,
             weights = prs_weights,
             basename = basename,
             chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
-            use_ref_alt_for_ids = use_ref_alt_for_ids,
-            ref_fasta = ref_fasta,
-            ref_fasta_index = ref_fasta_index,
-            ref_dict = ref_dict
+            use_ref_alt_for_ids = true
     }
 
     call PCATasks.ArrayVcfToPlinkDataset {
@@ -71,7 +80,7 @@ workflow ProGRESSMultivariateRiskModel {
 
     call ComputeRiskValue {
         input:
-            prs = ScoreVcfWithPreferredGvcf.score,
+            prs = ScoreVcf.score,
             pcs = ProjectArray.projections,
             family_history = fam_history,
             prs_beta = prs_beta,
