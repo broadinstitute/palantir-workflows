@@ -50,6 +50,23 @@ class GroupBuilder:
         for table_name, description in self.entity_types_dict.items():
             if all(x in description['attributeNames'] for x in ['is_control_sample', 'lab_batch']):
                 self.group_samples_into_batches(table_name)
+    
+    @staticmethod
+    def read_boolean_attribute(entity, attribute_name):
+        if attribute_name not in entity['attributes']:
+            raise ValueError(f'Attribute {attribute_name} not found in sample/sample_set: {entity["name"]}')
+        attribute = entity['attributes'][attribute_name]
+        if isinstance(attribute, bool):
+            return attribute
+        elif isinstance(attribute, str):
+            if attribute.lower() == 'true':
+                return True
+            elif attribute.lower() == 'false':
+                return False
+            else:
+                raise ValueError(f'Invalid value for boolean attribute {attribute_name} in sample/sample_set {entity["name"]}: {attribute}')
+        else:
+            raise ValueError(f'Invalid type for boolean attribute {attribute_name} in sample/sample_set {entity["name"]}: {type(attribute)}')
 
     def group_samples_into_batches(self, table_name):
         samples_already_in_aggregation_sets = set()  # set of samples already in aggregation sets
@@ -70,7 +87,7 @@ class GroupBuilder:
             for sample_set in sample_sets_dict:
                 attributes = sample_set['attributes']
                 lab_batch = attributes['lab_batch']
-                this_aggregation_set = AggregationSet(lab_batch, attributes['group'], attributes['delivered'], True)
+                this_aggregation_set = AggregationSet(lab_batch, attributes['group'], GroupBuilder.read_boolean_attribute(sample_set, 'delivered'), True)
                 if lab_batch in lab_batch_sample_sets_dict:
                     if lab_batch_sample_sets_dict[lab_batch].group < this_aggregation_set.group:
                         if not lab_batch_sample_sets_dict[lab_batch].delivered:
@@ -102,9 +119,11 @@ class GroupBuilder:
                 if 'lab_batch' not in sample['attributes']:
                     continue
                 sample_name = sample['name']
+                if sample_name == 'blank':
+                    continue
                 lab_batch = sample['attributes']['lab_batch']
-                is_control_sample = sample['attributes']['is_control_sample']
-                rework = sample['attributes'].get('rework', False)
+                is_control_sample = GroupBuilder.read_boolean_attribute(sample, 'is_control_sample')
+                rework = GroupBuilder.read_boolean_attribute(sample, 'rework') if 'rework' in sample['attributes'] else False
                 if is_control_sample:
                     # do we already have a control sample for this lab batch?  that would be bad...
                     if lab_batch in control_samples_dict:
