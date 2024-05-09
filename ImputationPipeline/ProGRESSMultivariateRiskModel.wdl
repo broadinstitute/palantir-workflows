@@ -30,10 +30,10 @@ workflow ProGRESSMultivariateRiskModel {
         File ref_dict
     }
 
-    call ScoringTasks.DetermineChromosomeEncoding {
-		input:
-			weights = prs_weights
-	}
+    # call ScoringTasks.DetermineChromosomeEncoding {
+	# 	input:
+	# 		weights = prs_weights
+	# }
 
     # call ScoringWithAlternativeSource.ScoreVcfWithPreferredGvcf {
     #     input:
@@ -54,44 +54,45 @@ workflow ProGRESSMultivariateRiskModel {
             vcf = imputed_wgs_vcf,
             weights = prs_weights,
             basename = basename,
-            chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
+            chromosome_encoding = "chrMT", # DetermineChromosomeEncoding.chromosome_encoding,
             use_ref_alt_for_ids = true
     }
 
-    call PCATasks.ArrayVcfToPlinkDataset {
-        input:
-			vcf = imputed_wgs_vcf,
-			pruning_sites = pc_sites,
-			basename = basename,
-            use_ref_alt_for_ids = use_ref_alt_for_ids,
-            chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
-    } 
+    # call PCATasks.ArrayVcfToPlinkDataset {
+    #     input:
+	# 		vcf = imputed_wgs_vcf,
+	# 		pruning_sites = pc_sites,
+	# 		basename = basename,
+    #         use_ref_alt_for_ids = use_ref_alt_for_ids,
+    #         chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
+    # } 
 
-    call PCATasks.ProjectArray {
-        input:
-            pc_loadings = pc_loadings,
-            pc_meansd = pc_meansd,
-            bed = ArrayVcfToPlinkDataset.bed,
-            bim = ArrayVcfToPlinkDataset.bim,
-            fam = ArrayVcfToPlinkDataset.fam,
-            basename = basename,
-            divisor = "none"
-    }
+    # call PCATasks.ProjectArray {
+    #     input:
+    #         pc_loadings = pc_loadings,
+    #         pc_meansd = pc_meansd,
+    #         bed = ArrayVcfToPlinkDataset.bed,
+    #         bim = ArrayVcfToPlinkDataset.bim,
+    #         fam = ArrayVcfToPlinkDataset.fam,
+    #         basename = basename,
+    #         divisor = "none"
+    # }
 
-    call ComputeRiskValue {
-        input:
-            prs = ScoreVcf.score,
-            pcs = ProjectArray.projections,
-            family_history = fam_history,
-            prs_beta = prs_beta,
-            fam_hist_beta = fam_hist_beta,
-            pc1_beta = pc1_beta,
-            pc2_beta = pc2_beta,
-            basename = basename
-    }
+    # call ComputeRiskValue {
+    #     input:
+    #         prs = ScoreVcf.score,
+    #         pcs = ProjectArray.projections,
+    #         family_history = fam_history,
+    #         prs_beta = prs_beta,
+    #         fam_hist_beta = fam_hist_beta,
+    #         pc1_beta = pc1_beta,
+    #         pc2_beta = pc2_beta,
+    #         basename = basename
+    # }
 
     output {
-        File full_risk = ComputeRiskValue.full_risk
+        # File full_risk = ComputeRiskValue.full_risk
+        File test_score = ScoreVcf.score
     }
 }
 
