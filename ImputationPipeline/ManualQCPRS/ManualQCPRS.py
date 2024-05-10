@@ -105,6 +105,23 @@ class ResultsModificationGUI(WidgetGUI):
 
     def run(self):
         self.build_lab_batch_selection_section()
+    
+    @staticmethod
+    def read_boolean_attribute(entity, attribute_name):
+        if attribute_name not in entity['attributes']:
+            raise ValueError(f'Attribute {attribute_name} not found in sample/sample_set: {entity["name"]}')
+        attribute = entity['attributes'][attribute_name]
+        if isinstance(attribute, bool):
+            return attribute
+        elif isinstance(attribute, str):
+            if attribute.lower() == 'true':
+                return True
+            elif attribute.lower() == 'false':
+                return False
+            else:
+                raise ValueError(f'Invalid value for boolean attribute {attribute_name} in sample/sample_set {entity["name"]}: {attribute}')
+        else:
+            raise ValueError(f'Invalid type for boolean attribute {attribute_name} in sample/sample_set {entity["name"]}: {type(attribute)}')
 
     def close_widgets(self):
         super().close_widgets()
@@ -132,7 +149,8 @@ class ResultsModificationGUI(WidgetGUI):
 
         # lab_batch selection and import/export buttons
         self.agg_batch_map = {s['name']: s for s in sample_sets if 'batch_all_results' in s['attributes'] and
-                              (not s['attributes']['delivered'] or s['attributes']["redeliver"])}
+                              (not ResultsModificationGUI.read_boolean_attribute(s, 'delivered') or
+                              ResultsModificationGUI.read_boolean_attribute(s, 'redeliver'))}
 
         with self.status_output_box:
             print("Done")
