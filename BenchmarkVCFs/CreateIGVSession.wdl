@@ -31,7 +31,7 @@ task WriteXMLfile {
         /usr/writeIGV.sh ~{reference_version} ~{sep=" " input_files} ~{sep=" " input_names_prefix}  > "~{file_name}.xml"
     }
     runtime {
-        docker: "us-central1-docker.pkg.dev/broad-dsde-methods/hydro-gen-dockers/igv-xml:v1.0"
+        docker: "us.gcr.io/broad-dsde-methods/igv-xml:v1.0"
     }
     output {
         File igv_session = "${file_name}.xml"
