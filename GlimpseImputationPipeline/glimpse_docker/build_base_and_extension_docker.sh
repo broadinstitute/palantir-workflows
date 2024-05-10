@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env zsh
 
 # This branch is using the following configuration.
 # To replicate this branch, run this script with the following arguments:
@@ -124,8 +124,8 @@ fi
 
 git clone $repo --branch $branch --single-branch ${script_dir}/glimpse_base
 
-docker build -t temp_glimpse_base ${script_dir}/glimpse_base
-docker build -t ${tag} ${script_dir}
+docker build --platform linux/amd64 -t temp_glimpse_base ${script_dir}/glimpse_base
+docker build --platform linux/amd64 -t ${tag} ${script_dir}
 
 if [ "$push" -eq "1" ]; then
     msg "Pushing docker image to ${tag}"

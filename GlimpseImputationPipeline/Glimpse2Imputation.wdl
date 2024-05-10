@@ -165,7 +165,7 @@ task GlimpsePhase {
         cram_index_paths=( ~{sep=" " cram_indices} )
         sample_ids=( ~{sep=" " sample_ids} )
 
-        duplicate_cram_filenames=$(printf "%s\n" "${cram_paths[@]}" | xargs -I {} basename {} | uniq -d)
+        duplicate_cram_filenames=$(printf "%s\n" "${cram_paths[@]}" | xargs -I {} basename {} | sort | uniq -d)
         if [ ! -z "$duplicate_cram_filenames" ]; then
             echo "ERROR: The input CRAMs contain multiple files with the same basename, which leads to an error due to the way that htslib is implemented. Duplicate filenames:"
             printf "%s\n" "${duplicate_cram_filenames[@]}"
@@ -417,5 +417,44 @@ task SelectResourceParameters {
     output {
         Int memory_gb = read_int("memory_gb.txt")
         Int request_n_cpus = read_int("n_cpus_request.txt")
+    }
+}
+
+task CombineCoverageMetrics
+{
+    input {
+        Array[File] cov_metrics
+    }
+
+    command <<<
+        set -euo pipefail
+
+        cov_files=( ~{sep=" " cov_metrics} )
+
+        for i in "${!cov_files[@]}"; do
+            if [ $i -eq 0 ]; then
+                n_skip=1
+                echo 'Chunk' > chunk_col.txt
+            else
+                n_skip=2
+            fi
+            zcat ${cov_files[$i]} | tail -n +${n_skip} >> cov_file.txt
+            n_lines_cov=$(< cov_file.txt wc -l)
+            n_lines_chunk=$(< chunk_col.txt wc -l)
+            n_lines_out=$((n_lines_cov-n_lines_chunk))
+            echo 'n_lines_out=' ${n_lines_out}
+            yes ${i} | head -n ${n_lines_out} >> chunk_col.txt
+        done
+
+        paste chunk_col.txt cov_file.txt > coverage_stats.txt
+
+    >>>
+
+    runtime {
+        docker: "ubuntu:24.04"
+    }
+
+    output {
+        File coverage_stats="coverage_stats.txt"
     }
 }
