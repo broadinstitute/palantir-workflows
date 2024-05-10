@@ -26,22 +26,20 @@ Required arguments:
 - `Array[String] tool2_vcf_index`: The VCF index (`.tbi`) file for tool 2.
 - `Array[String] truth_vcf`: A truth VCF, if available. **If no truth is available for a given row, this field must be set to the string `"null"` and must not be left empty.**
 - `Array[String] truth_vcf_index`: A truth VCF index, if available. **If no truth is available for a given row, this field must be set to the string `"null"` and must not be left empty.**
-- `Array[String]? stratLabels`: Labels for an arbitrary number of intervals for which to produce output statistics and plots.
-- `Array[File]? stratIntervals`: Interval files corresponding to the labels in `stratLabels`. Supported file types are `.interval_list` and `.bed`.
+- `Array[String] truth_vcf_sample_names`: Names for the samples in the `truth_vcf` files, in case they differ from the `sample_id`s.
+- `Array[String]? stratifier_labels`: Labels for an arbitrary number of intervals for which to produce output statistics and plots.
+- `Array[File]? stratifier_intervals`: Interval files corresponding to the labels in `stratLabels`. Supported file types are `.interval_list` and `.bed`.
 - `String referenceVersion = "hg38"`: Required for the call to the BenchmarkVCFs subworkflow. Can be "hg38" or "hg19".
-- `File reference`: .fasta
-- `File refIndex`: .fai
-- `File refDict`: .dict
-- `File hapMap`: Required for the call to the BenchmarkVCFs subworkflow. For hg38, use `"gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.haplotype_database.txt"`
+- `File ref_fasta`: .fasta
+- `File ref_index`: .fai
+- `File haplotype_map`: Required for the call to the BenchmarkVCFs subworkflow. For hg38, use `"gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.haplotype_database.txt"`
 
 Optional arguments:
 - `String? additional_label`: Optional label that will be displayed on the plots to distinguish, for example, different tool versions.
-- `String gatkTag = "4.0.11.0"`: GATK Docker tag to use in various sub-tasks.
-- `Boolean passingOnly = true`: When this is true, only calls that pass the VCF filters will be considered for the evaluation.
-- `Boolean requireMatchingGenotypes = true`: When this is false, the ploidy of calls will be ignored. (see `--squash-ploidy` documentation for `vcfeval`).
-- `String vcfScoreField = "QUAL"`: Column in the VCFs to use for generating ROC and F1 plots (see documentaion for `vcfeval`).
+- `Boolean? passing_only = true`: Only consider unfiltered sites for comparison.
+- `Boolean? require_matching_genotypes = true`: Require genotypes to also match to label true positives.
+- `Boolean? enable_ref_overlap = false`: Argument for vcfeval. 
 - `Int? preemptible = 3`: Number of preemtible attempts for all tasks.
-- `Int? threadsVcfEval = 2`: Number of threads to use for `vcfeval`.
 
 ### Outputs
 - `Array[File] fe_plots`: Array of FE plots for each dataset.

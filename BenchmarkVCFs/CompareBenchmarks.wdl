@@ -148,7 +148,10 @@ def main(sample_ids, configurations, summaries, order_of_samples, order_of_confi
 
     samples_data = []
     for i in range(len(sample_ids)):
-        sample_data = pd.read_csv(summaries[i])
+        sample_data = pd.read_csv(summaries[i], sep='\t')
+        sample_data = sample_data.rename(columns={
+            'Interval': 'Stratifier'
+        })
 
         # Filter out everything other than SNP or INDEL rows, and stratifiers starting with "gc"
         sample_data = sample_data.loc[((sample_data['Type'] == 'SNP') | (sample_data['Type'] == 'INDEL')) & (sample_data['Stratifier'].str.startswith("gc"))]
@@ -378,7 +381,10 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
 
     samples_data = []
     for i in range(len(sample_ids)):
-        sample_data = pd.read_csv(summaries[i])
+        sample_data = pd.read_csv(summaries[i], sep='\t')
+        sample_data = sample_data.rename(columns={
+            'Interval': 'Stratifier'
+        })
 
         # Filter out everything other than SNP or INDEL rows
         sample_data = sample_data.loc[(sample_data['Type'] == 'SNP') | (sample_data['Type'] == 'INDEL')]
@@ -388,7 +394,7 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
         sample_data['configuration'] = configurations[i]
         samples_data.append(sample_data)
     data = pd.concat(samples_data)
-    data = data.fillna({'Stratifier': 'all'})
+    data = data.fillna({'Stratifier': 'WholeGenome'})
 
     if order_of_samples is None:
         unique_sample_ids = data['sample_id'].unique()
@@ -403,7 +409,7 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
     if stratifiers is None:
         stratifiers = data['Stratifier'].unique()
     else:
-        stratifiers = ['all'] + stratifiers
+        stratifiers = ['WholeGenome'] + stratifiers
 
     data = calculate_metrics(data, unique_sample_ids, unique_configurations, stratifiers)
 
