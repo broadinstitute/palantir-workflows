@@ -25,7 +25,7 @@ workflow Glimpse2Imputation {
         Boolean collect_qc_metrics = true
         
         Int preemptible = 9
-        String docker = "us.gcr.io/broad-dsde-methods/glimpse:odelaneau_f310862"
+        String docker = "us.gcr.io/broad-dsde-methods/glimpse:kachulis_ck_bam_reader_retry_cf5822c"
         String docker_extract_num_sites_from_reference_chunk = "us.gcr.io/broad-dsde-methods/glimpse_extract_num_sites_from_reference_chunks:michaelgatzen_edc7f3a"
         Int cpu_ligate = 4
         Int mem_gb_ligate = 4
@@ -99,6 +99,11 @@ workflow Glimpse2Imputation {
             monitoring_script = monitoring_script
     }
 
+    call CombineCoverageMetrics {
+        input:
+            cov_metrics = GlimpsePhase.coverage_metrics
+    }
+
     if (collect_qc_metrics) {
         call CollectQCMetrics {
             input:
@@ -113,6 +118,7 @@ workflow Glimpse2Imputation {
         File imputed_vcf_index = GlimpseLigate.imputed_vcf_index
         
         File? qc_metrics = CollectQCMetrics.qc_metrics
+        File coverage_metrics = CombineCoverageMetrics.coverage_metrics
 
         Array[File?] glimpse_phase_monitoring = GlimpsePhase.monitoring
         File? glimpse_ligate_monitoring = GlimpseLigate.monitoring
@@ -199,7 +205,13 @@ task GlimpsePhase {
             cmd="$cmd --checkpoint-file-in checkpoint.bin" 
         fi
 
-        eval $cmd
+        eval $cmd |& tee glimpse_stdout_stderr.txt
+        
+        #check for read error which corresponds exactly to end of cram/bam block.  
+        #This currently triggers a warning message from htslib, but doesn't return any error
+        if grep -q "EOF marker is absent"; then
+            exit 1
+        fi
     >>>
 
     runtime {
@@ -216,6 +228,7 @@ task GlimpsePhase {
         File imputed_vcf = "phase_output.bcf"
         File imputed_vcf_index = "phase_output.bcf.csi"
         File? monitoring = "monitoring.log"
+        File coverage_metrics = "phase_output_stats_coverage.txt.gz"
     }
 }
 
@@ -446,7 +459,7 @@ task CombineCoverageMetrics
             yes ${i} | head -n ${n_lines_out} >> chunk_col.txt
         done
 
-        paste chunk_col.txt cov_file.txt > coverage_stats.txt
+        paste chunk_col.txt cov_file.txt > coverage_metrics.txt
 
     >>>
 
@@ -455,6 +468,6 @@ task CombineCoverageMetrics
     }
 
     output {
-        File coverage_stats="coverage_stats.txt"
+        File coverage_metrics="coverage_metrics.txt"
     }
 }
