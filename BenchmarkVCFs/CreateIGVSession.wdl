@@ -28,10 +28,10 @@ task WriteXMLfile {
         Array[String] input_names_prefix = if defined(input_names) then prefix('-n ', select_first([input_names])) else []
     }
     command {
-        bash /usr/writeIGV.sh ~{reference_version} ~{sep=" " input_files} ~{sep=" " input_names_prefix}  > "~{file_name}.xml"
+        /usr/writeIGV.sh ~{reference_version} ~{sep=" " input_files} ~{sep=" " input_names_prefix}  > "~{file_name}.xml"
     }
     runtime {
-        docker: "quay.io/mduran/generate-igv-session_2:v1.0"
+        docker: "us.gcr.io/broad-dsde-methods/igv-xml:v1.0"
     }
     output {
         File igv_session = "${file_name}.xml"
