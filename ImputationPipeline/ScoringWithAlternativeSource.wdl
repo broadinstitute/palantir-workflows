@@ -102,7 +102,7 @@ task ConvertWeightsTsvToVcf {
         set -xeuo pipefail
 
         echo -e '##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO' > ~{weights_basename}.vcf
-        awk -F'\t' 'BEGIN {OFS="\t"} {split($1, a, ":"); print a[1], a[2], ".", a[3], a[4], ".", ".", "."}' ~{weights_tsv} >> ~{weights_basename}.vcf
+        tail -n +2 ~{weights_tsv} | awk -F'\t' 'BEGIN {OFS="\t"} {split($1, a, ":"); print a[1], a[2], ".", a[3], a[4], ".", ".", "."}' >> ~{weights_basename}.vcf
     >>>
 
     runtime {
