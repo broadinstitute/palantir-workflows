@@ -205,9 +205,19 @@ task GlimpsePhase {
             cmd="$cmd --checkpoint-file-in checkpoint.bin" 
         fi
 
+
+
         #check for read error which corresponds exactly to end of cram/bam block.  
         #This currently triggers a warning message from htslib, but doesn't return any error
-        eval $cmd |& tee >(if grep -q "EOF marker is absent"; then echo "ERROR: EOF marker absent"; kill -s TERM $PPID; fi;) 
+
+        no_eof_handler() {
+            echo "An input file appears to be corrupted.  Please fix before retrying."
+            exit 1
+        }
+
+        trap no_eof_handler USR1
+
+        eval $cmd |& tee >(if grep -q "EOF marker is absent"; then kill -s USR1 $PPID; fi;) 
     >>>
 
     runtime {
