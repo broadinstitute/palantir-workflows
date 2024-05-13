@@ -207,7 +207,7 @@ task GlimpsePhase {
 
         #check for read error which corresponds exactly to end of cram/bam block.  
         #This currently triggers a warning message from htslib, but doesn't return any error
-        eval $cmd |& tee >(if grep -q "EOF marker is absent"; echo "ERROR: EOF marker absent"; kill -s TERM $PPID; fi) 
+        eval $cmd |& tee >(if grep -q "EOF marker is absent"; then; echo "ERROR: EOF marker absent"; kill -s TERM $PPID; fi) 
     >>>
 
     runtime {
