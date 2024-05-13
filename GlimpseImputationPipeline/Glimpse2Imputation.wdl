@@ -205,13 +205,9 @@ task GlimpsePhase {
             cmd="$cmd --checkpoint-file-in checkpoint.bin" 
         fi
 
-        eval $cmd |& tee glimpse_stdout_stderr.txt
-        
         #check for read error which corresponds exactly to end of cram/bam block.  
         #This currently triggers a warning message from htslib, but doesn't return any error
-        if grep -q "EOF marker is absent"; then
-            exit 1
-        fi
+        eval $cmd |& tee >(if grep -q "EOF marker is absent"; echo "ERROR: EOF marker absent"; kill -s TERM $PPID; fi) 
     >>>
 
     runtime {
