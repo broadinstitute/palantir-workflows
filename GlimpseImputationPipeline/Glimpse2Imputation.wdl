@@ -452,7 +452,7 @@ task CombineCoverageMetrics
             # glimpse coverage metrics are formatted to be human readable in a command line, not machine readable or consistent.  ie, number of tabs 
             # are variable between columns depending on length of sample names, odd things like that.  We want these to be machine readable tables, 
             # so need to fix this.
-            zcat ${cov_files[$i]} | tail -n +$((n_skip + 1)) | sed s/%// | sed s/"No data"/"No data pct"/ | sed s/\\t\\t/\\t/ >> cov_file.txt
+            zcat ${cov_files[$i]} | tail -n +$((n_skip + 1)) | sed s/%//g | sed s/"No data"/"No data pct"/g | sed s/\\t\\t/\\t/g >> cov_file.txt
             n_lines_cov=$(< cov_file.txt wc -l)
             n_lines_chunk=$(< chunk_col.txt wc -l)
             n_lines_out=$((n_lines_cov-n_lines_chunk))
