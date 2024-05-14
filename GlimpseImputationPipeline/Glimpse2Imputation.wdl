@@ -449,7 +449,7 @@ task CombineCoverageMetrics
             else
                 n_skip=2
             fi
-            zcat ${cov_files[$i]} | tail -n +${n_skip} >> cov_file.txt
+            zcat ${cov_files[$i]} | tail -n +$((n_skip + 1)) >> cov_file.txt
             n_lines_cov=$(< cov_file.txt wc -l)
             n_lines_chunk=$(< chunk_col.txt wc -l)
             n_lines_out=$((n_lines_cov-n_lines_chunk))
