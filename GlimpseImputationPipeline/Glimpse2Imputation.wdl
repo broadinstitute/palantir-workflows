@@ -455,7 +455,7 @@ task CombineCoverageMetrics
             n_lines_out=$((n_lines_cov-n_lines_chunk))
             echo 'n_lines_out=' ${n_lines_out}
             echo ${cov_files[$i]}
-            yes ${i} | head -n ${n_lines_out} >> chunk_col.txt
+            { yes ${i} || :; } | head -n ${n_lines_out} >> chunk_col.txt
         done
 
         paste chunk_col.txt cov_file.txt > coverage_metrics.txt
