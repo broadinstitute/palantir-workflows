@@ -101,7 +101,8 @@ workflow Glimpse2Imputation {
 
     call CombineCoverageMetrics {
         input:
-            cov_metrics = GlimpsePhase.coverage_metrics
+            cov_metrics = GlimpsePhase.coverage_metrics,
+            output_basename = output_basename
     }
 
     if (collect_qc_metrics) {
@@ -435,6 +436,7 @@ task CombineCoverageMetrics
 {
     input {
         Array[File] cov_metrics
+        String output_basename
     }
 
     command <<<
@@ -461,7 +463,7 @@ task CombineCoverageMetrics
             { yes ${i} || :; } | head -n ${n_lines_out} >> chunk_col.txt
         done
 
-        paste chunk_col.txt cov_file.txt > coverage_metrics.txt
+        paste chunk_col.txt cov_file.txt > ~{output_basename}.coverage_metrics.txt
 
     >>>
 
@@ -470,6 +472,6 @@ task CombineCoverageMetrics
     }
 
     output {
-        File coverage_metrics="coverage_metrics.txt"
+        File coverage_metrics="~{output_basename}.coverage_metrics.txt"
     }
 }

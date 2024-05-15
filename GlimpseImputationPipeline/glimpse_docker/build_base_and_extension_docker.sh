@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 
 # This branch is using the following configuration.
 # To replicate this branch, run this script with the following arguments:
