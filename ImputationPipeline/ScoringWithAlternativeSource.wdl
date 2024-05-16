@@ -39,13 +39,22 @@ workflow ScoreVcfWithPreferredGvcf {
             basename = basename,
             sites_to_extract = select_first([weights_as_vcf, ConvertWeightsTsvToVcf.weights_vcf])
     }
+
+    call UpdateExomeGVCFAltAlleles {
+        input:
+            exome_gvcf_filtered_vcf = ExtractSitesFromGvcf.vcf,
+            exome_gvcf_filtered_vcf_index = ExtractSitesFromGvcf.vcf_index,
+            weights = weights,
+            ref_dict = ref_dict,
+            basename = basename
+    }
   
     call ScoringTasks.ScoreVcf as ExomeGVCFScore {
         input:
-            vcf = ExtractSitesFromGvcf.vcf,
+            vcf = UpdateExomeGVCFAltAlleles.vcf_extracted_from_gvcf,
             basename = basename,
             weights = weights,
-            sites = ExtractSitesFromGvcf.extracted_sites_from_gvcf,
+            sites = UpdateExomeGVCFAltAlleles.sites_extracted_from_gvcf,
             base_mem = base_mem,
             extra_args = extra_args,
             chromosome_encoding = chromosome_encoding,
@@ -58,7 +67,7 @@ workflow ScoreVcfWithPreferredGvcf {
             vcf = imputed_wgs_vcf,
             basename = basename,
             weights = weights,
-            exclude_sites = ExtractSitesFromGvcf.extracted_sites_from_gvcf,
+            exclude_sites = UpdateExomeGVCFAltAlleles.sites_extracted_from_gvcf,
             base_mem = base_mem,
             extra_args = extra_args,
             chromosome_encoding = chromosome_encoding,
@@ -138,16 +147,14 @@ task ExtractSitesFromGvcf {
         gatk SelectVariants \
             -V ~{gvcf} \
             -L ~{sites_to_extract} \
-            -O ~{basename}.high_quality.vcf.gz \
+            -O ~{basename}.filtered.vcf.gz \
             -select "(vc.hasAttribute(\"END\") && vc.getGenotype(\"~{basename}\").getGQ() > 30) || QUAL > 30"
         
         gatk GenotypeGVCFs \
             -R ~{ref_fasta} \
-            -V ~{basename}.high_quality.vcf.gz \
-            -O ~{basename}.extracted_from_gvcf.vcf.gz \
+            -V ~{basename}.filtered.vcf.gz \
+            -O ~{basename}.filtered.genotyped.vcf.gz \
             --force-output-intervals ~{sites_to_extract}
-        
-        bcftools query -f '%CHROM:%POS:%REF:%ALT\n' ~{basename}.extracted_from_gvcf.vcf.gz > ~{basename}.extracted_from_gvcf.sites
 
     >>>
 
@@ -160,9 +167,92 @@ task ExtractSitesFromGvcf {
     }
 
     output {
-        File vcf = "~{basename}.extracted_from_gvcf.vcf.gz"
-        File vcf_index = "~{basename}.extracted_from_gvcf.vcf.gz"
-        File extracted_sites_from_gvcf = "~{basename}.extracted_from_gvcf.sites"
+        File vcf = "~{basename}.filtered.genotyped.vcf.gz"
+        File vcf_index = "~{basename}.filtered.genotyped.vcf.gz"
+    }
+}
+
+task UpdateExomeGVCFAltAlleles {
+    input {
+        File exome_gvcf_filtered_vcf
+        File exome_gvcf_filtered_vcf_index
+        File weights
+        String basename
+        File ref_dict
+
+        Int mem_gb = 4
+        Int cpu = 4
+        Int? disk_gb
+        Int preemptible = 1
+    }
+
+    Int disk_size_gb = select_first([disk_gb, ceil(size(exome_gvcf_filtered_vcf, "GiB") * 2 + size(weights, "GiB") + 50)])
+
+    command <<<
+        set -xeuo pipefail
+
+        cat <<'EOF' > script.py
+import pysam
+import pandas as pd
+import numpy as np
+
+def read_ref_dict(ref_dict_path):
+        with open(ref_dict_path) as ref_dict:
+            return [line.split('\t')[1].replace('SN:', '') for line in ref_dict]
+
+def read_prs_weights(ref_dict, prs_weights_path):
+    prs_weights = pd.read_table(prs_weights_path)
+
+    prs_weights[['contig', 'position', 'ref', 'alt']] = prs_weights['CHR:BP:REF:ALT'].str.split(':', expand=True)
+    
+    prs_weights = prs_weights.astype({'effect_allele': str, 'weight': np.float64, 'contig': str, 'position': np.int32, 'ref': str, 'alt': str})
+
+    prs_weights = prs_weights.sort_values(by='position').sort_values(kind='stable', by='contig', key=lambda contig: contig.map(ref_dict.index))
+    return prs_weights.set_index(['contig', 'position'])
+
+ref_dict = read_ref_dict('~{ref_dict}')
+prs_weights = read_prs_weights(ref_dict, '~{weights}')
+
+gvcf_filtered_genotyped = pysam.VariantFile('~{exome_gvcf_filtered_vcf}', "r")
+
+sites_not_in_gvcf = [(weight_index[0], weight_index[1], weight.ref, weight.alt) for weight_index, weight in prs_weights.iterrows()]
+sites_in_gvcf = []
+
+with pysam.VariantFile('~{basename}.extracted_from_gvcf.vcf.gz', 'w', header=gvcf_filtered_genotyped.header) as out:
+    for record in gvcf_filtered_genotyped:
+        if (record.contig, record.pos) not in prs_weights.index:
+            print('Skipping:', record.contig, record.pos)
+            continue
+        if record.alts is None:
+            if len(prs_weights.loc[(record.contig, record.pos)].shape) > 1:
+                raise RuntimeError('Multiple indistinguishable weights for the same locus without alt allele:\n' + str(prs_weights.loc[(record.contig, record.pos)]))
+            record.alts = [prs_weights.loc[(record.contig, record.pos)].alt]
+        elif len(record.alts) != 1:
+            raise RuntimeError('Only biallelic variants are supported: ' + str(record))
+        
+        out.write(record)
+        sites_in_gvcf.append((record.contig, record.pos, record.ref, record.alts[0]))
+        sites_not_in_gvcf.remove((record.contig, record.pos, record.ref, record.alts[0]))
+with open('~{basename}.extracted_from_gvcf.sites', 'w') as out_sites_in_gvcf:
+    out_sites_in_gvcf.write('\n'.join([f'{contig}:{position}:{ref}:{alt}' for contig, position, ref, alt in sites_in_gvcf]))
+with open('~{basename}.not_extracted_from_gvcf.sites', 'w') as out_sites_not_in_gvcf:
+    out_sites_not_in_gvcf.write('\n'.join([f'{contig}:{position}:{ref}:{alt}' for contig, position, ref, alt in sites_not_in_gvcf]))
+EOF
+
+        python3 script.py
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim-pysam:v1.0"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        disks: "local-disk " + disk_size_gb + " HDD"
+        preemptible: preemptible
+    }
+
+    output {
+        File vcf_extracted_from_gvcf = "~{basename}.extracted_from_gvcf.vcf.gz"
+        File sites_extracted_from_gvcf = "~{basename}.extracted_from_gvcf.sites"
     }
 }
 
