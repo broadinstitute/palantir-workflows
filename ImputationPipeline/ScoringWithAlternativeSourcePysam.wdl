@@ -48,7 +48,9 @@ workflow ScoreVcfWithPreferredGvcf {
         # File score = CombinePrimaryAndSecondaryScores.score
         # File sites_scored = CombinePrimaryAndSecondaryScores.sites_scored
         File exome_gvcf_score = ScoreGvcfAndVcf.exome_gvcf_score
+        File exome_gvcf_scored_sites = ScoreGvcfAndVcf.exome_gvcf_scored_sites
         File imputed_wgs_vcf_score = ScoreGvcfAndVcf.imputed_wgs_vcf_score
+        File imputed_wgs_vcf_scored_sites = ScoreGvcfAndVcf.imputed_wgs_vcf_scored_sites
     }
 }
 
@@ -253,6 +255,11 @@ with open('~{basename}.exome_gvcf.score', 'w') as out_exome_gvcf_score:
     out_exome_gvcf_score.write(f'{bge_scorer.gvcf_sample_score}\n')
 with open('~{basename}.imputed_wgs_vcf.score', 'w') as out_imputed_wgs_vcf_score:
     out_imputed_wgs_vcf_score.write(f'{bge_scorer.vcf_sample_score}\n')
+
+with open('~{basename}.exome_gvcf_scored_sites.sites', 'w') as out_exome_gvcf_sites:
+    out_exome_gvcf_sites.write('\n'.join([f'{locus}:{ref}:{alt}' for locus, ref, alt in bge_scorer.gvcf_sites_scored]))
+with open('~{basename}.imputed_wgs_vcf_scored_sites.sites', 'w') as out_imputed_wgs_vcf_sites:
+    out_imputed_wgs_vcf_sites.write('\n'.join([f'{locus}:{ref}:{alt}' for locus, ref, alt in bge_scorer.vcf_sites_scored]))
 EOF
             python3 script.py
     >>>
@@ -267,7 +274,9 @@ EOF
 
     output {
         File exome_gvcf_score = "~{basename}.exome_gvcf.score"
+        File exome_gvcf_scored_sites = "~{basename}.exome_gvcf_scored_sites.sites"
         File imputed_wgs_vcf_score = "~{basename}.imputed_wgs_vcf.score"
+        File imputed_wgs_vcf_scored_sites = "~{basename}.imputed_wgs_vcf_scored_sites.sites"
     }
 }
 
