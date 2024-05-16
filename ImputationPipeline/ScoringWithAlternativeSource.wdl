@@ -12,8 +12,8 @@ workflow ScoreVcfWithPreferredGvcf {
         File? weights_as_vcf
         Int? base_mem
         String? extra_args
-        String? chromosome_encoding
-        Boolean? use_ref_alt_for_ids
+        String chromosome_encoding = "chrMT"
+        Boolean use_ref_alt_for_ids = true
 
         File ref_fasta
         File ref_fasta_index
@@ -49,7 +49,8 @@ workflow ScoreVcfWithPreferredGvcf {
             base_mem = base_mem,
             extra_args = extra_args,
             chromosome_encoding = chromosome_encoding,
-            use_ref_alt_for_ids = use_ref_alt_for_ids
+            use_ref_alt_for_ids = use_ref_alt_for_ids,
+            use_dosage_annotation = false
     }
 
     call ScoringTasks.ScoreVcf as ImputedWGSVCFScore {
@@ -62,7 +63,7 @@ workflow ScoreVcfWithPreferredGvcf {
             extra_args = extra_args,
             chromosome_encoding = chromosome_encoding,
             use_ref_alt_for_ids = use_ref_alt_for_ids,
-            use_dosage_annotation = false
+            use_dosage_annotation = true
     }
 
     call CombinePrimaryAndSecondaryScores {
