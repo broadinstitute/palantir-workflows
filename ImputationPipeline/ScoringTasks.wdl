@@ -14,6 +14,7 @@ task ScoreVcf {
     File? exclude_sites
     String? chromosome_encoding
     Boolean use_ref_alt_for_ids = false
+    Boolean use_dosage_annotation = true
   }
 
   Int runtime_mem = base_mem + 2
@@ -23,7 +24,7 @@ task ScoreVcf {
 
   command <<<
     /plink2 --score ~{weights} header ignore-dup-ids list-variants no-mean-imputation \
-    cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --set-all-var-ids ~{var_ids_string} --allow-extra-chr ~{extra_args} -vcf ~{vcf} dosage=DS \
+    cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --set-all-var-ids ~{var_ids_string} --allow-extra-chr ~{extra_args} -vcf ~{vcf} ~{if use_dosage_annotation then "dosage=DS" else ""} \
     --new-id-max-allele-len 1000 missing ~{"--extract " + sites} ~{"--exclude " + exclude_sites} --out ~{basename} --memory ~{plink_mem} ~{"--output-chr " + chromosome_encoding}
   }
 

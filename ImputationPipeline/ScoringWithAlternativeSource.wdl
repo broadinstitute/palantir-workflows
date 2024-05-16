@@ -4,9 +4,9 @@ import "ScoringTasks.wdl"
 
 workflow ScoreVcfWithPreferredGvcf {
     input {
-        File preferred_gvcf
-        File preferred_gvcf_index
-        File secondary_vcf
+        File exome_gvcf
+        File exome_gvcf_index
+        File imputed_wgs_vcf
         String basename
         File weights
         File? weights_as_vcf
@@ -31,8 +31,8 @@ workflow ScoreVcfWithPreferredGvcf {
 
     call ExtractSitesFromGvcf {
         input:
-            gvcf = preferred_gvcf,
-            gvcf_index = preferred_gvcf_index,
+            gvcf = exome_gvcf,
+            gvcf_index = exome_gvcf_index,
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
             ref_dict = ref_dict,
@@ -40,7 +40,7 @@ workflow ScoreVcfWithPreferredGvcf {
             sites_to_extract = select_first([weights_as_vcf, ConvertWeightsTsvToVcf.weights_vcf])
     }
   
-    call ScoringTasks.ScoreVcf as PrimaryScore {
+    call ScoringTasks.ScoreVcf as ExomeGVCFScore {
         input:
             vcf = ExtractSitesFromGvcf.vcf,
             basename = basename,
@@ -52,24 +52,25 @@ workflow ScoreVcfWithPreferredGvcf {
             use_ref_alt_for_ids = use_ref_alt_for_ids
     }
 
-    call ScoringTasks.ScoreVcf as SecondaryScore {
+    call ScoringTasks.ScoreVcf as ImputedWGSVCFScore {
         input:
-            vcf = secondary_vcf,
+            vcf = imputed_wgs_vcf,
             basename = basename,
             weights = weights,
             exclude_sites = ExtractSitesFromGvcf.extracted_sites_from_gvcf,
             base_mem = base_mem,
             extra_args = extra_args,
             chromosome_encoding = chromosome_encoding,
-            use_ref_alt_for_ids = use_ref_alt_for_ids
+            use_ref_alt_for_ids = use_ref_alt_for_ids,
+            use_dosage_annotation = false
     }
 
     call CombinePrimaryAndSecondaryScores {
         input:
-            primary_score = PrimaryScore.score,
-            secondary_score = SecondaryScore.score,
-            primary_sites_scored = PrimaryScore.sites_scored,
-            secondary_sites_scored = SecondaryScore.sites_scored,
+            primary_score = ExomeGVCFScore.score,
+            secondary_score = ImputedWGSVCFScore.score,
+            primary_sites_scored = ExomeGVCFScore.sites_scored,
+            secondary_sites_scored = ImputedWGSVCFScore.sites_scored,
             basename = basename,
             preemptible = preemptible
     }
