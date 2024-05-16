@@ -77,6 +77,10 @@ task ScoreGvcfAndVcf {
         set -xeuo pipefail
         
         cat <<'EOF' > script.py
+import pysam
+import pandas as pd
+import numpy as np
+
 class BGEScorer():
     def __init__(self, ref_dict_path, prs_weights_path):
         self.ref_dict = self._read_ref_dict(ref_dict_path)

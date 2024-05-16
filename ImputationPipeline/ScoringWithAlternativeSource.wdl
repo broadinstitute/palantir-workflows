@@ -137,7 +137,7 @@ task ExtractSitesFromGvcf {
             -V ~{gvcf} \
             -L ~{sites_to_extract} \
             -O ~{basename}.high_quality.vcf.gz \
-            -select "(vc.hasAttribute(\"END\") && vc.getGenotype(\"${sample_name}\").getGQ() > 30) || QUAL > 30"
+            -select "(vc.hasAttribute(\"END\") && vc.getGenotype(\"~{sample_name}\").getGQ() > 30) || QUAL > 30"
         
         gatk GenotypeGVCFs \
             -R $reference_path \
