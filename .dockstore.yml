@@ -147,3 +147,6 @@ workflows:
   - name: ScoringWithAlternativeSourcePysam
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/ScoringWithAlternativeSourcePysam.wdl
+  - name: ScoringWithAlternativeSource
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/ScoringWithAlternativeSource.wdl

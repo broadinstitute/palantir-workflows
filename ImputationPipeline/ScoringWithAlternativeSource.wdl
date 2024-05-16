@@ -39,19 +39,13 @@ workflow ScoreVcfWithPreferredGvcf {
             basename = basename,
             sites_to_extract = select_first([weights_as_vcf, ConvertWeightsTsvToVcf.weights_vcf])
     }
-
-    call FilterSitesAndGetExtractedSiteIDs {
-        input:
-            extracted_vcf = ExtractSitesFromGvcf.vcf,
-            basename = basename
-    }
   
     call ScoringTasks.ScoreVcf as PrimaryScore {
         input:
-            vcf = FilterSitesAndGetExtractedSiteIDs.extracted_filtered_vcf,
+            vcf = ExtractSitesFromGvcf.vcf,
             basename = basename,
             weights = weights,
-            sites = FilterSitesAndGetExtractedSiteIDs.extracted_filtered_sites,
+            sites = ExtractSitesFromGvcf.extracted_sites_from_gvcf,
             base_mem = base_mem,
             extra_args = extra_args,
             chromosome_encoding = chromosome_encoding,
@@ -63,7 +57,7 @@ workflow ScoreVcfWithPreferredGvcf {
             vcf = secondary_vcf,
             basename = basename,
             weights = weights,
-            exclude_sites = FilterSitesAndGetExtractedSiteIDs.extracted_filtered_sites,
+            exclude_sites = ExtractSitesFromGvcf.extracted_sites_from_gvcf,
             base_mem = base_mem,
             extra_args = extra_args,
             chromosome_encoding = chromosome_encoding,
@@ -139,15 +133,24 @@ task ExtractSitesFromGvcf {
     command <<<
         set -xeuo pipefail
 
-        gatk GenotypeGVCFs \
-            -R ~{ref_fasta} \
+        gatk SelectVariants \
             -V ~{gvcf} \
-            -O ~{basename}.extracted.vcf.gz \
-            --force-output-intervals ~{sites_to_extract}
+            -L ~{sites_to_extract} \
+            -O ~{basename}.high_quality.vcf.gz \
+            -select "(vc.hasAttribute(\"END\") && vc.getGenotype(\"${sample_name}\").getGQ() > 30) || QUAL > 30"
+        
+        gatk GenotypeGVCFs \
+            -R $reference_path \
+            -V ~{basename}.high_quality.vcf.gz \
+            -O ~{basename}.extracted_from_gvcf.vcf.gz \
+            --force-output-intervals $weights_path
+        
+        bcftools query -f '%CHROM:%POS:%REF:%ALT\n' ~{basename}.extracted_from_gvcf.vcf.gz > ~{basename}.extracted_from_gvcf.sites
+
     >>>
 
     runtime {
-        docker: "broadinstitute/gatk:" + gatk_tag
+        docker: "us.gcr.io/broad-gatk/gatk:" + gatk_tag
         memory: mem_gb + " GiB"
         cpu: cpu
         disks: "local-disk " + disk_size_gb + " HDD"
@@ -155,44 +158,9 @@ task ExtractSitesFromGvcf {
     }
 
     output {
-        File vcf = "~{basename}.extracted.vcf.gz"
-        File vcf_index = "~{basename}.extracted.vcf.gz"
-    }
-}
-
-task FilterSitesAndGetExtractedSiteIDs {
-    input {
-        File extracted_vcf
-        String basename
-        Int mem_gb = 4
-        Int cpu = 4
-        Int? disk_gb
-        Int preemptible = 1
-    }
-
-    Int disk_size_gb = select_first([disk_gb, ceil(size(extracted_vcf, "GiB") + 50)])
-
-    command <<<
-        set -xeuo pipefail
-
-        bcftools view -O z -o ~{basename}.extracted.filtered.vcf.gz -e 'QUAL<=20' ~{extracted_vcf}
-        bcftools index ~{basename}.extracted.filtered.vcf.gz
-
-        bcftools query -f '%CHROM:%POS:%REF:%ALT\n' ~{basename}.extracted.filtered.vcf.gz > ~{basename}.extracted.filtered.sites
-    >>>
-
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
-        memory: mem_gb + " GiB"
-        cpu: cpu
-        disks: "local-disk " + disk_size_gb + " HDD"
-        preemptible: preemptible
-    }
-
-    output {
-        File extracted_filtered_vcf = "~{basename}.extracted.filtered.vcf.gz"
-        File extracted_filtered_vcf_index = "~{basename}.extracted.filtered.vcf.gz"
-        File extracted_filtered_sites = "~{basename}.extracted.filtered.sites"
+        File vcf = "~{basename}.extracted_from_gvcf.vcf.gz"
+        File vcf_index = "~{basename}.extracted_from_gvcf.vcf.gz"
+        File extracted_sites_from_gvcf = "~{basename}.extracted_from_gvcf.sites"
     }
 }
 
