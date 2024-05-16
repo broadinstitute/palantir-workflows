@@ -25,7 +25,7 @@ workflow Glimpse2Imputation {
         Boolean collect_qc_metrics = true
         
         Int preemptible = 9
-        String docker = "us.gcr.io/broad-dsde-methods/glimpse:odelaneau_f310862"
+        String docker = "us.gcr.io/broad-dsde-methods/glimpse:kachulis_ck_bam_reader_retry_cf5822c"
         String docker_extract_num_sites_from_reference_chunk = "us.gcr.io/broad-dsde-methods/glimpse_extract_num_sites_from_reference_chunks:michaelgatzen_edc7f3a"
         Int cpu_ligate = 4
         Int mem_gb_ligate = 4
@@ -99,6 +99,12 @@ workflow Glimpse2Imputation {
             monitoring_script = monitoring_script
     }
 
+    call CombineCoverageMetrics {
+        input:
+            cov_metrics = GlimpsePhase.coverage_metrics,
+            output_basename = output_basename
+    }
+
     if (collect_qc_metrics) {
         call CollectQCMetrics {
             input:
@@ -113,6 +119,7 @@ workflow Glimpse2Imputation {
         File imputed_vcf_index = GlimpseLigate.imputed_vcf_index
         
         File? qc_metrics = CollectQCMetrics.qc_metrics
+        File coverage_metrics = CombineCoverageMetrics.coverage_metrics
 
         Array[File?] glimpse_phase_monitoring = GlimpsePhase.monitoring
         File? glimpse_ligate_monitoring = GlimpseLigate.monitoring
@@ -165,28 +172,18 @@ task GlimpsePhase {
         cram_index_paths=( ~{sep=" " cram_indices} )
         sample_ids=( ~{sep=" " sample_ids} )
 
-        if ~{if defined(cram_indices) then "true" else "false"}; then
-            seq_cache_populate.pl -root ./ref/cache ~{fasta}
-            export REF_PATH=:
-            export REF_CACHE=./ref/cache/%2s/%2s/%s
-        
-            chunk_region=$(echo "~{reference_chunk}"|sed 's/^.*chr/chr/'|sed 's/\.bin//'|sed 's/_/:/1'|sed 's/_/-/1')
+        duplicate_cram_filenames=$(printf "%s\n" "${cram_paths[@]}" | xargs -I {} basename {} | sort | uniq -d)
+        if [ ! -z "$duplicate_cram_filenames" ]; then
+            echo "ERROR: The input CRAMs contain multiple files with the same basename, which leads to an error due to the way that htslib is implemented. Duplicate filenames:"
+            printf "%s\n" "${duplicate_cram_filenames[@]}"
+            exit 1
+        fi
 
-            echo "Region for CRAM extraction: ${chunk_region}"
+        if ~{if defined(cram_indices) then "true" else "false"}; then
             for i in "${!cram_paths[@]}" ; do
-                samtools view -h -C -X -T ~{fasta} -o cram${i}.cram "${cram_paths[$i]}" "${cram_index_paths[$i]}" ${chunk_region}
-                samtools index cram${i}.cram
-                echo -e "cram${i}.cram ${sample_ids[$i]}" >> crams.list
-                echo "Processed CRAM ${i}: ${cram_paths[$i]} -> cram${i}.cram"
+                echo -e "${cram_paths[$i]}##idx##${cram_index_paths[$i]} ${sample_ids[$i]}" >> crams.list
             done
         else
-            duplicate_cram_filenames=$(printf "%s\n" "${cram_paths[@]}" | xargs -I {} basename {} | uniq -d)
-            if [ ! -z "$duplicate_cram_filenames" ]; then
-                echo "ERROR: The input CRAMs contain multiple files with the same basename, which leads to an error due to the way that htslib is implemented. Duplicate filenames:"
-                printf "%s\n" "${duplicate_cram_filenames[@]}"
-                exit 1
-            fi
-
             for i in "${!cram_paths[@]}"; do
                 echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
             done
@@ -209,7 +206,11 @@ task GlimpsePhase {
             cmd="$cmd --checkpoint-file-in checkpoint.bin" 
         fi
 
-        eval $cmd
+
+
+        #check for read error which corresponds exactly to end of cram/bam block.  
+        #This currently triggers a warning message from htslib, but doesn't return any error
+        eval $cmd |& tee >(if grep -q "EOF marker is absent"; then echo "An input file appears to be corrupted.  Please fix before retrying."; exit 1; fi;) 
     >>>
 
     runtime {
@@ -226,6 +227,7 @@ task GlimpsePhase {
         File imputed_vcf = "phase_output.bcf"
         File imputed_vcf_index = "phase_output.bcf.csi"
         File? monitoring = "monitoring.log"
+        File coverage_metrics = "phase_output_stats_coverage.txt.gz"
     }
 }
 
@@ -427,5 +429,49 @@ task SelectResourceParameters {
     output {
         Int memory_gb = read_int("memory_gb.txt")
         Int request_n_cpus = read_int("n_cpus_request.txt")
+    }
+}
+
+task CombineCoverageMetrics
+{
+    input {
+        Array[File] cov_metrics
+        String output_basename
+    }
+
+    command <<<
+        set -euo pipefail
+
+        cov_files=( ~{sep=" " cov_metrics} )
+
+        for i in "${!cov_files[@]}"; do
+            if [ $i -eq 0 ]; then
+                n_skip=1
+                echo 'Chunk' > chunk_col.txt
+            else
+                n_skip=2
+            fi
+            # glimpse coverage metrics are formatted to be human readable in a command line, not machine readable or consistent.  ie, number of tabs 
+            # are variable between columns depending on length of sample names, odd things like that.  We want these to be machine readable tables, 
+            # so need to fix this.
+            zcat ${cov_files[$i]} | tail -n +$((n_skip + 1)) | sed s/%//g | sed s/"No data"/"No data pct"/g | sed s/\\t\\t/\\t/g >> cov_file.txt
+            n_lines_cov=$(< cov_file.txt wc -l)
+            n_lines_chunk=$(< chunk_col.txt wc -l)
+            n_lines_out=$((n_lines_cov-n_lines_chunk))
+            echo 'n_lines_out=' ${n_lines_out}
+            echo ${cov_files[$i]}
+            { yes ${i} || :; } | head -n ${n_lines_out} >> chunk_col.txt
+        done
+
+        paste chunk_col.txt cov_file.txt > ~{output_basename}.coverage_metrics.txt
+
+    >>>
+
+    runtime {
+        docker: "ubuntu:24.04"
+    }
+
+    output {
+        File coverage_metrics="~{output_basename}.coverage_metrics.txt"
     }
 }
