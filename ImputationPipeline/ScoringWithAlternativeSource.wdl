@@ -140,10 +140,10 @@ task ExtractSitesFromGvcf {
             -select "(vc.hasAttribute(\"END\") && vc.getGenotype(\"~{basename}\").getGQ() > 30) || QUAL > 30"
         
         gatk GenotypeGVCFs \
-            -R $reference_path \
+            -R ~{ref_fasta} \
             -V ~{basename}.high_quality.vcf.gz \
             -O ~{basename}.extracted_from_gvcf.vcf.gz \
-            --force-output-intervals $weights_path
+            --force-output-intervals ~{sites_to_extract}
         
         bcftools query -f '%CHROM:%POS:%REF:%ALT\n' ~{basename}.extracted_from_gvcf.vcf.gz > ~{basename}.extracted_from_gvcf.sites
 

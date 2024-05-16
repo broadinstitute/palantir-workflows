@@ -258,7 +258,7 @@ EOF
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/pysam:v1"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim-pysam:v1.0"
         memory: mem_gb + " GiB"
         cpu: cpu
         disks: "local-disk " + disk_size_gb + " HDD"
