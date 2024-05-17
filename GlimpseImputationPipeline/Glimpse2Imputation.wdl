@@ -210,9 +210,31 @@ task GlimpsePhase {
 
         #check for read error which corresponds exactly to end of cram/bam block.  
         #This currently triggers a warning message from htslib, but doesn't return any error
-        #The error message we are looking for will be in stderr, but we need to make sure stderr is
-        #maintained since stderr is where oom strings are searched for by cromwell for memory retries
-        eval $cmd 2> >(tee >(if grep -q "EOF marker is absent"; then echo "An input file appears to be truncated.  This may be either a truly truncated file which needs to be fixed, or a networking error which can just be retried."; exit 1; fi;) >&2) 
+        #This is a bit messy, so a few points about what is going on here.
+        #
+        #1) The error message we are looking for will be in stderr, but we need to make sure stderr is
+        #maintained since stderr is where oom strings are searched for by cromwell for memory retries.
+        #So we use file redirection of stderr into process substitution, tee redirected back to stderr,
+        #and process substitution again to then check for the error message.
+        #
+        #2) We cannot use exit 1 in the 2nd level subshell, because that exit code will not propagate up,
+        # (I believe due to the use of file redirection).  So instead well pass the USR1 signal to the current
+        # shell, and handle that with an error message and exit code.
+        #
+        #3) Why do we need to set CURRENT_PID instead of using $$ or $PPID?  We need to send the signal to the process
+        # where we have set the trap to handle it, so how do we find that?  $$PPID will return the pid of the 
+        # process running the bash script, which is not what we want.  $$ would work, except that the command block of 
+        # a wdl is actually wrapped in a subshell in the bash script that cromwell generates and runs, so $$ will return 
+        # the pid of the original shell in the bash script, which is not where the trap to handle it is set.    
+        usr1_handle() {
+            echo "An input file appears to be truncated.  This may be either a truly truncated file which needs to be fixed, or a networking error which can just be retried."
+            exit 1
+        }
+
+        trap usr1_handl USR1
+
+        CURRENT_PID=$BASHPID
+        eval $cmd 2> >(tee >(if grep -q "EOF marker is absent"; then kill -s USR1 $CURRENT_PID; fi;) >&2) 
     >>>
 
     runtime {
