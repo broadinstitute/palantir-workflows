@@ -231,7 +231,7 @@ task GlimpsePhase {
             exit 1
         }
 
-        trap usr1_handl USR1
+        trap usr1_handle USR1
 
         CURRENT_PID=$BASHPID
         eval $cmd 2> >(tee >(if grep -q "EOF marker is absent"; then kill -s USR1 $CURRENT_PID; fi;) >&2) 
