@@ -210,7 +210,9 @@ task GlimpsePhase {
 
         #check for read error which corresponds exactly to end of cram/bam block.  
         #This currently triggers a warning message from htslib, but doesn't return any error
-        eval $cmd |& tee >(if grep -q "EOF marker is absent"; then echo "An input file appears to be corrupted.  Please fix before retrying."; exit 1; fi;) 
+        #The error message we are looking for will be in stderr, but we need to make sure stderr is
+        #maintained since stderr is where oom strings are searched for by cromwell for memory retries
+        eval $cmd 2> >(tee >(if grep -q "EOF marker is absent"; then echo "An input file appears to be truncated.  This may be either a truly truncated file which needs to be fixed, or a networking error which can just be retried."; exit 1; fi;) >&2) 
     >>>
 
     runtime {
