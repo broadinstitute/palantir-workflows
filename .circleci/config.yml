@@ -23,6 +23,15 @@ commands:
       - run: |
             apt-get update
             apt-get install -y make
+  
+  install-watt:
+    description: "Install watt"
+    steps:
+      -run: |
+            git clone https://github.com/rickymagner/watt.git
+            cd watt
+            git checkout 
+            pip install pyyaml multiprocess
 jobs:
   validate:
     executor: womtool-executor
@@ -53,6 +62,17 @@ jobs:
           path: /home/circleci/project/workflow_logs
       - store_artifacts:
           path: /home/circleci/project/call_logs
+  
+  test_watt:
+    machine:
+      image: ubuntu-2004:current
+    environment:
+      CROMWELL_JAR=/home/circleci/project/cromwell-84.jar
+    steps:
+      - checkout
+      - get-cromwell-jar
+      - install-watt
+      - run: python watt.py -e ${CROMWELL_JAR} --executor-log-prefix cromwell
 
 
 workflows:
@@ -65,3 +85,4 @@ workflows:
           requires:
             - validate
             - validate-with-json
+      - test_with_watt
