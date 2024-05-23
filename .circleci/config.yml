@@ -85,4 +85,4 @@ workflows:
           requires:
             - validate
             - validate-with-json
-      - test_with_watt
+      - test_watt
