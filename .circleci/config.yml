@@ -72,7 +72,7 @@ jobs:
       - checkout
       - get-cromwell-jar
       - install-watt
-      - run: python watt.py -e ${CROMWELL_JAR} --executor-log-prefix cromwell
+      - run: python watt/watt.py -e ${CROMWELL_JAR} --executor-log-prefix cromwell
 
 
 workflows:
