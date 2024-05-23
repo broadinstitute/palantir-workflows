@@ -27,7 +27,7 @@ commands:
   install-watt:
     description: "Install watt"
     steps:
-      -run: |
+      - run: |
             git clone https://github.com/rickymagner/watt.git
             cd watt
             git checkout 
