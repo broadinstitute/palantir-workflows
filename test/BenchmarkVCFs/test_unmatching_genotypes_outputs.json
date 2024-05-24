@@ -1,0 +1,6 @@
+{  
+    "testBenchmarkVCFs.snpPrecision" : 1.0,
+    "testBenchmarkVCFs.indelPrecision" : 1.0,
+    "testBenchmarkVCFs.snpRecall" : 0.5,
+    "testBenchmarkVCFs.indelRecall": 1.0
+}

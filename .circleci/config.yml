@@ -38,13 +38,6 @@ jobs:
       - install-make
       - run: make validate
 
-  validate-with-json:
-    executor: womtool-executor
-    steps:
-      - checkout
-      - install-make
-      - run: make validate-with-json
-
   test:
     machine:
       image: ubuntu-2004:current
@@ -79,9 +72,9 @@ workflows:
   validate-and-test:
     jobs:
       - validate
-      - validate-with-json
       - test:
           requires:
             - validate
-            - validate-with-json
-      - test_watt
+      - test_watt:
+          requires:
+            - validate

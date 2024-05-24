@@ -1,6 +1,13 @@
 aggregate_prs_results_test:
   workflow_name: "AggregatePRSResults"
-  test_name: "MyTest"
+  test_name: "Base"
   path: "/ImputationPipeline/AggregatePRSResults.wdl"
-  test_inputs: "/test/AggregatePRSResults/test_aggregate_prs_results_inputs.json"
-  expected_outputs: "/test/AggregatePRSResults/test_aggregate_prs_results_outputs.json"
+  test_inputs: "/test/AggregatePRSResults/test_inputs.json"
+  expected_outputs: "/test/AggregatePRSResults/test_outputs.json"
+
+benchmark_vcfs_ignore_filters_test:
+  workflow_name: "BenchmarkVCFs"
+  test_name: "IgnoreFilters"
+  path: "/BenchmarkVCFs/BenchmarkVCFs.wdl"
+  test_inputs: "/test/BenchmarkVCFs/test_ignore_filters_input.json"
+  expected_outputs: "/test/BenchmarkVCFs/test_ignore_filters_outputs.json"
