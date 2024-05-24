@@ -1,6 +1,0 @@
-aggregate_prs_results_test:
-  workflow_name: "AggregatePRSResults"
-  test_name: "MyTest"
-  path: "/ImputationPipeline/AggregatePRSResults.wdl"
-  test_inputs: "/test/AggregatePRSResults/test_AggregatePRSResults_json/test_aggregate_prs_results_inputs.json"
-  expected_outputs: "/test/AggregatePRSResults/test_AggregatePRSResults_json/test_aggregate_prs_results_outputs.json"

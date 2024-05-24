@@ -28,10 +28,8 @@ commands:
     description: "Install watt"
     steps:
       - run: |
-            git clone https://github.com/rickymagner/watt.git
-            cd watt
-            git checkout 
-            pip install pyyaml multiprocess
+            git clone -b ck_ignore_output https://github.com/kachulis/watt.git ~/watt
+            pip install -r ~/watt/requirements.txt
 jobs:
   validate:
     executor: womtool-executor
@@ -72,7 +70,8 @@ jobs:
       - checkout
       - get-cromwell-jar
       - install-watt
-      - run: python watt/watt.py -e ${CROMWELL_JAR} --executor-log-prefix cromwell
+      - run: |
+            python ~/watt/watt.py -e ${CROMWELL_JAR} -c .watt/watt_config.yml
 
 
 workflows:

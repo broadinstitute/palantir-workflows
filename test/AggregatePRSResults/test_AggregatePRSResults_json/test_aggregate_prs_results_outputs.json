@@ -1,6 +1,0 @@
-{
-  "AggregatePRSResults.expected_batch_all_results":"test/AggregatePRSResults/plumbing_data/expected_batch_all_results.tsv",
-  "AggregatePRSResults.expected_batch_control_results":"test/AggregatePRSResults/plumbing_data/expected_batch_control_results.tsv",
-  "AggregatePRSResults.expected_batch_summarised_results": "test/AggregatePRSResults/plumbing_data/expected_batch_summarised_results.tsv",
-  "AggregatePRSResults.expected_batch_pcs":"test/AggregatePRSResults/plumbing_data/expected_batch_pcs.tsv"
-}
