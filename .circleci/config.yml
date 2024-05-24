@@ -71,7 +71,7 @@ jobs:
       - get-cromwell-jar
       - install-watt
       - run: |
-            python ~/watt/watt.py -e ${CROMWELL_JAR} -c .watt/watt_config.yml
+            python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml
 
 
 workflows:
