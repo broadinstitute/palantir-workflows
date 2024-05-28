@@ -16,7 +16,7 @@ benchmark_vcfs_test:
   workflow_name: "BenchmarkVCFs"
   test_name: "Base"
   path: "/BenchmarkVCFs/BenchmarkVCFs.wdl"
-  test_inputs: "/test/BenchmarkVCFs/test_base_input.json"
+  test_inputs: "/test/BenchmarkVCFs/test_base_inputs.json"
   expected_outputs: "/test/BenchmarkVCFs/test_base_outputs.json"
 
 compare_benchmarks_test:
