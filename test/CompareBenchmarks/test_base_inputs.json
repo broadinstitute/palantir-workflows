@@ -6,5 +6,6 @@
     "CompareBenchmarks.order_of_samples": ["sample1","sample2equals1"],
     "CompareBenchmarks.configurations": ["configuration1","configuration2equals1","configuration3","configuration1","configuration2equals1","configuration3"],
     "CompareBenchmarks.deltas": [0,1,0,2],
+    "CompareBenchmarks.include_counts":true,
     "CompareBenchmarks.benchmark_summaries": ["test/CompareBenchmarks/plumbing_data/summary1.csv", "test/CompareBenchmarks/plumbing_data/summary2.csv", "test/CompareBenchmarks/plumbing_data/summary3.csv", "test/CompareBenchmarks/plumbing_data/summary1.csv", "test/CompareBenchmarks/plumbing_data/summary2.csv", "test/CompareBenchmarks/plumbing_data/summary3.csv"]
   }
