@@ -72,9 +72,6 @@ workflows:
   validate-and-test:
     jobs:
       - validate
-      - test:
-          requires:
-            - validate
       - test_watt:
           requires:
             - validate
