@@ -19,6 +19,13 @@ benchmark_vcfs_test:
   test_inputs: "/test/BenchmarkVCFs/test_base_inputs.json"
   expected_outputs: "/test/BenchmarkVCFs/test_base_outputs.json"
 
+benchmark_vcfs_unmatching_genotypes_test:
+  workflow_name: "BenchmarkVCFs"
+  test_name: "UnmatchingGenotypes"
+  path: "/BenchmarkVCFs/BenchmarkVCFs.wdl"
+  test_inputs: "/test/BenchmarkVCFs/test_unmatching_genotypes_inputs.json"
+  expected_outputs: "/test/BenchmarkVCFs/test_unmatching_genotypes_outputs.json"
+
 compare_benchmarks_test:
   workflow_name: "CompareBenchmarks"
   test_name: "Base"
