@@ -67,6 +67,8 @@ jobs:
             python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml
       - store_artifacts:
           path: /home/circleci/project/watt_logs
+      - store_artifacts:
+          path: /home/circleci/project/cromwell-executions
 
 
 workflows:
