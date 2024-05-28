@@ -35,8 +35,7 @@ jobs:
     executor: womtool-executor
     steps:
       - checkout
-      - install-make
-      - run: make validate
+      - run: test/validate.sh ${WOMTOOL_JAR}
 
   test:
     machine:
