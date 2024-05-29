@@ -85,12 +85,16 @@ task CheckThresholds {
         thresholds = pd.read_csv('~{thresholds}', sep = '\t', header = None, names = ["min", "max"])
 
         # Confirm scores are within the boundaries
-        pass = True
+        prs_score_passed = True
         if scores.iloc[0,0] < thresholds.iloc[0,0] or scores.iloc[0,0] > thresholds.iloc[0,1]:
-            pass = False
+            prs_score_passed = False
+
+        full_model_score_passed = True
+        if scores.iloc[0,3] < thresholds.iloc[1,0] or scores.iloc[0,3] > thresholds.iloc[1,1]:
+            full_model_score_passed = False
 
         with open('~{output_basename}.qc_passed.txt', 'w') as qc_passed:
-            if control_pass and sample_pass:
+            if prs_score_passed and full_model_score_passed:
                 qc_passed.write("true\n")
             else:
                 qc_passed.write("false\n")
