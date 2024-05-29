@@ -9,22 +9,11 @@ Utility workflows used by the DSP's Palantir team.  This repository should be us
 
 ## Testing Workflows
 
-All workflows should have associated tests.
-In order to add tests, you should add a test workflow to the `test` directory. 
-The test workflow should call the workflow you are testing, and (preferably) compare the outputs to those expected. 
-Input JSONs for the test workflow must be placed in a directory whose name is the same as the test workflow, with `.wdl` replaced by `_json`.
-So, the test directory structure will be built like this:
+Automated WDL testing is implemented using [watt](https://github.com/rickymagner/watt).
+To add tests, update  [test/watt_config.yml](test/watt_config.yml).
+See the watt documentation for usage details.
 
-```bash
-+-- palantir-workflows
-|   +-- test
-|   |   +-- MyWorkflow
-|   |   |   +-- my_test_workflow.wdl
-|   |   |   +-- my_test_workflow_json
-|   |   |   |   +-- test_input_1.json
-|   |   |   |   +-- test_input_2.json
-+++++++++++++++++
-```
+Automated testing on CircleCI also validates every WDL in the repo using the `validate` tool from `womtool`. 
 
 ## Using the Dockstore Github App to Automatically Update Workflows in Dockstore/Terra
 Workflows registered in Dockstore can be automatically synced when changes are pushed to this repo by adding their information to `.dockstore.yml`. 
