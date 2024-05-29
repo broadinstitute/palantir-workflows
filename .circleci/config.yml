@@ -16,13 +16,6 @@ commands:
     steps:
       - run: wget https://github.com/broadinstitute/cromwell/releases/download/84/cromwell-84.jar
 
-  install-make:
-    description: "Install make"
-    steps:
-      - run: |
-            apt-get update
-            apt-get install -y make
-  
   install-watt:
     description: "Install watt"
     steps:
@@ -36,22 +29,6 @@ jobs:
       - checkout
       - run: find . -name '*.wdl' -exec bash -c 'echo $1; java -jar /app/womtool.jar validate $1' shell {} \; 
 
-  test:
-    machine:
-      image: ubuntu-2004:current
-    environment:
-      CROMWELL_JAR=/home/circleci/project/cromwell-84.jar
-    steps:
-      - checkout
-      - get-cromwell-jar
-      - run: make test
-      - store_artifacts:
-          path: /home/circleci/project/logs
-      - store_artifacts:
-          path: /home/circleci/project/workflow_logs
-      - store_artifacts:
-          path: /home/circleci/project/call_logs
-  
   test_watt:
     machine:
       image: ubuntu-2004:current
@@ -65,7 +42,6 @@ jobs:
           path: watt_logs
       - store_artifacts:
           path: cromwell-executions
-
 
 workflows:
   version: 2
