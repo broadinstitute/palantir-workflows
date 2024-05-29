@@ -3,6 +3,7 @@ version 1.0
 # Simple PRS QC wdl for the PROGRESS VA project
 workflow PRSQC {
     input {
+        String sample_name
         File prs_control
         File prs_sample
         File control_thresholds
@@ -56,9 +57,23 @@ workflow PRSQC {
         }
     }
 
+    call FinalizeQCOutputs {
+        input:
+            sample_name = sample_name,
+            qc_passed_control = CheckControl.qc_passed,
+            qc_passed_sample = CheckSample.qc_passed,
+            pca_qc_passed_control = DetectPCANoveltiesControl.pca_qc_passed,
+            pca_qc_passed_sample = DetectPCANoveltiesSample.pca_qc_passed,
+            cpu = cpu,
+            mem_gb = mem_gb,
+            disk_size_gb = disk_size_gb,
+            docker = docker
+    }
+
     output {
-        Boolean qc_passed = CheckControl.qc_passed && CheckSample.qc_passed && DetectPCANoveltiesControl.pca_qc_passed && DetectPCANoveltiesSample.pca_qc_passed
-        #File qc_failures = ...
+        Boolean qc_passed = FinalizeQCOutputs.qc_passed
+        File qc_failures_control = CheckControl.qc_failures
+        File qc_failures_sample = CheckSample.qc_failures
     }
 }
 
@@ -99,6 +114,14 @@ task CheckThresholds {
             else:
                 qc_passed.write("false\n")
 
+        with open('~{output_basename}.qc_failures.txt', 'w') as qc_failures:
+            if not prs_score_passed:
+                prs_score_failure = "PRS_SCORE " + str(scores.iloc[0,0]) + " outside given boundaries with min: " + str(thresholds.iloc[0,0]) + " , max: " + str(thresholds.iloc[0,1])
+                qc_failures.write(prs_score_failure + "\n")
+            if not full_model_score_passed:
+                full_model_score_failure = "FULL_MODEL_SCORE " + str(scores.iloc[0,3]) + " outside given boundaries with min: " + str(thresholds.iloc[1,0]) + " , max: " + str(thresholds.iloc[1,1])
+                qc_failures.write(full_model_score_failure + "\n")
+
         EOF
         python3 script.py
     >>>
@@ -112,6 +135,7 @@ task CheckThresholds {
 
     output {
         Boolean qc_passed = read_boolean("~{output_basename}.qc_passed.txt")
+        File qc_failures = "~{output_basename}.qc_failures.txt"
     }
 }
 
@@ -194,5 +218,46 @@ task DetectPCANovelties{
         memory: "~{mem_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
         docker: docker
+    }
+}
+
+task FinalizeQCOutputs {
+    input {
+        String sample_name
+        Boolean qc_passed_control
+        Boolean qc_passed_sample
+        Boolean pca_qc_passed_control
+        Boolean pca_qc_passed_sample
+
+        Int cpu
+        Int mem_gb
+        Int disk_size_gb
+        String docker
+    }
+
+    command <<<
+        set -euo pipefail
+
+        cat <<'EOF' > script.py
+
+        with open('~{sample_name}.qc_passed.txt', 'w') as qc_passed:
+            if ~{qc_passed_control} and ~{qc_passed_sample} and ~{pca_qc_passed_control} and ~{pca_qc_passed_sample}:
+                qc_passed.write("true\n")
+            else:
+                qc_passed.write("false\n")
+
+        EOF
+        python3 script.py
+    >>>
+
+    runtime {
+        docker: docker
+        disks: "local-disk " + disk_size_gb + " HDD"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+    }
+
+    output {
+        Boolean qc_passed = read_boolean("~{sample_name}.qc_passed.txt")
     }
 }
