@@ -9,7 +9,7 @@ workflow PRSQC {
         File control_thresholds
         File sample_thresholds
         File alphashape
-        Boolean qc_control_only = false
+        #Boolean qc_control_only = false
     }
 
     Int cpu = 1
@@ -36,27 +36,25 @@ workflow PRSQC {
             disk_size_gb = disk_size_gb
     }
 
-    if(!qc_control_only) {
-        call CheckThresholds as CheckSample {
-            input:
-                scores = prs_sample,
-                thresholds = sample_thresholds,
-                cpu = cpu,
-                mem_gb = mem_gb,
-                disk_size_gb = disk_size_gb,
-                docker = docker
-        }
-
-        call DetectPCANovelties as DetectPCANoveltiesSample {
-            input:
-                test_sample = prs_sample,
-                alphashape = alphashape,
-                cpu = cpu,
-                mem_gb = mem_gb,
-                disk_size_gb = disk_size_gb
-        }
+    call CheckThresholds as CheckSample {
+        input:
+            scores = prs_sample,
+            thresholds = sample_thresholds,
+            cpu = cpu,
+            mem_gb = mem_gb,
+            disk_size_gb = disk_size_gb,
+            docker = docker
     }
 
+    call DetectPCANovelties as DetectPCANoveltiesSample {
+        input:
+            test_sample = prs_sample,
+            alphashape = alphashape,
+            cpu = cpu,
+            mem_gb = mem_gb,
+            disk_size_gb = disk_size_gb
+    }
+    
     call FinalizeQCOutputs {
         input:
             sample_name = sample_name,
