@@ -138,3 +138,6 @@ workflows:
   - name: FindSamplesAndSimpleBenchmark
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/FindSamplesAndSimpleBenchmark.wdl
+  - name: PRSQC
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/PRSQC.wdl
