@@ -35,7 +35,7 @@ jobs:
     executor: womtool-executor
     steps:
       - checkout
-      - run: test/validate.sh ${WOMTOOL_JAR}
+      - run: find .. -name '*.wdl' -exec bash -c 'echo $1; java -jar $2 validate $1' shell {} "${WOMTOOL_JAR}" \; 
 
   test:
     machine:
@@ -57,7 +57,7 @@ jobs:
     machine:
       image: ubuntu-2004:current
     environment:
-      CROMWELL_JAR=/home/circleci/project/cromwell-84.jar
+      CROMWELL_JAR=cromwell-84.jar
     steps:
       - checkout
       - get-cromwell-jar
@@ -65,9 +65,9 @@ jobs:
       - run: |
             python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml
       - store_artifacts:
-          path: /home/circleci/project/watt_logs
+          path: watt_logs
       - store_artifacts:
-          path: /home/circleci/project/cromwell-executions
+          path: cromwell-executions
 
 
 workflows:
