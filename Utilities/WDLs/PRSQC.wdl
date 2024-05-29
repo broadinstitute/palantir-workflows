@@ -7,7 +7,6 @@ workflow PRSQC {
         File prs_sample
         File control_thresholds
         File sample_thresholds
-        File output_basename
         File alphashape
         Boolean qc_control_only = false
     }
