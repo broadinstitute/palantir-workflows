@@ -9,7 +9,6 @@ executors:
       - image: broadinstitute/womtool:84
         entrypoint: /bin/bash
     working_directory: ~/palantir-workflows
-    environment: WOMTOOL_JAR=/app/womtool.jar
 
 commands:
   get-cromwell-jar:
@@ -35,7 +34,7 @@ jobs:
     executor: womtool-executor
     steps:
       - checkout
-      - run: find .. -name '*.wdl' -exec bash -c 'echo $1; java -jar $2 validate $1' shell {} "${WOMTOOL_JAR}" \; 
+      - run: find . -name '*.wdl' -exec bash -c 'echo $1; java -jar /app/womtool.jar validate $1' shell {} \; 
 
   test:
     machine:
@@ -56,14 +55,12 @@ jobs:
   test_watt:
     machine:
       image: ubuntu-2004:current
-    environment:
-      CROMWELL_JAR=cromwell-84.jar
     steps:
       - checkout
       - get-cromwell-jar
       - install-watt
       - run: |
-            python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml
+            python ~/watt/watt.py -e cromwell-84.jar -c test/watt_config.yml -p 2
       - store_artifacts:
           path: watt_logs
       - store_artifacts:
