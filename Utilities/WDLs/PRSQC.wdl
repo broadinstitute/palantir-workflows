@@ -3,11 +3,13 @@ version 1.0
 # Simple PRS QC wdl for the PROGRESS VA project
 workflow PRSQC {
     input {
-        File prs_sample
         File prs_control
-        File sample_thresholds
+        File prs_sample
         File control_thresholds
+        File sample_thresholds
         File output_basename
+        File alphashape
+        Boolean qc_control_only = false
     }
 
     Int cpu = 1
@@ -15,32 +17,56 @@ workflow PRSQC {
     Int disk_size_gb = 32
     String docker = "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
 
-    call PRSQCTask {
+    call CheckThresholds as CheckControl {
         input:
-            prs_sample = prs_sample,
-            prs_control = prs_control,
-            sample_thresholds = sample_thresholds,
-            control_thresholds = control_thresholds,
-            output_basename = output_basename,
+            scores = prs_control,
+            thresholds = control_thresholds,
             cpu = cpu,
             mem_gb = mem_gb,
             disk_size_gb = disk_size_gb,
             docker = docker
     }
 
+    call DetectPCANovelties as DetectPCANoveltiesControl {
+        input:
+            test_sample = prs_control,
+            alphashape = alphashape,
+            cpu = cpu,
+            mem_gb = mem_gb,
+            disk_size_gb = disk_size_gb
+    }
+
+    if(!qc_control_only) {
+        call CheckThresholds as CheckSample {
+            input:
+                scores = prs_sample,
+                thresholds = sample_thresholds,
+                cpu = cpu,
+                mem_gb = mem_gb,
+                disk_size_gb = disk_size_gb,
+                docker = docker
+        }
+
+        call DetectPCANovelties as DetectPCANoveltiesSample {
+            input:
+                test_sample = prs_sample,
+                alphashape = alphashape,
+                cpu = cpu,
+                mem_gb = mem_gb,
+                disk_size_gb = disk_size_gb
+        }
+    }
+
     output {
-        Boolean qc_passed = PRSQCTask.qc_passed
-        File qc_failures = PRSQCTask.qc_failures
+        Boolean qc_passed = CheckControl.qc_passed && CheckSample.qc_passed && DetectPCANoveltiesControl.pca_qc_passed && DetectPCANoveltiesSample.pca_qc_passed
+        #File qc_failures = ...
     }
 }
 
-task PRSQCTask {
+task CheckThresholds {
     input {
-        File prs_sample
-        File prs_control
-        File sample_thresholds
-        File control_thresholds
-        File output_basename
+        File scores
+        File thresholds
 
         Int cpu
         Int mem_gb
@@ -48,38 +74,28 @@ task PRSQCTask {
         String docker
     }
 
+    String output_basename = basename(scores, ".tsv")
+
     command <<<
         set -euo pipefail
 
         cat <<'EOF' > script.py
         import pandas as pd
 
-        prs_sample = pd.read_csv('~{prs_sample}', sep = '\t', header = None, names = ["prs_score", "pc1", "pc2", "full_model_score"])
-        prs_control = pd.read_csv('~{prs_control}', sep = '\t', header = None, names = ["prs_score", "pc1", "pc2", "full_model_score"])
+        scores = pd.read_csv('~{scores}', sep = '\t', header = None, names = ["prs_score", "pc1", "pc2", "full_model_score"])
+        thresholds = pd.read_csv('~{thresholds}', sep = '\t', header = None, names = ["min", "max"])
 
-        sample_thresholds = pd.read_csv('~{sample_thresholds}', sep = '\t', header = None, names = ["min", "max"])
-        control_thresholds = pd.read_csv('~{control_thresholds}', sep = '\t', header = None, names = ["min", "max"])
-
-        # Check control sample to confirm score and pcs are as expected
-        control_pass = True
-        if prs_control.iloc[0,0] < control_thresholds.iloc[0,0] or prs_control.iloc[0,0] > control_thresholds.iloc[0,1]:
-            control_pass = False
-
-        # Check sample of interest to confirm scores are within some boundaries
-        sample_pass = True
-        if prs_sample.iloc[0,0] < sample_thresholds.iloc[0,0] or prs_sample.iloc[0,0] > sample_thresholds.iloc[0,1]:
-            sample_pass = False
+        # Confirm scores are within the boundaries
+        pass = True
+        if scores.iloc[0,0] < thresholds.iloc[0,0] or scores.iloc[0,0] > thresholds.iloc[0,1]:
+            pass = False
 
         with open('~{output_basename}.qc_passed.txt', 'w') as qc_passed:
             if control_pass and sample_pass:
                 qc_passed.write("true\n")
             else:
                 qc_passed.write("false\n")
-                with open('~{output_basename}.qc_failures.txt', 'w') as qc_failures:
-                    if not control_pass:
-                        qc_failures.write("ERROR: PRS score for control outside given thresholds.")
-                    if not sample_pass:
-                        qc_failures.write("ERROR: PRS score for sample outside given thresholds.")
+
         EOF
         python3 script.py
     >>>
@@ -93,6 +109,87 @@ task PRSQCTask {
 
     output {
         Boolean qc_passed = read_boolean("~{output_basename}.qc_passed.txt")
-        File qc_failures = "~{output_basename}.qc_failures.txt"
+    }
+}
+
+task DetectPCANovelties{
+    input {
+        File test_sample
+        File alphashape
+        Float distance_threshold = 0.01
+        Int cpu
+        Int mem_gb
+        Int disk_size_gb
+        String docker = "us.gcr.io/broad-dsde-methods/kockan/alphashape@sha256:96d5a34da2ff6da6e2cd0f85cca2fa2400c2d73e02e1957def111fbf04c2fdda"
+    }
+
+    String output_basename = basename(test_sample, ".tsv")
+
+    command <<<
+        set -euo pipefail
+
+        cat <<'EOF' > detect_pca_novelties.py
+        # Automatically flag novelties in 2D PCA plots using Concave Hulls generated via alphashapes
+        import sys
+        import pickle
+        import numpy as np
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as mpatches
+        from descartes import PolygonPatch
+        from shapely.geometry import Point
+        import alphashape
+
+        # Load alphashape
+        with open("~{alphashape}", "rb") as infile:
+            alpha_shape = pickle.load(infile)
+
+        # Set the distance threshold
+        dist_thresh = ~{distance_threshold}
+
+        # Read test data
+        # Expected input format: tsv with columns PRS_SCORE, PC1, PC2, and FULL_MODEL_SCORE
+        # There is no header at the moment but it can be added to the format
+        df_test = pd.read_csv("~{test_sample}", sep = '\t', header = None, names = ["prs_score", "pc1", "pc2", "full_model_score"])
+        test_point = Point(df_test.iloc[0,1], df_test.iloc[0,2])
+
+        # Prepare output plot for nice visualization
+        fig, ax = plt.subplots()
+        ax.add_patch(PolygonPatch(alpha_shape, alpha = 0.2))
+
+        with open("~{output_basename}.pca_qc.txt", 'w') as outfile:
+            # Test and label the sample as a novelty or a regular observation
+            dist = test_point.distance(alpha_shape)
+            if alpha_shape.contains(test_point) or dist < dist_thresh:
+                outfile.write("true" + "\n")
+                plt.scatter(test_point.x, test_point.y, c = 'green', alpha = 1.0, s = 10)
+            else:
+                outfile.write("false" + "\n")
+                plt.scatter(test_point.x, test_point.y, c = 'red', alpha = 1.0, s = 10)
+
+        # Plotting for nice visualization
+        plt.title("Alphashape Automated Novelty Flagging: ~{output_basename}")
+        plt.xlabel("PC1")
+        plt.ylabel("PC2")
+        colors = ['green', 'red']
+        labels = ['Pass', 'Fail']
+        patches = [(plt.Line2D([], [], color = colors[i], label = "{:s}".format(labels[i]), marker = "o", linewidth = 0)) for i in range(len(labels))]
+        plt.legend(loc = 'center left', bbox_to_anchor = (1, 0.5), handles = patches)
+        plt.savefig("~{output_basename}.pca_qc.png", dpi = 300, bbox_inches = 'tight')
+
+        EOF
+        python3 detect_pca_novelties.py
+    >>>
+
+    output {
+        Boolean pca_qc_passed = read_boolean("~{output_basename}.pca_qc.txt")
+        File pca_qc_plot = "~{output_basename}.pca_qc.png"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{mem_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: docker
     }
 }
