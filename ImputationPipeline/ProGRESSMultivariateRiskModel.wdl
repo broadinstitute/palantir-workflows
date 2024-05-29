@@ -1,18 +1,18 @@
 version 1.0
 import "Structs.wdl"
-import "ScoringTasks.wdl" as ScoringTasks
 import "PCATasks.wdl" as PCATasks
-import "ScoringWithAlternativeSource.wdl" as ScoringWithAlternativeSource
+import "ScoreBGE.wdl" as ScoreBGE
 
 workflow ProGRESSMultivariateRiskModel {
     input {
         File imputed_wgs_vcf
+        File imputed_wgs_vcf_index
         File exome_gvcf
         File exome_gvcf_index
         File prs_weights
 
         File fam_history
-        String basename
+        String sample_name
         
         File pc_loadings
         File pc_meansd
@@ -24,112 +24,62 @@ workflow ProGRESSMultivariateRiskModel {
         Float pc2_beta
 
         Boolean use_ref_alt_for_ids = true
+        String chromosome_encoding = "chrMT"
 
         File ref_fasta
         File ref_fasta_index
         File ref_dict
     }
 
-    # call ScoringTasks.DetermineChromosomeEncoding {
-	# 	input:
-	# 		weights = prs_weights
-	# }
-
-    # call ScoringWithAlternativeSource.ScoreVcfWithPreferredGvcf {
-    #     input:
-    #         preferred_gvcf = exome_gvcf,
-    #         preferred_gvcf_index = exome_gvcf_index,
-    #         secondary_vcf = imputed_wgs_vcf,
-    #         weights = prs_weights,
-    #         basename = basename,
-    #         chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
-    #         use_ref_alt_for_ids = use_ref_alt_for_ids,
-    #         ref_fasta = ref_fasta,
-    #         ref_fasta_index = ref_fasta_index,
-    #         ref_dict = ref_dict
-    # }
-
-    call ScoringTasks.ScoreVcf {
+    call ScoreBGE.ScoreBGE {
         input:
-            vcf = imputed_wgs_vcf,
+            exome_gvcf = exome_gvcf,
+            exome_gvcf_index = exome_gvcf_index,
+            imputed_wgs_vcf = imputed_wgs_vcf,
+            imputed_wgs_vcf_index = imputed_wgs_vcf_index,
+            sample_name = sample_name,
             weights = prs_weights,
-            basename = basename,
-            chromosome_encoding = "chrMT", # DetermineChromosomeEncoding.chromosome_encoding,
-            use_ref_alt_for_ids = true
+
+            ref_fasta = ref_fasta,
+            ref_fasta_index = ref_fasta_index,
+            ref_dict = ref_dict
     }
 
-    # call PCATasks.ArrayVcfToPlinkDataset {
-    #     input:
-	# 		vcf = imputed_wgs_vcf,
-	# 		pruning_sites = pc_sites,
-	# 		basename = basename,
-    #         use_ref_alt_for_ids = use_ref_alt_for_ids,
-    #         chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
-    # } 
 
-    # call PCATasks.ProjectArray {
-    #     input:
-    #         pc_loadings = pc_loadings,
-    #         pc_meansd = pc_meansd,
-    #         bed = ArrayVcfToPlinkDataset.bed,
-    #         bim = ArrayVcfToPlinkDataset.bim,
-    #         fam = ArrayVcfToPlinkDataset.fam,
-    #         basename = basename,
-    #         divisor = "none"
-    # }
+    call PCATasks.ArrayVcfToPlinkDataset {
+        input:
+			vcf = imputed_wgs_vcf,
+			pruning_sites = pc_sites,
+			basename = sample_name,
+            use_ref_alt_for_ids = use_ref_alt_for_ids,
+            chromosome_encoding = chromosome_encoding,
+    } 
 
-    # call ComputeRiskValue {
-    #     input:
-    #         prs = ScoreVcf.score,
-    #         pcs = ProjectArray.projections,
-    #         family_history = fam_history,
-    #         prs_beta = prs_beta,
-    #         fam_hist_beta = fam_hist_beta,
-    #         pc1_beta = pc1_beta,
-    #         pc2_beta = pc2_beta,
-    #         basename = basename
-    # }
-
-    output {
-        # File full_risk = ComputeRiskValue.full_risk
-        File test_score = ScoreVcf.score
-    }
-}
-
-task CombineGVCFs {
-    input {
-        Array[File] gvcfs
-        Array[File] gvcf_indices
-        File ref_fasta
-        File ref_fasta_index
-        File ref_dict
-        String basename
-        Int mem_gb = 16
-        Int cpu = 4
-        Int? disk_gb
-        Int preemptible = 1
-        String gatk_tag = "4.5.0.0"
+    call PCATasks.ProjectArray {
+        input:
+            pc_loadings = pc_loadings,
+            pc_meansd = pc_meansd,
+            bed = ArrayVcfToPlinkDataset.bed,
+            bim = ArrayVcfToPlinkDataset.bim,
+            fam = ArrayVcfToPlinkDataset.fam,
+            basename = sample_name,
+            divisor = "none"
     }
 
-    Int disk_size_gb = select_first([disk_gb, ceil(size(gvcfs, "GiB") * 3 + size(ref_fasta, "GiB") + 50)])
-
-    command <<<
-        set -xeuo pipefail
-
-        gatk CombineGVCFs -R ~{ref_fasta} -V ~{sep=" -V " gvcfs} -O ~{basename}.combined.g.vcf.gz
-    >>>
-
-    runtime {
-        docker: "broadinstitute/gatk:" + gatk_tag
-        memory: mem_gb + " GiB"
-        cpu: cpu
-        disks: "local-disk " + disk_size_gb + " HDD"
-        preemptible: preemptible
+    call ComputeRiskValue {
+        input:
+            prs = ScoreBGE.score,
+            pcs = ProjectArray.projections,
+            family_history = fam_history,
+            prs_beta = prs_beta,
+            fam_hist_beta = fam_hist_beta,
+            pc1_beta = pc1_beta,
+            pc2_beta = pc2_beta,
+            sample_name = sample_name
     }
 
     output {
-        File combined_gvcf = "~{basename}.combined.g.vcf.gz"
-        File combined_gvcf_index = "~{basename}.combined.g.vcf.gz.tbi"
+        File full_risk = ComputeRiskValue.full_risk
     }
 }
 
@@ -144,7 +94,7 @@ task ComputeRiskValue {
         Float pc1_beta
         Float pc2_beta
 
-        String basename
+        String sample_name
     }
 
     command <<<
@@ -159,7 +109,7 @@ task ComputeRiskValue {
         full_risk['combined_risk_score'] = (~{prs_beta}*full_risk.SCORE1_SUM + ~{fam_hist_beta}*full_risk.fam_hist + 
                                             ~{pc1_beta}*full_risk.PC1 + ~{pc2_beta}*full_risk.PC2)
         
-        full_risk.to_csv("~{basename}_full_risk.tsv", sep="\t", index=False)
+        full_risk.to_csv("~{sample_name}_full_risk.tsv", sep="\t", index=False)
 
         EOF
 
@@ -170,7 +120,7 @@ task ComputeRiskValue {
     }
 
     output {
-        File full_risk = "~{basename}_full_risk.tsv"
+        File full_risk = "~{sample_name}_full_risk.tsv"
     }
 }
 

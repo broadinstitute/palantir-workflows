@@ -2,13 +2,13 @@ version 1.0
 
 import "ScoringTasks.wdl"
 
-workflow ScoreVcfWithPreferredGvcf {
+workflow ScoreBGE {
     input {
         File exome_gvcf
         File exome_gvcf_index
         File imputed_wgs_vcf
         File imputed_wgs_vcf_index
-        String basename
+        String sample_name
         File weights
 
         File ref_fasta
@@ -27,7 +27,7 @@ workflow ScoreVcfWithPreferredGvcf {
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
             ref_dict = ref_dict,
-            basename = basename,
+            sample_name = sample_name,
             weights = weights,
             preemptible = preemptible
     }
@@ -40,7 +40,7 @@ workflow ScoreVcfWithPreferredGvcf {
     #         secondary_score = SecondaryScore.score,
     #         primary_sites_scored = PrimaryScore.sites_scored,
     #         secondary_sites_scored = SecondaryScore.sites_scored,
-    #         basename = basename,
+    #         sample_name = sample_name,
     #         preemptible = preemptible
     # }
 
@@ -51,6 +51,7 @@ workflow ScoreVcfWithPreferredGvcf {
         File exome_gvcf_scored_sites = ScoreGvcfAndVcf.exome_gvcf_scored_sites
         File imputed_wgs_vcf_score = ScoreGvcfAndVcf.imputed_wgs_vcf_score
         File imputed_wgs_vcf_scored_sites = ScoreGvcfAndVcf.imputed_wgs_vcf_scored_sites
+        File score = ScoreGvcfAndVcf.score
     }
 }
 
@@ -60,7 +61,7 @@ task ScoreGvcfAndVcf {
         File exome_gvcf_index
         File imputed_wgs_vcf
         File imputed_wgs_vcf_index
-        String basename
+        String sample_name
         File weights
 
         File ref_fasta
@@ -248,17 +249,19 @@ class BGEScorer():
         print(f'WGS VCF:  {self.vcf_num_sites_scored} sites scored, {self.vcf_num_sites_not_found} sites not found.')
 
 bge_scorer = BGEScorer('~{ref_dict}', '~{weights}')
-bge_scorer.score_wes_gvcf('~{exome_gvcf}', '~{basename}')
-bge_scorer.score_wgs_vcf('~{imputed_wgs_vcf}', '~{basename}')
+bge_scorer.score_wes_gvcf('~{exome_gvcf}', '~{sample_name}')
+bge_scorer.score_wgs_vcf('~{imputed_wgs_vcf}', '~{sample_name}')
 
-with open('~{basename}.exome_gvcf.score', 'w') as out_exome_gvcf_score:
+with open('~{sample_name}.exome_gvcf.score', 'w') as out_exome_gvcf_score:
     out_exome_gvcf_score.write(f'{bge_scorer.gvcf_sample_score}\n')
-with open('~{basename}.imputed_wgs_vcf.score', 'w') as out_imputed_wgs_vcf_score:
+with open('~{sample_name}.imputed_wgs_vcf.score', 'w') as out_imputed_wgs_vcf_score:
     out_imputed_wgs_vcf_score.write(f'{bge_scorer.vcf_sample_score}\n')
+with open('~{sample_name}.score', 'w') as out_imputed_wgs_vcf_score:
+    out_imputed_wgs_vcf_score.write(f'{bge_scorer.gvcf_sample_score + bge_scorer.vcf_sample_score}\n')
 
-with open('~{basename}.exome_gvcf_scored_sites.sites', 'w') as out_exome_gvcf_sites:
+with open('~{sample_name}.exome_gvcf_scored_sites.sites', 'w') as out_exome_gvcf_sites:
     out_exome_gvcf_sites.write('\n'.join([f'{locus}:{ref}:{alt}' for locus, ref, alt in bge_scorer.gvcf_sites_scored]))
-with open('~{basename}.imputed_wgs_vcf_scored_sites.sites', 'w') as out_imputed_wgs_vcf_sites:
+with open('~{sample_name}.imputed_wgs_vcf_scored_sites.sites', 'w') as out_imputed_wgs_vcf_sites:
     out_imputed_wgs_vcf_sites.write('\n'.join([f'{locus}:{ref}:{alt}' for locus, ref, alt in bge_scorer.vcf_sites_scored]))
 EOF
             python3 script.py
@@ -273,94 +276,10 @@ EOF
     }
 
     output {
-        File exome_gvcf_score = "~{basename}.exome_gvcf.score"
-        File exome_gvcf_scored_sites = "~{basename}.exome_gvcf_scored_sites.sites"
-        File imputed_wgs_vcf_score = "~{basename}.imputed_wgs_vcf.score"
-        File imputed_wgs_vcf_scored_sites = "~{basename}.imputed_wgs_vcf_scored_sites.sites"
-    }
-}
-
-task FilterSitesAndGetExtractedSiteIDs {
-    input {
-        File extracted_vcf
-        String basename
-        Int mem_gb = 4
-        Int cpu = 4
-        Int? disk_gb
-        Int preemptible = 1
-    }
-
-    Int disk_size_gb = select_first([disk_gb, ceil(size(extracted_vcf, "GiB") + 50)])
-
-    command <<<
-        set -xeuo pipefail
-
-        bcftools view -O z -o ~{basename}.extracted.filtered.vcf.gz -e 'QUAL<=20' ~{extracted_vcf}
-        bcftools index ~{basename}.extracted.filtered.vcf.gz
-
-        bcftools query -f '%CHROM:%POS:%REF:%ALT\n' ~{basename}.extracted.filtered.vcf.gz > ~{basename}.extracted.filtered.sites
-    >>>
-
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
-        memory: mem_gb + " GiB"
-        cpu: cpu
-        disks: "local-disk " + disk_size_gb + " HDD"
-        preemptible: preemptible
-    }
-
-    output {
-        File extracted_filtered_vcf = "~{basename}.extracted.filtered.vcf.gz"
-        File extracted_filtered_vcf_index = "~{basename}.extracted.filtered.vcf.gz"
-        File extracted_filtered_sites = "~{basename}.extracted.filtered.sites"
-    }
-}
-
-task CombinePrimaryAndSecondaryScores {
-    input {
-        File primary_score
-        File secondary_score
-        File primary_sites_scored
-        File secondary_sites_scored
-
-        String basename
-
-        Int disk_gb = 50
-        Int mem_gb = 2
-        Int cpu = 1
-        Int preemptible = 1
-    }
-
-    command <<<
-        set -xeuo pipefail
-
-        cat ~{primary_sites_scored} ~{secondary_sites_scored} | sort | uniq > ~{basename}.sscore.vars
-
-        cat <<EOF > script.py
-import pandas as pd
-
-primary_scores = pd.read_table('~{primary_score}')
-secondary_scores = pd.read_table('~{secondary_score}')
-
-scores = primary_scores.merge(secondary_scores, how='inner', on='#IID')
-scores['SCORE1_SUM'] = scores['SCORE1_SUM_x'] + scores['SCORE1_SUM_y']
-scores['NAMED_ALLELE_DOSAGE_SUM'] = scores['NAMED_ALLELE_DOSAGE_SUM_x'] + scores['NAMED_ALLELE_DOSAGE_SUM_y']
-scores['SCORE1_AVG'] = 'NA'
-scores[['#IID', 'NAMED_ALLELE_DOSAGE_SUM', 'SCORE1_AVG', 'SCORE1_SUM']].to_csv('~{basename}.sscore', sep='\t', index=None)
-EOF
-        python3 script.py
-    >>>
-
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
-        disks: "local-disk " + disk_gb + " HDD"
-        memory: mem_gb + " GiB"
-        cpu: cpu
-        preemptible: preemptible
-    }
-
-    output {
-        File score = "~{basename}.sscore"
-        File sites_scored = "~{basename}.sscore.vars"
+        File exome_gvcf_score = "~{sample_name}.exome_gvcf.score"
+        File exome_gvcf_scored_sites = "~{sample_name}.exome_gvcf_scored_sites.sites"
+        File imputed_wgs_vcf_score = "~{sample_name}.imputed_wgs_vcf.score"
+        File imputed_wgs_vcf_scored_sites = "~{sample_name}.imputed_wgs_vcf_scored_sites.sites"
+        File score = "~{sample_name}.score"
     }
 }
