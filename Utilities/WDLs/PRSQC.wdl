@@ -54,7 +54,7 @@ workflow PRSQC {
             mem_gb = mem_gb,
             disk_size_gb = disk_size_gb
     }
-    
+
     call FinalizeQCOutputs {
         input:
             sample_name = sample_name,
@@ -233,13 +233,18 @@ task FinalizeQCOutputs {
         String docker
     }
 
+    String qpc = if (qc_passed_control) then "True" else "False"
+    String qps = if (qc_passed_sample) then "True" else "False"
+    String pqpc = if (pca_qc_passed_control) then "True" else "False"
+    String pqps = if (pca_qc_passed_sample) then "True" else "False"
+
     command <<<
         set -euo pipefail
 
         cat <<'EOF' > script.py
 
         with open('~{sample_name}.qc_passed.txt', 'w') as qc_passed:
-            if ~{qc_passed_control} and ~{qc_passed_sample} and ~{pca_qc_passed_control} and ~{pca_qc_passed_sample}:
+            if ~{qpc} and ~{qps} and ~{pqpc} and ~{pqps}:
                 qc_passed.write("true\n")
             else:
                 qc_passed.write("false\n")
