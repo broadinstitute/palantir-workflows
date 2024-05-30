@@ -37,7 +37,7 @@ jobs:
       - get-cromwell-jar
       - install-watt
       - run: |
-            python ~/watt/watt.py -e cromwell-84.jar -c test/watt_config.yml -p 2
+            python ~/watt/watt.py -e cromwell-84.jar -c test/watt_config.yml -p $(nproc)
       - store_artifacts:
           path: watt_logs
       - store_artifacts:
