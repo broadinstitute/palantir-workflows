@@ -25,6 +25,7 @@ workflow ProGRESSMultivariateRiskModel {
 
         Boolean use_ref_alt_for_ids = true
         String chromosome_encoding = "chrMT"
+        Int mem_gb_array_vcf_to_plink = 16
 
         File ref_fasta
         File ref_fasta_index
@@ -53,6 +54,7 @@ workflow ProGRESSMultivariateRiskModel {
 			basename = sample_name,
             use_ref_alt_for_ids = use_ref_alt_for_ids,
             chromosome_encoding = chromosome_encoding,
+            mem = mem_gb_array_vcf_to_plink
     } 
 
     call PCATasks.ProjectArray {
