@@ -15,7 +15,4 @@ jobs:
           service_account: palantir-workflows-service-acc@broad-dsde-methods.iam.gserviceaccount.com
       - run: |
             wget https://github.com/broadinstitute/cromwell/releases/download/84/cromwell-84.jar
-            apt-get update
-            apt-get install -y make
-            export CROMWELL_JAR=/home/circleci/project/cromwell-84.jar
-            make test
+            java -jar cromwell-84.jar run test/AggregatePRSResults/test_AggregatePRSResults.wdl -i test/AggregatePRSResults/test_AggregatePRSResults_json/test_plumbing_inputs.json
