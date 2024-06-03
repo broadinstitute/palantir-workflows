@@ -1,0 +1,18 @@
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: auth
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v4'
+        with:
+          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: palantir-workflows-service-acc@broad-dsde-methods.iam.gserviceaccount.com
+      - run: |
+            wget https://github.com/broadinstitute/cromwell/releases/download/84/cromwell-84.jar
+            apt-get update
+            apt-get install -y make
+            export CROMWELL_JAR=/home/circleci/project/cromwell-84.jar
+            make test
