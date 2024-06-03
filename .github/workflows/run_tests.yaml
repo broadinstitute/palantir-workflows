@@ -6,7 +6,7 @@ jobs:
       - uses: actions/checkout@v4
       - id: auth
         name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v4'
+        uses: 'google-github-actions/auth@v2'
         with:
           workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
           service_account: palantir-workflows-service-acc@broad-dsde-methods.iam.gserviceaccount.com
