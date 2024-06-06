@@ -9,7 +9,7 @@ workflow PRSQC {
         File control_thresholds
         File sample_thresholds
         File alphashape
-        #Boolean qc_control_only = false
+        Boolean manually_passed_control = false
     }
 
     Int cpu = 1
@@ -17,23 +17,25 @@ workflow PRSQC {
     Int disk_size_gb = 32
     String docker = "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
 
-    call CheckThresholds as CheckControl {
-        input:
-            scores = prs_control,
-            thresholds = control_thresholds,
-            cpu = cpu,
-            mem_gb = mem_gb,
-            disk_size_gb = disk_size_gb,
-            docker = docker
-    }
+    if(!manually_passed_control) {
+        call CheckThresholds as CheckControl {
+            input:
+                scores = prs_control,
+                thresholds = control_thresholds,
+                cpu = cpu,
+                mem_gb = mem_gb,
+                disk_size_gb = disk_size_gb,
+                docker = docker
+        }
 
-    call DetectPCANovelties as DetectPCANoveltiesControl {
-        input:
-            test_sample = prs_control,
-            alphashape = alphashape,
-            cpu = cpu,
-            mem_gb = mem_gb,
-            disk_size_gb = disk_size_gb
+        call DetectPCANovelties as DetectPCANoveltiesControl {
+            input:
+                test_sample = prs_control,
+                alphashape = alphashape,
+                cpu = cpu,
+                mem_gb = mem_gb,
+                disk_size_gb = disk_size_gb
+        }
     }
 
     call CheckThresholds as CheckSample {
@@ -58,9 +60,9 @@ workflow PRSQC {
     call FinalizeQCOutputs {
         input:
             sample_name = sample_name,
-            qc_passed_control = CheckControl.qc_passed,
+            qc_passed_control = select_first([CheckControl.qc_passed, true]),
             qc_passed_sample = CheckSample.qc_passed,
-            pca_qc_passed_control = DetectPCANoveltiesControl.pca_qc_passed,
+            pca_qc_passed_control = select_first([DetectPCANoveltiesControl.pca_qc_passed, true]),
             pca_qc_passed_sample = DetectPCANoveltiesSample.pca_qc_passed,
             cpu = cpu,
             mem_gb = mem_gb,
@@ -70,7 +72,7 @@ workflow PRSQC {
 
     output {
         Boolean qc_passed = FinalizeQCOutputs.qc_passed
-        File qc_failures_control = CheckControl.qc_failures
+        File? qc_failures_control = CheckControl.qc_failures
         File qc_failures_sample = CheckSample.qc_failures
     }
 }
