@@ -22,7 +22,7 @@ class BGEScorer():
 
         self.vcf_sample_score = None
         self.vcf_sites_scored = None
-        self.vcf_sites_not_found = None
+        self.vcf_num_sites_not_found = None
 
     def _read_ref_dict(self, ref_dict_path):
         with open(ref_dict_path) as ref_dict:
@@ -46,56 +46,18 @@ class BGEScorer():
             return 0
         return record.pos - weight.position
 
-    def _compare_contigs_and_positions(self, lhs_contig, lhs_position, rhs_contig, rhs_position):
-        if lhs_contig != rhs_contig:
-            return self.ref_dict.index(lhs_contig) - self.ref_dict.index(rhs_contig)
-        return lhs_position - rhs_position
-
     def _check_biallelic(self, record):
         if record is not None and len(record.alts) > 1:
             raise RuntimeError('Only biallelic variants are supported: ' + str(record))
-
-    def _gvcf_check_quality_and_score_variant(self, record, weight, variant_gq_threshold):
-        for sample_name in self.sample_names:
-            if record.samples[sample_name]['GQ'] < variant_gq_threshold:
-                self.gvcf_num_low_quality_variants[sample_name] += 1
-                return
-            
-            if weight.effect_allele not in record.alleles:
-                raise RuntimeError('Effect allele not found in variant alleles: ' + str(record))
-            
-            effect_allele_index = record.alleles.index(weight.effect_allele)
-            site_score = record.samples[sample_name]['GT'].count(effect_allele_index) * weight.weight
-
-            self.gvcf_num_variants_scored[sample_name] += 1
-            self.gvcf_sites_scored[sample_name].append((weight.locus, weight.ref, weight.alt))
-            self.gvcf_sample_score[sample_name] += site_score
-
-    def _gvcf_score_ref_block(self, record, weight, ref_block_gq_threshold):
-        for sample_name in self.sample_names:
-            if record.samples[sample_name]['GQ'] < ref_block_gq_threshold:
-                self.gvcf_num_low_quality_ref_blocks[sample_name] += 1
-                return
-
-            gt = record.samples[sample_name]['GT']
-            if not all([g == 0 for g in gt]):
-                raise RuntimeError('Encountered a non-zero GT in ref block: ' + str(record))
-            
-            site_score = len(gt) * weight.weight if weight.effect_allele == weight.ref else 0
-
-            self.gvcf_num_ref_blocks_scored[sample_name] += 1
-            self.gvcf_sites_scored[sample_name].append((weight.locus, weight.ref, weight.alt))
-            self.gvcf_sample_score[sample_name] += site_score
     
-    def _gvcf_score_site(self, record, weight):
+    def _gvcf_score_site(self, record, weight, site_gq_threshold):
         for sample_name in self.sample_names:
-            if record.samples[sample_name]['GQ'] < 30:
+            if record.samples[sample_name]['GQ'] < site_gq_threshold:
                 self.gvcf_low_quality_sites[sample_name].append((weight.locus, weight.ref, weight.alt))
                 return
             
             effect_allele_index = 0 if weight.effect_allele == weight.ref else (record.alleles.index(weight.effect_allele) if weight.effect_allele in record.alleles else None)
             site_score = 0 if effect_allele_index is None else record.samples[sample_name]['GT'].count(effect_allele_index) * weight.weight
-            print('Weight:', weight.locus, weight.ref, weight.alt, 'Score:', site_score)
 
             self.gvcf_sites_scored[sample_name].append((weight.locus, weight.ref, weight.alt))
             self.gvcf_sample_score[sample_name] += site_score
@@ -103,42 +65,39 @@ class BGEScorer():
     def _vcf_score_dosage(self, record, weight):
         for sample_name in self.sample_names:
             if (weight.locus, weight.ref, weight.alt) in self.gvcf_sites_scored_set[sample_name]:
-                return
+                continue
             dosage = record.samples[sample_name]['DS'] if record.alts[0] == weight.effect_allele else 2 - record.samples[sample_name]['DS']
             site_score = dosage * weight.weight
 
-            self.vcf_num_sites_scored[sample_name] += 1
             self.vcf_sites_scored[sample_name].append((weight.locus, weight.ref, weight.alt))
             self.vcf_sample_score[sample_name] += site_score
     
     def _print_wes_gvcf_metrics(self):
-        gvcf_num_variants_scored_min_max = min(self.gvcf_num_variants_scored.values()), max(self.gvcf_num_variants_scored.values())
-        gvcf_num_low_quality_variants_min_max = min(self.gvcf_num_low_quality_variants.values()), max(self.gvcf_num_low_quality_variants.values())
-        gvcf_num_ref_blocks_scored_min_max = min(self.gvcf_num_ref_blocks_scored.values()), max(self.gvcf_num_ref_blocks_scored.values())
-        gvcf_num_low_quality_ref_blocks_min_max = min(self.gvcf_num_low_quality_ref_blocks.values()), max(self.gvcf_num_low_quality_ref_blocks.values())
+        num_sites_scored = {sample_name: len(self.gvcf_sites_scored[sample_name]) for sample_name in self.sample_names}
+        num_sites_scored_min_max = min(num_sites_scored.values()), max(num_sites_scored.values())
+        num_low_quality_sites = {sample_name: len(self.gvcf_low_quality_sites[sample_name]) for sample_name in self.sample_names}
+        num_low_quality_sites_min_max = min(num_low_quality_sites.values()), max(num_low_quality_sites.values())
 
         print(f'  Metrics:')
-        print(f'    Variants scored: Min: {gvcf_num_variants_scored_min_max[0]} Max: {gvcf_num_variants_scored_min_max[1]}')
-        print(f'    Low quality variants: Min: {gvcf_num_low_quality_variants_min_max[0]} Max: {gvcf_num_low_quality_variants_min_max[1]}')
-        print(f'    Ref blocks scored: Min: {gvcf_num_ref_blocks_scored_min_max[0]} Max: {gvcf_num_ref_blocks_scored_min_max[1]}')
-        print(f'    Low quality ref blocks: Min: {gvcf_num_low_quality_ref_blocks_min_max[0]} Max: {gvcf_num_low_quality_ref_blocks_min_max[1]}')
+        print(f'    Sites scored: Min: {num_sites_scored_min_max[0]} Max: {num_sites_scored_min_max[1]}')
+        print(f'    Low quality sites: Min: {num_low_quality_sites_min_max[0]} Max: {num_low_quality_sites_min_max[1]}')
 
     def _print_wgs_vcf_metrics(self):
-        vcf_num_sites_scored_min_max = min(self.vcf_num_sites_scored.values()), max(self.vcf_num_sites_scored.values())
-        vcf_num_sites_not_found = self.vcf_num_sites_not_found
+        num_sites_scored = {sample_name: len(self.vcf_sites_scored[sample_name]) for sample_name in self.sample_names}
+        num_sites_scored_min_max = min(num_sites_scored.values()), max(num_sites_scored.values())
 
         print(f'  Metrics:')
-        print(f'    Sites scored: Min: {vcf_num_sites_scored_min_max[0]} Max: {vcf_num_sites_scored_min_max[1]}')
-        print(f'    Sites not found: {vcf_num_sites_not_found}')
+        print(f'    Sites scored: Min: {num_sites_scored_min_max[0]} Max: {num_sites_scored_min_max[1]}')
+        print(f'    Sites not found: {self.vcf_num_sites_not_found}')
 
     def _print_wes_and_wgs_metrics(self):
-        total_sites_scored = {sample_name: self.gvcf_num_variants_scored[sample_name] + self.gvcf_num_ref_blocks_scored[sample_name] + self.vcf_num_sites_scored[sample_name] for sample_name in self.sample_names}
+        total_sites_scored = {sample_name: len(self.gvcf_sites_scored[sample_name]) + len(self.vcf_sites_scored[sample_name]) for sample_name in self.sample_names}
         sites_scored_min_max = min(total_sites_scored.values()), max(total_sites_scored.values())
 
         print(f'WES GVCF + WGS VCF Scoring:')
         print(f'    Total sites scored: Min: {sites_scored_min_max[0]} Max: {sites_scored_min_max[1]}')
 
-    def score_wes_gvcf(self, gvcf_path, sample_names=None, variant_gq_threshold=30, ref_block_gq_threshold=30):
+    def score_wes_gvcf(self, gvcf_path, sample_names=None, site_gq_threshold=30):
         """
         Score variants in a Whole Exome Sequencing (WES) GVCF file.
 
@@ -160,10 +119,7 @@ class BGEScorer():
 
         self.gvcf_sample_score = {sample_name: 0 for sample_name in self.sample_names}
         self.gvcf_sites_scored = {sample_name: [] for sample_name in self.sample_names}
-        self.gvcf_num_variants_scored = {sample_name: 0 for sample_name in self.sample_names}
-        self.gvcf_num_low_quality_variants = {sample_name: 0 for sample_name in self.sample_names}
-        self.gvcf_num_ref_blocks_scored = {sample_name: 0 for sample_name in self.sample_names}
-        self.gvcf_num_low_quality_ref_blocks = {sample_name: 0 for sample_name in self.sample_names}
+        self.gvcf_low_quality_sites = {sample_name: [] for sample_name in self.sample_names}
 
         current_record_iter = gvcf.fetch()
         current_record = next(current_record_iter)
@@ -177,11 +133,7 @@ class BGEScorer():
                     break
             
             if self._compare_record_and_weight(current_record, weight) == 0:
-                # if current_record.alleles_variant_types == ('REF', 'REF'):
-                #     self._gvcf_score_ref_block(current_record, weight, ref_block_gq_threshold)
-                # else:
-                #     self._gvcf_check_quality_and_score_variant(current_record, weight, variant_gq_threshold)
-                self._gvcf_score_site(current_record, weight)
+                self._gvcf_score_site(current_record, weight, site_gq_threshold)
         
         # Save the scored sites as a set for faster lookup
         self.gvcf_sites_scored_set = {key: set(value) for key, value in self.gvcf_sites_scored.items()}
@@ -216,7 +168,6 @@ class BGEScorer():
 
         self.vcf_sample_score = {sample_name: 0 for sample_name in self.sample_names}
         self.vcf_sites_scored = {sample_name: [] for sample_name in self.sample_names}
-        self.vcf_num_sites_scored = {sample_name: 0 for sample_name in self.sample_names}
         self.vcf_num_sites_not_found = 0
 
         for _, weight in self.prs_weights.iterrows():
@@ -250,11 +201,11 @@ class BGEScorer():
         Write the scores to plink-like output files.
         """
         with open(f'{basename}.exome_gvcf.score', 'w') as out_exome_gvcf_score:
-            out_exome_gvcf_score.write('#IID	SCORE1_SUM\n')
+            out_exome_gvcf_score.write('#IID\tSCORE1_SUM\n')
             for sample_name in self.sample_names:
                 out_exome_gvcf_score.write(f'{sample_name}\t{self.gvcf_sample_score[sample_name]}\n')
         with open(f'{basename}.imputed_wgs_vcf.score', 'w') as out_imputed_wgs_vcf_score:
-            out_imputed_wgs_vcf_score.write('#IID	SCORE1_SUM\n')
+            out_imputed_wgs_vcf_score.write('#IID\tSCORE1_SUM\n')
             for sample_name in self.sample_names:
                 out_imputed_wgs_vcf_score.write(f'{sample_name}\t{self.vcf_sample_score[sample_name]}\n')
         with open(f'{basename}.score', 'w') as out_combined_score:

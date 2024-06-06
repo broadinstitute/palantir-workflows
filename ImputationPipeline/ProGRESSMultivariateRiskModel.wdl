@@ -1,7 +1,7 @@
 version 1.0
 import "Structs.wdl"
 import "PCATasks.wdl" as PCATasks
-import "ScoreBGE.wdl" as ScoreBGE
+import "ScoreBGE/ScoreBGE.wdl" as ScoreBGE
 
 workflow ProGRESSMultivariateRiskModel {
     input {
@@ -12,7 +12,7 @@ workflow ProGRESSMultivariateRiskModel {
         File prs_weights
 
         File fam_history
-        String sample_name
+        String basename
         
         File pc_loadings
         File pc_meansd
@@ -38,7 +38,7 @@ workflow ProGRESSMultivariateRiskModel {
             exome_gvcf_index = exome_gvcf_index,
             imputed_wgs_vcf = imputed_wgs_vcf,
             imputed_wgs_vcf_index = imputed_wgs_vcf_index,
-            sample_name = sample_name,
+            basename = basename,
             weights = prs_weights,
 
             ref_fasta = ref_fasta,
@@ -51,7 +51,7 @@ workflow ProGRESSMultivariateRiskModel {
         input:
 			vcf = imputed_wgs_vcf,
 			pruning_sites = pc_sites,
-			basename = sample_name,
+			basename = basename,
             use_ref_alt_for_ids = use_ref_alt_for_ids,
             chromosome_encoding = chromosome_encoding,
             mem = mem_gb_array_vcf_to_plink
@@ -64,7 +64,7 @@ workflow ProGRESSMultivariateRiskModel {
             bed = ArrayVcfToPlinkDataset.bed,
             bim = ArrayVcfToPlinkDataset.bim,
             fam = ArrayVcfToPlinkDataset.fam,
-            basename = sample_name,
+            basename = basename,
             divisor = "none"
     }
 
@@ -77,7 +77,7 @@ workflow ProGRESSMultivariateRiskModel {
             fam_hist_beta = fam_hist_beta,
             pc1_beta = pc1_beta,
             pc2_beta = pc2_beta,
-            sample_name = sample_name
+            basename = basename
     }
 
     output {
@@ -96,7 +96,7 @@ task ComputeRiskValue {
         Float pc1_beta
         Float pc2_beta
 
-        String sample_name
+        String basename
     }
 
     command <<<
@@ -111,7 +111,7 @@ task ComputeRiskValue {
         full_risk['combined_risk_score'] = (~{prs_beta}*full_risk.SCORE1_SUM + ~{fam_hist_beta}*full_risk.fam_hist + 
                                             ~{pc1_beta}*full_risk.PC1 + ~{pc2_beta}*full_risk.PC2)
         
-        full_risk.to_csv("~{sample_name}_full_risk.tsv", sep="\t", index=False)
+        full_risk.to_csv("~{basename}_full_risk.tsv", sep="\t", index=False)
 
         EOF
 
@@ -122,7 +122,7 @@ task ComputeRiskValue {
     }
 
     output {
-        File full_risk = "~{sample_name}_full_risk.tsv"
+        File full_risk = "~{basename}_full_risk.tsv"
     }
 }
 
