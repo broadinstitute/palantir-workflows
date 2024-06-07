@@ -20,7 +20,7 @@ commands:
     description: "Install watt"
     steps:
       - run: |
-            git clone -b main --depth 1 https://github.com/rickymagner/watt.git ~/watt
+            git clone -b v1.0 --depth 1 https://github.com/rickymagner/watt.git ~/watt
             pip install -r ~/watt/requirements.txt
 jobs:
   validate:
