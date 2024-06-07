@@ -1,4 +1,5 @@
 version 1.0
+
 import "Structs.wdl"
 import "PCATasks.wdl" as PCATasks
 import "ScoreBGE/ScoreBGE.wdl" as ScoreBGE

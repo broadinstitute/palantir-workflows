@@ -144,6 +144,6 @@ workflows:
   - name: ProGRESSMultivariateRiskModel
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/ProGRESSMultivariateRiskModel.wdl
-  - name: ScoringWithAlternativeSourceGatk
+  - name: ScoreBGE
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/ScoringWithAlternativeSourceGatk.wdl
+    primaryDescriptorPath: /ImputationPipeline/ScoreBGE.wdl
