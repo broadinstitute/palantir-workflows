@@ -1,7 +1,5 @@
 version 1.0
 
-import "ScoringTasks.wdl"
-
 workflow ScoreBGE {
     input {
         File exome_gvcf
