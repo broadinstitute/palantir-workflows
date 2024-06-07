@@ -146,4 +146,4 @@ workflows:
     primaryDescriptorPath: /ImputationPipeline/ProGRESSMultivariateRiskModel.wdl
   - name: ScoreBGE
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/ScoreBGE.wdl
+    primaryDescriptorPath: /ImputationPipeline/ScoreBGE/ScoreBGE.wdl
