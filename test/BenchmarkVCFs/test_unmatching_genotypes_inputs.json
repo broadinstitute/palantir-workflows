@@ -1,0 +1,16 @@
+{
+    "Benchmark.requireMatchingGenotypes": false,
+    "Benchmark.evalVcf": "test/BenchmarkVCFs/plumbing_data/test.eval.vcf.gz",
+    "Benchmark.evalVcfIndex": "test/BenchmarkVCFs/plumbing_data/test.eval.vcf.gz.tbi",
+    "Benchmark.refIndex": "test/BenchmarkVCFs/plumbing_data/test.fasta.fai",
+    "Benchmark.truthVcf": "test/BenchmarkVCFs/plumbing_data/test.truth.vcf.gz",
+    "Benchmark.truthVcfIndex": "test/BenchmarkVCFs/plumbing_data/test.truth.vcf.gz.tbi",
+    "Benchmark.refDict": "test/BenchmarkVCFs/plumbing_data/test.fasta.dict",
+    "Benchmark.truthLabel": "the_truth",
+    "Benchmark.evalLabel": "the_eval",
+    "Benchmark.referenceVersion": "hg38",
+    "Benchmark.hapMap": "test/BenchmarkVCFs/plumbing_data/test.haplotype_database.txt",
+    "Benchmark.doIndelLengthStratification": false,
+    "Benchmark.reference": "test/BenchmarkVCFs/plumbing_data/test.fasta",
+    "Benchmark.confidenceInterval": "test/BenchmarkVCFs/plumbing_data/test.confidence.interval_list"
+}

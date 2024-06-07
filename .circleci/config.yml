@@ -9,7 +9,6 @@ executors:
       - image: broadinstitute/womtool:84
         entrypoint: /bin/bash
     working_directory: ~/palantir-workflows
-    environment: WOMTOOL_JAR=/app/womtool.jar
 
 commands:
   get-cromwell-jar:
@@ -17,51 +16,38 @@ commands:
     steps:
       - run: wget https://github.com/broadinstitute/cromwell/releases/download/84/cromwell-84.jar
 
-  install-make:
-    description: "Install make"
+  install-watt:
+    description: "Install watt"
     steps:
       - run: |
-            apt-get update
-            apt-get install -y make
+            git clone -b v1.0 --depth 1 https://github.com/rickymagner/watt.git ~/watt
+            pip install -r ~/watt/requirements.txt
 jobs:
   validate:
     executor: womtool-executor
     steps:
       - checkout
-      - install-make
-      - run: make validate
+      - run: find . -name '*.wdl' -exec bash -c 'echo $1; java -jar /app/womtool.jar validate $1' shell {} \; 
 
-  validate-with-json:
-    executor: womtool-executor
-    steps:
-      - checkout
-      - install-make
-      - run: make validate-with-json
-
-  test:
+  test_watt:
     machine:
       image: ubuntu-2004:current
-    environment:
-      CROMWELL_JAR=/home/circleci/project/cromwell-84.jar
     steps:
       - checkout
       - get-cromwell-jar
-      - run: make test
+      - install-watt
+      - run: |
+            python ~/watt/watt.py -e cromwell-84.jar -c test/watt_config.yml -p $(nproc)
       - store_artifacts:
-          path: /home/circleci/project/logs
+          path: watt_logs
       - store_artifacts:
-          path: /home/circleci/project/workflow_logs
-      - store_artifacts:
-          path: /home/circleci/project/call_logs
-
+          path: cromwell-executions
 
 workflows:
   version: 2
   validate-and-test:
     jobs:
       - validate
-      - validate-with-json
-      - test:
+      - test_watt:
           requires:
             - validate
-            - validate-with-json

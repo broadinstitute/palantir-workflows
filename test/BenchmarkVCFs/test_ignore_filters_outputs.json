@@ -1,0 +1,11 @@
+{  
+    "Benchmark.snpPrecision" : 1.0,
+    "Benchmark.indelPrecision" : 0.5,
+    "Benchmark.snpRecall" : 1.0,
+    "Benchmark.indelRecall": 0.5,
+    "Benchmark.summary": null,
+    "Benchmark.snpF1Score": null,
+    "Benchmark.indelF1Score": null,
+    "Benchmark.snpRocs": null,
+    "Benchmark.nonSnpRocs": null
+}
