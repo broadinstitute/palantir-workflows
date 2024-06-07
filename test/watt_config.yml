@@ -9,8 +9,8 @@ BenchmarkVCFs:
   path: "/BenchmarkVCFs/BenchmarkVCFs.wdl"
   tests:
     base:
-      test_inputs: "/test/AggregatePRSResults/test_inputs.json"
-      expected_outputs: "/test/AggregatePRSResults/test_outputs.json"
+      test_inputs: "/test/BenchmarkVCFs/test_base_inputs.json"
+      expected_outputs: "/test/BenchmarkVCFs/test_base_outputs.json"
     ignore_filters:
       test_inputs: "/test/BenchmarkVCFs/test_ignore_filters_input.json"
       expected_outputs: "/test/BenchmarkVCFs/test_ignore_filters_outputs.json"
