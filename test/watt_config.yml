@@ -1,49 +1,26 @@
-aggregate_prs_results_test:
-  workflow_name: "AggregatePRSResults"
-  test_name: "Base"
+AggregatePRSResults:
   path: "/ImputationPipeline/AggregatePRSResults.wdl"
-  test_inputs: "/test/AggregatePRSResults/test_inputs.json"
-  expected_outputs: "/test/AggregatePRSResults/test_outputs.json"
+  tests:
+    base:
+      test_inputs: "/test/AggregatePRSResults/test_inputs.json"
+      expected_outputs: "/test/AggregatePRSResults/test_outputs.json"
 
-benchmark_vcfs_ignore_filters_test:
-  workflow_name: "BenchmarkVCFs"
-  test_name: "IgnoreFilters"
+BenchmarkVCFs:
   path: "/BenchmarkVCFs/BenchmarkVCFs.wdl"
-  test_inputs: "/test/BenchmarkVCFs/test_ignore_filters_input.json"
-  expected_outputs: "/test/BenchmarkVCFs/test_ignore_filters_outputs.json"
+  tests:
+    base:
+      test_inputs: "/test/AggregatePRSResults/test_inputs.json"
+      expected_outputs: "/test/AggregatePRSResults/test_outputs.json"
+    ignore_filters:
+      test_inputs: "/test/BenchmarkVCFs/test_ignore_filters_input.json"
+      expected_outputs: "/test/BenchmarkVCFs/test_ignore_filters_outputs.json"
+    unmatching_genotypes:
+      test_inputs: "/test/BenchmarkVCFs/test_unmatching_genotypes_inputs.json"
+      expected_outputs: "/test/BenchmarkVCFs/test_unmatching_genotypes_outputs.json"
 
-benchmark_vcfs_test:
-  workflow_name: "BenchmarkVCFs"
-  test_name: "Base"
-  path: "/BenchmarkVCFs/BenchmarkVCFs.wdl"
-  test_inputs: "/test/BenchmarkVCFs/test_base_inputs.json"
-  expected_outputs: "/test/BenchmarkVCFs/test_base_outputs.json"
-
-benchmark_vcfs_unmatching_genotypes_test:
-  workflow_name: "BenchmarkVCFs"
-  test_name: "UnmatchingGenotypes"
-  path: "/BenchmarkVCFs/BenchmarkVCFs.wdl"
-  test_inputs: "/test/BenchmarkVCFs/test_unmatching_genotypes_inputs.json"
-  expected_outputs: "/test/BenchmarkVCFs/test_unmatching_genotypes_outputs.json"
-
-compare_benchmarks_test:
-  workflow_name: "CompareBenchmarks"
-  test_name: "Base"
+CompareBenchmarks:
   path: "/BenchmarkVCFs/CompareBenchmarks.wdl"
-  test_inputs: "/test/CompareBenchmarks/test_base_inputs.json"
-  expected_outputs: "/test/CompareBenchmarks/test_base_outputs.json"
-
-
-## proposed new format
-# -
-#   workflow_name: "BenchmarkVCFs"
-#   path: "/BenchmarkVCFs/BenchmarkVCFs.wdl"
-#   tests:
-#     -
-#       test_name: "IgnoreFilters"
-#       test_inputs: "/test/BenchmarkVCFs/test_ignore_filters_input.json"
-#       expected_outputs: "/test/BenchmarkVCFs/test_ignore_filters_outputs.json"
-#     -
-#       test_name: "Base"
-#       test_inputs: "/test/BenchmarkVCFs/test_base_input.json"
-#       expected_outputs: "/test/BenchmarkVCFs/test_base_outputs.json" 
+  tests:
+    base:
+      test_inputs: "/test/CompareBenchmarks/test_base_inputs.json"
+      expected_outputs: "/test/CompareBenchmarks/test_base_outputs.json"
