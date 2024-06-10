@@ -1,0 +1,60 @@
+##fileformat=VCFv4.2
+##ALT=<ID=NON_REF,Description="Represents any possible alternative allele at this location">
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths (counting only informative reads out of the total reads) for the ref and alt alleles in the order listed">
+##FORMAT=<ID=AF,Number=A,Type=Float,Description="Allele fractions for alt alleles in the order listed">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth (reads with MQ=255 or with bad mates are filtered)">
+##FORMAT=<ID=F1R2,Number=R,Type=Integer,Description="Count of reads in F1R2 pair orientation supporting each allele">
+##FORMAT=<ID=F2R1,Number=R,Type=Integer,Description="Count of reads in F2R1 pair orientation supporting each allele">
+##FORMAT=<ID=GP,Number=G,Type=Float,Description="Phred-scaled posterior probabilities for genotypes as defined in the VCF specification">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=ICNT,Number=2,Type=Integer,Description="Counts of INDEL informative reads based on the reference confidence model">
+##FORMAT=<ID=MB,Number=4,Type=Integer,Description="Per-sample component statistics to detect mate bias">
+##FORMAT=<ID=MIN_DP,Number=1,Type=Integer,Description="Minimum DP observed within the GVCF block">
+##FORMAT=<ID=PL,Number=G,Type=Integer,Description="Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification">
+##FORMAT=<ID=PRI,Number=G,Type=Float,Description="Phred-scaled prior probabilities for genotypes">
+##FORMAT=<ID=PS,Number=1,Type=Integer,Description="Physical phasing ID information, where each unique ID within a given sample (but not across samples) connects records within a phasing group">
+##FORMAT=<ID=SB,Number=4,Type=Integer,Description="Per-sample component statistics which comprise the Fisher's Exact Test to detect strand bias">
+##FORMAT=<ID=SPL,Number=.,Type=Integer,Description="Normalized, Phred-scaled likelihoods for SNPs based on the reference confidence model">
+##FORMAT=<ID=SQ,Number=1,Type=Float,Description="Somatic quality">
+##DRAGENCommandLine=<ID=HashTableBuild,Version="SW: 01.003.044.3.7.0-836-g2c77f4e2, HashTableVersion: 8",CommandLineOptions="dragen --build-hash-table true --ht-build-rna-hashtable true --ht-reference /illumina/scratch/DRAGEN/data/vault/reference_genomes/Hsapiens/hg38/seq/hg38.fa --output-directory /staging/tmp//illumina/scratch/DRAGEN/users/rruuspakka/rebuild_hash_tables/135944/EId5/hg38_alt_aware_graph_based/DRAGEN/8 --ht-num-threads 40 --ht-alt-liftover /opt/edico/liftover/bwa-kit_hs38DH_liftover.sam --enable-cnv true --ht-pop-alt-contigs /opt/edico/liftover/pop_altContig.fa.gz --ht-pop-alt-liftover /opt/edico/liftover/pop_liftover.sam.gz --ht-pop-snps /opt/edico/liftover/pop_snps.vcf.gz">
+##DRAGENCommandLine=<ID=dragen,Version="SW: 07.021.604.3.7.8, HW: 07.021.604",Date="Tue Feb 07 18:10:34 EST 2023",CommandLineOptions="-r /broad/tag_working/edytam/dragen/reference_tables/hg38_hash_graph --cram-input /dsde/working/mgatzen/dragen/blended_exome/bge_production_option2_cram/201741830-001_1216091246_blood_blended/201741830-001_1216091246_blood_blended.cram --intermediate-results-dir /dsde/working/mgatzen/dragen/tmp/201741830-001_1216091246_blood_blended --output-directory /dsde/working/mgatzen/dragen/blended_exome/bge_production_option2_cram/201741830-001_1216091246_blood_blended/output --output-file-prefix 201741830-001_1216091246_blood_blended_run1 --enable-duplicate-marking true --enable-map-align true --output-format CRAM --enable-map-align-output true --enable-variant-caller true --vc-target-bed /dsde/working/mgatzen/dragen/blended_exome/bge_exome_calling_regions.v1.bed --vc-emit-ref-confidence GVCF --vc-gvcf-gq-bands 20 30 40 --vc-hard-filter DRAGENHardQUAL:all:QUAL<5.0;LowDepth:all:DP<=1 --vc-frd-max-effective-depth=40 --qc-coverage-ignore-overlaps true --qc-coverage-count-soft-clipped-bases true --read-trimmers polyg --soft-read-trimmers none --vc-enable-joint-detection true">
+##GVCFBlock=minGQ=0(inclusive),maxGQ=20(exclusive)
+##GVCFBlock=minGQ=20(inclusive),maxGQ=30(exclusive)
+##GVCFBlock=minGQ=30(inclusive),maxGQ=40(exclusive)
+##GVCFBlock=minGQ=40(inclusive),maxGQ=2147483647(exclusive)
+##INFO=<ID=DB,Number=0,Type=Flag,Description="dbSNP Membership">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth (informative and non-informative); some reads may have been filtered based on mapq etc.">
+##INFO=<ID=END,Number=1,Type=Integer,Description="Stop position of the interval">
+##INFO=<ID=FS,Number=1,Type=Float,Description="Phred-scaled p-value using Fisher's exact test to detect strand bias">
+##INFO=<ID=FractionInformativeReads,Number=1,Type=Float,Description="The fraction of informative reads out of the total reads">
+##INFO=<ID=LOD,Number=1,Type=Float,Description="Variant LOD score">
+##INFO=<ID=MQ,Number=1,Type=Float,Description="RMS Mapping Quality">
+##INFO=<ID=MQRankSum,Number=1,Type=Float,Description="Z-score From Wilcoxon rank sum test of Alt vs. Ref read mapping qualities">
+##INFO=<ID=QD,Number=1,Type=Float,Description="Variant Confidence/Quality by Depth">
+##INFO=<ID=R2_5P_bias,Number=1,Type=Float,Description="Score based on mate bias and distance from 5 prime end">
+##INFO=<ID=ReadPosRankSum,Number=1,Type=Float,Description="Z-score from Wilcoxon rank sum test of Alt vs. Ref read position bias">
+##INFO=<ID=SOR,Number=1,Type=Float,Description="Symmetric Odds Ratio of 2x2 contingency table to detect strand bias">
+##FILTER=<ID=DRAGENHardQUAL,Description="Set if true:QUAL<5.0">
+##FILTER=<ID=LowDepth,Description="Set if true:DP<=1">
+##FILTER=<ID=PloidyConflict,Description="Genotype call from variant caller not consistent with chromosome ploidy">
+##FILTER=<ID=RMxNRepeatRegion,Description="Site filtered because all or part of the variant allele is a repeat of the reference">
+##FILTER=<ID=base_quality,Description="Site filtered because median base quality of alt reads at this locus does not meet threshold">
+##FILTER=<ID=lod_fstar,Description="Variant does not meet likelihood threshold (default threshold is 6.3)">
+##contig=<ID=1,length=248956422>
+##contig=<ID=2,length=242193529>
+##contig=<ID=3,length=198295559>
+##reference=file:///broad/tag_working/edytam/dragen/reference_tables/hg38_hash_graph/reference.bin
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	testsample
+1	100	skip_no_call_low_gq	A	<NON_REF>	10	LowDepth	END=199	GT:AD:DP:GQ:MIN_DP:PL:SPL:ICNT	./.:0,0:0:0:0:0,0,0:0,0,0:0,0
+1	200	skip_ref_not_effect	A	<NON_REF>	10	PASS	END=299	GT:AD:DP:GQ:MIN_DP:PL:SPL:ICNT	0/0:0,0:0:40:0:0,0,0:0,0,0:0,0
+1	300	score_ref_effect	A	<NON_REF>	.	PASS	END=399	GT:AD:DP:GQ:MIN_DP:PL:SPL:ICNT	0/0:0,0:0:30:0:0,0,0:0,0,0:0,0
+1	400	skip_negative_gq	A	<NON_REF>	10	PASS	END=499	GT:AD:DP:GQ:MIN_DP:PL:SPL:ICNT	0/0:0,0:0:-10:0:0,0,0:0,0,0:0,0
+1	500	score_filter_high_gq	A	<NON_REF>	10	LowDepth	END=599	GT:AD:DP:GQ:MIN_DP:PL:SPL:ICNT	0/0:0,0:0:30:0:0,0,0:0,0,0:0,0
+1	700	score_ref_mismatch	A	<NON_REF>	10	PASS	END=799	GT:AD:DP:GQ:MIN_DP:PL:SPL:ICNT	0/0:0,0:0:30:0:0,0,0:0,0,0:0,0
+1	900	score_after_gap	A	<NON_REF>	10	PASS	END=999	GT:AD:DP:GQ:MIN_DP:PL:SPL:ICNT	0/0:0,0:0:30:0:0,0,0:0,0,0:0,0
+3	100	.	A	C,<NON_REF>	7.36	PASS	DP=15;MQ=13.24;MQRankSum=0.938;ReadPosRankSum=0.794;FractionInformativeReads=1.000;R2_5P_bias=0.000	GT:AD:AF:DP:F1R2:F2R1:GQ:PL:SPL:ICNT:GP:PRI:SB:MB	0/1:12,3,0:0.200,0.000:15:5,2,0:7,1,0:7:41,0,20,95,371,466:59,0,255:12,0:7.3573e+00,9.0358e-01,2.3904e+01,9.6231e+01,4.0684e+02,4.5000e+02:0.00,34.77,37.77,34.77,69.54,37.77:5,7,1,2:4,8,2,1
+3	200	.	A	C,<NON_REF>	7.36	PASS	DP=15;MQ=13.24;MQRankSum=0.938;ReadPosRankSum=0.794;FractionInformativeReads=1.000;R2_5P_bias=0.000	GT:AD:AF:DP:F1R2:F2R1:GQ:PL:SPL:ICNT:GP:PRI:SB:MB	0/1:12,3,0:0.200,0.000:15:5,2,0:7,1,0:7:41,0,20,95,371,466:59,0,255:12,0:7.3573e+00,9.0358e-01,2.3904e+01,9.6231e+01,4.0684e+02,4.5000e+02:0.00,34.77,37.77,34.77,69.54,37.77:5,7,1,2:4,8,2,1
+3	300	.	A	C,<NON_REF>	7.36	PASS	DP=15;MQ=13.24;MQRankSum=0.938;ReadPosRankSum=0.794;FractionInformativeReads=1.000;R2_5P_bias=0.000	GT:AD:AF:DP:F1R2:F2R1:GQ:PL:SPL:ICNT:GP:PRI:SB:MB	0/1:12,3,0:0.200,0.000:15:5,2,0:7,1,0:7:41,0,20,95,371,466:59,0,255:12,0:7.3573e+00,9.0358e-01,2.3904e+01,9.6231e+01,4.0684e+02,4.5000e+02:0.00,34.77,37.77,34.77,69.54,37.77:5,7,1,2:4,8,2,1
+3	400	.	A	C,<NON_REF>	7.36	PASS	DP=15;MQ=13.24;MQRankSum=0.938;ReadPosRankSum=0.794;FractionInformativeReads=1.000;R2_5P_bias=0.000	GT:AD:AF:DP:F1R2:F2R1:GQ:PL:SPL:ICNT:GP:PRI:SB:MB	0/1:12,3,0:0.200,0.000:15:5,2,0:7,1,0:7:41,0,20,95,371,466:59,0,255:12,0:7.3573e+00,9.0358e-01,2.3904e+01,9.6231e+01,4.0684e+02,4.5000e+02:0.00,34.77,37.77,34.77,69.54,37.77:5,7,1,2:4,8,2,1
+3	500	.	A	C,<NON_REF>	7.36	PASS	DP=15;MQ=13.24;MQRankSum=0.938;ReadPosRankSum=0.794;FractionInformativeReads=1.000;R2_5P_bias=0.000	GT:AD:AF:DP:F1R2:F2R1:GQ:PL:SPL:ICNT:GP:PRI:SB:MB	0/1:12,3,0:0.200,0.000:15:5,2,0:7,1,0:7:41,0,20,95,371,466:59,0,255:12,0:7.3573e+00,9.0358e-01,2.3904e+01,9.6231e+01,4.0684e+02,4.5000e+02:0.00,34.77,37.77,34.77,69.54,37.77:5,7,1,2:4,8,2,1
