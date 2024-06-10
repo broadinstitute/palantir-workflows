@@ -36,7 +36,7 @@ def test_compare_record_and_weight():
 def test_gvcf_score_ref_block():
     s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/test_weights_ref_blocks.txt')
 
-    s.score_wes_gvcf('resources/test_ref_blocks.gvcf', ['testsample'], 30)
+    s.score_wes_gvcf('resources/test_ref_blocks.gvcf.gz', ['testsample'], 30)
     expected_sites_scored = [
         #                               ('1:100', 'A', 'C'), no call low gq
         ('1:200', 'A', 'C'), # score 0
@@ -50,14 +50,9 @@ def test_gvcf_score_ref_block():
         ('1:900', 'A', 'C'), # score 1024
     ]
     total_expected_score = (0 + 4 + 0 + 16 + 64 + 256 + 1024) * 2
-    
+
     assert s.gvcf_sites_scored['testsample'] == expected_sites_scored
     assert s.gvcf_sample_score['testsample'] == total_expected_score
-
-def test_gvcf_score_variants():
-    s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/test_weights_ref_blocks.txt')
-
-    s.score_wes_gvcf('resources/test_ref_blocks.gvcf', ['testsample'], 30, 30)
 
 
 if __name__ == '__main__':

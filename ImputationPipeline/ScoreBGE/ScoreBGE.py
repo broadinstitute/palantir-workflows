@@ -126,19 +126,20 @@ class BGEScorer():
         self.gvcf_sites_scored = {sample_name: [] for sample_name in self.sample_names}
         self.gvcf_low_quality_sites = {sample_name: [] for sample_name in self.sample_names}
 
-        current_record_iter = gvcf.fetch()
-        current_record = next(current_record_iter)
-
         for _, weight in self.prs_weights.iterrows():
-            # Skip all weights that are before the current record
-            while self._compare_record_and_weight(current_record, weight) < 0:
-                try:
-                    current_record = next(current_record_iter)
-                except StopIteration:
+            site_records = gvcf.fetch(weight.contig, weight.position - 1, weight.position)
+            record = next(site_records, None)
+            # Skip all records that are before the current record
+            while record is None or self._compare_record_and_weight(record, weight) < 0:
+                # If fetch yields no more records at this position, break here
+                if record is None:
                     break
+                record = next(site_records, None)
+            if record is None:
+                continue
             
-            if self._compare_record_and_weight(current_record, weight) == 0:
-                self._gvcf_score_site(current_record, weight, site_gq_threshold)
+            if self._compare_record_and_weight(record, weight) == 0:
+                self._gvcf_score_site(record, weight, site_gq_threshold)
         
         # Save the scored sites as a set for faster lookup
         self.gvcf_sites_scored_set = {key: set(value) for key, value in self.gvcf_sites_scored.items()}
