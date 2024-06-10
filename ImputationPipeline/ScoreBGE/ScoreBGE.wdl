@@ -9,6 +9,8 @@ workflow ScoreBGE {
         String basename
         File weights
 
+        String? score_bge_docker
+
         File ref_fasta
         File ref_fasta_index
         File ref_dict
@@ -27,6 +29,7 @@ workflow ScoreBGE {
             ref_dict = ref_dict,
             basename = basename,
             weights = weights,
+            score_bge_docker = score_bge_docker,
             preemptible = preemptible
     }
 
@@ -45,6 +48,8 @@ task ScoreGvcfAndVcf {
         File imputed_wgs_vcf_index
         String basename
         File weights
+
+        String score_bge_docker = "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:dev"
 
         File ref_fasta
         File ref_fasta_index
@@ -75,7 +80,7 @@ EOF
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:dev"
+        docker: score_bge_docker
         memory: mem_gb + " GiB"
         cpu: cpu
         disks: "local-disk " + disk_size_gb + " HDD"
