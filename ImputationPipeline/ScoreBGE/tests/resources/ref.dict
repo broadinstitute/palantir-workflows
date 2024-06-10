@@ -1,0 +1,4 @@
+@HD	VN:1.5	SO:unsorted
+@SQ	SN:1	LN:248956422	M5:6aef897c3d6ff0c78aff06ac189178dd	AS:38	UR:/seq/references/Homo_sapiens_assembly38/v0/Homo_sapiens_assembly38.fasta	SP:Homo	sapiens
+@SQ	SN:3	LN:242193529	M5:f98db672eb0993dcfdabafe2a882905c	AS:38	UR:/seq/references/Homo_sapiens_assembly38/v0/Homo_sapiens_assembly38.fasta	SP:Homo	sapiens
+@SQ	SN:2	LN:198295559	M5:76635a41ea913a405ded820447d067b0	AS:38	UR:/seq/references/Homo_sapiens_assembly38/v0/Homo_sapiens_assembly38.fasta	SP:Homo	sapiens
