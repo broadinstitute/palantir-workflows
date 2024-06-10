@@ -10,6 +10,13 @@ workflow PRSQC {
         File sample_acceptable_range
         File control_expected_pcs
         Float margin_control_pcs
+        # This alphashape is essentially a bounding polygon containing the set of points in the form (PC1, PC2)
+        # from a training set, such as 1kG. It was generated using the library: https://github.com/bellockk/alphashape
+        # We have a script that allows generating alphashapes with an arbitrary training set (of valid format),
+        # which can be found here: https://github.com/broadinstitute/palantir-workflows/blob/main/Utilities/Dockers/Alphashape/generate_alphashape.py
+        # The main (and pretty much only one besides training data) parameter of interest is "alpha", which determines how tight
+        # the bounding polygon is. Our default is set at 8.0, which was determined to be a good value experimentally.
+        # Users who intend to use a training set different than the default (1kG) should be aware of this.
         File alphashape
         Boolean manually_passed_control = false
     }
