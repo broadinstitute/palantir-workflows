@@ -27,7 +27,7 @@ workflow PRSQC {
     String docker = "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
 
     if(!manually_passed_control) {
-        call CheckScoresAgainstExpectedValues as CheckScoresAgainstExpectedControlValues {
+        call CheckScores as CheckControlScoreAgainstExpectedValue {
             input:
                 scores = prs_control,
                 acceptable_range = control_acceptable_range,
@@ -49,7 +49,7 @@ workflow PRSQC {
         }
     }
 
-    call CheckScoresAgainstExpectedValues as CheckScoresAgainstExpectedSampleValues {
+    call CheckScores as CheckScoreWithinReportableRange {
         input:
             scores = prs_sample,
             acceptable_range = sample_acceptable_range,
@@ -69,13 +69,13 @@ workflow PRSQC {
     }
 
     output {
-        Boolean qc_passed = CheckScoresAgainstExpectedSampleValues.qc_passed && DetectPCANoveltiesSample.pca_qc_passed && select_first([CheckScoresAgainstExpectedControlValues.qc_passed, true]) && select_first([CheckControlPCsAgainstExpectedValues.pca_qc_passed, true])
-        File? qc_failures_control = CheckScoresAgainstExpectedControlValues.qc_failures
-        File qc_failures_sample = CheckScoresAgainstExpectedSampleValues.qc_failures
+        Boolean qc_passed = CheckScoreWithinReportableRange.qc_passed && DetectPCANoveltiesSample.pca_qc_passed && select_first([CheckControlScoreAgainstExpectedValue.qc_passed, true]) && select_first([CheckControlPCsAgainstExpectedValues.pca_qc_passed, true])
+        File? qc_failures_control = CheckControlScoreAgainstExpectedValue.qc_failures
+        File qc_failures_sample = CheckScoreWithinReportableRange.qc_failures
     }
 }
 
-task CheckScoresAgainstExpectedValues {
+task CheckScores {
     input {
         File scores
         File acceptable_range
