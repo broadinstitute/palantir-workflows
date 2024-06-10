@@ -6,8 +6,10 @@ workflow PRSQC {
         String sample_name
         File prs_control
         File prs_sample
-        File control_thresholds
-        File sample_thresholds
+        File control_acceptable_range
+        File sample_acceptable_range
+        File control_expected_pcs
+        Float margin_control_pcs
         File alphashape
         Boolean manually_passed_control = false
     }
@@ -18,30 +20,32 @@ workflow PRSQC {
     String docker = "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
 
     if(!manually_passed_control) {
-        call CheckThresholds as CheckControl {
+        call CheckScoresAgainstExpectedValues as CheckScoresAgainstExpectedControlValues {
             input:
                 scores = prs_control,
-                thresholds = control_thresholds,
+                acceptable_range = control_acceptable_range,
                 cpu = cpu,
                 mem_gb = mem_gb,
                 disk_size_gb = disk_size_gb,
                 docker = docker
         }
 
-        call DetectPCANovelties as DetectPCANoveltiesControl {
+        call CheckControlPCsAgainstExpectedValues {
             input:
-                test_sample = prs_control,
-                alphashape = alphashape,
+                scores = prs_control,
+                expected_values = control_expected_pcs,
+                margin = margin_control_pcs,
                 cpu = cpu,
                 mem_gb = mem_gb,
-                disk_size_gb = disk_size_gb
+                disk_size_gb = disk_size_gb,
+                docker = docker
         }
     }
 
-    call CheckThresholds as CheckSample {
+    call CheckScoresAgainstExpectedValues as CheckScoresAgainstExpectedSampleValues {
         input:
             scores = prs_sample,
-            thresholds = sample_thresholds,
+            acceptable_range = sample_acceptable_range,
             cpu = cpu,
             mem_gb = mem_gb,
             disk_size_gb = disk_size_gb,
@@ -57,30 +61,17 @@ workflow PRSQC {
             disk_size_gb = disk_size_gb
     }
 
-    call FinalizeQCOutputs {
-        input:
-            sample_name = sample_name,
-            qc_passed_control = select_first([CheckControl.qc_passed, true]),
-            qc_passed_sample = CheckSample.qc_passed,
-            pca_qc_passed_control = select_first([DetectPCANoveltiesControl.pca_qc_passed, true]),
-            pca_qc_passed_sample = DetectPCANoveltiesSample.pca_qc_passed,
-            cpu = cpu,
-            mem_gb = mem_gb,
-            disk_size_gb = disk_size_gb,
-            docker = docker
-    }
-
     output {
-        Boolean qc_passed = FinalizeQCOutputs.qc_passed
-        File? qc_failures_control = CheckControl.qc_failures
-        File qc_failures_sample = CheckSample.qc_failures
+        Boolean qc_passed = CheckScoresAgainstExpectedControlValues.qc_passed && CheckScoresAgainstExpectedSampleValues.qc_passed && CheckControlPCsAgainstExpectedValues.pca_qc_passed && DetectPCANoveltiesSample.pca_qc_passed
+        File? qc_failures_control = CheckScoresAgainstExpectedControlValues.qc_failures
+        File qc_failures_sample = CheckScoresAgainstExpectedSampleValues.qc_failures
     }
 }
 
-task CheckThresholds {
+task CheckScoresAgainstExpectedValues {
     input {
         File scores
-        File thresholds
+        File acceptable_range
 
         Int cpu
         Int mem_gb
@@ -93,20 +84,15 @@ task CheckThresholds {
     command <<<
         set -euo pipefail
 
-        cat <<'EOF' > script.py
+        cat <<'EOF' > check_scores_against_expected_values.py
         import pandas as pd
 
-        scores = pd.read_csv('~{scores}', sep = '\t', header = None, names = ["prs_score", "pc1", "pc2", "full_model_score"])
-        thresholds = pd.read_csv('~{thresholds}', sep = '\t', header = None, names = ["min", "max"])
+        scores = pd.read_csv('~{scores}', sep = '\t', header = 0)
+        acceptable_range = pd.read_csv('~{acceptable_range}', sep = '\t', header = 0)
 
-        # Confirm scores are within the boundaries
-        prs_score_passed = True
-        if scores.iloc[0,0] < thresholds.iloc[0,0] or scores.iloc[0,0] > thresholds.iloc[0,1]:
-            prs_score_passed = False
-
-        full_model_score_passed = True
-        if scores.iloc[0,3] < thresholds.iloc[1,0] or scores.iloc[0,3] > thresholds.iloc[1,1]:
-            full_model_score_passed = False
+        # Check whether PRS_SCORE and FULL_MODEL_SCORE are within the acceptable range
+        prs_score_passed = scores.loc[0, "PRS_SCORE"] >= acceptable_range.loc[0, "MIN"] and scores.loc[0, "PRS_SCORE"] <= acceptable_range.loc[0, "MAX"]
+        full_model_score_passed = scores.loc[0, "FULL_MODEL_SCORE"] >= acceptable_range.loc[1, "MIN"] and scores.loc[0, "FULL_MODEL_SCORE"] <= acceptable_range.loc[1, "MAX"]
 
         with open('~{output_basename}.qc_passed.txt', 'w') as qc_passed:
             if prs_score_passed and full_model_score_passed:
@@ -116,14 +102,12 @@ task CheckThresholds {
 
         with open('~{output_basename}.qc_failures.txt', 'w') as qc_failures:
             if not prs_score_passed:
-                prs_score_failure = "PRS_SCORE " + str(scores.iloc[0,0]) + " outside given boundaries with min: " + str(thresholds.iloc[0,0]) + " , max: " + str(thresholds.iloc[0,1])
-                qc_failures.write(prs_score_failure + "\n")
+                qc_failures.write("PRS_SCORE " + str(scores.loc[0, "PRS_SCORE"]) + " outside acceptable range with MIN: " + str(acceptable_range.loc[0, "MIN"]) + " , MAX: " + str(acceptable_range.loc[0, "MAX"]) + "\n")
             if not full_model_score_passed:
-                full_model_score_failure = "FULL_MODEL_SCORE " + str(scores.iloc[0,3]) + " outside given boundaries with min: " + str(thresholds.iloc[1,0]) + " , max: " + str(thresholds.iloc[1,1])
-                qc_failures.write(full_model_score_failure + "\n")
+                qc_failures.write("FULL_MODEL_SCORE " + str(scores.loc[0, "FULL_MODEL_SCORE"]) + " outside acceptable range with MIN: " + str(acceptable_range.loc[1, "MIN"]) + " , MAX: " + str(acceptable_range.loc[1, "MAX"]) + "\n")
 
         EOF
-        python3 script.py
+        python3 check_scores_against_expected_values.py
     >>>
 
     runtime {
@@ -136,6 +120,55 @@ task CheckThresholds {
     output {
         Boolean qc_passed = read_boolean("~{output_basename}.qc_passed.txt")
         File qc_failures = "~{output_basename}.qc_failures.txt"
+    }
+}
+
+task CheckControlPCsAgainstExpectedValues {
+    input {
+        File scores
+        File expected_values
+        Float margin
+
+        Int cpu
+        Int mem_gb
+        Int disk_size_gb
+        String docker
+    }
+
+    String output_basename = basename(scores, ".tsv")
+
+    command <<<
+        set -euo pipefail
+
+        cat <<'EOF' > check_control_pcs_against_expected_values.py
+        import pandas as pd
+
+        scores = pd.read_csv('~{scores}', sep = '\t', header = 0)
+        expected_values = pd.read_csv('~{expected_values}', sep = '\t', header = 0)
+
+        # Check whether PC1 and PC2 are within the acceptable range
+        pc1_within_range = abs(scores.loc[0, "PC1"] - expected_values.loc[0, "PC1"]) <= margin
+        pc2_within_range = abs(scores.loc[0, "PC2"] - expected_values.loc[0, "PC2"]) <= margin
+
+        with open('~{output_basename}.pca_qc_passed.txt', 'w') as pca_qc_passed:
+        if pc1_within_range and pc2_within_range
+            pca_qc_passed.write("true\n")
+        else:
+            pca_qc_passed.write("false\n")
+
+        EOF
+        python3 check_control_pcs_against_expected_values.py
+    >>>
+
+    runtime {
+        docker: docker
+        disks: "local-disk " + disk_size_gb + " HDD"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+    }
+
+    output {
+        Boolean pca_qc_passed = read_boolean("~{output_basename}.pca_qc.txt")
     }
 }
 
@@ -174,11 +207,9 @@ task DetectPCANovelties{
         # Set the distance threshold
         dist_thresh = ~{distance_threshold}
 
-        # Read test data
-        # Expected input format: tsv with columns PRS_SCORE, PC1, PC2, and FULL_MODEL_SCORE
-        # There is no header at the moment but it can be added to the format
-        df_test = pd.read_csv("~{test_sample}", sep = '\t', header = None, names = ["prs_score", "pc1", "pc2", "full_model_score"])
-        test_point = Point(df_test.iloc[0,1], df_test.iloc[0,2])
+        # Read input data
+        df_test = pd.read_csv("~{test_sample}", sep = '\t', header = 0)
+        test_point = Point(df_test.loc[0, "PC1"], df_test.loc[0, "PC2"])
 
         # Prepare output plot for nice visualization
         fig, ax = plt.subplots()
@@ -218,51 +249,5 @@ task DetectPCANovelties{
         memory: "~{mem_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
         docker: docker
-    }
-}
-
-task FinalizeQCOutputs {
-    input {
-        String sample_name
-        Boolean qc_passed_control
-        Boolean qc_passed_sample
-        Boolean pca_qc_passed_control
-        Boolean pca_qc_passed_sample
-
-        Int cpu
-        Int mem_gb
-        Int disk_size_gb
-        String docker
-    }
-
-    String qpc = if (qc_passed_control) then "True" else "False"
-    String qps = if (qc_passed_sample) then "True" else "False"
-    String pqpc = if (pca_qc_passed_control) then "True" else "False"
-    String pqps = if (pca_qc_passed_sample) then "True" else "False"
-
-    command <<<
-        set -euo pipefail
-
-        cat <<'EOF' > script.py
-
-        with open('~{sample_name}.qc_passed.txt', 'w') as qc_passed:
-            if ~{qpc} and ~{qps} and ~{pqpc} and ~{pqps}:
-                qc_passed.write("true\n")
-            else:
-                qc_passed.write("false\n")
-
-        EOF
-        python3 script.py
-    >>>
-
-    runtime {
-        docker: docker
-        disks: "local-disk " + disk_size_gb + " HDD"
-        memory: mem_gb + " GiB"
-        cpu: cpu
-    }
-
-    output {
-        Boolean qc_passed = read_boolean("~{sample_name}.qc_passed.txt")
     }
 }
