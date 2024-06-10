@@ -56,7 +56,12 @@ class BGEScorer():
                 self.gvcf_low_quality_sites[sample_name].append((weight.locus, weight.ref, weight.alt))
                 return
             
-            effect_allele_index = 0 if weight.effect_allele == weight.ref else (record.alleles.index(weight.effect_allele) if weight.effect_allele in record.alleles else None)
+            #effect_allele_index = None if weight.effect_allele not in record.alts
+            if weight.effect_allele == weight.ref:
+                effect_allele_index = 0
+            else:
+                effect_allele_index = record.alts.index(weight.effect_allele) if weight.effect_allele in record.alleles else None
+
             site_score = 0 if effect_allele_index is None else record.samples[sample_name]['GT'].count(effect_allele_index) * weight.weight
 
             self.gvcf_sites_scored[sample_name].append((weight.locus, weight.ref, weight.alt))
