@@ -147,8 +147,8 @@ task CheckControlPCsAgainstExpectedValues {
         expected_values = pd.read_csv('~{expected_values}', sep = '\t', header = 0)
 
         # Check whether PC1 and PC2 are within the acceptable range
-        pc1_within_range = abs(scores.loc[0, "PC1"] - expected_values.loc[0, "PC1"]) <= margin
-        pc2_within_range = abs(scores.loc[0, "PC2"] - expected_values.loc[0, "PC2"]) <= margin
+        pc1_within_range = abs(scores.loc[0, "PC1"] - expected_values.loc[0, "PC1"]) <= ~{margin}
+        pc2_within_range = abs(scores.loc[0, "PC2"] - expected_values.loc[0, "PC2"]) <= ~{margin}
 
         with open('~{output_basename}.pca_qc_passed.txt', 'w') as pca_qc_passed:
             if pc1_within_range and pc2_within_range:
