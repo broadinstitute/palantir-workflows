@@ -60,7 +60,7 @@ class BGEScorer():
             if weight.effect_allele == weight.ref:
                 effect_allele_index = 0
             else:
-                effect_allele_index = record.alts.index(weight.effect_allele) if weight.effect_allele in record.alleles else None
+                effect_allele_index = record.alts.index(weight.effect_allele) if weight.effect_allele in record.alts else None
 
             site_score = 0 if effect_allele_index is None else record.samples[sample_name]['GT'].count(effect_allele_index) * weight.weight
 
