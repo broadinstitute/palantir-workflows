@@ -62,7 +62,7 @@ workflow PRSQC {
     }
 
     output {
-        Boolean qc_passed = CheckScoresAgainstExpectedControlValues.qc_passed && CheckScoresAgainstExpectedSampleValues.qc_passed && CheckControlPCsAgainstExpectedValues.pca_qc_passed && DetectPCANoveltiesSample.pca_qc_passed
+        Boolean qc_passed = CheckScoresAgainstExpectedSampleValues.qc_passed && DetectPCANoveltiesSample.pca_qc_passed && select_first([CheckScoresAgainstExpectedControlValues.qc_passed, true]) && select_first([CheckControlPCsAgainstExpectedValues.pca_qc_passed, true])
         File? qc_failures_control = CheckScoresAgainstExpectedControlValues.qc_failures
         File qc_failures_sample = CheckScoresAgainstExpectedSampleValues.qc_failures
     }
