@@ -168,7 +168,7 @@ task CheckControlPCsAgainstExpectedValues {
     }
 
     output {
-        Boolean pca_qc_passed = read_boolean("~{output_basename}.pca_qc.txt")
+        Boolean pca_qc_passed = read_boolean("~{output_basename}.pca_qc_passed.txt")
     }
 }
 
