@@ -151,10 +151,10 @@ task CheckControlPCsAgainstExpectedValues {
         pc2_within_range = abs(scores.loc[0, "PC2"] - expected_values.loc[0, "PC2"]) <= margin
 
         with open('~{output_basename}.pca_qc_passed.txt', 'w') as pca_qc_passed:
-        if pc1_within_range and pc2_within_range
-            pca_qc_passed.write("true\n")
-        else:
-            pca_qc_passed.write("false\n")
+            if pc1_within_range and pc2_within_range:
+                pca_qc_passed.write("true\n")
+            else:
+                pca_qc_passed.write("false\n")
 
         EOF
         python3 check_control_pcs_against_expected_values.py
