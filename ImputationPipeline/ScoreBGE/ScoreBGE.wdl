@@ -91,5 +91,7 @@ EOF
         File exome_gvcf_score = "~{basename}.exome_gvcf.score"
         File imputed_wgs_vcf_score = "~{basename}.imputed_wgs_vcf.score"
         File score = "~{basename}.score"
+        File exome_gvcf_sites_scored = "~{basename}.exome_gvcf.sites_scored"
+        File imputed_wgs_vcf_sites_scored = "~{basename}.imputed_wgs_vcf.sites_scored"
     }
 }
