@@ -12,7 +12,7 @@ Utility workflows used by the DSP's Palantir team.  This repository should be us
 Automated WDL testing is implemented using [watt](https://github.com/rickymagner/watt).
 To add tests, update  [test/watt_config.yml](test/watt_config.yml).
 See the watt documentation for usage details.
-
+BLA BLA BLA GCP
 Automated testing on CircleCI also validates every WDL in the repo using the `validate` tool from `womtool`. 
 
 ## Using the Dockstore Github App to Automatically Update Workflows in Dockstore/Terra
