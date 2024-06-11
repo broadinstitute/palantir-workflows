@@ -1,5 +1,14 @@
 on: push
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+      steps:
+        - uses: ./.github/actions/install-cromwell
+          with:
+            CROMWELL_VERSION: 87
+        - name: Womtool Validate
+          run: find . -name '*.wdl' -exec bash -c 'echo $1; java -jar ${WOMTOOL_JAR} validate $1' shell {} \;
+
   test:
     runs-on: ubuntu-latest
     permissions:
@@ -13,6 +22,11 @@ jobs:
         with:
           workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
           service_account: palantir-workflows-service-acc@broad-dsde-methods.iam.gserviceaccount.com
-      - run: |
-            wget -q https://github.com/broadinstitute/cromwell/releases/download/87/cromwell-87.jar
-            java -Dconfig.file=test/simple_cromwell.conf -jar cromwell-87.jar run test/AggregatePRSResults/test_AggregatePRSResults.wdl -i test/AggregatePRSResults/test_AggregatePRSResults_json/test_plumbing_inputs.json
+      - uses: ./.github/actions/install-cromwell
+        with:
+          CROMWELL_VERSION: 87
+      - uses: ./.github/actions/install-watt
+        with:
+          WATT_VERSION: ck_gcp
+      - name: Run tests with WATT
+        run: python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml --cromwell-config test/simple_cromwell.conf -p 50 
