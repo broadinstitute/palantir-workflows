@@ -71,6 +71,10 @@ class BGEScorer():
         for sample_name in self.sample_names:
             if (weight.locus, weight.ref, weight.alt) in self.gvcf_sites_scored_set[sample_name]:
                 continue
+
+            if 'DS' not in record.samples[sample_name]:
+                raise RuntimeError('VCF file does not contain dosage information for sample ' + sample_name + ' at site ' + weight.locus + ':' + weight.ref + ':' + weight.alt)
+
             dosage = record.samples[sample_name]['DS'] if record.alts[0] == weight.effect_allele else 2 - record.samples[sample_name]['DS']
             site_score = dosage * weight.weight
 
@@ -122,6 +126,8 @@ class BGEScorer():
                 raise RuntimeError('One or more sample_names are not present in the GVCF file.')
             self.sample_names = sample_names
 
+        print(f'  Scoring {len(self.sample_names)} samples...')
+
         self.gvcf_sample_score = {sample_name: 0 for sample_name in self.sample_names}
         self.gvcf_sites_scored = {sample_name: [] for sample_name in self.sample_names}
         self.gvcf_low_quality_sites = {sample_name: [] for sample_name in self.sample_names}
@@ -166,8 +172,10 @@ class BGEScorer():
         
         # Check if the sample names match the ones from the WES GVCF scoring, or if they are None (i.e. WES GVCF scoring was not performed), set them below
         if self.sample_names is not None and sample_names != self.sample_names:
-            raise RuntimeError('Sample names in WES GVCF and WGS VCF do not match. If you want to score only a subset of the samples, provide the same sample_names argument to both score_wes_gvcf and score_wgs_vcf.')
+            raise RuntimeError('Sample names in WES GVCF and WGS VCF do not match. If you want to score only a subset of the samples, provide the same sample_names argument to both score_wes_gvcf and score_wgs_vcf.\nWES GVCF sample names:' +str(self.sample_names) + '\nWGS VCF sample names:' + str(sample_names))
         self.sample_names = sample_names
+
+        print(f'  Scoring {len(self.sample_names)} samples...')
 
         if self.gvcf_sites_scored_set is None:
             self.gvcf_sites_scored_set = {sample_name: set() for sample_name in self.sample_names}
@@ -210,11 +218,31 @@ class BGEScorer():
             out_exome_gvcf_score.write('#IID\tSCORE1_SUM\n')
             for sample_name in self.sample_names:
                 out_exome_gvcf_score.write(f'{sample_name}\t{self.gvcf_sample_score[sample_name]}\n')
+
         with open(f'{basename}.imputed_wgs_vcf.score', 'w') as out_imputed_wgs_vcf_score:
             out_imputed_wgs_vcf_score.write('#IID\tSCORE1_SUM\n')
             for sample_name in self.sample_names:
                 out_imputed_wgs_vcf_score.write(f'{sample_name}\t{self.vcf_sample_score[sample_name]}\n')
+
         with open(f'{basename}.score', 'w') as out_combined_score:
             out_combined_score.write('#IID	SCORE1_SUM\n')
             for sample_name in self.sample_names:
                 out_combined_score.write(f'{sample_name}\t{self.vcf_sample_score[sample_name] + self.gvcf_sample_score[sample_name]}\n')
+                
+        with open(f'{basename}.exome_gvcf.sites_scored', 'w') as out_exome_gvcf_sites_scored:
+            out_exome_gvcf_sites_scored.write('site	samples_scored\n')
+            for weight in self.prs_weights.iterrows():
+                locus = weight[1]['locus']
+                ref = weight[1]['ref']
+                alt = weight[1]['alt']
+                weight_samples = [sample_name for sample_name in self.sample_names if (locus, ref, alt) in self.gvcf_sites_scored[sample_name]]
+                out_exome_gvcf_sites_scored.write(f'{locus}:{ref}:{alt}\t{",".join(weight_samples)}\n')
+                
+        with open(f'{basename}.imputed_wgs_vcf.sites_scored', 'w') as out_imputed_wgs_vcf_sites_scored:
+            out_imputed_wgs_vcf_sites_scored.write('site	samples_scored\n')
+            for weight in self.prs_weights.iterrows():
+                locus = weight[1]['locus']
+                ref = weight[1]['ref']
+                alt = weight[1]['alt']
+                weight_samples = [sample_name for sample_name in self.sample_names if (locus, ref, alt) in self.vcf_sites_scored[sample_name]]
+                out_imputed_wgs_vcf_sites_scored.write(f'{locus}:{ref}:{alt}\t{",".join(weight_samples)}\n')
