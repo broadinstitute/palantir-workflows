@@ -8,6 +8,7 @@ workflow ScoreBGE {
         File imputed_wgs_vcf_index
         String basename
         File weights
+        String? sample_names
 
         String? score_bge_docker
 
@@ -29,6 +30,7 @@ workflow ScoreBGE {
             ref_dict = ref_dict,
             basename = basename,
             weights = weights,
+            sample_names = sample_names,
             score_bge_docker = score_bge_docker,
             preemptible = preemptible
     }
@@ -37,6 +39,8 @@ workflow ScoreBGE {
         File exome_gvcf_score = ScoreGvcfAndVcf.exome_gvcf_score
         File imputed_wgs_vcf_score = ScoreGvcfAndVcf.imputed_wgs_vcf_score
         File score = ScoreGvcfAndVcf.score
+        File exome_gvcf_sites_scored = ScoreGvcfAndVcf.exome_gvcf_sites_scored
+        File imputed_wgs_vcf_sites_scored = ScoreGvcfAndVcf.imputed_wgs_vcf_sites_scored
     }
 }
 
@@ -48,6 +52,7 @@ task ScoreGvcfAndVcf {
         File imputed_wgs_vcf_index
         String basename
         File weights
+        Array[String]? sample_names
 
         String score_bge_docker = "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:dev"
 
@@ -61,6 +66,8 @@ task ScoreGvcfAndVcf {
         Int cpu = 4
     }
 
+    String sample_names_arg = if defined(sample_names) then "--sample-names" else ""
+
     Int disk_size_gb = select_first([disk_gb, ceil(size(exome_gvcf, "GiB") + size(imputed_wgs_vcf, "GiB") + size(weights, "GiB") + size(ref_fasta, "GiB") + 50)])
 
     command <<<
@@ -70,13 +77,18 @@ task ScoreGvcfAndVcf {
 import sys
 sys.path.insert(0, '/ScoreBGE')
 import ScoreBGE
+import argparse
+
+parser = argparse.ArgumentParser(description='Score BGE')
+parser.add_argument('sample-names', type=str, nargs='+', help='Sample names to score', required=False, default=None)
+args = parser.parse_args()
 
 bge_scorer = ScoreBGE.BGEScorer('~{ref_dict}', '~{weights}')
 bge_scorer.score_wes_gvcf('~{exome_gvcf}')
 bge_scorer.score_wgs_vcf('~{imputed_wgs_vcf}')
 bge_scorer.write_output('~{basename}')
 EOF
-            python3 script.py
+            python3 script.py ~{sample_names_arg} ~{sep=" --sample-names " sample_names}
     >>>
 
     runtime {

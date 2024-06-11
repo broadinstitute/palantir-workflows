@@ -210,39 +210,57 @@ class BGEScorer():
         if self.gvcf_sites_scored is not None:
             self._print_wes_and_wgs_metrics()
 
-    def write_output(self, basename):
+    def write_output(self, basename, allow_single_source_scoring=False):
         """
         Write the scores to plink-like output files.
         """
-        with open(f'{basename}.exome_gvcf.score', 'w') as out_exome_gvcf_score:
-            out_exome_gvcf_score.write('#IID\tSCORE1_SUM\n')
-            for sample_name in self.sample_names:
-                out_exome_gvcf_score.write(f'{sample_name}\t{self.gvcf_sample_score[sample_name]}\n')
 
-        with open(f'{basename}.imputed_wgs_vcf.score', 'w') as out_imputed_wgs_vcf_score:
-            out_imputed_wgs_vcf_score.write('#IID\tSCORE1_SUM\n')
-            for sample_name in self.sample_names:
-                out_imputed_wgs_vcf_score.write(f'{sample_name}\t{self.vcf_sample_score[sample_name]}\n')
+        # GVCF
+        if self.gvcf_sites_scored_set is None:
+            if not allow_single_source_scoring:
+                raise RuntimeError('No GVCF scoring performed. If you want to output scores from a single source, set allow_single_source_scoring to True.')
+            else:
+                print('No GVCF scoring performed. Skipping GVCF output.')
+        else:
+            with open(f'{basename}.exome_gvcf.score', 'w') as out_exome_gvcf_score:
+                out_exome_gvcf_score.write('#IID\tSCORE1_SUM\n')
+                for sample_name in self.sample_names:
+                    out_exome_gvcf_score.write(f'{sample_name}\t{self.gvcf_sample_score[sample_name]}\n')
 
+            with open(f'{basename}.exome_gvcf.sites_scored', 'w') as out_exome_gvcf_sites_scored:
+                out_exome_gvcf_sites_scored.write('site	samples_scored\n')
+                for weight in self.prs_weights.iterrows():
+                    locus = weight[1]['locus']
+                    ref = weight[1]['ref']
+                    alt = weight[1]['alt']
+                    weight_samples = [sample_name for sample_name in self.sample_names if (locus, ref, alt) in self.gvcf_sites_scored[sample_name]]
+                    out_exome_gvcf_sites_scored.write(f'{locus}:{ref}:{alt}\t{",".join(weight_samples)}\n')
+
+        # VCF
+        if self.vcf_sites_scored is None:
+            if not allow_single_source_scoring:
+                raise RuntimeError('No VCF scoring performed. If you want to output scores from a single source, set allow_single_source_scoring to True.')
+            else:
+                print('No VCF scoring performed. Skipping VCF output.')
+        else:
+            with open(f'{basename}.imputed_wgs_vcf.score', 'w') as out_imputed_wgs_vcf_score:
+                out_imputed_wgs_vcf_score.write('#IID\tSCORE1_SUM\n')
+                for sample_name in self.sample_names:
+                    out_imputed_wgs_vcf_score.write(f'{sample_name}\t{self.vcf_sample_score[sample_name]}\n')
+            with open(f'{basename}.imputed_wgs_vcf.sites_scored', 'w') as out_imputed_wgs_vcf_sites_scored:
+                out_imputed_wgs_vcf_sites_scored.write('site	samples_scored\n')
+                for weight in self.prs_weights.iterrows():
+                    locus = weight[1]['locus']
+                    ref = weight[1]['ref']
+                    alt = weight[1]['alt']
+                    weight_samples = [sample_name for sample_name in self.sample_names if (locus, ref, alt) in self.vcf_sites_scored[sample_name]]
+                    out_imputed_wgs_vcf_sites_scored.write(f'{locus}:{ref}:{alt}\t{",".join(weight_samples)}\n')
+
+        # Sum
         with open(f'{basename}.score', 'w') as out_combined_score:
             out_combined_score.write('#IID	SCORE1_SUM\n')
             for sample_name in self.sample_names:
-                out_combined_score.write(f'{sample_name}\t{self.vcf_sample_score[sample_name] + self.gvcf_sample_score[sample_name]}\n')
-                
-        with open(f'{basename}.exome_gvcf.sites_scored', 'w') as out_exome_gvcf_sites_scored:
-            out_exome_gvcf_sites_scored.write('site	samples_scored\n')
-            for weight in self.prs_weights.iterrows():
-                locus = weight[1]['locus']
-                ref = weight[1]['ref']
-                alt = weight[1]['alt']
-                weight_samples = [sample_name for sample_name in self.sample_names if (locus, ref, alt) in self.gvcf_sites_scored[sample_name]]
-                out_exome_gvcf_sites_scored.write(f'{locus}:{ref}:{alt}\t{",".join(weight_samples)}\n')
-                
-        with open(f'{basename}.imputed_wgs_vcf.sites_scored', 'w') as out_imputed_wgs_vcf_sites_scored:
-            out_imputed_wgs_vcf_sites_scored.write('site	samples_scored\n')
-            for weight in self.prs_weights.iterrows():
-                locus = weight[1]['locus']
-                ref = weight[1]['ref']
-                alt = weight[1]['alt']
-                weight_samples = [sample_name for sample_name in self.sample_names if (locus, ref, alt) in self.vcf_sites_scored[sample_name]]
-                out_imputed_wgs_vcf_sites_scored.write(f'{locus}:{ref}:{alt}\t{",".join(weight_samples)}\n')
+                # We already checked above if single source scoring is allowed, so we don't need to check again
+                vcf_score = 0 if self.vcf_sample_score is None else self.vcf_sample_score[sample_name]
+                gvcf_score = 0 if self.gvcf_sample_score is None else self.gvcf_sample_score[sample_name]
+                out_combined_score.write(f'{sample_name}\t{vcf_score + gvcf_score}\n')

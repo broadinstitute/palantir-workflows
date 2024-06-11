@@ -54,6 +54,8 @@ def test_gvcf_score_ref_block():
     assert s.gvcf_sites_scored['testsample'] == expected_sites_scored
     assert s.gvcf_sample_score['testsample'] == total_expected_score
 
+    s.write_output('test_output', allow_single_source_scoring=True)
+
 
 if __name__ == '__main__':
     test_read_dict()
