@@ -2,14 +2,15 @@ on: push
 jobs:
   validate:
     runs-on: ubuntu-latest
-      steps:
-        - uses: ./.github/actions/install-cromwell
-          with:
-            CROMWELL_VERSION: 87
-        - name: Womtool Validate
-          run: find . -name '*.wdl' -exec bash -c 'echo $1; java -jar ${WOMTOOL_JAR} validate $1' shell {} \;
+    steps:
+      - uses: ./.github/actions/install-cromwell
+        with:
+          CROMWELL_VERSION: 87
+      - name: Womtool Validate
+        run: find . -name '*.wdl' -exec bash -c 'echo $1; java -jar ${WOMTOOL_JAR} validate $1' shell {} \;
 
   test:
+    needs: validate
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
