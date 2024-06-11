@@ -8,7 +8,7 @@ jobs:
         with:
           CROMWELL_VERSION: 87
       - name: Womtool Validate
-        run: find . -name '*.wdl' | xargs -tI {} java -jar ~/cromwell/womtool/target/scala-2.12/womtool-72-dd92f8d-SNAP.jar validate {}
+        run: find . -name '*.wdl' | xargs -tI {} java -jar ${WOMTOOL_JAR} validate {}
 
   test:
     needs: validate
