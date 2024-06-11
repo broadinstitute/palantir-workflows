@@ -54,7 +54,7 @@ class BGEScorer():
         for sample_name in self.sample_names:
             if record.samples[sample_name]['GQ'] < site_gq_threshold:
                 self.gvcf_low_quality_sites[sample_name].append((weight.locus, weight.ref, weight.alt))
-                return
+                continue
             
             #effect_allele_index = None if weight.effect_allele not in record.alts
             if weight.effect_allele == weight.ref:
