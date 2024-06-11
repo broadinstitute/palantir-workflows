@@ -3,6 +3,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/install-cromwell
         with:
           CROMWELL_VERSION: 87
