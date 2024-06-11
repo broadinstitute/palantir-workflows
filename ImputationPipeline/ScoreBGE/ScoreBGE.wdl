@@ -8,7 +8,7 @@ workflow ScoreBGE {
         File imputed_wgs_vcf_index
         String basename
         File weights
-        String? sample_names
+        Array[String]? sample_names
 
         String? score_bge_docker
 
