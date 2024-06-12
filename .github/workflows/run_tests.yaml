@@ -33,6 +33,7 @@ jobs:
       - name: Run tests with WATT
         run: python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml --cromwell-config test/simple_cromwell.conf -p 50
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: watt-logs
           path: watt-logs/
