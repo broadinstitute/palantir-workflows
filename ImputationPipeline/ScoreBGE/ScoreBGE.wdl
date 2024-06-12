@@ -84,8 +84,8 @@ parser.add_argument('--sample-names', type=str, nargs='+', help='Sample names to
 args = parser.parse_args()
 
 bge_scorer = ScoreBGE.BGEScorer('~{ref_dict}', '~{weights}')
-bge_scorer.score_wes_gvcf('~{exome_gvcf}')
-bge_scorer.score_wgs_vcf('~{imputed_wgs_vcf}')
+bge_scorer.score_wes_gvcf('~{exome_gvcf}', sample_names=args.sample_names)
+bge_scorer.score_wgs_vcf('~{imputed_wgs_vcf}', sample_names=args.sample_names)
 bge_scorer.write_output('~{basename}')
 EOF
             python3 script.py ~{sample_names_arg} ~{sep=" --sample-names " sample_names}
