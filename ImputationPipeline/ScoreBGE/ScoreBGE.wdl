@@ -80,7 +80,7 @@ import ScoreBGE
 import argparse
 
 parser = argparse.ArgumentParser(description='Score BGE')
-parser.add_argument('sample-names', type=str, nargs='+', help='Sample names to score', required=False, default=None)
+parser.add_argument('--sample-names', type=str, nargs='+', help='Sample names to score', required=False, default=None)
 args = parser.parse_args()
 
 bge_scorer = ScoreBGE.BGEScorer('~{ref_dict}', '~{weights}')
