@@ -39,5 +39,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Save WATT logs
+          name: watt_logs
           path: watt_logs/
