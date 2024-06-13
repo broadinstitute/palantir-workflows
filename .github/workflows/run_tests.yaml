@@ -31,7 +31,7 @@ jobs:
         with:
           WATT_VERSION: ck_gcp
       - name: Run tests with WATT
-        run: python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml --cromwell-config test/simple_cromwell.conf
+        run: python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml --cromwell-config test/simple_cromwell.conf -p 50
       - uses: actions/upload-artifact@v4
         if: always()
         with:
