@@ -1,6 +1,6 @@
 # PALANTIR-WORKFLOWS
 
-[![CircleCI](https://circleci.com/gh/broadinstitute/palantir-workflows.svg?style=svg)](https://circleci.com/gh/broadinstitute/palantir-workflows)
+[![Test Status](https://github.com/broadinstitute/palantir-workflows/actions/workflows/run_tests.yaml/badge.svg?branch=ck_github_actions_google_cloud)](https://github.com/broadinstitute/palantir-workflows/actions/workflows/run_tests.yaml/badge.svg?branch=ck_github_actions_google_cloud)
 
 Utility workflows used by the DSP's Palantir team.  This repository should be used to manage frequently used utility workflows for the team, and facilitate their use on [Terra](https://app.terra.bio/) through [Dockstore](https://dockstore.org/).
 
@@ -12,7 +12,7 @@ Utility workflows used by the DSP's Palantir team.  This repository should be us
 Automated WDL testing is implemented using [watt](https://github.com/rickymagner/watt).
 To add tests, update  [test/watt_config.yml](test/watt_config.yml).
 See the watt documentation for usage details.
-
+BLA BLA BLA GCP
 Automated testing on CircleCI also validates every WDL in the repo using the `validate` tool from `womtool`. 
 
 ## Using the Dockstore Github App to Automatically Update Workflows in Dockstore/Terra

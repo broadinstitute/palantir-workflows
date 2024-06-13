@@ -1,2 +1,0 @@
-sample_id,lab_batch,is_control_sample,condition_1_raw,condition_1_adjusted,condition_1_percentile,condition_1_risk,condition_1_reason_not_resulted,condition_2_raw,condition_2_adjusted,condition_2_percentile,condition_2_risk,condition_2_reason_not_resulted,condition_3_raw,condition_3_adjusted,condition_3_percentile,condition_3_risk,condition_3_reason_not_resulted,condition_4_raw,condition_4_adjusted,condition_4_percentile,condition_4_risk,condition_4_reason_not_resulted
-sample_3,test_batch,false,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1.2,-0.03,0.48,NOT_HIGH,NA
