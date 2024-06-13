@@ -1,6 +1,6 @@
 # PALANTIR-WORKFLOWS
 
-[![CircleCI](https://circleci.com/gh/broadinstitute/palantir-workflows.svg?style=svg)](https://circleci.com/gh/broadinstitute/palantir-workflows)
+![tests](https://github.com/broadinstitute/palantir-workflows/actions/workflows/run_test.yaml/badge.svg?branch=main)
 
 Utility workflows used by the DSP's Palantir team.  This repository should be used to manage frequently used utility workflows for the team, and facilitate their use on [Terra](https://app.terra.bio/) through [Dockstore](https://dockstore.org/).
 
