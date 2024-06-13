@@ -54,7 +54,7 @@ task ScoreGvcfAndVcf {
         File weights
         Array[String]? sample_names
 
-        String score_bge_docker = "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:dev"
+        String score_bge_docker = "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:v1.0"
 
         File ref_fasta
         File ref_fasta_index
