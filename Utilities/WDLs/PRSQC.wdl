@@ -72,6 +72,7 @@ workflow PRSQC {
         Boolean qc_passed = CheckScoreWithinReportableRange.qc_passed && DetectPCANoveltiesSample.pca_qc_passed && select_first([CheckControlScoreAgainstExpectedValue.qc_passed, true]) && select_first([CheckControlPCsAgainstExpectedValues.pca_qc_passed, true])
         File? qc_failures_control = CheckControlScoreAgainstExpectedValue.qc_failures
         File qc_failures_sample = CheckScoreWithinReportableRange.qc_failures
+        File pca_qc_plot = DetectPCANoveltiesSample.pca_qc_plot
     }
 }
 
@@ -107,11 +108,15 @@ task CheckScores {
             else:
                 qc_passed.write("false\n")
 
-        with open('~{output_basename}.qc_failures.txt', 'w') as qc_failures:
+        with open('~{output_basename}.qc_failures.tsv', 'w') as qc_failures:
+            # Header
+            qc_failures.write("SAMPLE_ID" + "\t" + "METRIC" + "\t" + "VALUE" + "\t" + "MIN" + "\t" + "MAX" + "\n")
+
+            # No data rows if both PRS_SCORE and FULL_MODEL_SCORE within the acceptable range
             if not prs_score_passed:
-                qc_failures.write("PRS_SCORE " + str(scores.loc[0, "PRS_SCORE"]) + " outside acceptable range with MIN: " + str(acceptable_range.loc[0, "MIN"]) + " , MAX: " + str(acceptable_range.loc[0, "MAX"]) + "\n")
+                qc_failures.write(~{output_basename} + "\t" + "PRS_SCORE" + "\t" + str(scores.loc[0, "PRS_SCORE"]) + "\t" + str(acceptable_range.loc[0, "MIN"]) + "\t" + str(acceptable_range.loc[0, "MAX"]) + "\n")
             if not full_model_score_passed:
-                qc_failures.write("FULL_MODEL_SCORE " + str(scores.loc[0, "FULL_MODEL_SCORE"]) + " outside acceptable range with MIN: " + str(acceptable_range.loc[1, "MIN"]) + " , MAX: " + str(acceptable_range.loc[1, "MAX"]) + "\n")
+                qc_failures.write(~{output_basename} + "\t" + "FULL_MODEL_SCORE" + "\t" + str(scores.loc[0, "FULL_MODEL_SCORE"]) + "\t" + str(acceptable_range.loc[1, "MIN"]) + "\t" + str(acceptable_range.loc[1, "MAX"]) + "\n")
 
         EOF
         python3 check_scores_against_expected_values.py
@@ -126,7 +131,7 @@ task CheckScores {
 
     output {
         Boolean qc_passed = read_boolean("~{output_basename}.qc_passed.txt")
-        File qc_failures = "~{output_basename}.qc_failures.txt"
+        File qc_failures = "~{output_basename}.qc_failures.tsv"
     }
 }
 
