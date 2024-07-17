@@ -3,7 +3,7 @@ version 1.0
 # Simple PRS QC wdl for the PROGRESS VA project
 workflow PRSQC {
     input {
-        String sample_name
+        String output_basename
         File prs_control
         File prs_sample
         File control_acceptable_range
@@ -29,6 +29,7 @@ workflow PRSQC {
     if(!manually_passed_control) {
         call CheckScores as CheckControlScoreAgainstExpectedValue {
             input:
+                output_basename = "~{output_basename}_control",
                 scores = prs_control,
                 acceptable_range = control_acceptable_range,
                 cpu = cpu,
@@ -39,6 +40,7 @@ workflow PRSQC {
 
         call CheckControlPCsAgainstExpectedValues {
             input:
+                output_basename = output_basename,
                 scores = prs_control,
                 expected_values = control_expected_pcs,
                 margin = margin_control_pcs,
@@ -51,6 +53,7 @@ workflow PRSQC {
 
     call CheckScores as CheckScoreWithinReportableRange {
         input:
+            output_basename = output_basename,
             scores = prs_sample,
             acceptable_range = sample_acceptable_range,
             cpu = cpu,
@@ -61,6 +64,7 @@ workflow PRSQC {
 
     call DetectPCANovelties as DetectPCANoveltiesSample {
         input:
+            output_basename = output_basename,
             test_sample = prs_sample,
             alphashape = alphashape,
             cpu = cpu,
@@ -78,6 +82,7 @@ workflow PRSQC {
 
 task CheckScores {
     input {
+        String output_basename
         File scores
         File acceptable_range
 
@@ -86,8 +91,6 @@ task CheckScores {
         Int disk_size_gb
         String docker
     }
-
-    String output_basename = basename(scores, ".tsv")
 
     command <<<
         set -euo pipefail
@@ -137,6 +140,7 @@ task CheckScores {
 
 task CheckControlPCsAgainstExpectedValues {
     input {
+        String output_basename
         File scores
         File expected_values
         Float margin
@@ -146,8 +150,6 @@ task CheckControlPCsAgainstExpectedValues {
         Int disk_size_gb
         String docker
     }
-
-    String output_basename = basename(scores, ".tsv")
 
     command <<<
         set -euo pipefail
@@ -186,6 +188,7 @@ task CheckControlPCsAgainstExpectedValues {
 
 task DetectPCANovelties{
     input {
+        String output_basename
         File test_sample
         File alphashape
         Float distance_threshold = 0.01
@@ -194,8 +197,6 @@ task DetectPCANovelties{
         Int disk_size_gb
         String docker = "us.gcr.io/broad-dsde-methods/kockan/alphashape@sha256:96d5a34da2ff6da6e2cd0f85cca2fa2400c2d73e02e1957def111fbf04c2fdda"
     }
-
-    String output_basename = basename(test_sample, ".tsv")
 
     command <<<
         set -euo pipefail
