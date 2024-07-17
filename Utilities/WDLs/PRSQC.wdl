@@ -3,7 +3,7 @@ version 1.0
 # Simple PRS QC wdl for the PROGRESS VA project
 workflow PRSQC {
     input {
-        String sample_name
+        String output_basename
         File prs_control
         File prs_sample
         File control_acceptable_range
@@ -29,6 +29,7 @@ workflow PRSQC {
     if(!manually_passed_control) {
         call CheckScores as CheckControlScoreAgainstExpectedValue {
             input:
+                output_basename = "~{output_basename}_control",
                 scores = prs_control,
                 acceptable_range = control_acceptable_range,
                 cpu = cpu,
@@ -39,6 +40,7 @@ workflow PRSQC {
 
         call CheckControlPCsAgainstExpectedValues {
             input:
+                output_basename = output_basename,
                 scores = prs_control,
                 expected_values = control_expected_pcs,
                 margin = margin_control_pcs,
@@ -51,6 +53,7 @@ workflow PRSQC {
 
     call CheckScores as CheckScoreWithinReportableRange {
         input:
+            output_basename = output_basename,
             scores = prs_sample,
             acceptable_range = sample_acceptable_range,
             cpu = cpu,
@@ -61,6 +64,7 @@ workflow PRSQC {
 
     call DetectPCANovelties as DetectPCANoveltiesSample {
         input:
+            output_basename = output_basename,
             test_sample = prs_sample,
             alphashape = alphashape,
             cpu = cpu,
@@ -72,11 +76,13 @@ workflow PRSQC {
         Boolean qc_passed = CheckScoreWithinReportableRange.qc_passed && DetectPCANoveltiesSample.pca_qc_passed && select_first([CheckControlScoreAgainstExpectedValue.qc_passed, true]) && select_first([CheckControlPCsAgainstExpectedValues.pca_qc_passed, true])
         File? qc_failures_control = CheckControlScoreAgainstExpectedValue.qc_failures
         File qc_failures_sample = CheckScoreWithinReportableRange.qc_failures
+        File pca_qc_plot = DetectPCANoveltiesSample.pca_qc_plot
     }
 }
 
 task CheckScores {
     input {
+        String output_basename
         File scores
         File acceptable_range
 
@@ -85,8 +91,6 @@ task CheckScores {
         Int disk_size_gb
         String docker
     }
-
-    String output_basename = basename(scores, ".tsv")
 
     command <<<
         set -euo pipefail
@@ -107,11 +111,15 @@ task CheckScores {
             else:
                 qc_passed.write("false\n")
 
-        with open('~{output_basename}.qc_failures.txt', 'w') as qc_failures:
+        with open('~{output_basename}.qc_failures.tsv', 'w') as qc_failures:
+            # Header
+            qc_failures.write("SAMPLE_ID" + "\t" + "METRIC" + "\t" + "VALUE" + "\t" + "MIN" + "\t" + "MAX" + "\n")
+
+            # No data rows if both PRS_SCORE and FULL_MODEL_SCORE within the acceptable range
             if not prs_score_passed:
-                qc_failures.write("PRS_SCORE " + str(scores.loc[0, "PRS_SCORE"]) + " outside acceptable range with MIN: " + str(acceptable_range.loc[0, "MIN"]) + " , MAX: " + str(acceptable_range.loc[0, "MAX"]) + "\n")
+                qc_failures.write("~{output_basename}" + "\t" + "PRS_SCORE" + "\t" + str(scores.loc[0, "PRS_SCORE"]) + "\t" + str(acceptable_range.loc[0, "MIN"]) + "\t" + str(acceptable_range.loc[0, "MAX"]) + "\n")
             if not full_model_score_passed:
-                qc_failures.write("FULL_MODEL_SCORE " + str(scores.loc[0, "FULL_MODEL_SCORE"]) + " outside acceptable range with MIN: " + str(acceptable_range.loc[1, "MIN"]) + " , MAX: " + str(acceptable_range.loc[1, "MAX"]) + "\n")
+                qc_failures.write("~{output_basename}" + "\t" + "FULL_MODEL_SCORE" + "\t" + str(scores.loc[0, "FULL_MODEL_SCORE"]) + "\t" + str(acceptable_range.loc[1, "MIN"]) + "\t" + str(acceptable_range.loc[1, "MAX"]) + "\n")
 
         EOF
         python3 check_scores_against_expected_values.py
@@ -126,12 +134,13 @@ task CheckScores {
 
     output {
         Boolean qc_passed = read_boolean("~{output_basename}.qc_passed.txt")
-        File qc_failures = "~{output_basename}.qc_failures.txt"
+        File qc_failures = "~{output_basename}.qc_failures.tsv"
     }
 }
 
 task CheckControlPCsAgainstExpectedValues {
     input {
+        String output_basename
         File scores
         File expected_values
         Float margin
@@ -141,8 +150,6 @@ task CheckControlPCsAgainstExpectedValues {
         Int disk_size_gb
         String docker
     }
-
-    String output_basename = basename(scores, ".tsv")
 
     command <<<
         set -euo pipefail
@@ -181,6 +188,7 @@ task CheckControlPCsAgainstExpectedValues {
 
 task DetectPCANovelties{
     input {
+        String output_basename
         File test_sample
         File alphashape
         Float distance_threshold = 0.01
@@ -189,8 +197,6 @@ task DetectPCANovelties{
         Int disk_size_gb
         String docker = "us.gcr.io/broad-dsde-methods/kockan/alphashape@sha256:96d5a34da2ff6da6e2cd0f85cca2fa2400c2d73e02e1957def111fbf04c2fdda"
     }
-
-    String output_basename = basename(test_sample, ".tsv")
 
     command <<<
         set -euo pipefail
