@@ -117,9 +117,9 @@ task CheckScores {
 
             # No data rows if both PRS_SCORE and FULL_MODEL_SCORE within the acceptable range
             if not prs_score_passed:
-                qc_failures.write(~{output_basename} + "\t" + "PRS_SCORE" + "\t" + str(scores.loc[0, "PRS_SCORE"]) + "\t" + str(acceptable_range.loc[0, "MIN"]) + "\t" + str(acceptable_range.loc[0, "MAX"]) + "\n")
+                qc_failures.write("~{output_basename}" + "\t" + "PRS_SCORE" + "\t" + str(scores.loc[0, "PRS_SCORE"]) + "\t" + str(acceptable_range.loc[0, "MIN"]) + "\t" + str(acceptable_range.loc[0, "MAX"]) + "\n")
             if not full_model_score_passed:
-                qc_failures.write(~{output_basename} + "\t" + "FULL_MODEL_SCORE" + "\t" + str(scores.loc[0, "FULL_MODEL_SCORE"]) + "\t" + str(acceptable_range.loc[1, "MIN"]) + "\t" + str(acceptable_range.loc[1, "MAX"]) + "\n")
+                qc_failures.write("~{output_basename}" + "\t" + "FULL_MODEL_SCORE" + "\t" + str(scores.loc[0, "FULL_MODEL_SCORE"]) + "\t" + str(acceptable_range.loc[1, "MIN"]) + "\t" + str(acceptable_range.loc[1, "MAX"]) + "\n")
 
         EOF
         python3 check_scores_against_expected_values.py
