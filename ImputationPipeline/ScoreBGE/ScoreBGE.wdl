@@ -72,23 +72,7 @@ task ScoreGvcfAndVcf {
 
     command <<<
         set -xeuo pipefail
-        
-        cat <<'EOF' > script.py
-import sys
-sys.path.insert(0, '/ScoreBGE')
-import ScoreBGE
-import argparse
-
-parser = argparse.ArgumentParser(description='Score BGE')
-parser.add_argument('--sample-names', type=str, nargs='+', help='Sample names to score', required=False, default=None)
-args = parser.parse_args()
-
-bge_scorer = ScoreBGE.BGEScorer('~{ref_dict}', '~{weights}')
-bge_scorer.score_wes_gvcf('~{exome_gvcf}', sample_names=args.sample_names)
-bge_scorer.score_wgs_vcf('~{imputed_wgs_vcf}', sample_names=args.sample_names)
-bge_scorer.write_output('~{basename}')
-EOF
-            python3 script.py ~{sample_names_arg} ~{sep=" --sample-names " sample_names}
+        python3 /ScoreBGE.py ~{sample_names_arg} ~{sep=" --sample-names " sample_names}
     >>>
 
     runtime {

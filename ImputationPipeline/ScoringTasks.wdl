@@ -26,7 +26,7 @@ task ScoreVcf {
     /plink2 --score ~{weights} header ignore-dup-ids list-variants no-mean-imputation \
     cols=maybefid,maybesid,phenos,dosagesum,scoreavgs,scoresums --set-all-var-ids ~{var_ids_string} --allow-extra-chr ~{extra_args} -vcf ~{vcf} ~{if use_dosage_annotation then "dosage=DS" else ""} \
     --new-id-max-allele-len 1000 missing ~{"--extract " + sites} ~{"--exclude " + exclude_sites} --out ~{basename} --memory ~{plink_mem} ~{"--output-chr " + chromosome_encoding}
-  }
+  >>>
 
   output {
     File score = "~{basename}.sscore"

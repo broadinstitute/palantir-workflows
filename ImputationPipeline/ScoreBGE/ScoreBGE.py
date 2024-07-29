@@ -28,14 +28,12 @@ class BGEScorer():
         with open(ref_dict_path) as ref_dict:
             return [line.split('\t')[1].replace('SN:', '') for line in ref_dict if line.startswith('@SQ')]
 
+    # Required TSV format (including header line):
+    # contig position ref alt effect_allele weight
     def _read_prs_weights(self, prs_weights_path):
-        prs_weights = pd.read_table(prs_weights_path, dtype={'effect_allele': str, 'weight': np.float64, 'chr': str, 'bp': np.int32, 'ref': str, 'alt': str})
+        prs_weights = pd.read_table(prs_weights_path, dtype={'contig': str, 'position': np.int32, 'ref': str, 'alt': str, 'effect_allele': str, 'weight': np.float64})
 
-        prs_weights[['contig', 'position', 'ref', 'alt']] = prs_weights['CHR:BP:REF:ALT'].str.split(':', expand=True)
-        prs_weights = prs_weights.drop(['CHR:BP:REF:ALT'], axis=1)
-        prs_weights['locus'] = prs_weights['contig'] + ':' + prs_weights['position']
-
-        prs_weights = prs_weights.astype({'effect_allele': str, 'weight': np.float64, 'contig': str, 'position': np.int32, 'ref': str, 'alt': str})
+        prs_weights['locus'] = prs_weights['contig'] + ':' + prs_weights['position'].astype(str)
 
         return prs_weights.sort_values(by='position').sort_values(kind='stable', by='contig', key=lambda contig: contig.map(self.ref_dict.index))
     
@@ -56,7 +54,6 @@ class BGEScorer():
                 self.gvcf_low_quality_sites[sample_name].append((weight.locus, weight.ref, weight.alt))
                 continue
             
-            #effect_allele_index = None if weight.effect_allele not in record.alts
             if weight.effect_allele == weight.ref:
                 effect_allele_index = 0
             else:
@@ -214,7 +211,26 @@ class BGEScorer():
         """
         Write the scores to plink-like output files.
         """
+        def write_gvcf_or_vcf_output(is_gvcf):
+            score = self.gvcf_sample_score if is_gvcf else self.vcf_sample_score
+            sites_scored = self.gvcf_sites_scored if is_gvcf else self.vcf_sites_scored
+            score_filename_suffix = '.exome_gvcf.score' if is_gvcf else '.imputed_wgs_vcf.score'
+            sites_scored_filename_suffix = '.exome_gvcf.sites_scored' if is_gvcf else '.imputed_wgs_vcf.sites_scored'
 
+            with open(basename + score_filename_suffix, 'w') as out_score:
+                out_score.write('#IID\tSCORE1_SUM\n')
+                for sample_name in self.sample_names:
+                    out_score.write(f'{sample_name}\t{score[sample_name]}\n')
+
+            with open(basename + sites_scored_filename_suffix, 'w') as out_sites_scored:
+                out_sites_scored.write('site\tsamples_scored\n')
+                for weight in self.prs_weights.iterrows():
+                    locus = weight[1]['locus']
+                    ref = weight[1]['ref']
+                    alt = weight[1]['alt']
+                    weight_samples = [sample_name for sample_name in self.sample_names if (locus, ref, alt) in sites_scored[sample_name]]
+                    out_sites_scored.write(f'{locus}:{ref}:{alt}\t{",".join(weight_samples)}\n')
+        
         # GVCF
         if self.gvcf_sites_scored_set is None:
             if not allow_single_source_scoring:
@@ -222,19 +238,7 @@ class BGEScorer():
             else:
                 print('No GVCF scoring performed. Skipping GVCF output.')
         else:
-            with open(f'{basename}.exome_gvcf.score', 'w') as out_exome_gvcf_score:
-                out_exome_gvcf_score.write('#IID\tSCORE1_SUM\n')
-                for sample_name in self.sample_names:
-                    out_exome_gvcf_score.write(f'{sample_name}\t{self.gvcf_sample_score[sample_name]}\n')
-
-            with open(f'{basename}.exome_gvcf.sites_scored', 'w') as out_exome_gvcf_sites_scored:
-                out_exome_gvcf_sites_scored.write('site	samples_scored\n')
-                for weight in self.prs_weights.iterrows():
-                    locus = weight[1]['locus']
-                    ref = weight[1]['ref']
-                    alt = weight[1]['alt']
-                    weight_samples = [sample_name for sample_name in self.sample_names if (locus, ref, alt) in self.gvcf_sites_scored[sample_name]]
-                    out_exome_gvcf_sites_scored.write(f'{locus}:{ref}:{alt}\t{",".join(weight_samples)}\n')
+            write_gvcf_or_vcf_output(True)
 
         # VCF
         if self.vcf_sites_scored is None:
@@ -243,18 +247,7 @@ class BGEScorer():
             else:
                 print('No VCF scoring performed. Skipping VCF output.')
         else:
-            with open(f'{basename}.imputed_wgs_vcf.score', 'w') as out_imputed_wgs_vcf_score:
-                out_imputed_wgs_vcf_score.write('#IID\tSCORE1_SUM\n')
-                for sample_name in self.sample_names:
-                    out_imputed_wgs_vcf_score.write(f'{sample_name}\t{self.vcf_sample_score[sample_name]}\n')
-            with open(f'{basename}.imputed_wgs_vcf.sites_scored', 'w') as out_imputed_wgs_vcf_sites_scored:
-                out_imputed_wgs_vcf_sites_scored.write('site	samples_scored\n')
-                for weight in self.prs_weights.iterrows():
-                    locus = weight[1]['locus']
-                    ref = weight[1]['ref']
-                    alt = weight[1]['alt']
-                    weight_samples = [sample_name for sample_name in self.sample_names if (locus, ref, alt) in self.vcf_sites_scored[sample_name]]
-                    out_imputed_wgs_vcf_sites_scored.write(f'{locus}:{ref}:{alt}\t{",".join(weight_samples)}\n')
+            write_gvcf_or_vcf_output(False)
 
         # Sum
         with open(f'{basename}.score', 'w') as out_combined_score:
@@ -264,3 +257,15 @@ class BGEScorer():
                 vcf_score = 0 if self.vcf_sample_score is None else self.vcf_sample_score[sample_name]
                 gvcf_score = 0 if self.gvcf_sample_score is None else self.gvcf_sample_score[sample_name]
                 out_combined_score.write(f'{sample_name}\t{vcf_score + gvcf_score}\n')
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Score BGE')
+    parser.add_argument('--sample-names', type=str, nargs='+', help='Sample names to score', required=False, default=None)
+    args = parser.parse_args()
+
+    bge_scorer = BGEScorer('~{ref_dict}', '~{weights}')
+    bge_scorer.score_wes_gvcf('~{exome_gvcf}', sample_names=args.sample_names)
+    bge_scorer.score_wgs_vcf('~{imputed_wgs_vcf}', sample_names=args.sample_names)
+    bge_scorer.write_output('~{basename}')

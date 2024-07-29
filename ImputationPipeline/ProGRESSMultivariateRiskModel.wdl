@@ -50,13 +50,13 @@ workflow ProGRESSMultivariateRiskModel {
 
     call PCATasks.ArrayVcfToPlinkDataset {
         input:
-			vcf = imputed_wgs_vcf,
-			pruning_sites = pc_sites,
-			basename = basename,
+            vcf = imputed_wgs_vcf,
+            pruning_sites = pc_sites,
+            basename = basename,
             use_ref_alt_for_ids = use_ref_alt_for_ids,
             chromosome_encoding = chromosome_encoding,
             mem = mem_gb_array_vcf_to_plink
-    } 
+    }
 
     call PCATasks.ProjectArray {
         input:
@@ -119,7 +119,7 @@ task ComputeRiskValue {
     >>>
 
     runtime {
-        docker : "us.gcr.io/broad-dsde-methods/imputation_interaction_python@sha256:40a8fb88fe287c3e3a11022ff63dae1ad5375f439066ae23fe089b2b61d3222e"
+        docker : "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
     }
 
     output {
