@@ -1,5 +1,5 @@
 {
-    "CompareBenchmarks.gc_plots": ["test/CompareBenchmarks/plumbing_data/expected_gc_plot_0_sample1.png", "test/CompareBenchmarks/plumbing_data/expected_gc_plot_1_sample2equals1.png"],
-    "CompareBenchmarks.comparison_csv": "test/CompareBenchmarks/plumbing_data/expected_comparison.csv",
+    "CompareBenchmarks.gc_plots": ["gs://palantir-workflows-test-data/CompareBenchmarks/expected_gc_plot_0_sample1.png", "gs://palantir-workflows-test-data/CompareBenchmarks/expected_gc_plot_1_sample2equals1.png"],
+    "CompareBenchmarks.comparison_csv": "gs://palantir-workflows-test-data/CompareBenchmarks/expected_comparison.csv",
     "CompareBenchmarks.raw_data": null
 }

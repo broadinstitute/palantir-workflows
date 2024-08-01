@@ -1,6 +1,6 @@
 # PALANTIR-WORKFLOWS
 
-[![CircleCI](https://circleci.com/gh/broadinstitute/palantir-workflows.svg?style=svg)](https://circleci.com/gh/broadinstitute/palantir-workflows)
+[![Test Status](https://github.com/broadinstitute/palantir-workflows/actions/workflows/run_tests.yaml/badge.svg?branch=main)](https://github.com/broadinstitute/palantir-workflows/actions/workflows/run_tests.yaml/badge.svg?branch=main)
 
 Utility workflows used by the DSP's Palantir team.  This repository should be used to manage frequently used utility workflows for the team, and facilitate their use on [Terra](https://app.terra.bio/) through [Dockstore](https://dockstore.org/).
 
@@ -11,9 +11,9 @@ Utility workflows used by the DSP's Palantir team.  This repository should be us
 
 Automated WDL testing is implemented using [watt](https://github.com/rickymagner/watt).
 To add tests, update  [test/watt_config.yml](test/watt_config.yml).
-See the watt documentation for usage details.
+See the watt documentation for usage details.  Tests are run using github actions, controlled by [.github/workflows/run_tests.yaml](.github/workflows/run_tests.yaml).  Automated testing also validates all WDLs found in the repository, regardless of whether tests have been added for the particular WDL, using `womtool validate`.  Automated testing is performed on all PR's, as well as any pushes to the `main` branch.
 
-Automated testing on CircleCI also validates every WDL in the repo using the `validate` tool from `womtool`. 
+During testing, WDLs are run on GCP, with the execution bucket `gs://palantir-workflows-test-execution`.  Generally, input and expected output files are stored in `gs://palantir-workflows-test-data`.  The stdout from watt will be visible in the github actions UI, and cromwell log files can be found in a zipped artifact named `cromwell_logs`, also in the github actions UI.   
 
 ## Using the Dockstore Github App to Automatically Update Workflows in Dockstore/Terra
 Workflows registered in Dockstore can be automatically synced when changes are pushed to this repo by adding their information to `.dockstore.yml`. 

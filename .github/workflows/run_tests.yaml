@@ -1,0 +1,47 @@
+name: WDL Tests
+on: 
+  push:
+    branches:
+      - main
+  pull_request:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/install-cromwell
+        with:
+          CROMWELL_VERSION: 87
+      - name: Womtool Validate
+        run: find . -name '*.wdl' | xargs -tI {} java -jar ${WOMTOOL_JAR} validate {}
+
+  test:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - uses: actions/checkout@v4
+      - id: auth
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: palantir-workflows-service-acc@broad-dsde-methods.iam.gserviceaccount.com
+      - uses: ./.github/actions/install-cromwell
+        with:
+          CROMWELL_VERSION: 87
+      - uses: ./.github/actions/install-watt
+        with:
+          WATT_VERSION: v1.1
+      - name: Run tests with WATT
+        run: python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml --cromwell-config test/simple_cromwell.conf -p 50 --executor-log-prefix cromwell_logs/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cromwell_logs
+          path: cromwell_logs/

@@ -7,5 +7,5 @@
     "CompareBenchmarks.configurations": ["configuration1","configuration2equals1","configuration3","configuration1","configuration2equals1","configuration3"],
     "CompareBenchmarks.deltas": [0,1,0,2],
     "CompareBenchmarks.include_counts":true,
-    "CompareBenchmarks.benchmark_summaries": ["test/CompareBenchmarks/plumbing_data/summary1.csv", "test/CompareBenchmarks/plumbing_data/summary2.csv", "test/CompareBenchmarks/plumbing_data/summary3.csv", "test/CompareBenchmarks/plumbing_data/summary1.csv", "test/CompareBenchmarks/plumbing_data/summary2.csv", "test/CompareBenchmarks/plumbing_data/summary3.csv"]
+    "CompareBenchmarks.benchmark_summaries": ["gs://palantir-workflows-test-data/CompareBenchmarks/summary1.csv", "gs://palantir-workflows-test-data/CompareBenchmarks/summary2.csv", "gs://palantir-workflows-test-data/CompareBenchmarks/summary3.csv", "gs://palantir-workflows-test-data/CompareBenchmarks/summary1.csv", "gs://palantir-workflows-test-data/CompareBenchmarks/summary2.csv", "gs://palantir-workflows-test-data/CompareBenchmarks/summary3.csv"]
   }
