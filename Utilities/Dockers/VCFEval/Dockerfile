@@ -20,10 +20,19 @@ WORKDIR /
 ADD https://github.com/arq5x/bedtools2/releases/download/v2.31.0/bedtools.static .
 RUN mv bedtools.static bedtools && chmod +x bedtools && cp bedtools /bin/
 
+# Htslib
+RUN wget https://github.com/samtools/htslib/releases/download/1.20/htslib-1.20.tar.bz2 && \
+tar -xvf htslib-1.20.tar.bz2 && \
+cd htslib-1.20 && \
+./configure && \
+make && \
+make install
+
 # Make bcftools
-ADD https://github.com/samtools/bcftools/releases/download/1.16/bcftools-1.16.tar.bz2 .
-RUN tar -xvf bcftools-1.16.tar.bz2
-WORKDIR bcftools-1.16
+ADD https://github.com/samtools/bcftools/releases/download/1.20/bcftools-1.20.tar.bz2 .
+RUN tar -xvf bcftools-1.20.tar.bz2
+WORKDIR bcftools-1.20
 RUN ./configure
 RUN make
 RUN make install
+WORKDIR /
