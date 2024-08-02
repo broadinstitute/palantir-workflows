@@ -103,6 +103,7 @@ includes some minimal Python tools (pandas) for data processing.
   * 1.0: Versions are `htslib` 1.18, `bcftools` 1.18, `bedtools` 2.31.0, `truvari` 4.0.0, `pandas` 2.1.3, `pysam` 0.22.0 
 
 ## vcfdist
+
 * Directory: Vcfdist
 * Description: A docker image containing an installation of [vcfdist](https://github.com/TimD1/vcfdist).
 * Location: `us.gcr.io/broad-dsde-methods/vcfdist:v0.1`
@@ -113,14 +114,16 @@ includes some minimal Python tools (pandas) for data processing.
 
 
 ## vcfeval
+
 * Directory: VCFEval
 * Description: A docker image containing various tools used for running `rtg vcfeval` in benchmarking. These include `rtg`,
 `python`, `bedtools`, and `bcftools`.
-* Location: `"us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.0`
+* Location: `"us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.1`
 * Used By: [SimpleBenchmark](../../BenchmarkVCFs/SimpleBenchmark.wdl)
 * Usage: `rtg [COMMAND]`, etc.
 * Version Notes:
-  * 1.0: Versions are `rtg` 3.12.1, `bedtools` 2.31.0, `bcftools` 1.16 
+  * 1.0: Versions are `rtg` 3.12.1, `bedtools` 2.31.0, `bcftools` 1.16
+  * 1.1: Added htslib 1.20 (includes tabix and bgzip); bumped bcftools to 1.20
 
 ## whatshap
 
