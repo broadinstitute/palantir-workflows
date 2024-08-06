@@ -191,6 +191,11 @@ task GlimpsePhase {
         else
             for i in "${!cram_paths[@]}"; do
                 echo "writing " $i
+                if [ -f crams.list ]; then
+                    echo "crams.list exists and is"
+                    cat crams.list
+                fi
+                echo -e "${cram_paths[$i]} ${sample_ids[$i]}"
                 echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
                 echo "crams.list is now"
                 cat crams.list
