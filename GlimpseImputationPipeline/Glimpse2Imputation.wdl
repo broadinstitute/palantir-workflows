@@ -176,6 +176,8 @@ task GlimpsePhase {
         cram_paths=( ~{sep=" " crams} )
         cram_index_paths=( ~{sep=" " cram_indices} )
         sample_ids=( ~{sep=" " sample_ids} )
+        echo "crams.list before"
+        cat crams.list
 
         duplicate_cram_filenames=$(printf "%s\n" "${cram_paths[@]}" | xargs -I {} basename {} | sort | uniq -d)
         if [ ! -z "$duplicate_cram_filenames" ]; then
@@ -190,11 +192,12 @@ task GlimpsePhase {
             done
         else
             for i in "${!cram_paths[@]}"; do
+                echo "writing " $i
                 echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
             done
         fi
 
-        echo "crams.list"
+        echo "crams.list after"
         cat crams.list
 
 
