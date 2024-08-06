@@ -35,25 +35,25 @@ workflow Glimpse2Imputation {
     }
 
     scatter (reference_chunk in read_lines(reference_chunks)) {
-        call GetNumberOfSitesInChunk {
-            input:
-                reference_chunk = reference_chunk,
-                docker = docker_extract_num_sites_from_reference_chunk
-        }
-
-        Int n_rare = GetNumberOfSitesInChunk.n_rare
-        Int n_common = GetNumberOfSitesInChunk.n_common
-
-        if (defined(input_vcf)) {
-            call CountSamples {
-                input:
-                    vcf = select_first([input_vcf])
-            }
-        }
-
-        Int n_samples = select_first([CountSamples.nSamples, length(select_first([crams]))])
-
         if (!defined(cpu_phase) || !defined(mem_gb_phase)) {
+            call GetNumberOfSitesInChunk {
+                input:
+                    reference_chunk = reference_chunk,
+                    docker = docker_extract_num_sites_from_reference_chunk
+            }
+
+            Int n_rare = GetNumberOfSitesInChunk.n_rare
+            Int n_common = GetNumberOfSitesInChunk.n_common
+
+            if (defined(input_vcf)) {
+                call CountSamples {
+                    input:
+                        vcf = select_first([input_vcf])
+                }
+            }
+
+            Int n_samples = select_first([CountSamples.nSamples, length(select_first([crams]))])
+        
             call SelectResourceParameters {
                 input:
                     n_rare = n_rare,
