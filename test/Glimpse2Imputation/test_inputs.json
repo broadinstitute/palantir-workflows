@@ -1,0 +1,9 @@
+{
+    "Glimpse2Imputation.output_basename":"test",
+    "Glimpse2Imputation.ref_dict":"gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dict",
+    "Glimpse2Imputation.reference_chunks":"gs://palantir-workflows-test-data/Glimpse2Imputation/two_chunk_reference_panel.txt",
+    "Glimpse2Imputation.sample_ids":["hg002","hg005"],
+    "Glimpse2Imputation.cpu_ligate":1,
+    "Glimpse2Imputation.mem_gb_phase":6,
+    "Glimpse2Imputation.crams":["gs://palantir-workflows-test-data/Glimpse2Imputation/hg002_1x.bam","gs://palantir-workflows-test-data/Glimpse2Imputation/hg005_1x.bam"]
+}
