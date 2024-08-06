@@ -194,6 +194,9 @@ task GlimpsePhase {
             done
         fi
 
+        echo "crams.list"
+        cat crams.list
+
 
         cmd="/bin/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
@@ -241,7 +244,6 @@ task GlimpsePhase {
         File imputed_vcf_index = "phase_output.bcf.csi"
         File? monitoring = "monitoring.log"
         File coverage_metrics = "phase_output_stats_coverage.txt.gz"
-        File crams_list = "crams.list"
     }
 }
 
