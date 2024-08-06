@@ -241,6 +241,7 @@ task GlimpsePhase {
         File imputed_vcf_index = "phase_output.bcf.csi"
         File? monitoring = "monitoring.log"
         File coverage_metrics = "phase_output_stats_coverage.txt.gz"
+        File crams_list = "crams.list"
     }
 }
 
