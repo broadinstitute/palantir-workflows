@@ -164,17 +164,6 @@ task MergeAndRecomputeAndAnnotate {
         Int preemptible = 1
     }
 
-    parameter_meta {
-        imputed_vcfs:
-            {
-                localization_optional: true
-            }
-        imputed_vcf_indices:
-            {
-                localization_optional: true
-            }
-    }
-
     command <<<
         set -xeuo pipefail
         export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
