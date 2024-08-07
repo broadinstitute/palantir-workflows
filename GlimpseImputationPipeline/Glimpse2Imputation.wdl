@@ -222,7 +222,7 @@ task GlimpsePhase {
         cat crams.list
 
         datetime=$(date +"%Y-%m-%d-%H-%M-%S")
-        time_stamped_crams_list="crams_$datetime.txt"
+        time_stamped_crams_list="crams_$datetime.list"
         cat crams.list > $time_stamped_crams_list
 
         cmd="/bin/GLIMPSE2_phase \
