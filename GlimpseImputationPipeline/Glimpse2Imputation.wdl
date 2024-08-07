@@ -176,6 +176,21 @@ task GlimpsePhase {
         cram_paths=( ~{sep=" " crams} )
         cram_index_paths=( ~{sep=" " cram_indices} )
         sample_ids=( ~{sep=" " sample_ids} )
+        ls -trlh
+        if [ -f reference_chunk.name ]; then
+            echo "reference_chunk.name already exists and is"
+            cat reference_chunk.name
+        fi
+
+        echo ~{reference_chunk} >> reference_chunk.name
+
+        echo "reference_chunk.name now"
+        cat reference_chunk.name
+
+        if [ -f crams.list ]; then
+            echo "crams.list exists and is"
+            cat crams.list
+        fi
 
         duplicate_cram_filenames=$(printf "%s\n" "${cram_paths[@]}" | xargs -I {} basename {} | sort | uniq -d)
         if [ ! -z "$duplicate_cram_filenames" ]; then
