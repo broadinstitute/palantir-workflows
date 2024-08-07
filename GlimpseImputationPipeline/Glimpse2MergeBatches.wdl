@@ -166,7 +166,6 @@ task MergeAndRecomputeAndAnnotate {
 
     command <<<
         set -xeuo pipefail
-        export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
 
         bcftools merge -O z -o ~{output_basename}.merged.vcf.gz ~{sep=" " imputed_vcfs}
 
