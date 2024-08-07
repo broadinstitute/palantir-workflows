@@ -225,6 +225,8 @@ task GlimpsePhase {
         time_stamped_crams_list="crams_$datetime.list"
         cat crams.list > $time_stamped_crams_list
 
+        exit 1
+        
         cmd="/bin/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
         --reference ~{reference_chunk} \
