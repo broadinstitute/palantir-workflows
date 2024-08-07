@@ -177,6 +177,7 @@ task GlimpsePhase {
         cram_index_paths=( ~{sep=" " cram_indices} )
         sample_ids=( ~{sep=" " sample_ids} )
         ls -trlh
+        find . -name "crams_*.list" -print -exec cat {} +
         if [ -f reference_chunk.name ]; then
             echo "reference_chunk.name already exists and is"
             cat reference_chunk.name
@@ -220,6 +221,9 @@ task GlimpsePhase {
         echo "crams.list after"
         cat crams.list
 
+        datetime=$(date +"%Y-%m-%d-%H-%M-%S")
+        time_stamped_crams_list="crams_$datetime.txt"
+        cat crams.list > $time_stamped_crams_list
 
         cmd="/bin/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
