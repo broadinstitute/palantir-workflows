@@ -176,22 +176,6 @@ task GlimpsePhase {
         cram_paths=( ~{sep=" " crams} )
         cram_index_paths=( ~{sep=" " cram_indices} )
         sample_ids=( ~{sep=" " sample_ids} )
-        ls -trlh
-        find . -name "crams_*.list" -print -exec cat {} +
-        if [ -f reference_chunk.name ]; then
-            echo "reference_chunk.name already exists and is"
-            cat reference_chunk.name
-        fi
-
-        echo ~{reference_chunk} >> reference_chunk.name
-
-        echo "reference_chunk.name now"
-        cat reference_chunk.name
-
-        if [ -f crams.list ]; then
-            echo "crams.list exists and is"
-            cat crams.list
-        fi
 
         duplicate_cram_filenames=$(printf "%s\n" "${cram_paths[@]}" | xargs -I {} basename {} | sort | uniq -d)
         if [ ! -z "$duplicate_cram_filenames" ]; then
@@ -206,27 +190,10 @@ task GlimpsePhase {
             done
         else
             for i in "${!cram_paths[@]}"; do
-                echo "writing " $i
-                if [ -f crams.list ]; then
-                    echo "crams.list exists and is"
-                    cat crams.list
-                fi
-                echo -e "${cram_paths[$i]} ${sample_ids[$i]}"
                 echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
-                echo "crams.list is now"
-                cat crams.list
             done
         fi
 
-        echo "crams.list after"
-        cat crams.list
-
-        datetime=$(date +"%Y-%m-%d-%H-%M-%S")
-        time_stamped_crams_list="crams_$datetime.list"
-        cat crams.list > $time_stamped_crams_list
-
-        exit 1
-        
         cmd="/bin/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
         --reference ~{reference_chunk} \
