@@ -29,40 +29,45 @@ workflow Glimpse2Imputation {
         String docker_extract_num_sites_from_reference_chunk = "us.gcr.io/broad-dsde-methods/glimpse_extract_num_sites_from_reference_chunks:michaelgatzen_edc7f3a"
         Int cpu_ligate = 4
         Int mem_gb_ligate = 4
+        Int? cpu_phase
+        Int? mem_gb_phase
         File? monitoring_script
     }
 
     scatter (reference_chunk in read_lines(reference_chunks)) {
-        call GetNumberOfSitesInChunk {
-            input:
-                reference_chunk = reference_chunk,
-                docker = docker_extract_num_sites_from_reference_chunk
-        }
-
-        Int n_rare = GetNumberOfSitesInChunk.n_rare
-        Int n_common = GetNumberOfSitesInChunk.n_common
-
-        if (defined(input_vcf)) {
-            call CountSamples {
+        if (!defined(cpu_phase) || !defined(mem_gb_phase)) {
+            call GetNumberOfSitesInChunk {
                 input:
-                    vcf = select_first([input_vcf])
+                    reference_chunk = reference_chunk,
+                    docker = docker_extract_num_sites_from_reference_chunk
+            }
+
+            Int n_rare = GetNumberOfSitesInChunk.n_rare
+            Int n_common = GetNumberOfSitesInChunk.n_common
+
+            if (defined(input_vcf)) {
+                call CountSamples {
+                    input:
+                        vcf = select_first([input_vcf])
+                }
+            }
+
+            Int n_samples = select_first([CountSamples.nSamples, length(select_first([crams]))])
+        
+            call SelectResourceParameters {
+                input:
+                    n_rare = n_rare,
+                    n_common = n_common,
+                    n_samples = n_samples
+            }
+
+            if (SelectResourceParameters.memory_gb > 256 || SelectResourceParameters.request_n_cpus > 32) {
+                # force failure if we're accidently going to request too much resources and spend too much money
+                Int safety_check_memory_gb = -1
+                Int safety_check_n_cpu = -1
             }
         }
 
-        Int n_samples = select_first([CountSamples.nSamples, length(select_first([crams]))])
-
-        call SelectResourceParameters {
-            input:
-                n_rare = n_rare,
-                n_common = n_common,
-                n_samples = n_samples
-        }
-
-        if (SelectResourceParameters.memory_gb > 256 || SelectResourceParameters.request_n_cpus > 32) {
-            # force failure if we're accidently going to request too much resources and spend too much money
-            Int safety_check_memory_gb = -1
-            Int safety_check_n_cpu = -1
-        }
         call GlimpsePhase {
             input:
                 reference_chunk = reference_chunk,
@@ -80,8 +85,8 @@ workflow Glimpse2Imputation {
                 fasta_index = fasta_index,
                 preemptible = preemptible,
                 docker = docker,
-                cpu = select_first([safety_check_n_cpu, SelectResourceParameters.request_n_cpus]),
-                mem_gb = select_first([safety_check_memory_gb, SelectResourceParameters.memory_gb]),
+                cpu = select_first([cpu_phase, safety_check_n_cpu, SelectResourceParameters.request_n_cpus]),
+                mem_gb = select_first([mem_gb_phase, safety_check_memory_gb, SelectResourceParameters.memory_gb]),
                 monitoring_script = monitoring_script
         }
     }
@@ -188,7 +193,6 @@ task GlimpsePhase {
                 echo -e "${cram_paths[$i]} ${sample_ids[$i]}" >> crams.list
             done
         fi
-
 
         cmd="/bin/GLIMPSE2_phase \
         ~{"--input-gl " + input_vcf} \
