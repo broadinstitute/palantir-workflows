@@ -38,7 +38,8 @@ workflow Glimpse2MergeBatches {
         }
         call CountVariants as CountVariantsInitial  {
             input:
-                vcf = imputed_vcfs[0]
+                vcf = imputed_vcfs[0],
+                docker_gatk = docker_gatk
         }
         scatter (intervals in ScatterIntervalList.out) {
             scatter(batch_index in range(length(imputed_vcfs))) {
@@ -92,7 +93,8 @@ workflow Glimpse2MergeBatches {
 
         call CountVariants as CountVariantsFinal {
             input:
-                vcf = GatherVcfs.output_vcf
+                vcf = GatherVcfs.output_vcf,
+                docker_gatk = docker_gatk
         }
 
         call CountSamples as CountSamplesFinal {
@@ -221,6 +223,7 @@ task SubsetToIntervals {
 task CountVariants {
     input {
         File vcf
+        String docker_gatk
     }
 
     parameter_meta {
@@ -238,7 +241,7 @@ task CountVariants {
     }
 
     runtime {
-        docker: "us.gcr.io/broad-gotc-prod/picard-python:1.0.0-2.26.10-1663951039"
+        docker: docker_gatk
     }
 
 }
