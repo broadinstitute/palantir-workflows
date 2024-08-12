@@ -10,6 +10,8 @@ task PerformPCA {
     Int nthreads = 16
   }
 
+  Int mem_gb = mem * 1024
+
   # again, based on Wallace commands
   command <<<
     cp ~{bim} ~{basename}.bim
@@ -20,6 +22,7 @@ task PerformPCA {
       --bfile ~{basename} \
       -n ~{nthreads} \
       -d 20 \
+      --memory ~{mem_gb} \
       --outpc ~{basename}.pc \
       --outpve ~{basename}.pc.variance \
       --outload ~{basename}.pc.loadings \
@@ -55,6 +58,8 @@ task ProjectArray {
     Int nthreads = 16
   }
 
+  Int mem_gb = mem * 1024
+
   command <<<
     cp ~{bim} ~{basename}.bim
     cp ~{bed} ~{basename}.bed
@@ -89,6 +94,7 @@ task ProjectArray {
     ~/flashpca/flashpca \
       --bfile ~{basename} \
       --numthreads ~{nthreads} \
+      --memory ~{mem_gb} \
       --project \
       --inmeansd meansd.txt \
       --outproj projections.txt \
