@@ -255,7 +255,7 @@ task ScatterIntervalList {
   command <<<
     set -e
     mkdir out
-    java -Xms1000m -Xmx1500m -jar /usr/picard/picard.jar \
+    java -Xms1000m -Xmx1500m -jar /usr/gitc/picard.jar \
       IntervalListTools \
       SCATTER_COUNT=~{scatter_count} \
       SUBDIVISION_MODE=INTERVAL_SUBDIVISION \
