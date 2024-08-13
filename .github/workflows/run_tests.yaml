@@ -48,7 +48,7 @@ jobs:
           CHANGED_WDLS: ${{ steps.changed-wdls.outputs.all_changed_files }}
         run: |
           if [[ $GITHUB_REF_NAME != 'main' ]]; then
-            WF_TESTS_TO_RUN=$(python test/choose_watt_tests.py --watt-config test/watt_config.yml --womtool-jar ${WOMTOOL_JAR} --changed-workflows ${CHANGED_WDLS})
+            WF_TESTS_TO_RUN=$(python test/choose_watt_tests/choose_watt_tests.py --watt-config test/watt_config.yml --womtool-jar ${WOMTOOL_JAR} --changed-workflows ${CHANGED_WDLS})
             echo "Running tests for workflows: ${WF_TESTS_TO_RUN}"
             echo "WF_CMD_STRING='--workflow ${WF_TESTS_TO_RUN}'" >> $GITHUB_ENV
           else
