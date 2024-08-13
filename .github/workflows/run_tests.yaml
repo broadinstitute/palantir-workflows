@@ -38,8 +38,24 @@ jobs:
       - uses: ./.github/actions/install-watt
         with:
           WATT_VERSION: v1.1
+      - name: Get changed WDLs
+        id: changed-wdls
+        uses: tj-actions/changed-files@v44
+        with:
+          files: '**.wdl'
+      - name: Choose tests to run
+        env:
+          CHANGED_WDLS: ${{ steps.changed-wdls.outputs.all_changed_files }}
+        run: |
+          if [[ $GITHUB_REF_NAME != 'main' ]]; then
+            WF_TESTS_TO_RUN=$(python test/choose_watt_tests.py --watt-config test/watt_config.yml --womtool-jar ${WOMTOOL_JAR} --changed-workflows ${CHANGED_WDLS})
+            echo "Running tests for workflows: ${WF_TESTS_TO_RUN}"
+            echo "WF_CMD_STRING='--workflow ${WF_TESTS_TO_RUN}'" >> $GITHUB_ENV
+          else
+            echo "Running tests for all workflows"
+          fi
       - name: Run tests with WATT
-        run: python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml --cromwell-config test/simple_cromwell.conf -p 50 --executor-log-prefix cromwell_logs/
+        run: python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml ${WF_CMD_STRING} --cromwell-config test/simple_cromwell.conf -p 50 --executor-log-prefix cromwell_logs/
       - uses: actions/upload-artifact@v4
         if: always()
         with:
