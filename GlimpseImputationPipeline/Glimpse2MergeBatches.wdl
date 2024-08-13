@@ -70,6 +70,7 @@ workflow Glimpse2MergeBatches {
             call MergeVcfs {
                 input:
                     imputed_vcfs = SubsetToIntervals.subset_vcf,
+                    imputed_vcf_indices = SubsetToIntervals.subset_vcf_index,
                     docker_merge = docker_merge,
                     mem_gb = mem_gb_merge
             }
@@ -363,6 +364,7 @@ task CountSamples { # really?
 task MergeVcfs {
     input {
         Array[File] imputed_vcfs
+        Array[File] imputed_vcf_indices
         String docker_merge
         Int disk_size_gb = ceil(2.2 * size(imputed_vcfs, "GiB") + 50)
         Int mem_gb
