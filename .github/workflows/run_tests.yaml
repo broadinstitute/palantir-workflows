@@ -44,17 +44,25 @@ jobs:
         with:
           files: '**.wdl'
       - name: Choose tests to run
+        id: choose_tests_to_run
         env:
           CHANGED_WDLS: ${{ steps.changed-wdls.outputs.all_changed_files }}
         run: |
-          if [[ $GITHUB_REF_NAME != 'main' ]]; then
-            WF_TESTS_TO_RUN=$(python test/choose_watt_tests/choose_watt_tests.py --watt-config test/watt_config.yml --womtool-jar ${WOMTOOL_JAR} --changed-workflows ${CHANGED_WDLS})
-            echo "Running tests for workflows: ${WF_TESTS_TO_RUN}"
-            echo "WF_CMD_STRING='--workflow ${WF_TESTS_TO_RUN}'" >> $GITHUB_ENV
-          else
+          if [[ $GITHUB_REF_NAME == 'main' ]]; then
             echo "Running tests for all workflows"
+          else
+            WF_TESTS_TO_RUN=$(python test/choose_watt_tests/choose_watt_tests.py --watt-config test/watt_config.yml --womtool-jar ${WOMTOOL_JAR} --changed-workflows ${CHANGED_WDLS})
+            if [[ ${#WF_TESTS_TO_RUN[@]} == 0 ]]; then
+              echo "No workflows with tests have changed.  Will not run any tests"
+            else
+              echo "Running tests for workflows: ${WF_TESTS_TO_RUN}"
+              echo "WF_CMD_STRING='--workflow ${WF_TESTS_TO_RUN}'" >> $GITHUB_ENV
+            fi
           fi
+
+          echo "n_wf_to_test=${#WF_TESTS_TO_RUN[@]}" >> $GITHUB_OUTPUT
       - name: Run tests with WATT
+        if: ${{ steps.choose_tests_to_run.outputs.n_wf_to_test}} > 0
         run: python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml ${WF_CMD_STRING} --cromwell-config test/simple_cromwell.conf -p 50 --executor-log-prefix cromwell_logs/
       - uses: actions/upload-artifact@v4
         if: always()
