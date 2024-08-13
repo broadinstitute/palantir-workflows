@@ -1,0 +1,22 @@
+##fileformat=VCFv4.2
+##ALT=<ID=NON_REF,Description="Represents any possible alternative allele at this location">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##INFO=<ID=END,Number=1,Type=Integer,Description="Stop position of the interval">
+##contig=<ID=1,length=248956422>
+##contig=<ID=2,length=242193529>
+##contig=<ID=3,length=198295559>
+##reference=file:///broad/tag_working/edytam/dragen/reference_tables/hg38_hash_graph/reference.bin
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	testsample
+3	100	hom_ref	A	C,<NON_REF>	7.36	PASS	.	GT:GQ	0/0:60
+3	110	het	A	C,<NON_REF>	7.36	PASS	.	GT:GQ	0/1:60
+3	120	hom_var	A	C,<NON_REF>	7.36	PASS	.	GT:GQ	1/1:60
+3	130	low_gq	A	C,<NON_REF>	7.36	PASS	.	GT:GQ	1/1:10
+3	140	no_call	A	C,<NON_REF>	7.36	PASS	.	GT:GQ	./.:60
+3	150	half_call	A	C,<NON_REF>	7.36	PASS	.	GT:GQ	1/.:60
+3	200	two_biallelic	A	C,<NON_REF>	7.36	PASS	.	GT:GQ	0/1:60
+3	200	two_biallelic2	A	G,<NON_REF>	7.36	PASS	.	GT:GQ	0/1:60
+3	300	insertion	A	AC,<NON_REF>	7.36	PASS	.	GT:GQ	0/1:60
+3	400	deletion	AC	A,<NON_REF>	7.36	PASS	.	GT:GQ	0/1:60
+3	500	multiallelic	A	C,G,<NON_REF>	7.36	PASS	.	GT:GQ	1/2:60
+3	600	haploid	A	C,<NON_REF>	7.36	PASS	.	GT:GQ	1:60

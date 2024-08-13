@@ -1,4 +1,4 @@
-CHR:BP:REF:ALT	effect_allele	weight
-1:1:A:C	C	1
-1:2:A:G	A	2
-3:1:A:T	T	4
+contig	position	ref	alt	effect_allele	weight
+1	1	A	C	C	1
+1	2	A	G	A	2
+3	1	A	T	T	4

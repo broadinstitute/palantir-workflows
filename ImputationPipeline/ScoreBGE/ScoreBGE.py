@@ -50,14 +50,14 @@ class BGEScorer():
     
     def _gvcf_score_site(self, record, weight, site_gq_threshold):
         for sample_name in self.sample_names:
-            if record.samples[sample_name]['GQ'] < site_gq_threshold:
+            if record.samples[sample_name]['GQ'] < site_gq_threshold or None in record.samples[sample_name]['GT']:
                 self.gvcf_low_quality_sites[sample_name].append((weight.locus, weight.ref, weight.alt))
                 continue
             
             if weight.effect_allele == weight.ref:
                 effect_allele_index = 0
             else:
-                effect_allele_index = record.alts.index(weight.effect_allele) if weight.effect_allele in record.alts else None
+                effect_allele_index = record.alts.index(weight.effect_allele) + 1 if weight.effect_allele in record.alts else None
 
             site_score = 0 if effect_allele_index is None else record.samples[sample_name]['GT'].count(effect_allele_index) * weight.weight
 
@@ -105,7 +105,7 @@ class BGEScorer():
 
     def score_wes_gvcf(self, gvcf_path, sample_names=None, site_gq_threshold=30):
         """
-        Score variants in a Whole Exome Sequencing (WES) GVCF file.
+        Score variants in a Whole Exome Sequencing (WES) GVCF file if they meet the genotype quality threshold. No-calls and half-calls are treated as low quality.
 
         Args:
             gvcf_path (str): The file path to the WES GVCF file.
