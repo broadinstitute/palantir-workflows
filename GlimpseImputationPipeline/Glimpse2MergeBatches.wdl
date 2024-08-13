@@ -41,6 +41,15 @@ workflow Glimpse2MergeBatches {
                 vcf = imputed_vcfs[0],
                 docker_gatk = docker_gatk
         }
+        scatter(batch_index in range(length(imputed_vcfs))) {
+            call CountSamples {
+                    input:
+                        imputed_vcf = imputed_vcfs[batch_index],
+                        imputed_vcf_index = imputed_vcf_indices[batch_index],
+                        docker_count_samples = docker_count_samples
+                }
+        }
+        
         scatter (intervals in ScatterIntervalList.out) {
             scatter(batch_index in range(length(imputed_vcfs))) {
 
@@ -57,14 +66,7 @@ workflow Glimpse2MergeBatches {
                         imputed_vcf_index = SubsetToIntervals.subset_vcf_index,
                         batch_index = batch_index,
                         docker_extract_annotations = docker_gatk
-                }
-                call CountSamples {
-                    input:
-                        imputed_vcf = imputed_vcfs[batch_index],
-                        imputed_vcf_index = imputed_vcf_indices[batch_index],
-                        docker_count_samples = docker_count_samples
-                }
-
+                }    
             }
 
             call MergeVcfs {
