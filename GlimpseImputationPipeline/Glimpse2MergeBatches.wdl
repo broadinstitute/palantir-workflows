@@ -54,7 +54,7 @@ workflow Glimpse2MergeBatches {
                 call ExtractAnnotations {
                     input:
                         imputed_vcf = SubsetToIntervals.subset_vcf,
-                        imputed_vcf_index = SubsetToIntervals.subset_vcf,
+                        imputed_vcf_index = SubsetToIntervals.subset_vcf_index,
                         batch_index = batch_index,
                         docker_extract_annotations = docker_gatk
                 }
