@@ -1,0 +1,12 @@
+##fileformat=VCFv4.2
+##FORMAT=<ID=DS,Number=1,Type=Float,Description="Genotype dosage">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##contig=<ID=1,length=248956422>
+##contig=<ID=2,length=242193529>
+##contig=<ID=3,length=198295559>
+##reference=file:///broad/tag_working/edytam/dragen/reference_tables/hg38_hash_graph/reference.bin
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	testsample
+1	100	ref_block_high_gq	A	C	7.36	PASS	.	GT:DS	1/1:2
+1	200	ref_block_low_gq	A	C	7.36	PASS	.	GT:DS	1/1:2
+1	300	variant_high_gq	A	C	7.36	PASS	.	GT:DS	1/1:2
+1	400	variant_low_gq	A	C	7.36	PASS	.	GT:DS	1/1:2

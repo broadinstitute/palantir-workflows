@@ -1,5 +1,6 @@
 from unittest import TestCase
 from collections import namedtuple
+import tempfile
 
 from ImputationPipeline.ScoreBGE import ScoreBGE
 
@@ -77,3 +78,52 @@ class TestScoreBGE(TestCase):
 
         self.assertEqual(s.gvcf_sites_scored['testsample'], expected_sites_scored)
         self.assertEqual(s.gvcf_sample_score['testsample'], total_expected_score)
+
+    def test_score_wgs_vcf(self):
+        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/test_weights_wgs_vcf.txt')
+
+        s.score_wgs_vcf('resources/test_wgs.vcf.gz', ['testsample'], allow_wgs_vcf_only=True)
+        expected_sites_scored = [
+            ('3:100', 'A', 'C'),  # score 2*1
+            ('3:100', 'A', 'C'),  # score 0
+            ('3:110', 'A', 'C'),  # score 1*4
+            ('3:110', 'A', 'C'),  # score 1*8
+            ('3:120', 'A', 'C'),  # score 0
+            ('3:120', 'A', 'C'),  # score 2*32
+            ('3:130', 'A', 'C'),  # score 2*64
+            ('3:140', 'A', 'C'),  # score 0.1*128
+            ('3:150', 'A', 'C'),  # score 1*256
+            ('3:300', 'A', 'AC'),  # score 1*512
+            ('3:400', 'AC', 'A'),  # score 1*1024
+            ('3:600', 'A', 'C'),  # score 1*2048
+        ]
+        total_expected_score = (2*1 + 1*4 + 1*8 + 2*32 + 2*64 + 0.1*128 + 1*256 + 1*512 + 1*1024 + 1*2048)
+
+        self.assertEqual(s.vcf_sites_scored['testsample'], expected_sites_scored)
+        self.assertAlmostEqual(s.vcf_sample_score['testsample'], total_expected_score, 4)
+
+    def test_combined(self):
+        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/combined/test_weights_combined.txt')
+
+        s.score_wes_gvcf('resources/combined/test_combined.wes.gvcf.gz', site_gq_threshold=30)
+        s.score_wgs_vcf('resources/combined/test_combined.wgs.vcf.gz')
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            s.write_output(temp_dir + '/test_output')
+
+            for wes_or_wgs in ['exome_gvcf', 'imputed_wgs_vcf']:
+                for score_or_sites_scored in ['score', 'sites_scored']:
+                    with open(f'{temp_dir}/test_output.{wes_or_wgs}.{score_or_sites_scored}') as test_output:
+                        with open(f'resources/combined/expected_output/expected_output.{wes_or_wgs}.{score_or_sites_scored}') as expected_output:
+                            self.assertListEqual(list(test_output), list(expected_output))
+
+            # Expected score: 152
+            # locus score source
+            # 1:100     0   GVCF
+            # 1:200   2*4    VCF
+            # 1:300  1*16   GVCF
+            # 1:400  2*64    VCF
+            with open(f'{temp_dir}/test_output.score') as test_output:
+                with open('resources/combined/expected_output/expected_output.score') as expected_output:
+                    self.assertListEqual(list(test_output), list(expected_output))
+
