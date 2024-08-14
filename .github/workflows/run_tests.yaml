@@ -55,7 +55,7 @@ jobs:
             if [[ ${#WF_TESTS_TO_RUN[@]} == 0 ]]; then
               echo "No workflows with tests have changed.  Will not run any tests"
             else
-              echo "Running tests for workflows: ${WF_TESTS_TO_RUN}"
+              echo "Running ${#WF_TESTS_TO_RUN[@]} tests for workflows: ${WF_TESTS_TO_RUN}"
               echo "WF_CMD_STRING='--workflow ${WF_TESTS_TO_RUN}'" >> $GITHUB_ENV
             fi
           fi
