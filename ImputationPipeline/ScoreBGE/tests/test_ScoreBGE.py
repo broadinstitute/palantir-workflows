@@ -24,7 +24,7 @@ class TestScoreBGE(TestCase):
         self.assertEqual(list(s.prs_weights.weight), [1.0, 2.0, 4.0])  # weight
 
     def test_compare_record_and_weight(self):
-        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/test_weights_ref_blocks.txt')
+        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/wes_gvcf_ref_blocks/test_weights_ref_blocks.txt')
 
         self.assertEqual(s._compare_record_and_weight(TestRecord('1', 1, 1), TestWeight('1', 1)), 0)
         self.assertLess(s._compare_record_and_weight(TestRecord('1', 1, 1), TestWeight('1', 2)), 0)
@@ -34,9 +34,9 @@ class TestScoreBGE(TestCase):
         self.assertGreater(s._compare_record_and_weight(TestRecord('2', 1, 1), TestWeight('3', 1)), 0)
 
     def test_gvcf_score_ref_block(self):
-        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/test_weights_ref_blocks.txt')
+        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/wes_gvcf_ref_blocks/test_weights_ref_blocks.txt')
 
-        s.score_wes_gvcf('resources/test_ref_blocks.gvcf.gz', ['testsample'], 30)
+        s.score_wes_gvcf('resources/wes_gvcf_ref_blocks/test_ref_blocks.gvcf.gz', ['testsample'], 30)
         expected_sites_scored = [
             #                               ('1:100', 'A', 'C'), no call low gq
             ('1:200', 'A', 'C'),  # score 0
@@ -55,9 +55,9 @@ class TestScoreBGE(TestCase):
         self.assertEqual(s.gvcf_sample_score['testsample'], total_expected_score)
 
     def test_gvcf_score_variants(self):
-        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/test_weights_gvcf_variants.txt')
+        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/wes_gvcf_variants/test_weights_gvcf_variants.txt')
 
-        s.score_wes_gvcf('resources/test_gvcf_variants.gvcf.gz', ['testsample'], 30)
+        s.score_wes_gvcf('resources/wes_gvcf_variants/test_gvcf_variants.gvcf.gz', ['testsample'], 30)
         expected_sites_scored = [
             ('3:100', 'A', 'C'),  # score 2*1
             ('3:100', 'A', 'C'),  # score 0
@@ -80,9 +80,9 @@ class TestScoreBGE(TestCase):
         self.assertEqual(s.gvcf_sample_score['testsample'], total_expected_score)
 
     def test_score_wgs_vcf(self):
-        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/test_weights_wgs_vcf.txt')
+        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/wgs_vcf/test_weights_wgs_vcf.txt')
 
-        s.score_wgs_vcf('resources/test_wgs.vcf.gz', ['testsample'], allow_wgs_vcf_only=True)
+        s.score_wgs_vcf('resources/wgs_vcf/test_wgs.vcf.gz', ['testsample'], allow_wgs_vcf_only=True)
         expected_sites_scored = [
             ('3:100', 'A', 'C'),  # score 2*1
             ('3:100', 'A', 'C'),  # score 0
