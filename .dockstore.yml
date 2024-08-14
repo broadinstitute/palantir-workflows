@@ -144,3 +144,9 @@ workflows:
   - name: PRSQC
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/PRSQC.wdl
+  - name: ProGRESSMultivariateRiskModel
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/ProGRESSMultivariateRiskModel.wdl
+  - name: ScoreBGE
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/ScoreBGE/ScoreBGE.wdl

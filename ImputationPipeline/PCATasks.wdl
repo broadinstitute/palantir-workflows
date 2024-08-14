@@ -53,6 +53,7 @@ task ProjectArray {
     String basename
     Int mem = 8
     Int nthreads = 16
+    String? divisor
   }
 
   command <<<
@@ -93,7 +94,8 @@ task ProjectArray {
       --inmeansd meansd.txt \
       --outproj projections.txt \
       --inload loadings.txt \
-      -v
+      -v \
+      ~{"--div " + divisor}
   >>>
 
   output {
@@ -114,20 +116,16 @@ task ArrayVcfToPlinkDataset {
     File? subset_to_sites
     String basename
     Int mem = 8
+    Boolean use_ref_alt_for_ids = false
+    String? chromosome_encoding
   }
 
   Int disk_space =  3 * ceil(size(vcf, "GB")) + 20
+  String var_ids_string = "@:#:" + if use_ref_alt_for_ids then "\\$r:\\$a" else "\\$1:\\$2"
 
   command <<<
-    /plink2 \
-      --vcf ~{vcf} \
-      --extract-intersect ~{pruning_sites} ~{subset_to_sites} \
-      --allow-extra-chr \
-      --set-all-var-ids @:#:\$1:\$2 \
-      --new-id-max-allele-len 1000 missing \
-      --out ~{basename} \
-      --make-bed \
-      --rm-dup force-first
+    /plink2 --vcf ~{vcf} --extract-intersect ~{pruning_sites} ~{subset_to_sites} --allow-extra-chr --set-all-var-ids ~{var_ids_string} \
+    --new-id-max-allele-len 1000 missing --out ~{basename} --make-bed --rm-dup force-first ~{"--output-chr " + chromosome_encoding}
   >>>
 
   output {
