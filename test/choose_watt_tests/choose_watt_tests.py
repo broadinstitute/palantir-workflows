@@ -55,8 +55,8 @@ if __name__ == '__main__':
     tests_to_run = set()
     
     if args.changed_workflows or args.changed_jsons: 
-        changed_wdls = {resolve_relative_path(path) for path in args.changed_workflows}
-        changed_jsons = {resolve_relative_path(path) for path in args.changed_jsons}
+        changed_wdls = {resolve_relative_path(path) for path in args.changed_workflows} if args.changed_wdls else set()
+        changed_jsons = {resolve_relative_path(path) for path in args.changed_jsons} if args.changed_jsons else set()
 
         for wf, wf_tests_info in config.items():
             wdl_path = resolve_relative_path(wf_tests_info['path'])

@@ -56,7 +56,7 @@ jobs:
           CHANGED_WDLS: ${{ steps.changed-files.outputs.wdl_all_changed_and_modified_files }}
           CHANGED_JSON: ${{ steps.changed-files.outputs.json_all_changed_and_modified_files }}
         run: |
-          WF_TESTS_TO_RUN=$(python test/choose_watt_tests/choose_watt_tests.py --watt-config test/watt_config.yml --womtool-jar ${WOMTOOL_JAR} --changed-workflows ${CHANGED_WDLS})
+          WF_TESTS_TO_RUN=$(python test/choose_watt_tests/choose_watt_tests.py --watt-config test/watt_config.yml --womtool-jar ${WOMTOOL_JAR} --changed-workflows ${CHANGED_WDLS} --changed-jsons ${CHANGED_JSON})
           # remove white space elements from bash array
           for i in ${!WF_TESTS_TO_RUN[@]}; do [[ -z ${WF_TESTS_TO_RUN[i]} ]] && unset WF_TESTS_TO_RUN[i]; done
 
