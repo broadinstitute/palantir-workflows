@@ -63,7 +63,7 @@ if __name__ == '__main__':
             if wdl_path in changed_wdls:
                 tests_to_run.add(wf)
             else:
-                for test, test_info in wf_tests_info['tests']:
+                for test, test_info in wf_tests_info['tests'].items():
                     if resolve_relative_path(test_info['test_inputs']) in changed_jsons or resolve_relative_path(test_info['expected_outputs']) in changed_jsons:
                         tests_to_run.add(wf)
             if wf not in tests_to_run:
