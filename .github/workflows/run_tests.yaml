@@ -46,18 +46,22 @@ jobs:
       - name: Choose tests to run
         id: choose_tests_to_run
         env:
-          CHANGED_WDLS: ${{ steps.changed-wdls.outputs.all_changed_files }}
+          CHANGED_WDLS: ${{ steps.changed-wdls.outputs.all_changed_and_modified_files }}
         run: |
           if [[ $GITHUB_REF_NAME == 'main' ]]; then
             echo "Running tests for all workflows"
           else
             WF_TESTS_TO_RUN=$(python test/choose_watt_tests/choose_watt_tests.py --watt-config test/watt_config.yml --womtool-jar ${WOMTOOL_JAR} --changed-workflows ${CHANGED_WDLS})
+            # remove white space elements from bash array
+            for i in ${!WF_TESTS_TO_RUN[@]}; do [[ -z ${WF_TESTS_TO_RUN[i]} ]] && unset WF_TESTS_TO_RUN[i]; done
+
             if [[ ${#WF_TESTS_TO_RUN[@]} == 0 ]]; then
               echo "No workflows with tests have changed.  Will not run any tests"
             else
               echo "Running ${#WF_TESTS_TO_RUN[@]} tests for workflows: ${WF_TESTS_TO_RUN}"
               echo "WF_CMD_STRING='--workflow ${WF_TESTS_TO_RUN}'" >> $GITHUB_ENV
             fi
+            
           fi
 
           echo "n_wf_to_test=${#WF_TESTS_TO_RUN[@]}" >> $GITHUB_OUTPUT
