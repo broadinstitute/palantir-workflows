@@ -144,7 +144,7 @@ task GatherVcfs {
   input {
     Array[File] input_vcfs
     String output_vcf_name
-    Int disk_size_gb = ceil(1.2 * size(input_vcfs) + 50)
+    Int disk_size_gb = ceil(1.2 * size(input_vcfs, "GiB") + 50)
     Int machine_mem_mb = 7000
     String gatk_docker = "us.gcr.io/broad-gatk/gatk:4.5.0.0"
   }
