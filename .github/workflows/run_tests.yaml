@@ -41,7 +41,7 @@ jobs:
         with:
           WATT_VERSION: v1.1
       - name: Get changed Files
-        if: ${{ github.ref != 'refs/heads/main' }}
+        if: github.ref != 'refs/heads/main'
         id: changed-files
         uses: tj-actions/changed-files@v44
         with:
@@ -51,7 +51,7 @@ jobs:
             watt_config: test/watt_config.yml
       - name: Choose tests to run
         id: choose_tests_to_run
-        if: ${{ github.ref != 'refs/heads/main' && !steps.changed-files.outputs.watt_config_any_changed_and_modified_files && (steps.changed-files.outputs.wdl_any_changed_and_modified_files || steps.changed-files.outputs.json_any_changed_and_modified_files)}}
+        if: github.ref != 'refs/heads/main' && !steps.changed-files.outputs.watt_config_any_changed_and_modified_files && (steps.changed-files.outputs.wdl_all_changed_and_modified_files || steps.changed-files.outputs.json_any_changed_all_modified_files)
         env:
           CHANGED_WDLS: ${{ steps.changed-files.outputs.wdl_all_changed_and_modified_files }}
           CHANGED_JSON: ${{ steps.changed-files.outputs.json_all_changed_and_modified_files }}
