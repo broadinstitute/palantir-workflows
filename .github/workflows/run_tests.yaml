@@ -4,6 +4,8 @@ on:
     branches:
       - main
   pull_request:
+  schedule:
+    - cron: '32 11 * * *'
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -38,37 +40,38 @@ jobs:
       - uses: ./.github/actions/install-watt
         with:
           WATT_VERSION: v1.1
-      - name: Get changed WDLs
-        id: changed-wdls
+      - name: Get changed Files
+        if: ${{ github.ref != 'refs/heads/main' }}
+        id: changed-files
         uses: tj-actions/changed-files@v44
         with:
-          files: '**.wdl'
+          files_yaml: |
+            wdl: '**.wdl'
+            json: '**.json'
+            watt_config: test/watt_config.yml
       - name: Choose tests to run
         id: choose_tests_to_run
+        if: ${{ github.ref != 'refs/heads/main' && !steps.changed-files.outputs.watt_config_any_changed_and_modified_files && (steps.changed-files.outputs.wdl_config_any_changed_and_modified_files || steps.changed-files.outputs.json_config_any_changed_and_modified_files)}}
         env:
-          CHANGED_WDLS: ${{ steps.changed-wdls.outputs.all_changed_and_modified_files }}
+          CHANGED_WDLS: ${{ steps.changed-files.outputs.wdl_all_changed_and_modified_files }}
+          CHANGED_JSON: ${{ steps.changed-files.outputs.json_all_changed_and_modified_files }}
         run: |
-          if [[ $GITHUB_REF_NAME == 'main' ]]; then
-            echo "Running tests for all workflows"
+          WF_TESTS_TO_RUN=$(python test/choose_watt_tests/choose_watt_tests.py --watt-config test/watt_config.yml --womtool-jar ${WOMTOOL_JAR} --changed-workflows ${CHANGED_WDLS})
+          # remove white space elements from bash array
+          for i in ${!WF_TESTS_TO_RUN[@]}; do [[ -z ${WF_TESTS_TO_RUN[i]} ]] && unset WF_TESTS_TO_RUN[i]; done
+
+          if [[ ${#WF_TESTS_TO_RUN[@]} == 0 ]]; then
+            echo "No workflows with tests have changed.  Will not run any tests"
           else
-            WF_TESTS_TO_RUN=$(python test/choose_watt_tests/choose_watt_tests.py --watt-config test/watt_config.yml --womtool-jar ${WOMTOOL_JAR} --changed-workflows ${CHANGED_WDLS})
-            # remove white space elements from bash array
-            for i in ${!WF_TESTS_TO_RUN[@]}; do [[ -z ${WF_TESTS_TO_RUN[i]} ]] && unset WF_TESTS_TO_RUN[i]; done
-
-            if [[ ${#WF_TESTS_TO_RUN[@]} == 0 ]]; then
-              echo "No workflows with tests have changed.  Will not run any tests"
-            else
-              echo "Running ${#WF_TESTS_TO_RUN[@]} tests for workflows: ${WF_TESTS_TO_RUN}"
-              echo "WF_TESTS_TO_RUN=${WF_TESTS_TO_RUN}" >> $GITHUB_ENV
-            fi
-
+            echo "Running tests for ${#WF_TESTS_TO_RUN[@]} workflows: ${WF_TESTS_TO_RUN}"
+            echo "WF_TESTS_TO_RUN=${WF_TESTS_TO_RUN}" >> $GITHUB_ENV
           fi
 
           echo "n_wf_to_test=${#WF_TESTS_TO_RUN[@]}" >> $GITHUB_OUTPUT
       - name: Run tests with WATT
         if: ${{ steps.choose_tests_to_run.outputs.n_wf_to_test > 0 || github.ref == 'refs/heads/main'}}
         env:
-          WF_PARAM_NAME: ${{ steps.choose_tests_to_run.outputs.n_wf_to_test > 0 && '--workflow' || '' }}
+          WF_PARAM_NAME: ${{ steps.choose_tests_to_run.outputs.n_wf_to_test && '--workflow' || '' }}
         run: python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml ${WF_PARAM_NAME} ${WF_TESTS_TO_RUN} --cromwell-config test/simple_cromwell.conf -p 50 --executor-log-prefix cromwell_logs/
       - uses: actions/upload-artifact@v4
         if: always()
