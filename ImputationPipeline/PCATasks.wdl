@@ -123,11 +123,10 @@ task ArrayVcfToPlinkDataset {
   Int disk_space =  3 * ceil(size(vcf, "GB")) + 20
   String var_ids_string = "@:#:" + if use_ref_alt_for_ids then "\\$r:\\$a" else "\\$1:\\$2"
 
-  command {
-
+  command <<<
     /plink2 --vcf ~{vcf} --extract-intersect ~{pruning_sites} ~{subset_to_sites} --allow-extra-chr --set-all-var-ids ~{var_ids_string} \
     --new-id-max-allele-len 1000 missing --out ~{basename} --make-bed --rm-dup force-first ~{"--output-chr " + chromosome_encoding}
-  }
+  >>>
 
   output {
     File bed = "~{basename}.bed"

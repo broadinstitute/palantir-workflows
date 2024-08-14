@@ -5,7 +5,6 @@
 ##contig=<ID=1,length=248956422>
 ##contig=<ID=2,length=242193529>
 ##contig=<ID=3,length=198295559>
-##reference=file:///broad/tag_working/edytam/dragen/reference_tables/hg38_hash_graph/reference.bin
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	testsample
 3	100	hom_ref	A	C	7.36	PASS	.	GT:DS	0/0:0
 3	110	het	A	C	7.36	PASS	.	GT:DS	0/1:1
