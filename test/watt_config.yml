@@ -24,3 +24,4 @@ CompareBenchmarks:
     base:
       test_inputs: "/test/CompareBenchmarks/test_base_inputs.json"
       expected_outputs: "/test/CompareBenchmarks/test_base_outputs.json"
+      
