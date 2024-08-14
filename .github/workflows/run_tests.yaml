@@ -5,7 +5,7 @@ on:
       - main
   pull_request:
   schedule:
-    - cron: '32 11 * * *'
+    - cron: '23 16 * * *'
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
