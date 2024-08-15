@@ -94,16 +94,21 @@ workflow Glimpse2MergeBatches {
                 output_vcf_name = output_basename + ".vcf.gz"
         }
 
+        call IndexVcf {
+            input:
+                vcf = GatherVcfs.output_vcf
+        }
+
         call CountVariants as CountVariantsFinal {
             input:
-                vcf = GatherVcfs.output_vcf,
+                vcf = IndexVcf.vcf_out,
                 docker_gatk = docker_gatk
         }
 
         call CountSamples as CountSamplesFinal {
             input:
-                imputed_vcf = GatherVcfs.output_vcf,
-                imputed_vcf_index = GatherVcfs.output_vcf_index,
+                imputed_vcf = IndexVcf.vcf_out,
+                imputed_vcf_index = IndexVcf.vcf_out_index,
                 docker_count_samples = docker_count_samples
         }
 
@@ -125,8 +130,8 @@ workflow Glimpse2MergeBatches {
     }
 
     output {
-        File merged_imputed_vcf = select_first([GatherVcfs.output_vcf, imputed_vcfs[0]])
-        File merged_imputed_vcf_index = select_first([GatherVcfs.output_vcf_index, imputed_vcf_indices[0]])
+        File merged_imputed_vcf = select_first([IndexVcf.vcf_out, imputed_vcfs[0]])
+        File merged_imputed_vcf_index = select_first([IndexVcf.vcf_out_index, imputed_vcf_indices[0]])
         Int? initial_site_count = CountVariantsInitial.count
         Int? final_site_count = CountVariantsFinal.count
         Int? final_sample_count = CountSamplesFinal.num_samples
@@ -136,6 +141,36 @@ workflow Glimpse2MergeBatches {
         # If there is only one batch (and MergeAndRecomputeAndAnnotate is therefore not called),
         # return qc_metrics_1, which implements that logic above.
         File? merged_qc_metrics = if length(imputed_vcfs) > 1 then MergeQCMetrics.merged_qc_metrics else qc_metrics_1
+    }
+}
+
+task IndexVcf {
+    input {
+        File vcf
+        Int disk_size_gb = 2000
+        String gatk_docker = "us.gcr.io/broad-gatk/gatk:4.5.0.0"
+        Int machine_mem_mb = 7000
+    }
+
+    command <<<
+        set -euo pipefail
+
+        tabix ~{vcf}
+
+    >>>
+
+    runtime {
+        memory: "~{machine_mem_mb} MiB"
+        cpu: "1"
+        bootDiskSizeGb: 15
+        disks: "local-disk " + disk_size_gb + " HDD"
+        preemptible: 1
+        docker: gatk_docker
+    }
+
+    output {
+        File vcf_out = "~{vcf}"
+        File vcf_out_index = "~{vcf}.tbi"
     }
 }
 
@@ -167,8 +202,6 @@ task GatherVcfs {
       --gather-type BLOCK \
       --input ~{sep=" --input " input_vcfs} \
       --output ~{output_vcf_name}
-
-    tabix ~{output_vcf_name}
   >>>
 
   runtime {
