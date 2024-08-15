@@ -10,7 +10,7 @@ task PerformPCA {
     Int nthreads = 16
   }
 
-  Int mem_gb = mem * 1024
+  Int mem_gb = mem * 1024 / 2
 
   # again, based on Wallace commands
   command <<<
@@ -58,7 +58,7 @@ task ProjectArray {
     Int nthreads = 16
   }
 
-  Int mem_gb = mem * 1024
+  Int mem_gb = mem * 1024 / 2
 
   command <<<
     cp ~{bim} ~{basename}.bim
