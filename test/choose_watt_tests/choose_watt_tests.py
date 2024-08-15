@@ -66,6 +66,7 @@ if __name__ == '__main__':
                 for dependency in dependencies:
                     if dependency in changed_wdls:
                         tests_to_run.add(wf)
+                        #don't need to check other dependencies if wf already added to tests_to_run
                         break
         
     print(" ".join(tests_to_run))
