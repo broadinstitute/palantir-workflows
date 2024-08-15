@@ -34,13 +34,7 @@ def resolve_relative_path(rel_path: str) -> str:
 
 def get_wdl_dependencies(womtool_run: subprocess.CompletedProcess):
     womtool_stdout = womtool_run.stdout
-    prior_bytes = b'List of Workflow dependencies is:\n'
-    start_byte_index = womtool_stdout.find(prior_bytes) + len(prior_bytes)
-    dependencies = womtool_stdout[start_byte_index:].decode().split('\n')
-    return [d for d in dependencies if d.endswith(".wdl")] 
-    
-
-    
+    return [l.decode() for l in womtool_run.stdout.splitlines() if l.endswith(b'.wdl')]
 
 if __name__ == '__main__':
     args = parser.parse_args()
