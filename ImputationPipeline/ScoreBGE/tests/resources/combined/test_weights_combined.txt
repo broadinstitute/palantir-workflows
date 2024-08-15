@@ -3,3 +3,4 @@ contig	position	ref	alt	effect_allele	weight
 1	200	A	C	C	4
 1	300	A	C	C	16
 1	400	A	C	C	64
+1	500	A	C	C	128

@@ -252,6 +252,19 @@ class BGEScorer():
                 print('No VCF scoring performed. Skipping VCF output.')
         else:
             write_gvcf_or_vcf_output(False)
+        
+        # All sites (in plink-compatible format)
+        with open(f'{basename}.any_source_any_sample.sites_scored', 'w') as out_sites:
+            for weight in self.prs_weights.iterrows():
+                locus = weight[1]['locus']
+                ref = weight[1]['ref']
+                alt = weight[1]['alt']
+                if any(
+                    (locus, ref, alt) in self.gvcf_sites_scored[sample_name] or
+                    (locus, ref, alt) in self.vcf_sites_scored[sample_name]
+                        for sample_name in self.sample_names
+                    ):
+                    out_sites.write(f'{locus}:{ref}:{alt}\n')
 
         # Sum
         with open(f'{basename}.score', 'w') as out_combined_score:

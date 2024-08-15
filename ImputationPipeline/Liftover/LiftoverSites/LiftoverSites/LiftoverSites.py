@@ -42,7 +42,7 @@ class LiftoverSites:
             self.effect_allele = effect_allele
             self.custom_columns = custom_columns
     
-    def __init__(self, output_dir:str, input_function:collections.abc.Callable[[str, str], InputRow], output_function:collections.abc.Callable[[hl.Table], hl.Table], annotations_to_save:collections.abc.Iterable[str], liftover_arguments:LiftoverArguments, contains_effect_allele:bool, reference_panel_path:str, input_has_header:bool=True, input_encoding:str ='utf-8', ) -> None:
+    def __init__(self, output_dir:str, input_function:collections.abc.Callable[[str, str], InputRow], output_function:collections.abc.Callable[[hl.Table], hl.Table], annotations_to_save:collections.abc.Iterable[str], liftover_arguments:LiftoverArguments, contains_effect_allele:bool, reference_panel_path:str, input_has_header:bool=True, input_encoding:str ='utf-8', confirm_continue_on_conflicts:bool=True) -> None:
         self.output_dir = output_dir
         self.input_function = input_function
         self.output_function = output_function
@@ -53,12 +53,13 @@ class LiftoverSites:
         self.input_has_header = input_has_header
         self.input_encoding = input_encoding
         self.reference_panel = None
+        self.confirm_continue_on_conflicts = confirm_continue_on_conflicts
     
     @staticmethod
-    def _print_rejected_site(df_group):
+    def _print_rejected_site(df_group, file):
         # Get first site in group, because both entries will be the same site with a different allele order
         site = df_group.iloc[0]
-        print(f"Position: {site['#CHROM']}:{site['POS']}, Alleles: {site['REF']}, {site['ALT']}. Reason: {site['FILTER']}")
+        print(f"Position: {site['#CHROM']}:{site['POS']}, Alleles: {site['REF']}, {site['ALT']}. Reason: {site['FILTER']}", file=file)
 
     @staticmethod
     def _get_ambiguous_sites(sites):
@@ -134,11 +135,13 @@ class LiftoverSites:
             rejected_site_groups = rejected_sites.groupby('ID')
             print(f'{len(rejected_site_groups)} site(s) could not be lifted over.')
             print(f'If you want to fix these sites manually, download the following file, edit it, and re-upload it:\n{dir}/{basename}.hg38.vcf\n')
-            print('Failed sites:')
-            rejected_site_groups.apply(LiftoverSites._print_rejected_site)
-            print('\nHit enter when you are ready to continue...')
-            input()
-            print('Continuing.')
+            print(f'Failed sites written to: {self.output_dir}/{basename}.reject.txt')
+            with open(f'{self.output_dir}/{basename}.reject.txt', 'w') as file:
+                rejected_site_groups.apply(LiftoverSites._print_rejected_site, file=file)
+            if self.confirm_continue_on_conflicts:
+                print('\nHit enter when you are ready to continue...')
+                input()
+                print('Continuing.')
         else:
             print('No rejected sites.')
 
@@ -168,7 +171,8 @@ class LiftoverSites:
         still_ambiguous_sites = LiftoverSites._get_ambiguous_sites(ambiguous_sites_in_panel_selected)
         if still_ambiguous_sites.count() > 0:
             print('AF filtering criterion did not disambiguate all sites.')
-            still_ambiguous_sites.show()
+            ambiguous_sites_in_panel_selected.export(f'{self.output_dir}/{basename}.still_ambiguous.tsv')
+            print('Exported still ambiguous sites to file.')
             ambiguous_sites_in_panel_selected = ambiguous_sites_in_panel_selected.key_by('rsid').anti_join(still_ambiguous_sites.key_by('rsid')).key_by('locus', 'alleles')
         
         # If we passed the above then this will catch if we might have accidentally filtered out both candidates.
@@ -176,7 +180,7 @@ class LiftoverSites:
         # candidates for one site and not disambiguate another site, which will result in the two terms below
         # being equal, so we need both checks
         if 2 * num_ambiguous_sites_in_panel_selected != num_ambiguous_sites_in_panel:
-            print('AF filtering criterion did filtered out both candidates for a site.')
+            print('AF filtering criterion filtered out both candidates for a site.')
 
         print(f'Successfully disambiguated {num_ambiguous_sites_in_panel_selected} sites.')
 

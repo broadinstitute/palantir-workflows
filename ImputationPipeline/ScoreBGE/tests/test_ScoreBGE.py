@@ -113,11 +113,20 @@ class TestScoreBGE(TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             s.write_output(temp_dir + '/test_output')
 
-            for wes_or_wgs in ['exome_gvcf', 'imputed_wgs_vcf']:
-                for score_or_sites_scored in ['score', 'sites_scored']:
-                    with open(f'{temp_dir}/test_output.{wes_or_wgs}.{score_or_sites_scored}') as test_output:
-                        with open(f'resources/combined/expected_output/expected_output.{wes_or_wgs}.{score_or_sites_scored}') as expected_output:
-                            self.assertListEqual(list(test_output), list(expected_output))
+            files_to_compare = [
+                'exome_gvcf.score',
+                'exome_gvcf.sites_scored',
+                'imputed_wgs_vcf.score',
+                'imputed_wgs_vcf.sites_scored',
+                'any_source_any_sample.sites_scored'
+            ]
+
+            for file_to_compare in files_to_compare:
+                test_filename = f'{temp_dir}/test_output.{file_to_compare}'
+                expected_filename = f'resources/combined/expected_output/expected_output.{file_to_compare}'
+                with open(test_filename) as test_output:
+                    with open(expected_filename) as expected_output:
+                        self.assertListEqual(list(test_output), list(expected_output))
 
             # Expected score: 152
             # locus score source
@@ -125,6 +134,7 @@ class TestScoreBGE(TestCase):
             # 1:200   2*4    VCF
             # 1:300  1*16   GVCF
             # 1:400  2*64    VCF
+            # 1:500     0   none
             with open(f'{temp_dir}/test_output.score') as test_output:
                 with open('resources/combined/expected_output/expected_output.score') as expected_output:
                     self.assertListEqual(list(test_output), list(expected_output))
