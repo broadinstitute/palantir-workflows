@@ -41,6 +41,7 @@ workflow ScoreBGE {
         File score = ScoreGvcfAndVcf.score
         File exome_gvcf_sites_scored = ScoreGvcfAndVcf.exome_gvcf_sites_scored
         File imputed_wgs_vcf_sites_scored = ScoreGvcfAndVcf.imputed_wgs_vcf_sites_scored
+        File any_source_any_sample_sites_scored = ScoreGvcfAndVcf.any_source_any_sample_sites_scored
     }
 }
 
@@ -89,5 +90,6 @@ task ScoreGvcfAndVcf {
         File score = "~{basename}.score"
         File exome_gvcf_sites_scored = "~{basename}.exome_gvcf.sites_scored"
         File imputed_wgs_vcf_sites_scored = "~{basename}.imputed_wgs_vcf.sites_scored"
+        File any_source_any_sample_sites_scored = "~{basename}.any_source_any_sample.sites_scored"
     }
 }
