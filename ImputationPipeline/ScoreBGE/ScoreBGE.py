@@ -3,7 +3,7 @@ import numpy as np
 import pysam
 
 class BGEScorer():
-    def __init__(self, ref_dict_path, prs_weights_path, score_haploid_as_diploid):
+    def __init__(self, ref_dict_path, prs_weights_path, score_haploid_as_diploid, use_emerge_weight_format=False):
         """
         Initialize the BGEScorer object.
 
@@ -12,7 +12,7 @@ class BGEScorer():
             prs_weights_path (str): The file path to the PRS weights.
         """
         self.ref_dict = self._read_ref_dict(ref_dict_path)
-        self.prs_weights = self._read_prs_weights(prs_weights_path)
+        self.prs_weights = self._read_prs_weights(prs_weights_path, use_emerge_weight_format)
         self.sample_names = None
         self.score_haploid_as_diploid = score_haploid_as_diploid
 
@@ -31,10 +31,15 @@ class BGEScorer():
 
     # Required TSV format (including header line):
     # contig position ref alt effect_allele weight
-    def _read_prs_weights(self, prs_weights_path):
-        prs_weights = pd.read_table(prs_weights_path, dtype={'contig': str, 'position': np.int32, 'ref': str, 'alt': str, 'effect_allele': str, 'weight': np.float64})
+    def _read_prs_weights(self, prs_weights_path, use_emerge_weight_format):
+        prs_weights = pd.read_table(prs_weights_path)
+        
+        if use_emerge_weight_format:
+            prs_weights[['contig', 'position', 'ref', 'alt']] = prs_weights['CHR:BP:REF:ALT'].str.split(':', expand=True)
+            prs_weights = prs_weights.drop(['CHR:BP:REF:ALT'], axis=1)
 
-        prs_weights['locus'] = prs_weights['contig'] + ':' + prs_weights['position'].astype(str)
+        prs_weights['locus'] = prs_weights['contig'].astype(str) + ':' + prs_weights['position'].astype(str)
+        prs_weights = prs_weights.astype({'effect_allele': str, 'weight': np.float64, 'contig': str, 'position': np.int32, 'ref': str, 'alt': str})
 
         return prs_weights.sort_values(by='position').sort_values(kind='stable', by='contig', key=lambda contig: contig.map(self.ref_dict.index))
     
