@@ -250,8 +250,12 @@ task VCFEval {
 
         # Some magic to create roc regions rtg command string
         # Format should be: --roc-regions label1=region1.bed --roc-regions label2=region2.bed ...
-        if [ ~{length(roc_regions) > 0} ]; then
-            ROC_REGIONS_FLAGS=$(paste -d '=' <(echo -e "~{sep="\n" roc_regions_labels}") <(echo -e "~{sep="\n" roc_regions}") | awk '{ print "--roc-regions", $0 }' | tr '\n' ' ')
+        if [ ~{length(roc_regions) > 0} ];
+        then
+            echo -e "~{sep="\n" roc_regions_labels}" > labels.txt
+            echo -e "~{sep="\n" roc_regions}" > regions.txt
+            paste -d '=' labels.txt regions.txt > labels_regions.txt
+            ROC_REGIONS_FLAGS=$(awk '{ print "--roc-regions", $0 }' labels_regions.txt | tr '\n' ' ')
         else
             ROC_REGIONS_FLAGS=""
         fi
@@ -330,7 +334,7 @@ task VCFEval {
 
         fi
 
-        # Format ROC stats into table
+        # Format main ROC stats into table
         python3 << CODE
         import gzip
         import pandas as pd
