@@ -633,16 +633,18 @@ task ExtractIDsPlink {
   input {
     File vcf
     Int disk_size = 2 * ceil(size(vcf, "GB")) + 100
+    Boolean use_ref_alt_for_ids = false
     Int mem = 8
     String? chromosome_encoding
   }
 
   Int plink_mem = ceil(mem * 0.75 * 1000)
+  String var_ids_string = "@:#:" + if use_ref_alt_for_ids then "\\$r:\\$a" else "\\$1:\\$2"
 
   command <<<
     /plink2 \
       --vcf ~{vcf} \
-      --set-all-var-ids @:#:\$1:\$2 \
+      --set-all-var-ids ~{var_ids_string} \
       --new-id-max-allele-len 1000 missing \
       --rm-dup exclude-all \
       --allow-extra-chr \

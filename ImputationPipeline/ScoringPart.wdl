@@ -43,6 +43,8 @@ workflow ScoringImputedDataset {
 	# is the effect allele, and the 13th column is the effect weight
 	Boolean redoPCA = false
 	Boolean adjustScores = true
+
+	Boolean use_ref_alt_for_ids = false
   }
 
   if (use_bge_scoring) {
@@ -159,7 +161,8 @@ workflow ScoringImputedDataset {
 				base_mem = scoring_mem,
 				extra_args = columns_for_scoring,
 				sites = sites_to_use_in_scoring,
-				chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
+				chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
+				use_ref_alt_for_ids = use_ref_alt_for_ids
 		}
 	}
 
@@ -189,7 +192,8 @@ workflow ScoringImputedDataset {
 		call ScoringTasks.ExtractIDsPlink {
 			input:
 				vcf = imputed_array_vcf,
-				chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
+				chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
+				use_ref_alt_for_ids = use_ref_alt_for_ids
 		}
 
 		if (redoPCA && defined(population_vcf)) {
@@ -199,7 +203,8 @@ workflow ScoringImputedDataset {
 					pruning_sites = select_first([pruning_sites_for_pca]),
 					subset_to_sites = ExtractIDsPlink.ids,
 					basename = "population",
-					chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
+					chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
+					use_ref_alt_for_ids = use_ref_alt_for_ids
 			}
 
 			call PCATasks.PerformPCA {
@@ -217,7 +222,11 @@ workflow ScoringImputedDataset {
 			pruning_sites = select_first([pruning_sites_for_pca]),
 			basename = basename,
 			mem = vcf_to_plink_mem,
+<<<<<<< HEAD
 			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
+=======
+			use_ref_alt_for_ids = use_ref_alt_for_ids
+>>>>>>> 2e5b420 (Added ref_alt IDs to PRSWrapper)
 		}
 
 		if (defined(population_vcf)) {
