@@ -375,7 +375,7 @@ task VCFEval {
 
             return df
 
-        reg_roc_summary = pd.concat([parse_data('reg', 'snp', 'WholeGenome'), parse_data('reg', 'indel', 'WholeGenome')])
+        reg_roc_summary = pd.concat([parse_data('reg', 'snp', 'wholegenome'), parse_data('reg', 'indel', 'wholegenome')])
         roc_summary = reg_roc_summary
 
         # If PAR bed file provided, also collect data from analysis over PAR region and combine stats
