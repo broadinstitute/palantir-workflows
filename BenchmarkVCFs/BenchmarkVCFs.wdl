@@ -394,7 +394,7 @@ task VCFEval {
 
         roc_summary.to_csv('ROC_summary.tsv', sep='\t', index=False)
 
-        if ~{length(roc_regions) > 0}:
+        if "~{length(roc_regions) > 0}" == "true":
             for label in ["~{sep="\", \"" roc_regions_labels}"]:
                 snp_df = parse_data('reg', 'snp', label)
                 indel_df = parse_data('reg', 'indel', label)
