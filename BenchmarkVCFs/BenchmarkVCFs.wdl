@@ -396,8 +396,8 @@ task VCFEval {
 
         if "~{length(roc_regions) > 0}" == "true":
             for label in ["~{sep="\", \"" roc_regions_labels}"]:
-                snp_df = parse_data('reg', 'snp', label)
-                indel_df = parse_data('reg', 'indel', label)
+                snp_df = parse_data('reg', 'snp', label.lower())
+                indel_df = parse_data('reg', 'indel', label.lower())
                 combined_df = pd.concat([snp_df, indel_df])
                 combined_df.to_csv(f'roc_outputs/{label}_roc.tsv.gz', sep='\t', index=False)
 
