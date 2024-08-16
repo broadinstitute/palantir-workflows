@@ -204,8 +204,8 @@ workflow ScoringImputedDataset {
 					pruning_sites = select_first([pruning_sites_for_pca]),
 					subset_to_sites = ExtractIDsPlink.ids,
 					basename = "population",
-					chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
-					use_ref_alt_for_ids = use_ref_alt_for_ids
+					use_ref_alt_for_ids = use_ref_alt_for_ids,
+					chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
 			}
 
 			call PCATasks.PerformPCA {
@@ -223,8 +223,8 @@ workflow ScoringImputedDataset {
 			pruning_sites = select_first([pruning_sites_for_pca]),
 			basename = basename,
 			mem = vcf_to_plink_mem,
-			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
-			use_ref_alt_for_ids = use_ref_alt_for_ids
+			use_ref_alt_for_ids = use_ref_alt_for_ids,
+			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
 		}
 
 		if (defined(population_vcf)) {
