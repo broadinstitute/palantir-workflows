@@ -248,17 +248,23 @@ task VCFEval {
     command <<<
         set -xeuo pipefail
 
-        # Some magic to create roc regions rtg command string
+        # Make bed file for full reference
+        awk -v OFS="\t" '{print $1, 0, $2}' ~{reference.index} > genome_file.bed
+        echo "WholeGenome" > labels.txt
+        echo "genome_file.bed" > regions.txt
+
+        # Create roc regions rtg command string
         # Format should be: --roc-regions label1=region1.bed --roc-regions label2=region2.bed ...
         if [ ~{length(roc_regions) > 0} ];
         then
-            echo -e "~{sep="\\n" roc_regions_labels}" > labels.txt
-            echo -e "~{sep="\\n" roc_regions}" > regions.txt
-            paste -d '=' labels.txt regions.txt > labels_regions.txt
-            ROC_REGIONS_FLAGS=$(awk '{ print "--roc-regions", $0 }' labels_regions.txt | tr '\n' ' ')
+            echo -e "~{sep="\\n" roc_regions_labels}" >> labels.txt
+            echo -e "~{sep="\\n" roc_regions}" >> regions.txt
         else
-            ROC_REGIONS_FLAGS=""
+            echo "Only using default whole genome roc regions output."
         fi
+
+        paste -d '=' labels.txt regions.txt > labels_regions.txt
+        ROC_REGIONS_FLAGS=$(awk '{ print "--roc-regions", $0 }' labels_regions.txt | tr '\n' ' ')
 
         # Normal situation without any PAR bed file
         if [ -z ~{par_bed} ];
@@ -286,9 +292,8 @@ task VCFEval {
 
         else
             # Handle case where user provides PAR bed by running with --squash-ploidy over haploid region
-            awk -v OFS="\t" '{print $1, 0, $2}' ~{reference.index} > genome_file.txt
-            bedtools complement -i ~{par_bed} -g genome_file.txt -L > 'non-par.bed'
-            bedtools complement -i non-par.bed -g genome_file.txt > 'regular-regions.bed'
+            bedtools complement -i ~{par_bed} -g genome_file.bed -L > 'non-par.bed'
+            bedtools complement -i non-par.bed -g genome_file.bed > 'regular-regions.bed'
 
             rtg format -o rtg_ref ~{reference.fasta}
 
@@ -345,7 +350,7 @@ task VCFEval {
         def parse_data(root_dir):
             full_df = pd.DataFrame()
             for Type in ['snp', 'indel']:
-                file_path = f'{root_dir}/{Type}_roc.tsv.gz'
+                file_path = f'{root_dir}/wholegenome+{Type}_roc.tsv.gz'
 
                 header_lines = []
                 # Read through file lines until hitting one without leading '#'
