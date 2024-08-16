@@ -77,7 +77,7 @@ task ScoreGvcfAndVcf {
     command <<<
         set -xeuo pipefail
         python3 /ScoreBGE.py --ref-dict ~{ref_dict} --weights ~{weights} --gvcf ~{exome_gvcf} --vcf ~{imputed_wgs_vcf} \
-            --basename ~{basename} ~{sample_names_arg} ~{sep=" --sample-names " sample_names} ~{"--use-emerge-weight-format" if use_emerge_weight_format else ""}
+            --basename ~{basename} ~{sample_names_arg} ~{sep=" --sample-names " sample_names} ~{true="--use-emerge-weight-format" false="" use_emerge_weight_format}
     >>>
 
     runtime {
