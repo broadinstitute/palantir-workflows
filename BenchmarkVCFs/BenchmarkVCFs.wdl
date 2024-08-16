@@ -416,6 +416,7 @@ task VCFEval {
     output {
         File ROC_summary = "ROC_summary.tsv"
         Array[File] all_ROC_summaries = glob("roc_outputs/*_roc.tsv.gz")
+        Array[File] raw_roc_debug = glob("reg/*_roc.tsv.gz")
 
         File combined_output = "output_dir/output.vcf.gz"
         File combined_output_index = "output_dir/output.vcf.gz.tbi"
