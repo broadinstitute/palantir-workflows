@@ -134,6 +134,8 @@ workflow BenchmarkVCFs {
             base_vcf_sample_name=base_vcf_sample_name,
             reference=reference,
             evaluation_bed=converted_evaluation_bed,
+            roc_regions=ConvertIntervals.bed_files,
+            roc_regions_labels=ConvertIntervals.bed_labels,
             score_field=score_field,
             passing_only=passing_only,
             require_matching_genotypes=require_matching_genotypes,
