@@ -198,6 +198,7 @@ workflow BenchmarkVCFs {
         File IndelDistributionStats = CombineSummaries.IDD_combined_summaries
         File SNPSubstitutionStats = CombineSummaries.ST_combined_summaries
         File ROCStats = CombineSummaries.ROC_combined_summaries
+        Array[File] AllROCSummaries = StandardVCFEval.all_ROC_summaries
 
         File? igv_session = IGVSession.igv_session
     }
@@ -224,6 +225,10 @@ task VCFEval {
         # Par File
         File? par_bed
 
+        # ROC region bed files
+        Array[File] roc_regions
+        Array[String] roc_regions_labels
+
         # String for VCF field to use as ROC score
         String score_field
 
@@ -241,6 +246,14 @@ task VCFEval {
     command <<<
         set -xeuo pipefail
 
+        # Some magic to create roc regions rtg command string
+        # Format should be: --roc-regions label1=region1.bed --roc-regions label2=region2.bed ...
+        if [ ~{length(roc_regions) > 0} ]; then
+            ROC_REGIONS_FLAGS=$(paste -d '=' <(echo -e "~{sep="\n" roc_regions_labels}") <(echo -e "~{sep="\n" roc_regions}") | awk '{ print "--roc-regions", $0 }' | tr '\n' ' ')
+        else
+            ROC_REGIONS_FLAGS=""
+        fi
+
         # Normal situation without any PAR bed file
         if [ -z ~{par_bed} ];
         then
@@ -256,6 +269,8 @@ task VCFEval {
                 --output-mode combine \
                 --decompose \
                 --roc-subset snp,indel \
+                $ROC_REGIONS_FLAGS \
+                --roc-cross-join \
                 -t rtg_ref \
                 ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
                 -o reg
@@ -283,6 +298,8 @@ task VCFEval {
                 --output-mode combine \
                 --decompose \
                 --roc-subset snp,indel \
+                $ROC_REGIONS_FLAGS \
+                --roc-cross-join \
                 -t rtg_ref \
                 ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
                 -o par
@@ -299,6 +316,8 @@ task VCFEval {
                 --output-mode combine \
                 --decompose \
                 --roc-subset snp,indel \
+                $ROC_REGIONS_FLAGS \
+                --roc-cross-join \
                 -t rtg_ref \
                 ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
                 -o reg
@@ -367,7 +386,7 @@ task VCFEval {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.0"
+        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.1-tmp"
         preemptible: select_first([preemptible, 0])
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         cpu: runtimeAttributes.cpu
@@ -376,6 +395,7 @@ task VCFEval {
 
     output {
         File ROC_summary = "ROC_summary.tsv"
+        Array[File] all_ROC_summaries = glob("output_dir/*_roc.tsv.gz")
 
         File combined_output = "output_dir/output.vcf.gz"
         File combined_output_index = "output_dir/output.vcf.gz.tbi"

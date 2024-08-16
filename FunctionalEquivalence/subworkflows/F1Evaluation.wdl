@@ -40,7 +40,14 @@ task F1Evaluation {
         # Important and clean data
         roc_df = pd.DataFrame()
         for roc in ["~{sep="\", \"" roc_tables}"]:
+            # Parse interval name from file path using vcfeval output format syntax: interval+type_roc.tsv.gz
+            filename = roc.split('/')[-1].removesuffix('_roc.tsv.gz')
+            interval = filename.split('+')[0]
+            type_ = filename.split('+')[1]
+
             tmp_df = pd.read_csv(roc, sep='\t')
+            tmp_df['Interval'] = interval.capitalize()
+            tmp_df['Type'] = type_.upper()
             roc_df = pd.concat([roc_df, tmp_df])
 
         roc_df = roc_df.rename(columns={
