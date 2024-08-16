@@ -17,7 +17,7 @@ task F1Evaluation {
     command <<<
         set -xeuo pipefail
         
-        cat <<'EOF' > script.py
+        cat << EOF > script.py
         import matplotlib
         import matplotlib.pyplot as plt
         import pandas as pd
@@ -37,18 +37,8 @@ task F1Evaluation {
         tool2_label = "~{tool2_label}"
         additional_label = "~{additional_label}"
 
-        # Important and clean data
-        roc_df = pd.DataFrame()
-        for roc in ["~{sep="\", \"" roc_tables}"]:
-            # Parse interval name from file path using vcfeval output format syntax: interval+type_roc.tsv.gz
-            filename = roc.split('/')[-1].removesuffix('_roc.tsv.gz')
-            interval = filename.split('+')[0]
-            type_ = filename.split('+')[1]
-
-            tmp_df = pd.read_csv(roc, sep='\t')
-            tmp_df['Interval'] = interval.capitalize()
-            tmp_df['Type'] = type_.upper()
-            roc_df = pd.concat([roc_df, tmp_df])
+        # Important data
+        roc_df = pd.concat([pd.read_csv(roc, sep='\t') for roc in ["~{sep="\", \"" roc_tables}"])
 
         roc_df = roc_df.rename(columns={
             '#score': 'Score',
@@ -253,6 +243,7 @@ task F1Evaluation {
         with open('fe_status.txt', 'r') as file:
             file.write(f'{fe_status}')
 
+        EOF
     >>>
 
     output {

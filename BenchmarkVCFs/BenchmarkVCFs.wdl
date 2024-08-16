@@ -342,41 +342,40 @@ task VCFEval {
         # DEBUG: check files in reg output
         ls reg
 
+        mkdir roc_outputs
+
         # Format main ROC stats into table
         python3 << CODE
         import gzip
         import pandas as pd
 
-        def parse_data(root_dir):
-            full_df = pd.DataFrame()
-            for Type in ['snp', 'indel']:
-                file_path = f'{root_dir}/wholegenome+{Type}_roc.tsv.gz'
+        def parse_data(root_dir, Type, interval):
+            file_path = f'{root_dir}/{interval}+{Type}_roc.tsv.gz'
 
-                header_lines = []
-                # Read through file lines until hitting one without leading '#'
-                with gzip.open(file_path, 'rt') as file:
-                    for line in file:
-                        if line[0] == '#':
-                            header_lines += [line]
-                        else:
-                            break
-                header_names = header_lines[-1].replace('#', '').replace('\n', '').split('\t')
-                df = pd.read_csv(file_path, sep='\t', comment='#', header=None, names=header_names)
+            header_lines = []
+            # Read through file lines until hitting one without leading '#'
+            with gzip.open(file_path, 'rt') as file:
+                for line in file:
+                    if line[0] == '#':
+                        header_lines += [line]
+                    else:
+                        break
+            header_names = header_lines[-1].replace('#', '').replace('\n', '').split('\t')
+            df = pd.read_csv(file_path, sep='\t', comment='#', header=None, names=header_names)
 
-                rename_columns = {'score': 'Score', 'true_positives_baseline': 'TP_Base',
-                      'false_positives': 'FP', 'true_positives_call': 'TP_Query', 'false_negatives': 'FN',
-                      'precision': 'Precision', 'sensitivity': 'Recall', 'f_measure': 'F1_Score'}
+            rename_columns = {'score': 'Score', 'true_positives_baseline': 'TP_Base',
+                  'false_positives': 'FP', 'true_positives_call': 'TP_Query', 'false_negatives': 'FN',
+                  'precision': 'Precision', 'sensitivity': 'Recall', 'f_measure': 'F1_Score'}
 
-                df = df.rename(columns=rename_columns)
-                df['Type'] = Type.upper()
-                df['Query_Name'] = "~{query_output_sample_name}"
-                df['Base_Name'] = "~{base_output_sample_name}"
+            df = df.rename(columns=rename_columns)
+            df['Type'] = Type.upper()
+            df['Interval'] = interval.capitalize()
+            df['Query_Name'] = "~{query_output_sample_name}"
+            df['Base_Name'] = "~{base_output_sample_name}"
 
-                full_df = pd.concat([full_df, df])
+            return df
 
-            return full_df
-
-        reg_roc_summary = parse_data('reg')
+        reg_roc_summary = pd.concat([parse_data('reg', 'snp', 'WholeGenome'), parse_data('reg', 'indel', 'WholeGenome')])
         roc_summary = reg_roc_summary
 
         # If PAR bed file provided, also collect data from analysis over PAR region and combine stats
@@ -395,6 +394,13 @@ task VCFEval {
 
         roc_summary.to_csv('ROC_summary.tsv', sep='\t', index=False)
 
+        if ~{length(roc_regions) > 0}:
+            for label in ["~{sep="\", \"" roc_regions_labels}"]:
+                snp_df = parse_data('reg', 'snp', label)
+                indel_df = parse_data('reg', 'indel', label)
+                combined_df = pd.concat([snp_df, indel_df])
+                combined_df.to_csv(f'roc_outputs/{label}_roc.tsv.gz', sep='\t', index=False)
+
         CODE
 
     >>>
@@ -409,7 +415,7 @@ task VCFEval {
 
     output {
         File ROC_summary = "ROC_summary.tsv"
-        Array[File] all_ROC_summaries = glob("output_dir/*_roc.tsv.gz")
+        Array[File] all_ROC_summaries = glob("roc_outputs/*_roc.tsv.gz")
 
         File combined_output = "output_dir/output.vcf.gz"
         File combined_output_index = "output_dir/output.vcf.gz.tbi"
