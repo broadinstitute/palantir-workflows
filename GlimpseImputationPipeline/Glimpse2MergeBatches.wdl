@@ -94,12 +94,6 @@ workflow Glimpse2MergeBatches {
                 output_vcf_name = output_basename + ".vcf.gz"
         }
 
-        call CountVariants as CountVariantsFinal {
-            input:
-                vcf = GatherVcfs.output_vcf,
-                docker_gatk = docker_gatk
-        }
-
         call CountSamples as CountSamplesFinal {
             input:
                 imputed_vcf = GatherVcfs.output_vcf,
@@ -128,7 +122,6 @@ workflow Glimpse2MergeBatches {
         File merged_imputed_vcf = select_first([GatherVcfs.output_vcf, imputed_vcfs[0]])
         File merged_imputed_vcf_index = select_first([GatherVcfs.output_vcf_index, imputed_vcf_indices[0]])
         Int? initial_site_count = CountVariantsInitial.count
-        Int? final_site_count = CountVariantsFinal.count
         Int? final_sample_count = CountSamplesFinal.num_samples
 
         # If input qc_metrics are defined then we want to return the merged qc_metrics here.
