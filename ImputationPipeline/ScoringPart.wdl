@@ -186,7 +186,8 @@ workflow ScoringImputedDataset {
 		call ScoringTasks.ExtractIDsPlink {
 			input:
 				vcf = imputed_array_vcf,
-				use_ref_alt_for_ids = use_ref_alt_for_ids
+				use_ref_alt_for_ids = use_ref_alt_for_ids,
+				mem = vcf_to_plink_mem
 		}
 
 		if (redoPCA && defined(population_vcf)) {
