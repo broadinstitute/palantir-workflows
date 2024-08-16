@@ -334,6 +334,9 @@ task VCFEval {
 
         fi
 
+        # DEBUG: check files in reg output
+        ls reg
+
         # Format main ROC stats into table
         python3 << CODE
         import gzip
