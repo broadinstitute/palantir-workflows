@@ -9,6 +9,7 @@ workflow ScoreBGE {
         String basename
         File weights
         Array[String]? sample_names
+        Boolean use_emerge_weight_format = false
 
         String? score_bge_docker
 
@@ -31,6 +32,7 @@ workflow ScoreBGE {
             basename = basename,
             weights = weights,
             sample_names = sample_names,
+            use_emerge_weight_format = use_emerge_weight_format,
             score_bge_docker = score_bge_docker,
             preemptible = preemptible
     }
@@ -54,6 +56,7 @@ task ScoreGvcfAndVcf {
         String basename
         File weights
         Array[String]? sample_names
+        Boolean use_emerge_weight_format = false
 
         String score_bge_docker = "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:palantir-workflows_9e5190b"
 
@@ -74,7 +77,7 @@ task ScoreGvcfAndVcf {
     command <<<
         set -xeuo pipefail
         python3 /ScoreBGE.py --ref-dict ~{ref_dict} --weights ~{weights} --gvcf ~{exome_gvcf} --vcf ~{imputed_wgs_vcf} \
-            --basename ~{basename} ~{sample_names_arg} ~{sep=" --sample-names " sample_names}
+            --basename ~{basename} ~{sample_names_arg} ~{sep=" --sample-names " sample_names} ~{"--use-emerge-weight-format" if use_emerge_weight_format else ""}
     >>>
 
     runtime {

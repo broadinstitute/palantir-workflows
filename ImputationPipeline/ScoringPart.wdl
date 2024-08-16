@@ -147,6 +147,7 @@ workflow ScoringImputedDataset {
 				ref_fasta = select_first([ref_fasta]),
 				ref_fasta_index = select_first([ref_fasta_index]),
 				ref_dict = select_first([ref_dict]),
+				use_emerge_weight_format = true
 		}
 	}
 	if (!use_bge_scoring) {

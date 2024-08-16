@@ -291,9 +291,10 @@ if __name__ == '__main__':
     parser.add_argument('--basename', type=str, help='Path to reference dict file', required=True)
     parser.add_argument('--sample-names', type=str, nargs='+', help='Sample names to score', required=False, default=None)
     parser.add_argument('--score-haploid-as-diploid', action='store_true', help='Always score haploid GTs (such as on chrX) as diploid', required=False, default=False)
+    parser.add_argument('--use-emerge-weight-format', action='store_true', help='Use the emerge weight format', required=False, default=False)
     args = parser.parse_args()
 
-    bge_scorer = BGEScorer(args.ref_dict, args.weights, args.score_haploid_as_diploid)
+    bge_scorer = BGEScorer(args.ref_dict, args.weights, args.score_haploid_as_diploid, use_emerge_weight_format=args.use_emerge_weight_format)
     bge_scorer.score_wes_gvcf(args.gvcf, sample_names=args.sample_names)
     bge_scorer.score_wgs_vcf(args.vcf, sample_names=args.sample_names)
     bge_scorer.write_output(args.basename)
