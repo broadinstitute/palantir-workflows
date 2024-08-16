@@ -29,7 +29,8 @@ workflow PRSWrapper {
     File population_pcs
     File pruning_sites_for_pca # and the sites used for PCA
 
-	Boolean use_ref_alt_for_ids = false
+	  Boolean use_ref_alt_for_ids = false
+    Int? vcf_to_plink_mem
   }
 
   scatter(condition_resource in condition_resources) {
@@ -46,6 +47,7 @@ workflow PRSWrapper {
           fitted_model_params_and_sites = condition_resource.ancestry_model_params_and_sites,
           redoPCA = redoPCA,
           use_ref_alt_for_ids = use_ref_alt_for_ids,
+          vcf_to_plink_mem = vcf_to_plink_mem,
 
           # BGE scoring inputs
           use_bge_scoring = use_bge_scoring,

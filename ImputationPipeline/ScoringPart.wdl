@@ -193,7 +193,8 @@ workflow ScoringImputedDataset {
 			input:
 				vcf = imputed_array_vcf,
 				chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
-				use_ref_alt_for_ids = use_ref_alt_for_ids
+				use_ref_alt_for_ids = use_ref_alt_for_ids,
+				mem = vcf_to_plink_mem
 		}
 
 		if (redoPCA && defined(population_vcf)) {
@@ -222,11 +223,8 @@ workflow ScoringImputedDataset {
 			pruning_sites = select_first([pruning_sites_for_pca]),
 			basename = basename,
 			mem = vcf_to_plink_mem,
-<<<<<<< HEAD
-			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
-=======
+			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
 			use_ref_alt_for_ids = use_ref_alt_for_ids
->>>>>>> 2e5b420 (Added ref_alt IDs to PRSWrapper)
 		}
 
 		if (defined(population_vcf)) {
