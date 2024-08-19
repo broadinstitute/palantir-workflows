@@ -17,7 +17,7 @@ task F1Evaluation {
     command <<<
         set -xeuo pipefail
         
-        python3 << EOF
+        python3 << 'EOF'
         import matplotlib
         import matplotlib.pyplot as plt
         import pandas as pd
