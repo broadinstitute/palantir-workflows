@@ -239,6 +239,9 @@ task VCFEval {
         Boolean require_matching_genotypes
         Boolean enable_ref_overlap
 
+        # Experiment label for ROCs
+        String? experiment
+
         # Runtime params
         Int? preemptible
         RuntimeAttributes runtimeAttributes = {"disk_size": ceil(2 * size(query_vcf, "GB") + 2 * size(base_vcf, "GB") + size(reference.fasta, "GB")) + 50,
@@ -399,6 +402,7 @@ task VCFEval {
                 snp_df = parse_data('reg', 'snp', label.lower())
                 indel_df = parse_data('reg', 'indel', label.lower())
                 combined_df = pd.concat([snp_df, indel_df])
+                combined_df['Experiment'] = "~{experiment}"
                 combined_df.to_csv(f'roc_outputs/{label}_roc.tsv.gz', sep='\t', index=False)
 
         CODE
