@@ -37,8 +37,8 @@ task F1Evaluation {
         tool2_label = "~{tool2_label}"
         additional_label = "~{additional_label}"
 
-        # Important data
-        roc_df = pd.concat([pd.read_csv(roc, sep='\t') for roc in ["~{sep="\", \"" roc_tables}"])
+        # Import data
+        roc_df = pd.concat([pd.read_csv(roc, sep='\t') for roc in ["~{sep="\", \"" roc_tables}"]])
 
         roc_df = roc_df.rename(columns={
             '#score': 'Score',
