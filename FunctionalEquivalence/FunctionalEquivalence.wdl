@@ -241,7 +241,7 @@ workflow FunctionalEquivalence {
             additional_label=additional_label
     }
 
-    Array[File] f1_roc_tables = flatten([flatten(EvalVsTruthTool1.AllROCSummaries), flatten(EvalVsTruthTool2.AllROCSummaries)])
+    Array[File] f1_roc_tables = flatten([EvalVsTruthTool1.ROCStats, EvalVsTruthTool2.ROCStats])
 
     call F1Evaluation.F1Evaluation as F1Evaluation {
         input:

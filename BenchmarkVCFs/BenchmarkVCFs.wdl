@@ -174,7 +174,7 @@ workflow BenchmarkVCFs {
 
     call CombineSummaries {
         input:
-            ROC_summaries=[StandardVCFEval.ROC_summary],
+            ROC_summaries=StandardVCFEval.ROC_summaries,
             SN_summaries=select_all(flatten([WholeGenomeStats.full_sn, SubsetStats.full_sn])),
             IDD_summaries=select_all(flatten([WholeGenomeStats.full_idd, SubsetStats.full_idd])),
             ST_summaries=select_all(flatten([WholeGenomeStats.full_st, SubsetStats.full_st])),
@@ -200,7 +200,6 @@ workflow BenchmarkVCFs {
         File IndelDistributionStats = CombineSummaries.IDD_combined_summaries
         File SNPSubstitutionStats = CombineSummaries.ST_combined_summaries
         File ROCStats = CombineSummaries.ROC_combined_summaries
-        Array[File] AllROCSummaries = StandardVCFEval.all_ROC_summaries
 
         File? igv_session = IGVSession.igv_session
     }
@@ -339,11 +338,7 @@ task VCFEval {
             mkdir output_dir
             bcftools merge --force-samples "par/output.vcf.gz" "reg/output.vcf.gz" | bcftools sort -Oz -o "output_dir/output.vcf.gz"
             bcftools index -t "output_dir/output.vcf.gz"
-
         fi
-
-        # DEBUG: check files in reg output
-        ls reg
 
         mkdir roc_outputs
 
@@ -395,14 +390,13 @@ task VCFEval {
                 ['Score', 'TP_Base', 'FP', 'TP_Query', 'FN', 'Precision', 'Recall', 'F1_Score', 'Type', 'Interval', 'Query_Name', 'Base_Name']
             ]
 
-        roc_summary.to_csv('ROC_summary.tsv', sep='\t', index=False)
+        roc_summary.to_csv('roc_outputs/wholegenome_roc.tsv', sep='\t', index=False)
 
         if "~{length(roc_regions) > 0}" == "true":
             for label in ["~{sep="\", \"" roc_regions_labels}"]:
                 snp_df = parse_data('reg', 'snp', label.lower())
                 indel_df = parse_data('reg', 'indel', label.lower())
                 combined_df = pd.concat([snp_df, indel_df])
-                combined_df['Experiment'] = "~{experiment}"
                 combined_df.to_csv(f'roc_outputs/{label}_roc.tsv.gz', sep='\t', index=False)
 
         CODE
@@ -418,9 +412,7 @@ task VCFEval {
     }
 
     output {
-        File ROC_summary = "ROC_summary.tsv"
-        Array[File] all_ROC_summaries = glob("roc_outputs/*_roc.tsv.gz")
-        Array[File] raw_roc_debug = glob("reg/*_roc.tsv.gz")
+        Array[File] ROC_summaries = glob("roc_outputs/*_roc.tsv.gz")
 
         File combined_output = "output_dir/output.vcf.gz"
         File combined_output_index = "output_dir/output.vcf.gz.tbi"
