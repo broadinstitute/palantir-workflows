@@ -253,7 +253,7 @@ task F1Evaluation {
     }
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/python-data-slim-plots:1.0"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim-plots:1.1"
         preemptible: select_first([preemptible, 0])
         memory: machine_mem_gb + " GB"
         disks: "local-disk 20 HDD"
