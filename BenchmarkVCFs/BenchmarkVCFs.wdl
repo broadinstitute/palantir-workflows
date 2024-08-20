@@ -348,7 +348,7 @@ task VCFEval {
         import pandas as pd
 
         def parse_data(root_dir, Type, interval):
-            file_path = f'{root_dir}/{interval}+{Type}_roc.tsv.gz'
+            file_path = f'{root_dir}/{interval.lower()}+{Type}_roc.tsv.gz'
 
             header_lines = []
             # Read through file lines until hitting one without leading '#'
@@ -367,13 +367,13 @@ task VCFEval {
 
             df = df.rename(columns=rename_columns)
             df['Type'] = Type.upper()
-            df['Interval'] = interval.capitalize()
+            df['Interval'] = interval
             df['Query_Name'] = "~{query_output_sample_name}"
             df['Base_Name'] = "~{base_output_sample_name}"
 
             return df
 
-        reg_roc_summary = pd.concat([parse_data('reg', 'snp', 'wholegenome'), parse_data('reg', 'indel', 'wholegenome')])
+        reg_roc_summary = pd.concat([parse_data('reg', 'snp', 'WholeGenome'), parse_data('reg', 'indel', 'WholeGenome')])
         roc_summary = reg_roc_summary
 
         # If PAR bed file provided, also collect data from analysis over PAR region and combine stats
@@ -394,8 +394,8 @@ task VCFEval {
 
         if "~{length(roc_regions) > 0}" == "true":
             for label in ["~{sep="\", \"" roc_regions_labels}"]:
-                snp_df = parse_data('reg', 'snp', label.lower())
-                indel_df = parse_data('reg', 'indel', label.lower())
+                snp_df = parse_data('reg', 'snp', label)
+                indel_df = parse_data('reg', 'indel', label)
                 combined_df = pd.concat([snp_df, indel_df])
                 combined_df.to_csv(f'roc_outputs/{label}_roc.tsv.gz', sep='\t', index=False)
 
