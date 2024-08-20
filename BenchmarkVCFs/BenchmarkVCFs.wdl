@@ -390,7 +390,7 @@ task VCFEval {
                 ['Score', 'TP_Base', 'FP', 'TP_Query', 'FN', 'Precision', 'Recall', 'F1_Score', 'Type', 'Interval', 'Query_Name', 'Base_Name']
             ]
 
-        roc_summary.to_csv('roc_outputs/wholegenome_roc.tsv', sep='\t', index=False)
+        roc_summary.to_csv('roc_outputs/wholegenome_roc.tsv.gz', sep='\t', index=False)
 
         if "~{length(roc_regions) > 0}" == "true":
             for label in ["~{sep="\", \"" roc_regions_labels}"]:
