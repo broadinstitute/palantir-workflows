@@ -82,6 +82,10 @@ class LiftoverSites:
                 for i_line, line in enumerate(input_file):
                     input_row = self.input_function(line.strip(), input_header_line)
                     original_columns = ';'.join([f'original_{annotation}={input_row.custom_columns[annotation]}' for annotation in self.annotations_to_save])
+                    # If there are original columns, we need to add a semicolon at the beginning
+                    if original_columns:
+                        original_columns = ';' + original_columns
+                    # If there are no original columns or effect_allele, we still need to write a dot to keep the VCF format
                     if not original_columns and not self.contains_effect_allele:
                         original_columns = '.'
                     
@@ -95,8 +99,8 @@ class LiftoverSites:
                             a1_is_effect_allele = False
                         else:
                             raise RuntimeError(f'Error in input sites: Neither A1 nor A2 are the effect allele: {line}')
-                        effect_allele_1 = f"effect_allele={'ref' if a1_is_effect_allele else 'alt'};"
-                        effect_allele_2 = f"effect_allele={'alt' if a1_is_effect_allele else 'ref'};"
+                        effect_allele_1 = f"effect_allele={'ref' if a1_is_effect_allele else 'alt'}"
+                        effect_allele_2 = f"effect_allele={'alt' if a1_is_effect_allele else 'ref'}"
 
                     output_vcf.write(f"{chrom}\t{input_row.pos}\t{i_line}\t{input_row.a1}\t{input_row.a2}\t30\tPASS\t{effect_allele_1 if self.contains_effect_allele else ''}{original_columns}\n")
                     output_vcf.write(f"{chrom}\t{input_row.pos}\t{i_line}\t{input_row.a2}\t{input_row.a1}\t30\tPASS\t{effect_allele_2 if self.contains_effect_allele else ''}{original_columns}\n")

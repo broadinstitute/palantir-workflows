@@ -6,6 +6,8 @@ workflow CKDRiskAdjustment {
     File adjustedScores
     File vcf
     File risk_alleles
+    Boolean use_ref_alt_for_ids = false
+    Int mem_plink = 8
   }
 
   call ScoringTasks.DetermineChromosomeEncoding {
@@ -17,7 +19,9 @@ workflow CKDRiskAdjustment {
     input:
       vcf = vcf,
       risk_alleles = risk_alleles,
-      chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
+      chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
+      use_ref_alt_for_ids = use_ref_alt_for_ids,
+      mem = mem_plink
   }
 
   call AdjustRisk {
@@ -35,16 +39,18 @@ task GenotypeG1G2RiskAlleles {
   input {
     File vcf
     File risk_alleles
+    Boolean use_ref_alt_for_ids = false
     Int mem = 8
     String? chromosome_encoding
   }
 
   Int disk_size = ceil(1.2*size(vcf, "GB")) + 50
   Int plink_mem = ceil(mem * 0.75 * 1000)
+  String var_ids_string = "@:#:" + if use_ref_alt_for_ids then "\\$r:\\$a" else "\\$1:\\$2"
 
   command <<<
     /plink2 --vcf ~{vcf} --extract ~{risk_alleles} --export A --export-allele ~{risk_alleles} \
-    --allow-extra-chr --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing \
+    --allow-extra-chr --set-all-var-ids ~{var_ids_string} --new-id-max-allele-len 1000 missing \
     --memory ~{plink_mem} --out apol1_g1_g2_counts ~{"--output-chr " + chromosome_encoding}
   >>>
 
