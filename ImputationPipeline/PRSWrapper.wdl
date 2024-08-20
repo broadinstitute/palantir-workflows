@@ -63,7 +63,9 @@ workflow PRSWrapper {
           input:
             adjustedScores = select_first([ScoringImputedDataset.adjusted_array_scores]),
             vcf = vcf,
-            risk_alleles = ckd_risk_alleles
+            risk_alleles = ckd_risk_alleles,
+            use_ref_alt_for_ids = use_ref_alt_for_ids,
+            mem_plink = vcf_to_plink_mem
         }
       }
 
