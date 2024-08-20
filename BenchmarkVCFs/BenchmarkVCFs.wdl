@@ -257,7 +257,7 @@ task VCFEval {
 
         # Create roc regions rtg command string
         # Format should be: --roc-regions label1=region1.bed --roc-regions label2=region2.bed ...
-        if [ ~{length(roc_regions) > 0} ];
+        if ~{length(roc_regions) > 0};
         then
             echo -e "~{sep="\\n" roc_regions_labels}" >> labels.txt
             echo -e "~{sep="\\n" roc_regions}" >> regions.txt
