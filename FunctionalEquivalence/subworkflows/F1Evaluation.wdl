@@ -240,7 +240,7 @@ task F1Evaluation {
         data_df.to_csv('f1_summary.tsv', sep='\t', index=False)
 
         # Write final fe_status
-        with open('fe_status.txt', 'r') as file:
+        with open('fe_status.txt', 'w') as file:
             file.write(f'{fe_status}')
 
         EOF
