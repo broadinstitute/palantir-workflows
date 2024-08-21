@@ -285,6 +285,7 @@ task VCFEval {
                 --roc-subset snp,indel \
                 $ROC_REGIONS_FLAGS \
                 --roc-cross-join \
+                --XXcom.rtg.vcf.eval.roc-subset-rescale true \
                 -t rtg_ref \
                 ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
                 -o reg
@@ -313,6 +314,7 @@ task VCFEval {
                 --roc-subset snp,indel \
                 $ROC_REGIONS_FLAGS \
                 --roc-cross-join \
+                --XXcom.rtg.vcf.eval.roc-subset-rescale true \
                 -t rtg_ref \
                 ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
                 -o par
@@ -330,6 +332,7 @@ task VCFEval {
                 --decompose \
                 --roc-subset snp,indel \
                 $ROC_REGIONS_FLAGS \
+                --XXcom.rtg.vcf.eval.roc-subset-rescale true \
                 --roc-cross-join \
                 -t rtg_ref \
                 ~{"--sample " + base_vcf_sample_name + "," + query_vcf_sample_name} \
