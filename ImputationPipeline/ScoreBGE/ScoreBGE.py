@@ -270,7 +270,7 @@ if __name__ == '__main__':
     parser.add_argument('--sample-names', type=str, nargs='+', help='Sample names to score', required=False, default=None)
     args = parser.parse_args()
 
-    bge_scorer = BGEScorer(args.ref_dict, args.weights, use_emerge_weight_format=args.use_emerge_weight_format)
+    bge_scorer = BGEScorer(args.ref_dict, args.weights)
     bge_scorer.score_wes_gvcf(args.gvcf, sample_names=args.sample_names)
     bge_scorer.score_wgs_vcf(args.vcf, sample_names=args.sample_names)
     bge_scorer.write_output(args.basename)
