@@ -3,7 +3,7 @@ import numpy as np
 import pysam
 
 class BGEScorer():
-    def __init__(self, ref_dict_path, prs_weights_path):
+    def __init__(self, ref_dict_path, prs_weights_path, use_emerge_weight_format=False):
         """
         Initialize the BGEScorer object.
 
@@ -12,7 +12,7 @@ class BGEScorer():
             prs_weights_path (str): The file path to the PRS weights.
         """
         self.ref_dict = self._read_ref_dict(ref_dict_path)
-        self.prs_weights = self._read_prs_weights(prs_weights_path)
+        self.prs_weights = self._read_prs_weights(prs_weights_path, use_emerge_weight_format)
         self.sample_names = None
 
         self.gvcf_sample_score = None
@@ -30,10 +30,15 @@ class BGEScorer():
 
     # Required TSV format (including header line):
     # contig position ref alt effect_allele weight
-    def _read_prs_weights(self, prs_weights_path):
-        prs_weights = pd.read_table(prs_weights_path, dtype={'contig': str, 'position': np.int32, 'ref': str, 'alt': str, 'effect_allele': str, 'weight': np.float64})
+    def _read_prs_weights(self, prs_weights_path, use_emerge_weight_format):
+        prs_weights = pd.read_table(prs_weights_path)
+        
+        if use_emerge_weight_format:
+            prs_weights[['contig', 'position', 'ref', 'alt']] = prs_weights['CHR:BP:REF:ALT'].str.split(':', expand=True)
+            prs_weights = prs_weights.drop(['CHR:BP:REF:ALT'], axis=1)
 
-        prs_weights['locus'] = prs_weights['contig'] + ':' + prs_weights['position'].astype(str)
+        prs_weights['locus'] = prs_weights['contig'].astype(str) + ':' + prs_weights['position'].astype(str)
+        prs_weights = prs_weights.astype({'effect_allele': str, 'weight': np.float64, 'contig': str, 'position': np.int32, 'ref': str, 'alt': str})
 
         return prs_weights.sort_values(by='position').sort_values(kind='stable', by='contig', key=lambda contig: contig.map(self.ref_dict.index))
     
@@ -248,6 +253,19 @@ class BGEScorer():
                 print('No VCF scoring performed. Skipping VCF output.')
         else:
             write_gvcf_or_vcf_output(False)
+        
+        # All sites (in plink-compatible format)
+        with open(f'{basename}.any_source_any_sample.sites_scored', 'w') as out_sites:
+            for weight in self.prs_weights.iterrows():
+                locus = weight[1]['locus']
+                ref = weight[1]['ref']
+                alt = weight[1]['alt']
+                if any(
+                    (locus, ref, alt) in self.gvcf_sites_scored[sample_name] or
+                    (locus, ref, alt) in self.vcf_sites_scored[sample_name]
+                        for sample_name in self.sample_names
+                    ):
+                    out_sites.write(f'{locus}:{ref}:{alt}\n')
 
         # Sum
         with open(f'{basename}.score', 'w') as out_combined_score:
@@ -262,10 +280,16 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description='Score BGE')
+    parser.add_argument('--weights', type=str, help='Path to weights file', required=True)
+    parser.add_argument('--gvcf', type=str, help='Path to WES GVCF', required=True)
+    parser.add_argument('--vcf', type=str, help='Path to imputed WGS VCF', required=True)
+    parser.add_argument('--ref-dict', type=str, help='Path to reference dict file', required=True)
+    parser.add_argument('--basename', type=str, help='Path to reference dict file', required=True)
     parser.add_argument('--sample-names', type=str, nargs='+', help='Sample names to score', required=False, default=None)
+    parser.add_argument('--use-emerge-weight-format', action='store_true', help='Use the emerge weight format', required=False, default=False)
     args = parser.parse_args()
 
-    bge_scorer = BGEScorer('~{ref_dict}', '~{weights}')
-    bge_scorer.score_wes_gvcf('~{exome_gvcf}', sample_names=args.sample_names)
-    bge_scorer.score_wgs_vcf('~{imputed_wgs_vcf}', sample_names=args.sample_names)
-    bge_scorer.write_output('~{basename}')
+    bge_scorer = BGEScorer(args.ref_dict, args.weights, use_emerge_weight_format=args.use_emerge_weight_format)
+    bge_scorer.score_wes_gvcf(args.gvcf, sample_names=args.sample_names)
+    bge_scorer.score_wgs_vcf(args.vcf, sample_names=args.sample_names)
+    bge_scorer.write_output(args.basename)
