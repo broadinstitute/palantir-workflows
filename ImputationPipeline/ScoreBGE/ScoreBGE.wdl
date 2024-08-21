@@ -54,7 +54,7 @@ task ScoreGvcfAndVcf {
         File weights
         Array[String]? sample_names
 
-        String score_bge_docker = "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:palantir-workflows_5e23626"
+        String score_bge_docker = "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:palantir-workflows_5feb024"
 
         File ref_fasta
         File ref_fasta_index
@@ -72,7 +72,8 @@ task ScoreGvcfAndVcf {
 
     command <<<
         set -xeuo pipefail
-        python3 /ScoreBGE.py ~{sample_names_arg} ~{sep=" --sample-names " sample_names}
+        python3 /ScoreBGE.py --ref-dict ~{ref_dict} --weights ~{weights} --gvcf ~{exome_gvcf} --vcf ~{imputed_wgs_vcf} \
+            --basename ~{basename} ~{sample_names_arg} ~{sep=" --sample-names " sample_names}
     >>>
 
     runtime {
