@@ -262,10 +262,15 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description='Score BGE')
+    parser.add_argument('--weights', type=str, help='Path to weights file', required=True)
+    parser.add_argument('--gvcf', type=str, help='Path to WES GVCF', required=True)
+    parser.add_argument('--vcf', type=str, help='Path to imputed WGS VCF', required=True)
+    parser.add_argument('--ref-dict', type=str, help='Path to reference dict file', required=True)
+    parser.add_argument('--basename', type=str, help='Path to reference dict file', required=True)
     parser.add_argument('--sample-names', type=str, nargs='+', help='Sample names to score', required=False, default=None)
     args = parser.parse_args()
 
-    bge_scorer = BGEScorer('~{ref_dict}', '~{weights}')
-    bge_scorer.score_wes_gvcf('~{exome_gvcf}', sample_names=args.sample_names)
-    bge_scorer.score_wgs_vcf('~{imputed_wgs_vcf}', sample_names=args.sample_names)
-    bge_scorer.write_output('~{basename}')
+    bge_scorer = BGEScorer(args.ref_dict, args.weights, use_emerge_weight_format=args.use_emerge_weight_format)
+    bge_scorer.score_wes_gvcf(args.gvcf, sample_names=args.sample_names)
+    bge_scorer.score_wgs_vcf(args.vcf, sample_names=args.sample_names)
+    bge_scorer.write_output(args.basename)
