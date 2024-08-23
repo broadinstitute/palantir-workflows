@@ -205,7 +205,7 @@ workflow FunctionalEquivalence {
     }
 
     scatter (index in cross(range(length(tool2_inputs)), range(length(tool2_inputs)))) {
-        if ((index.left < index.right) && (tool1_inputs[index.left].dataset == tool1_inputs[index.right].dataset)) {    # Only check when first has index less than second in cross product so no repeats
+        if ((index.left < index.right) && (tool2_inputs[index.left].dataset == tool2_inputs[index.right].dataset)) {    # Only check when first has index less than second in cross product so no repeats
             call BenchmarkVCFs.BenchmarkVCFs as EvalIntraTool2 {
                 input:
                     base_vcf=tool2_inputs[index.left].file,
