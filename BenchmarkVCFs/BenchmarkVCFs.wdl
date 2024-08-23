@@ -292,8 +292,8 @@ task VCFEval {
 
             mkdir output_dir
             cp reg/*.vcf.gz* output_dir/
-            cp output_dir/output.vcf.gz ~{query_output_sample_name}.vcf.gz
-            cp output_dir/output.vcf.gz.tbi ~{query_output_sample_name}.vcf.gz.tbi
+            cp output_dir/output.vcf.gz output_dir/~{query_output_sample_name}.vcf.gz
+            cp output_dir/output.vcf.gz.tbi output_dir/~{query_output_sample_name}.vcf.gz.tbi
 
         else
             # Handle case where user provides PAR bed by running with --squash-ploidy over haploid region
