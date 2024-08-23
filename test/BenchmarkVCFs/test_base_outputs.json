@@ -1,11 +1,7 @@
-{  
-    "Benchmark.snpPrecision" : 1.0,
-    "Benchmark.indelPrecision" : 0.5,
-    "Benchmark.snpRecall" : 0.5,
-    "Benchmark.indelRecall": 0.5,
-    "Benchmark.summary": null,
-    "Benchmark.snpF1Score": null,
-    "Benchmark.indelF1Score": null,
-    "Benchmark.snpRocs": null,
-    "Benchmark.nonSnpRocs": null
+{
+    "BenchmarkVCFs.IndelDistributionStats": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/outputs/IndelDistributionStats.tsv",
+    "BenchmarkVCFs.ROCStats": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/outputs/ROCStats.tsv",
+    "BenchmarkVCFs.SNPSubstitutionStats": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/outputs/SNPSubstitutionStats.tsv",
+    "BenchmarkVCFs.SimpleSummary": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/outputs/SimpleSummary.tsv",
+    "BenchmarkVCFs.igv_session": null
 }

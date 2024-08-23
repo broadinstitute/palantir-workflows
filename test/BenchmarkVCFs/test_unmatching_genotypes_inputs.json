@@ -1,16 +1,13 @@
 {
-    "Benchmark.requireMatchingGenotypes": false,
-    "Benchmark.evalVcf": "gs://palantir-workflows-test-data/BenchmarkVCFs/test.eval.vcf.gz",
-    "Benchmark.evalVcfIndex": "gs://palantir-workflows-test-data/BenchmarkVCFs/test.eval.vcf.gz.tbi",
-    "Benchmark.refIndex": "gs://palantir-workflows-test-data/BenchmarkVCFs/test.fasta.fai",
-    "Benchmark.truthVcf": "gs://palantir-workflows-test-data/BenchmarkVCFs/test.truth.vcf.gz",
-    "Benchmark.truthVcfIndex": "gs://palantir-workflows-test-data/BenchmarkVCFs/test.truth.vcf.gz.tbi",
-    "Benchmark.refDict": "gs://palantir-workflows-test-data/BenchmarkVCFs/test.fasta.dict",
-    "Benchmark.truthLabel": "the_truth",
-    "Benchmark.evalLabel": "the_eval",
-    "Benchmark.referenceVersion": "hg38",
-    "Benchmark.hapMap": "gs://palantir-workflows-test-data/BenchmarkVCFs/test.haplotype_database.txt",
-    "Benchmark.doIndelLengthStratification": false,
-    "Benchmark.reference": "gs://palantir-workflows-test-data/BenchmarkVCFs/test.fasta",
-    "Benchmark.confidenceInterval": "gs://palantir-workflows-test-data/BenchmarkVCFs/test.confidence.interval_list"
+    "BenchmarkVCFs.require_matching_genotypes": false,
+    "BenchmarkVCFs.query_vcf": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.eval.vcf.gz",
+    "BenchmarkVCFs.query_vcf_index": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.eval.vcf.gz.tbi",
+    "BenchmarkVCFs.ref_index": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.fasta.fai",
+    "BenchmarkVCFs.base_vcf": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.truth.vcf.gz",
+    "BenchmarkVCFs.base_vcf_index": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.truth.vcf.gz.tbi",
+    "BenchmarkVCFs.base_output_sample_name": "the_base",
+    "BenchmarkVCFs.query_output_sample_name": "the_query",
+    "BenchmarkVCFs.check_fingerprint": false,
+    "BenchmarkVCFs.ref_fasta": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.fasta",
+    "BenchmarkVCFs.evaluation_intervals": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.confidence.interval_list"
 }
