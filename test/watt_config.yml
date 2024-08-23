@@ -24,3 +24,10 @@ CompareBenchmarks:
     base:
       test_inputs: "/test/CompareBenchmarks/test_base_inputs.json"
       expected_outputs: "/test/CompareBenchmarks/test_base_outputs.json"
+
+Glimpse2Imputation:
+  path: "/GlimpseImputationPipeline/Glimpse2Imputation.wdl"
+  tests:
+    base:
+      test_inputs: "/test/Glimpse2Imputation/test_inputs.json"
+      expected_outputs: "/test/Glimpse2Imputation/test_outputs.json"
