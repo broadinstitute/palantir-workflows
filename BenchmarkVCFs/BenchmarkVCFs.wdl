@@ -144,11 +144,11 @@ workflow BenchmarkVCFs {
     }
 
     scatter (genotype_selector in genotype_selector_list) {
-        call BCFToolsStats as WholeGenomeStats {
+        call BCFToolsStats as AllRegionsStats {
             input:
                 combined_vcfeval_output=StandardVCFEval.combined_output,
                 combined_vcfeval_output_index=StandardVCFEval.combined_output_index,
-                stratifier_label="WholeGenome",
+                stratifier_label="AllRegions",
                 bcf_genotype=genotype_selector.bcf_genotype,
                 bcf_genotype_label=genotype_selector.bcf_genotype_label,
                 query_output_sample_name=query_output_sample_name,
@@ -175,9 +175,9 @@ workflow BenchmarkVCFs {
     call CombineSummaries {
         input:
             ROC_summaries=StandardVCFEval.ROC_summaries,
-            SN_summaries=select_all(flatten([WholeGenomeStats.full_sn, SubsetStats.full_sn])),
-            IDD_summaries=select_all(flatten([WholeGenomeStats.full_idd, SubsetStats.full_idd])),
-            ST_summaries=select_all(flatten([WholeGenomeStats.full_st, SubsetStats.full_st])),
+            SN_summaries=select_all(flatten([AllRegionsStats.full_sn, SubsetStats.full_sn])),
+            IDD_summaries=select_all(flatten([AllRegionsStats.full_idd, SubsetStats.full_idd])),
+            ST_summaries=select_all(flatten([AllRegionsStats.full_st, SubsetStats.full_st])),
             experiment=experiment,
             extra_column_names=extra_column_names,
             extra_column_values=extra_column_values
@@ -252,7 +252,7 @@ task VCFEval {
 
         # Make bed file for full reference
         awk -v OFS="\t" '{print $1, 0, $2}' ~{reference.index} > genome_file.bed
-        echo "WholeGenome" > labels.txt
+        echo "AllRegions" > labels.txt
         echo "genome_file.bed" > regions.txt
 
         # Create roc regions rtg command string
@@ -376,7 +376,7 @@ task VCFEval {
 
             return df
 
-        reg_roc_summary = pd.concat([parse_data('reg', 'snp', 'WholeGenome'), parse_data('reg', 'indel', 'WholeGenome')])
+        reg_roc_summary = pd.concat([parse_data('reg', 'snp', 'AllRegions'), parse_data('reg', 'indel', 'AllRegions')])
         roc_summary = reg_roc_summary
 
         # If PAR bed file provided, also collect data from analysis over PAR region and combine stats
@@ -393,7 +393,7 @@ task VCFEval {
                 ['Score', 'TP_Base', 'FP', 'TP_Query', 'FN', 'Precision', 'Recall', 'F1_Score', 'Type', 'Interval', 'Query_Name', 'Base_Name']
             ]
 
-        roc_summary.to_csv('roc_outputs/wholegenome_roc.tsv.gz', sep='\t', index=False)
+        roc_summary.to_csv('roc_outputs/allregions_roc.tsv.gz', sep='\t', index=False)
 
         if "~{length(roc_regions) > 0}" == "true":
             for label in ["~{sep="\", \"" roc_regions_labels}"]:

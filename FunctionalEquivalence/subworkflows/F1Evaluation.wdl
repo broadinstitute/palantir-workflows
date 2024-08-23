@@ -193,7 +193,7 @@ task F1Evaluation {
         def make_dataset_plot(roc_df, dataset):
             fe_status = 0
             stratifiers = inter_stats['Interval'].unique()
-            stratifiers = ['WholeGenome'] + sorted([x for x in stratifiers if x != 'WholeGenome'])
+            stratifiers = ['AllRegions'] + sorted([x for x in stratifiers if x != 'AllRegions'])
 
             num_columns = max(len(stratifiers), 3)
             num_rows = len(VARIANT_TYPES)+1

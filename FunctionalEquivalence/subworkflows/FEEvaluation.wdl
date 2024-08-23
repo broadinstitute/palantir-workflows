@@ -30,9 +30,9 @@ task FEEvaluation {
             df = pd.read_csv(file, sep="\t")
             full_df = pd.concat([full_df, df])
 
-        ## Collect interval names and sort so WholeGenome is always first
+        ## Collect interval names and sort so AllRegions is always first
         intervals = full_df['Interval'].unique()
-        intervals = ['WholeGenome'] + sorted([i for i in intervals if i != 'WholeGenome'])
+        intervals = ['AllRegions'] + sorted([i for i in intervals if i != 'AllRegions'])
         full_df['Interval'] = pd.Categorical(full_df['Interval'], intervals)
         full_df = full_df.sort_values('Interval')
 
@@ -100,7 +100,7 @@ task FEEvaluation {
                     fe_status = max(fe_status, make_grid_plot(axes[row, col], dataset_plot_df, var_type, stratifier))
 
             ## Collect number of replicates per experiment
-            sub_df = full_df[(full_df['Type'] == 'SNP') & (full_df['Interval'] == 'WholeGenome') & (full_df['Dataset'] == dataset)]
+            sub_df = full_df[(full_df['Type'] == 'SNP') & (full_df['Interval'] == 'AllRegions') & (full_df['Dataset'] == dataset)]
             tool1_conc_count = len(sub_df[sub_df['Experiment'] == 'EvalIntraTool1'])
             tool2_conc_count = len(sub_df[sub_df['Experiment'] == 'EvalIntraTool2'])
             inter_conc_count = len(sub_df[sub_df['Experiment'] == 'EvalInterTool'])

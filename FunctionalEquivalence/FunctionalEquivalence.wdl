@@ -41,6 +41,8 @@ workflow FunctionalEquivalence {
         Array[File]? stratifier_intervals
         Array[String]? stratifier_labels
 
+        String score_field = "QUAL"
+
         File ref_fasta
         File ref_index
         File haplotype_map
@@ -90,7 +92,7 @@ workflow FunctionalEquivalence {
                 stratifier_intervals=stratifier_intervals,
                 stratifier_labels=stratifier_labels,
                 evaluation_intervals=paired_vcfs.right.confidence_intervals,
-                score_field="QUAL",
+                score_field=score_field,
                 experiment="EvalVsTruthTool1",
                 extra_column_names=["Dataset", "Replicate", "Tool"],
                 extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, "tool1"],
@@ -117,7 +119,7 @@ workflow FunctionalEquivalence {
                 stratifier_intervals=stratifier_intervals,
                 stratifier_labels=stratifier_labels,
                 evaluation_intervals=paired_vcfs.right.confidence_intervals,
-                score_field="QUAL",
+                score_field=score_field,
                 experiment="EvalVsTruthTool2",
                 extra_column_names=["Dataset", "Replicate", "Tool"],
                 extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, "tool2"],
@@ -160,7 +162,7 @@ workflow FunctionalEquivalence {
                 ref_index=ref_index,
                 haplotype_map=haplotype_map,
                 evaluation_intervals=paired_vcfs.left.confidence_intervals,
-                score_field="QUAL",
+                score_field=score_field,
                 stratifier_intervals=stratifier_intervals,
                 stratifier_labels=stratifier_labels,
                 experiment="EvalInterTool",
@@ -189,7 +191,7 @@ workflow FunctionalEquivalence {
                     ref_index=ref_index,
                     haplotype_map=haplotype_map,
                     evaluation_intervals=tool1_inputs[index.left].confidence_intervals,
-                    score_field="QUAL",
+                    score_field=score_field,
                     stratifier_intervals=stratifier_intervals,
                     stratifier_labels=stratifier_labels,
                     experiment="EvalIntraTool1",
@@ -218,7 +220,7 @@ workflow FunctionalEquivalence {
                     ref_index=ref_index,
                     haplotype_map=haplotype_map,
                     evaluation_intervals=tool2_inputs[index.left].confidence_intervals,
-                    score_field="QUAL",
+                    score_field=score_field,
                     stratifier_intervals=stratifier_intervals,
                     stratifier_labels=stratifier_labels,
                     experiment="EvalIntraTool2",

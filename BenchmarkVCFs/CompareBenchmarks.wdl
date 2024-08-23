@@ -394,7 +394,7 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
         sample_data['configuration'] = configurations[i]
         samples_data.append(sample_data)
     data = pd.concat(samples_data)
-    data = data.fillna({'Stratifier': 'WholeGenome'})
+    data = data.fillna({'Stratifier': 'AllRegions'})
 
     if order_of_samples is None:
         unique_sample_ids = data['sample_id'].unique()
@@ -409,7 +409,7 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
     if stratifiers is None:
         stratifiers = data['Stratifier'].unique()
     else:
-        stratifiers = ['WholeGenome'] + stratifiers
+        stratifiers = ['AllRegions'] + stratifiers
 
     data = calculate_metrics(data, unique_sample_ids, unique_configurations, stratifiers)
 
