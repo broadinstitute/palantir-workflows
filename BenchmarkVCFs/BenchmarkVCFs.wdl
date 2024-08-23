@@ -292,6 +292,8 @@ task VCFEval {
 
             mkdir output_dir
             cp reg/*.vcf.gz* output_dir/
+            cp output_dir/output.vcf.gz ~{query_output_sample_name}.vcf.gz
+            cp output_dir/output.vcf.gz.tbi ~{query_output_sample_name}.vcf.gz.tbi
 
         else
             # Handle case where user provides PAR bed by running with --squash-ploidy over haploid region
@@ -339,8 +341,8 @@ task VCFEval {
                 -o reg
 
             mkdir output_dir
-            bcftools merge --force-samples "par/output.vcf.gz" "reg/output.vcf.gz" | bcftools sort -Oz -o "output_dir/output.vcf.gz"
-            bcftools index -t "output_dir/output.vcf.gz"
+            bcftools merge --force-samples "par/output.vcf.gz" "reg/output.vcf.gz" | bcftools sort -Oz -o "output_dir/~{query_output_sample_name}.vcf.gz"
+            bcftools index -t "output_dir/~{query_output_sample_name}.vcf.gz"
         fi
 
         mkdir roc_outputs
@@ -417,8 +419,8 @@ task VCFEval {
     output {
         Array[File] ROC_summaries = glob("roc_outputs/*_roc.tsv.gz")
 
-        File combined_output = "output_dir/output.vcf.gz"
-        File combined_output_index = "output_dir/output.vcf.gz.tbi"
+        File combined_output = "output_dir/~{query_output_sample_name}.vcf.gz"
+        File combined_output_index = "output_dir/~{query_output_sample_name}.vcf.gz.tbi"
     }
 }
 

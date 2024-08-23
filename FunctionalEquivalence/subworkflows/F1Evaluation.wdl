@@ -119,8 +119,8 @@ task F1Evaluation {
 
             return combined_df
 
-        intra_diffs1 = get_intra_difference_data(roc_df, exp='EvalVsTruthTool1')
-        intra_diffs2 = get_intra_difference_data(roc_df, exp='EvalVsTruthTool2')
+        intra_diffs1 = roc_df.groupby('Dataset').apply(lambda d: get_intra_difference_data(d, exp='EvalVsTruthTool1')).reset_index(drop=True)
+        intra_diffs2 = roc_df.groupby('Dataset').apply(lambda d: get_intra_difference_data(d, exp='EvalVsTruthTool2')).reset_index(drop=True)
         inter_diff_df = get_inter_difference_data(roc_df, 'EvalVsTruthTool1', 'EvalVsTruthTool2')
 
         def get_stats(diff_df):
