@@ -130,14 +130,14 @@ task F1Evaluation {
         intra_stats2 = get_stats(intra_diffs2)
         inter_stats = get_stats(inter_diff_df)
 
-        def make_single_line_plot(ax, stats_df, min_score, var_type, interval, color):
+        def make_single_line_plot(ax, stats_df, min_score, var_type, interval, dataset, color):
             if SIGNED_DIFFERENCE:
                 ax.set_ylabel(r'$\Delta\;F_1$')
                 ax.axhline(y=0, c='grey', linewidth=1)    # If using signed_difference, draw a line to indicate 0 on the vertical axis
             else:
                 ax.set_ylabel(r'$|\Delta\;F_1|$')
 
-            sub_df = stats_df[(stats_df['Type'] == var_type) & (stats_df['Interval'] == interval)]
+            sub_df = stats_df[(stats_df['Type'] == var_type) & (stats_df['Interval'] == interval) & (stats_df['Dataset'] == dataset)]
             X = np.arange(0, PLOT_QUAL_LIMIT+1)
 
             if min_score > PLOT_QUAL_LIMIT:
@@ -163,13 +163,13 @@ task F1Evaluation {
             intra1_min_score = min_df[
                 (min_df['Experiment'] == 'EvalVsTruthTool1') & (min_df['Type'] == var_type) & (min_df['Interval'] == interval) & (min_df['Dataset'] == dataset)
             ]['Score'].values[0]
-            intra1_diff_means, intra1_diff_std = make_single_line_plot(ax, intra_stats1, intra1_min_score, var_type, interval, color='C0')
+            intra1_diff_means, intra1_diff_std = make_single_line_plot(ax, intra_stats1, intra1_min_score, var_type, interval, dataset, color='C0')
             intra2_min_score = min_df[
                 (min_df['Experiment'] == 'EvalVsTruthTool2') & (min_df['Type'] == var_type) & (min_df['Interval'] == interval) & (min_df['Dataset'] == dataset)
             ]['Score'].values[0]
-            intra2_diff_means, intra2_diff_std = make_single_line_plot(ax, intra_stats2, intra2_min_score, var_type, interval, color='C1')
+            intra2_diff_means, intra2_diff_std = make_single_line_plot(ax, intra_stats2, intra2_min_score, var_type, interval, dataset, color='C1')
             inter_min_score = max(intra1_min_score, intra2_min_score)
-            inter_diff_means, inter_diff_std = make_single_line_plot(ax, inter_stats, inter_min_score, var_type, interval, color='C2')
+            inter_diff_means, inter_diff_std = make_single_line_plot(ax, inter_stats, inter_min_score, var_type, interval, dataset, color='C2')
 
             # Check the FE criterion
             fe_status = 0
