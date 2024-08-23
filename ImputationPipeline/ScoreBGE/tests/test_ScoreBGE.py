@@ -55,29 +55,31 @@ class TestScoreBGE(TestCase):
         self.assertEqual(s.gvcf_sample_score['testsample'], total_expected_score)
 
     def test_gvcf_score_variants(self):
-        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/wes_gvcf_variants/test_weights_gvcf_variants.txt')
+        for score_haploid_as_diploid in [False, True]:
+            s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/wes_gvcf_variants/test_weights_gvcf_variants.txt', score_haploid_as_diploid)
 
-        s.score_wes_gvcf('resources/wes_gvcf_variants/test_gvcf_variants.gvcf.gz', ['testsample'], 30)
-        expected_sites_scored = [
-            ('3:100', 'A', 'C'),  # score 2*1
-            ('3:100', 'A', 'C'),  # score 0
-            ('3:110', 'A', 'C'),  # score 4
-            ('3:110', 'A', 'C'),  # score 8
-            ('3:120', 'A', 'C'),  # score 0
-            ('3:120', 'A', 'C'),  # score 2*32
-            # ('3:130', 'A', 'C'), # score 0
-            # ('1:140', 'A', 'C'), # score 0
-            # ('3:150', 'A', 'C'), # score 0
-            ('3:200', 'A', 'C'),  # score 512
-            ('3:300', 'A', 'AC'),  # score 1024
-            ('3:400', 'A', 'AC'),  # score 2048
-            ('3:500', 'A', 'G'),  # score 4096
-            ('3:600', 'A', 'C'),  # score 8192
-        ]
-        total_expected_score = (2 * 1 + 4 + 8 + 2 * 32 + 512 + 1024 + 2048 + 4096 + 8192)
+            s.score_wes_gvcf('resources/wes_gvcf_variants/test_gvcf_variants.gvcf.gz', ['testsample'], 30)
+            expected_sites_scored = [
+                ('3:100', 'A', 'C'),  # score 2*1
+                ('3:100', 'A', 'C'),  # score 0
+                ('3:110', 'A', 'C'),  # score 4
+                ('3:110', 'A', 'C'),  # score 8
+                ('3:120', 'A', 'C'),  # score 0
+                ('3:120', 'A', 'C'),  # score 2*32
+                # ('3:130', 'A', 'C'), # score 0
+                # ('1:140', 'A', 'C'), # score 0
+                # ('3:150', 'A', 'C'), # score 0
+                ('3:200', 'A', 'C'),  # score 512
+                ('3:300', 'A', 'AC'),  # score 1024
+                ('3:400', 'A', 'AC'),  # score 2048
+                ('3:500', 'A', 'G'),  # score 4096
+                ('3:600', 'A', 'C'),  # score 8192 if chrX is scored as haploid, otherwise double
+                ('3:700', 'A', 'G'),  # score 0
+            ]
+            total_expected_score = (2 * 1 + 4 + 8 + 2 * 32 + 512 + 1024 + 2048 + 4096 + 8192 * (2 if score_haploid_as_diploid else 1))
 
-        self.assertEqual(s.gvcf_sites_scored['testsample'], expected_sites_scored)
-        self.assertEqual(s.gvcf_sample_score['testsample'], total_expected_score)
+            self.assertEqual(expected_sites_scored, s.gvcf_sites_scored['testsample'], f'{score_haploid_as_diploid=}')
+            self.assertEqual(total_expected_score, s.gvcf_sample_score['testsample'], f'{score_haploid_as_diploid=}')
 
     def test_score_wgs_vcf(self):
         s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/wgs_vcf/test_weights_wgs_vcf.txt')

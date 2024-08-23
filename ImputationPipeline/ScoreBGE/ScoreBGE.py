@@ -3,7 +3,7 @@ import numpy as np
 import pysam
 
 class BGEScorer():
-    def __init__(self, ref_dict_path, prs_weights_path):
+    def __init__(self, ref_dict_path, prs_weights_path, score_haploid_as_diploid):
         """
         Initialize the BGEScorer object.
 
@@ -14,6 +14,7 @@ class BGEScorer():
         self.ref_dict = self._read_ref_dict(ref_dict_path)
         self.prs_weights = self._read_prs_weights(prs_weights_path)
         self.sample_names = None
+        self.score_haploid_as_diploid = score_haploid_as_diploid
 
         self.gvcf_sample_score = None
         self.gvcf_sites_scored = None
@@ -60,6 +61,9 @@ class BGEScorer():
                 effect_allele_index = record.alts.index(weight.effect_allele) + 1 if weight.effect_allele in record.alts else None
 
             site_score = 0 if effect_allele_index is None else record.samples[sample_name]['GT'].count(effect_allele_index) * weight.weight
+
+            if self.score_haploid_as_diploid and len(record.samples[sample_name]['GT']) == 1:
+                site_score *= 2
 
             self.gvcf_sites_scored[sample_name].append((weight.locus, weight.ref, weight.alt))
             self.gvcf_sample_score[sample_name] += site_score
@@ -268,9 +272,10 @@ if __name__ == '__main__':
     parser.add_argument('--ref-dict', type=str, help='Path to reference dict file', required=True)
     parser.add_argument('--basename', type=str, help='Path to reference dict file', required=True)
     parser.add_argument('--sample-names', type=str, nargs='+', help='Sample names to score', required=False, default=None)
+    parser.add_argument('--score-haploid-as-diploid', action='store_true', help='Always score haploid GTs (such as on chrX) as diploid', required=False, default=False)
     args = parser.parse_args()
 
-    bge_scorer = BGEScorer(args.ref_dict, args.weights)
+    bge_scorer = BGEScorer(args.ref_dict, args.weights, args.score_haploid_as_diploid)
     bge_scorer.score_wes_gvcf(args.gvcf, sample_names=args.sample_names)
     bge_scorer.score_wgs_vcf(args.vcf, sample_names=args.sample_names)
     bge_scorer.write_output(args.basename)

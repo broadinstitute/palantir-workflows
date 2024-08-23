@@ -19,3 +19,4 @@
 3	400	deletion	AC	A,<NON_REF>	7.36	PASS	.	GT:GQ	0/1:60
 3	500	multiallelic	A	C,G,<NON_REF>	7.36	PASS	.	GT:GQ	1/2:60
 3	600	haploid	A	C,<NON_REF>	7.36	PASS	.	GT:GQ	1:60
+3	700	effect_not_in_alt	A	C,<NON_REF>	7.36	PASS	.	GT:GQ	0/1:60
