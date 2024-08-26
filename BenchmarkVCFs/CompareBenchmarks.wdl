@@ -103,7 +103,7 @@ def calculate_metrics(data, unique_sample_ids, unique_configurations, stratifier
                         'Precision': tp[var_type]/(tp[var_type] + fp[var_type]) if tp[var_type] + fp[var_type] > 0 else np.nan,
                         'Sensitivity': tp[var_type]/(tp[var_type] + fn[var_type]) if tp[var_type] + fn[var_type] > 0 else np.nan,
                         'F-Measure': tp[var_type]/(tp[var_type] + 0.5*(fp[var_type] + fn[var_type])) if tp[var_type] + fp[var_type] + fn[var_type] > 0 else np.nan
-                        })
+                        })])
     return recalculated_data.reset_index(drop=True)
                 
 def plot_sample(data, i_sample, sample_id, unique_configurations, stratifiers):
@@ -349,7 +349,7 @@ def calculate_metrics(data, unique_sample_ids, unique_configurations, stratifier
                         'Precision': tp[var_type]/(tp[var_type] + fp[var_type]) if tp[var_type] + fp[var_type] > 0 else np.nan,
                         'Sensitivity': tp[var_type]/(tp[var_type] + fn[var_type]) if tp[var_type] + fn[var_type] > 0 else np.nan,
                         'F-Measure': tp[var_type]/(tp[var_type] + 0.5*(fp[var_type] + fn[var_type])) if tp[var_type] + fp[var_type] + fn[var_type] > 0 else np.nan
-                        })
+                        })])
     return recalculated_data.reset_index(drop=True)
                 
 
