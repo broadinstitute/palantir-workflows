@@ -4,7 +4,7 @@ workflow TrioAnalysis {
     input {
         File child_vcf
         File child_vcf_index
-        String sex_of_child = "MALE" # or "FEMALE"; default MALE for HG002/5 GIAB children
+        String sex_of_child
 
         File father_vcf
         File father_vcf_index
@@ -187,7 +187,7 @@ task AnnotateVcfRegions {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.1"
+        docker: "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
         disks: "local-disk " + disk_size + " HDD"
         memory: memory_ram + " GB"
         cpu: cpu
