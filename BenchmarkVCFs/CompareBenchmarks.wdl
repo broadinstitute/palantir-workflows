@@ -107,7 +107,7 @@ def calculate_metrics(data, unique_sample_ids, unique_configurations, stratifier
                 fn['all'] = fn['SNP'] + fn['INDEL']
                 
                 for var_type in ['SNP', 'INDEL', 'all']:
-                    recalculated_data = recalculated_data.append({
+                    recalculated_data = pd.concat([recalculated_data, pd.DataFrame({
                         'sample_id': sample_id,
                         'configuration': configuration,
                         'Stratifier': stratifier,
@@ -118,8 +118,8 @@ def calculate_metrics(data, unique_sample_ids, unique_configurations, stratifier
                         'Precision': tp[var_type]/(tp[var_type] + fp[var_type]) if tp[var_type] + fp[var_type] > 0 else np.nan,
                         'Sensitivity': tp[var_type]/(tp[var_type] + fn[var_type]) if tp[var_type] + fn[var_type] > 0 else np.nan,
                         'F-Measure': tp[var_type]/(tp[var_type] + 0.5*(fp[var_type] + fn[var_type])) if tp[var_type] + fp[var_type] + fn[var_type] > 0 else np.nan
-                        }, ignore_index=True)
-    return recalculated_data
+                        })
+    return recalculated_data.reset_index(drop=True)
                 
 def plot_sample(data, i_sample, sample_id, unique_configurations, stratifiers):
     fig, axes = plt.subplots(2, 2, figsize=(10, 8))
@@ -353,7 +353,7 @@ def calculate_metrics(data, unique_sample_ids, unique_configurations, stratifier
                 fn['all'] = fn['SNP'] + fn['INDEL']
                 
                 for var_type in ['SNP', 'INDEL', 'all']:
-                    recalculated_data = recalculated_data.append({
+                    recalculated_data = pd.concat([recalculated_data, pd.DataFrame({
                         'sample_id': sample_id,
                         'configuration': configuration,
                         'Stratifier': stratifier,
@@ -364,8 +364,8 @@ def calculate_metrics(data, unique_sample_ids, unique_configurations, stratifier
                         'Precision': tp[var_type]/(tp[var_type] + fp[var_type]) if tp[var_type] + fp[var_type] > 0 else np.nan,
                         'Sensitivity': tp[var_type]/(tp[var_type] + fn[var_type]) if tp[var_type] + fn[var_type] > 0 else np.nan,
                         'F-Measure': tp[var_type]/(tp[var_type] + 0.5*(fp[var_type] + fn[var_type])) if tp[var_type] + fp[var_type] + fn[var_type] > 0 else np.nan
-                        }, ignore_index=True)
-    return recalculated_data
+                        })
+    return recalculated_data.reset_index(drop=True)
                 
 
 
