@@ -1,0 +1,5 @@
+{
+  "BenchmarkAndCompareVCFs.comparison_csv": "gs://palantir-workflows-test-data/BenchmarkAndCompareVCFs/outputs/comparison.csv",
+  "BenchmarkAndCompareVCFs.raw_data": "gs://palantir-workflows-test-data/BenchmarkAndCompareVCFs/outputs/raw_data.csv",
+  "BenchmarkAndCompareVCFs.summaries": ["gs://palantir-workflows-test-data/BenchmarkAndCompareVCFs/outputs/summary_SM-1_Test1.csv", "gs://palantir-workflows-test-data/BenchmarkAndCompareVCFs/outputs/summary_SM-1_Test2.csv", "gs://palantir-workflows-test-data/BenchmarkAndCompareVCFs/outputs/summary_SM-1_Test3.csv"]
+}
