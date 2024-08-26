@@ -332,7 +332,7 @@ def write_stratifier(output:ChainableOutput, stratifier:str, data:pd.DataFrame, 
                         delta = int(current_value) - int(base_value)
                         output.sep().cells(['{}'.format(delta)])
                     else:
-                        delta_pct = (current_value - base_value) / base_value
+                        delta_pct = np.float64(current_value - base_value) / base_value    # Use numpy in case div by zero
                         output.sep().cells(['{:.2%}'.format(delta_pct)])
         output.sep().cells([var_type, stratifier if var_type == 'SNP' else '']).new_line()
 
