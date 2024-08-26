@@ -9,7 +9,6 @@ workflow BenchmarkAndCompareVCFs {
         Array[String] configurations
 
         Boolean include_counts = false
-        Boolean generate_gc_plots = false
 
         Array[String]? order_of_samples
         Array[String]? order_of_configurations
@@ -73,7 +72,6 @@ workflow BenchmarkAndCompareVCFs {
             configurations = configurations,
             stratifiers = stratifier_labels,
             include_counts = include_counts,
-            generate_gc_plots = generate_gc_plots,
             order_of_samples = order_of_samples,
             order_of_configurations = order_of_configurations,
             deltas = deltas,
@@ -92,7 +90,6 @@ workflow BenchmarkAndCompareVCFs {
     output {
         File comparison_csv = CompareBenchmarks.comparison_csv
         File raw_data = CompareBenchmarks.raw_data
-        Array[File]? gc_plots = CompareBenchmarks.gc_plots
         Array[File] summaries = RenameSummary.summary
     }
 }

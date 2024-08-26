@@ -9,7 +9,6 @@ workflow CompareBenchmarks {
         Array[String]? stratifiers
 
         Boolean include_counts = false
-        Boolean generate_gc_plots = false
 
         Array[String]? order_of_samples
         Array[String]? order_of_configurations
@@ -32,24 +31,10 @@ workflow CompareBenchmarks {
             mem_gb = mem_gb,
             preemptible = preemptible
     }
-    
-    if (generate_gc_plots) {
-        call CreateGCPlotsTask {
-            input:
-                sample_ids = sample_ids,
-                configurations = configurations,
-                benchmark_summaries = benchmark_summaries,
-                order_of_samples = order_of_samples,
-                order_of_configurations = order_of_configurations,
-                mem_gb = mem_gb,
-                preemptible = preemptible
-        }
-    }
 
     output {
         File comparison_csv = CompareBenchmarksTask.comparison_csv
         File raw_data = CompareBenchmarksTask.raw_data
-        Array[File]? gc_plots = CreateGCPlotsTask.gc_plots
     }
 }
 
