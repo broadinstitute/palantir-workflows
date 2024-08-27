@@ -10,11 +10,11 @@ TestWeight = namedtuple('TestWeight', ['contig', 'position'])
 
 class TestScoreBGE(TestCase):
     def test_read_dict(self):
-        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/test_weights_read.txt')
+        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/test_weights_read.txt', False)
         self.assertEqual(s.ref_dict, ['1', '3', '2'])
 
     def test_read_weights(self):
-        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/test_weights_read.txt')
+        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/test_weights_read.txt', False)
         self.assertEqual(list(s.prs_weights.contig), ['1', '1', '3'])  # contig
         self.assertEqual(list(s.prs_weights.position), [1, 2, 1])  # position
         self.assertEqual(list(s.prs_weights.locus), ['1:1', '1:2', '3:1'])  # locus
@@ -24,7 +24,7 @@ class TestScoreBGE(TestCase):
         self.assertEqual(list(s.prs_weights.weight), [1.0, 2.0, 4.0])  # weight
 
     def test_compare_record_and_weight(self):
-        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/wes_gvcf_ref_blocks/test_weights_ref_blocks.txt')
+        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/wes_gvcf_ref_blocks/test_weights_ref_blocks.txt', False)
 
         self.assertEqual(s._compare_record_and_weight(TestRecord('1', 1, 1), TestWeight('1', 1)), 0)
         self.assertLess(s._compare_record_and_weight(TestRecord('1', 1, 1), TestWeight('1', 2)), 0)
@@ -34,7 +34,7 @@ class TestScoreBGE(TestCase):
         self.assertGreater(s._compare_record_and_weight(TestRecord('2', 1, 1), TestWeight('3', 1)), 0)
 
     def test_gvcf_score_ref_block(self):
-        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/wes_gvcf_ref_blocks/test_weights_ref_blocks.txt')
+        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/wes_gvcf_ref_blocks/test_weights_ref_blocks.txt', False)
 
         s.score_wes_gvcf('resources/wes_gvcf_ref_blocks/test_ref_blocks.gvcf.gz', ['testsample'], 30)
         expected_sites_scored = [
@@ -82,7 +82,7 @@ class TestScoreBGE(TestCase):
             self.assertEqual(total_expected_score, s.gvcf_sample_score['testsample'], f'{score_haploid_as_diploid=}')
 
     def test_score_wgs_vcf(self):
-        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/wgs_vcf/test_weights_wgs_vcf.txt')
+        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/wgs_vcf/test_weights_wgs_vcf.txt', False)
 
         s.score_wgs_vcf('resources/wgs_vcf/test_wgs.vcf.gz', ['testsample'], allow_wgs_vcf_only=True)
         expected_sites_scored = [
@@ -105,7 +105,7 @@ class TestScoreBGE(TestCase):
         self.assertAlmostEqual(s.vcf_sample_score['testsample'], total_expected_score, 4)
 
     def test_combined(self):
-        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/combined/test_weights_combined.txt')
+        s = ScoreBGE.BGEScorer('resources/ref.dict', 'resources/combined/test_weights_combined.txt', False)
 
         s.score_wes_gvcf('resources/combined/test_combined.wes.gvcf.gz', site_gq_threshold=30)
         s.score_wgs_vcf('resources/combined/test_combined.wgs.vcf.gz')

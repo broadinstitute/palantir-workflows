@@ -1,6 +1,14 @@
 import pandas as pd
 import numpy as np
 import pysam
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+import threading
+
+import asyncio
 
 class BGEScorer():
     def __init__(self, ref_dict_path, prs_weights_path, score_haploid_as_diploid, use_emerge_weight_format=False):
@@ -49,6 +57,14 @@ class BGEScorer():
         if record.pos <= weight.position <= record.stop:
             return 0
         return record.pos - weight.position
+    
+    def _sort_sites_scored(self, sites_scored):
+        locus = lambda site: site[0]
+        contig = lambda locus: locus.split(':')[0]
+        contig_index = lambda locus: self.ref_dict.index(contig(locus))
+        position = lambda locus: int(locus.split(':')[1])
+        return sorted(sites_scored, key=lambda site: (contig_index(locus(site)), position(locus(site))))
+        #return sorted(loci, key=lambda locus: (contig_index(locus), position(locus)))
 
     def _check_biallelic(self, record):
         if record is not None and len(record.alts) > 1:
@@ -112,6 +128,83 @@ class BGEScorer():
         print(f'WES GVCF + WGS VCF Scoring:')
         print(f'    Total sites scored: Min: {sites_scored_min_max[0]} Max: {sites_scored_min_max[1]}')
 
+    @staticmethod
+    def debug_next(iterator, default):
+        return next(iterator, default)
+
+    lock = threading.Lock()
+
+    def process_weight_threads(self, weight, gvcf, site_gq_threshold, start_time, step_time):
+        i_weight = weight.Index
+        if i_weight % 1000 == 0:
+            with self.lock:
+                print(f'Scored {i_weight} sites. Current locus: {weight.locus}. Time elapsed: {datetime.now() - start_time}. Time since last step: {datetime.now() - step_time[0]}')
+                step_time[0] = datetime.now()
+
+        site_records = gvcf.fetch(weight.contig, weight.position - 1, weight.position)
+        record = next(site_records, None)
+        # Skip all records that are before the current record
+        while record is None or self._compare_record_and_weight(record, weight) < 0:
+            # If fetch yields no more records at this position, break here
+            if record is None:
+                break
+            record = BGEScorer.debug_next(site_records, None)
+        if record is None:
+            return
+        
+        if self._compare_record_and_weight(record, weight) == 0:
+            with self.lock:
+                self._gvcf_score_site(record, weight, site_gq_threshold)
+
+    def parallel_process_weights_threads(self, prs_weights, gvcf, site_gq_threshold):
+        start_time = datetime.now()
+        step_time = [start_time]
+
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(self.process_weight_threads, weight, gvcf, site_gq_threshold, start_time, step_time) for weight in prs_weights.itertuples()]
+            for future in as_completed(futures):
+                future.result()  # To raise any exceptions that occurred during processing
+
+# Call the parallel processing function
+#parallel_process_weights(self.prs_weights, gvcf, site_gq_threshold)
+
+
+
+    async def process_weight_asyncio(self, weight, gvcf, site_gq_threshold, start_time, step_time, lock):
+        i_weight = weight.Index
+        if i_weight % 1000 == 0:
+            async with lock:
+                print(f'Scored {i_weight} sites. Current locus: {weight.locus}. Time elapsed: {datetime.now() - start_time}. Time since last step: {datetime.now() - step_time[0]}')
+                step_time[0] = datetime.now()
+
+        site_records = gvcf.fetch(weight.contig, weight.position - 1, weight.position)
+        record = next(site_records, None)
+        # Skip all records that are before the current record
+        while record is None or self._compare_record_and_weight(record, weight) < 0:
+            # If fetch yields no more records at this position, break here
+            if record is None:
+                break
+            record = BGEScorer.debug_next(site_records, None)
+        if record is None:
+            return
+        
+        if self._compare_record_and_weight(record, weight) == 0:
+            async with lock:
+                self._gvcf_score_site(record, weight, site_gq_threshold)
+
+    async def parallel_process_weights_asyncio(self, prs_weights, gvcf, site_gq_threshold):
+        start_time = datetime.now()
+        step_time = [start_time]
+        lock = asyncio.Lock()
+
+        tasks = [self.process_weight_asyncio(weight, gvcf, site_gq_threshold, start_time, step_time, lock) for weight in prs_weights.itertuples()]
+        await asyncio.gather(*tasks)
+
+# Call the parallel processing function
+#asyncio.run(parallel_process_weights(self.prs_weights, gvcf, site_gq_threshold))
+
+
+
     def score_wes_gvcf(self, gvcf_path, sample_names=None, site_gq_threshold=30):
         """
         Score variants in a Whole Exome Sequencing (WES) GVCF file if they meet the genotype quality threshold. No-calls and half-calls are treated as low quality.
@@ -138,20 +231,30 @@ class BGEScorer():
         self.gvcf_sites_scored = {sample_name: [] for sample_name in self.sample_names}
         self.gvcf_low_quality_sites = {sample_name: [] for sample_name in self.sample_names}
 
-        for _, weight in self.prs_weights.iterrows():
-            site_records = gvcf.fetch(weight.contig, weight.position - 1, weight.position)
-            record = next(site_records, None)
-            # Skip all records that are before the current record
-            while record is None or self._compare_record_and_weight(record, weight) < 0:
-                # If fetch yields no more records at this position, break here
-                if record is None:
-                    break
-                record = next(site_records, None)
-            if record is None:
-                continue
+        start_time = datetime.now()
+        step_time = start_time
+
+        # for i_weight, (_, weight) in enumerate(self.prs_weights.iterrows()):
+        #     if i_weight % 1000 == 0:
+        #         print(f'Scored {i_weight} sites. Current locus: {weight.locus}. Time elapsed: {datetime.now() - start_time}. Time since last step: {datetime.now() - step_time}')
+        #         step_time = datetime.now()
+
+        #     site_records = gvcf.fetch(weight.contig, weight.position - 1, weight.position)
+        #     record = next(site_records, None)
+        #     # Skip all records that are before the current record
+        #     while record is None or self._compare_record_and_weight(record, weight) < 0:
+        #         # If fetch yields no more records at this position, break here
+        #         if record is None:
+        #             break
+        #         record = BGEScorer.debug_next(site_records, None)
+        #     if record is None:
+        #         continue
             
-            if self._compare_record_and_weight(record, weight) == 0:
-                self._gvcf_score_site(record, weight, site_gq_threshold)
+        #     if self._compare_record_and_weight(record, weight) == 0:
+        #         self._gvcf_score_site(record, weight, site_gq_threshold)
+        #asyncio.run(self.parallel_process_weights_asyncio(self.prs_weights, gvcf, site_gq_threshold))
+        self.parallel_process_weights_threads(self.prs_weights, gvcf, site_gq_threshold)
+        self.gvcf_sites_scored = {key: self._sort_sites_scored(value) for key, value in self.gvcf_sites_scored.items()}
         
         # Save the scored sites as a set for faster lookup
         self.gvcf_sites_scored_set = {key: set(value) for key, value in self.gvcf_sites_scored.items()}
