@@ -201,6 +201,7 @@ workflow BenchmarkVCFs {
         File SNPSubstitutionStats = CombineSummaries.ST_combined_summaries
         File ROCStats = CombineSummaries.ROC_combined_summaries
 
+        File vcfeval_combined_output = StandardVCFEval.combined_output
         File? igv_session = IGVSession.igv_session
     }
 
