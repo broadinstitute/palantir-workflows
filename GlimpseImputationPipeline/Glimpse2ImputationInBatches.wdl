@@ -34,9 +34,12 @@ workflow Glimpse2ImputationInBatches {
         Int? mem_gb_merge
         File? monitoring_script
 
-        String? docker_extract_annotations
+        String? docker_gatk
         String? docker_count_samples
         String? docker_merge
+
+        File interval_list_for_merge
+        Int? merge_scatter_count
     }
 
     call SplitIntoBatches {
@@ -90,9 +93,11 @@ workflow Glimpse2ImputationInBatches {
             output_basename = output_basename,
             qc_metrics = qc_metrics,
             mem_gb_merge = mem_gb_merge,
-            docker_extract_annotations = docker_extract_annotations,
+            docker_gatk = docker_gatk,
             docker_count_samples = docker_count_samples,
-            docker_merge = docker_merge
+            docker_merge = docker_merge,
+            interval_list = interval_list_for_merge,
+            scatter_count = merge_scatter_count
     }
 
     output {
