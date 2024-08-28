@@ -4,5 +4,5 @@
     "BenchmarkVCFs.SNPSubstitutionStats": "gs://palantir-workflows-test-data/BenchmarkVCFs/ignore_filters/outputs/SNPSubstitutionStats.tsv",
     "BenchmarkVCFs.SimpleSummary": "gs://palantir-workflows-test-data/BenchmarkVCFs/ignore_filters/outputs/SimpleSummary.tsv",
     "BenchmarkVCFs.igv_session": null,
-    "BenchmarkVCFs.vcfeval_combined_output": "gs://palantir-workflows-test-data/BenchmarkVCFs/ignore_filters/outputs/the_query.vcf.gz"
+    "BenchmarkVCFs.vcfeval_combined_output": null
 }
