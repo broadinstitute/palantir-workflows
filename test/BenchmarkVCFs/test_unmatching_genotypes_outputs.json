@@ -3,5 +3,6 @@
     "BenchmarkVCFs.ROCStats": "gs://palantir-workflows-test-data/BenchmarkVCFs/unmatching_genotypes/outputs/ROCStats.tsv",
     "BenchmarkVCFs.SNPSubstitutionStats": "gs://palantir-workflows-test-data/BenchmarkVCFs/unmatching_genotypes/outputs/SNPSubstitutionStats.tsv",
     "BenchmarkVCFs.SimpleSummary": "gs://palantir-workflows-test-data/BenchmarkVCFs/unmatching_genotypes/outputs/SimpleSummary.tsv",
-    "BenchmarkVCFs.igv_session": null
+    "BenchmarkVCFs.igv_session": null,
+    "BenchmarkVCFs.vcfeval_combined_output": "gs://palantir-workflows-test-data/BenchmarkVCFs/unmatching_genotypes/outputs/the_query.vcf.gz"
 }
