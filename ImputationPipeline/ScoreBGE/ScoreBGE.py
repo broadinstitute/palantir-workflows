@@ -33,6 +33,8 @@ class BGEScorer():
         self.vcf_sites_scored = None
         self.vcf_num_sites_not_found = None
 
+        self.lock = threading.Lock()
+
     def _read_ref_dict(self, ref_dict_path):
         with open(ref_dict_path) as ref_dict:
             return [line.split('\t')[1].replace('SN:', '') for line in ref_dict if line.startswith('@SQ')]
@@ -58,13 +60,10 @@ class BGEScorer():
             return 0
         return record.pos - weight.position
     
-    def _sort_sites_scored(self, sites_scored):
-        locus = lambda site: site[0]
-        contig = lambda locus: locus.split(':')[0]
-        contig_index = lambda locus: self.ref_dict.index(contig(locus))
-        position = lambda locus: int(locus.split(':')[1])
-        return sorted(sites_scored, key=lambda site: (contig_index(locus(site)), position(locus(site))))
-        #return sorted(loci, key=lambda locus: (contig_index(locus), position(locus)))
+    def sites_scored_sort_key(self, site):
+        locus = site[0]
+        contig, position = locus.split(':')
+        return (self.ref_dict.index(contig), int(position))
 
     def _check_biallelic(self, record):
         if record is not None and len(record.alts) > 1:
@@ -128,17 +127,11 @@ class BGEScorer():
         print(f'WES GVCF + WGS VCF Scoring:')
         print(f'    Total sites scored: Min: {sites_scored_min_max[0]} Max: {sites_scored_min_max[1]}')
 
-    @staticmethod
-    def debug_next(iterator, default):
-        return next(iterator, default)
-
-    lock = threading.Lock()
-
-    def process_weight_threads(self, weight, gvcf, site_gq_threshold, start_time, step_time):
+    async def _process_weight_wes_asyncio(self, weight, gvcf, site_gq_threshold, start_time, step_time, lock):
         i_weight = weight.Index
-        if i_weight % 1000 == 0:
-            with self.lock:
-                print(f'Scored {i_weight} sites. Current locus: {weight.locus}. Time elapsed: {datetime.now() - start_time}. Time since last step: {datetime.now() - step_time[0]}')
+        if i_weight % 100000 == 0:
+            async with lock:
+                print(f'Scored {i_weight} sites. Current locus: {weight.locus}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time[0]).total_seconds():,.0f}s')
                 step_time[0] = datetime.now()
 
         site_records = gvcf.fetch(weight.contig, weight.position - 1, weight.position)
@@ -148,43 +141,7 @@ class BGEScorer():
             # If fetch yields no more records at this position, break here
             if record is None:
                 break
-            record = BGEScorer.debug_next(site_records, None)
-        if record is None:
-            return
-        
-        if self._compare_record_and_weight(record, weight) == 0:
-            with self.lock:
-                self._gvcf_score_site(record, weight, site_gq_threshold)
-
-    def parallel_process_weights_threads(self, prs_weights, gvcf, site_gq_threshold):
-        start_time = datetime.now()
-        step_time = [start_time]
-
-        with ThreadPoolExecutor() as executor:
-            futures = [executor.submit(self.process_weight_threads, weight, gvcf, site_gq_threshold, start_time, step_time) for weight in prs_weights.itertuples()]
-            for future in as_completed(futures):
-                future.result()  # To raise any exceptions that occurred during processing
-
-# Call the parallel processing function
-#parallel_process_weights(self.prs_weights, gvcf, site_gq_threshold)
-
-
-
-    async def process_weight_asyncio(self, weight, gvcf, site_gq_threshold, start_time, step_time, lock):
-        i_weight = weight.Index
-        if i_weight % 1000 == 0:
-            async with lock:
-                print(f'Scored {i_weight} sites. Current locus: {weight.locus}. Time elapsed: {datetime.now() - start_time}. Time since last step: {datetime.now() - step_time[0]}')
-                step_time[0] = datetime.now()
-
-        site_records = gvcf.fetch(weight.contig, weight.position - 1, weight.position)
-        record = next(site_records, None)
-        # Skip all records that are before the current record
-        while record is None or self._compare_record_and_weight(record, weight) < 0:
-            # If fetch yields no more records at this position, break here
-            if record is None:
-                break
-            record = BGEScorer.debug_next(site_records, None)
+            record = next(site_records, None)
         if record is None:
             return
         
@@ -192,17 +149,13 @@ class BGEScorer():
             async with lock:
                 self._gvcf_score_site(record, weight, site_gq_threshold)
 
-    async def parallel_process_weights_asyncio(self, prs_weights, gvcf, site_gq_threshold):
+    async def _process_weights_wes_asyncio(self, prs_weights, gvcf, site_gq_threshold):
         start_time = datetime.now()
-        step_time = [start_time]
+        step_time = [start_time] # List to allow for mutable variable in async function
         lock = asyncio.Lock()
 
-        tasks = [self.process_weight_asyncio(weight, gvcf, site_gq_threshold, start_time, step_time, lock) for weight in prs_weights.itertuples()]
+        tasks = [self._process_weight_wes_asyncio(weight, gvcf, site_gq_threshold, start_time, step_time, lock) for weight in prs_weights.itertuples()]
         await asyncio.gather(*tasks)
-
-# Call the parallel processing function
-#asyncio.run(parallel_process_weights(self.prs_weights, gvcf, site_gq_threshold))
-
 
 
     def score_wes_gvcf(self, gvcf_path, sample_names=None, site_gq_threshold=30):
@@ -216,51 +169,66 @@ class BGEScorer():
             ref_block_gq_threshold (int, optional): The genotype quality threshold for reference blocks. Reference blocks with GQ below this threshold will be considered low quality. Default is 30.
         """
         print('WES GVCF Scoring:')
-        gvcf = pysam.VariantFile(gvcf_path, "r")
+        with pysam.VariantFile(gvcf_path, "r", ignore_truncation=True) as gvcf:
+            if sample_names is None:
+                self.sample_names = list(gvcf.header.samples)
+            else:
+                if any(sample_name not in gvcf.header.samples for sample_name in sample_names):
+                    raise RuntimeError('One or more sample_names are not present in the GVCF file.')
+                self.sample_names = sample_names
 
-        if sample_names is None:
-            self.sample_names = list(gvcf.header.samples)
-        else:
-            if any(sample_name not in gvcf.header.samples for sample_name in sample_names):
-                raise RuntimeError('One or more sample_names are not present in the GVCF file.')
-            self.sample_names = sample_names
+            print(f'  Scoring {len(self.sample_names)} samples...')
 
-        print(f'  Scoring {len(self.sample_names)} samples...')
+            self.gvcf_sample_score = {sample_name: 0 for sample_name in self.sample_names}
+            self.gvcf_sites_scored = {sample_name: [] for sample_name in self.sample_names}
+            self.gvcf_low_quality_sites = {sample_name: [] for sample_name in self.sample_names}
 
-        self.gvcf_sample_score = {sample_name: 0 for sample_name in self.sample_names}
-        self.gvcf_sites_scored = {sample_name: [] for sample_name in self.sample_names}
-        self.gvcf_low_quality_sites = {sample_name: [] for sample_name in self.sample_names}
-
-        start_time = datetime.now()
-        step_time = start_time
-
-        # for i_weight, (_, weight) in enumerate(self.prs_weights.iterrows()):
-        #     if i_weight % 1000 == 0:
-        #         print(f'Scored {i_weight} sites. Current locus: {weight.locus}. Time elapsed: {datetime.now() - start_time}. Time since last step: {datetime.now() - step_time}')
-        #         step_time = datetime.now()
-
-        #     site_records = gvcf.fetch(weight.contig, weight.position - 1, weight.position)
-        #     record = next(site_records, None)
-        #     # Skip all records that are before the current record
-        #     while record is None or self._compare_record_and_weight(record, weight) < 0:
-        #         # If fetch yields no more records at this position, break here
-        #         if record is None:
-        #             break
-        #         record = BGEScorer.debug_next(site_records, None)
-        #     if record is None:
-        #         continue
-            
-        #     if self._compare_record_and_weight(record, weight) == 0:
-        #         self._gvcf_score_site(record, weight, site_gq_threshold)
-        #asyncio.run(self.parallel_process_weights_asyncio(self.prs_weights, gvcf, site_gq_threshold))
-        self.parallel_process_weights_threads(self.prs_weights, gvcf, site_gq_threshold)
-        self.gvcf_sites_scored = {key: self._sort_sites_scored(value) for key, value in self.gvcf_sites_scored.items()}
+            asyncio.run(self._process_weights_wes_asyncio(self.prs_weights, gvcf, site_gq_threshold))
         
+        for sample_name in self.sample_names:
+            self.gvcf_sites_scored[sample_name].sort(key=self.sites_scored_sort_key)
         # Save the scored sites as a set for faster lookup
         self.gvcf_sites_scored_set = {key: set(value) for key, value in self.gvcf_sites_scored.items()}
         self._print_wes_gvcf_metrics()
 
-    
+    async def _process_weight_wgs_asyncio(self, weight, vcf, start_time, step_time, lock):
+        i_weight = weight.Index
+        if i_weight % 100000 == 0:
+            async with lock:
+                print(f'Scored {i_weight} sites. Current locus: {weight.locus}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time[0]).total_seconds():,.0f}s')
+                step_time[0] = datetime.now()
+
+        site_records = vcf.fetch(weight.contig, weight.position - 1, weight.position)
+
+        # Get first record
+        record = next(site_records, None)
+        self._check_biallelic(record)
+
+        # Find the record that matches the weight
+        while record is None or record.pos != weight.position or record.ref != weight.ref or weight.alt != record.alts[0]:
+            # If fetch yields no more records at this position, break here
+            if record is None:
+                break
+            record = next(site_records, None)
+            self._check_biallelic(record)
+        
+        # Skip the weight if the record was not found
+        if record is None:
+            async with lock:
+                self.vcf_num_sites_not_found += 1
+                print('  Site not found in VCF:', weight.locus, weight.ref, weight.alt)
+            return
+        async with lock:
+            self._vcf_score_dosage(record, weight)
+
+    async def _process_weights_wgs_asyncio(self, prs_weights, vcf):
+        start_time = datetime.now()
+        step_time = [start_time] # List to allow for mutable variable in async function
+        lock = asyncio.Lock()
+
+        tasks = [self._process_weight_wgs_asyncio(weight, vcf, start_time, step_time, lock) for weight in prs_weights.itertuples()]
+        await asyncio.gather(*tasks)
+
     def score_wgs_vcf(self, wgs_vcf_path, sample_names=None, allow_wgs_vcf_only=False):
         """
         Score variants in a Whole Genome Sequencing (WGS) VCF file.
@@ -274,47 +242,29 @@ class BGEScorer():
         if not allow_wgs_vcf_only and self.gvcf_sites_scored_set is None:
             raise RuntimeError('WES GVCF scoring must be performed before WGS VCF scoring. If you want to score the WGS VCF only, set allow_wgs_vcf_only to True')
 
-        vcf = pysam.VariantFile(wgs_vcf_path, "r")
-
-        if sample_names is None:
-            sample_names = list(vcf.header.samples)
-        
-        # Check if the sample names match the ones from the WES GVCF scoring, or if they are None (i.e. WES GVCF scoring was not performed), set them below
-        if self.sample_names is not None and sample_names != self.sample_names:
-            raise RuntimeError('Sample names in WES GVCF and WGS VCF do not match. If you want to score only a subset of the samples, provide the same sample_names argument to both score_wes_gvcf and score_wgs_vcf.\nWES GVCF sample names:' +str(self.sample_names) + '\nWGS VCF sample names:' + str(sample_names))
-        self.sample_names = sample_names
-
-        print(f'  Scoring {len(self.sample_names)} samples...')
-
-        if self.gvcf_sites_scored_set is None:
-            self.gvcf_sites_scored_set = {sample_name: set() for sample_name in self.sample_names}
-
-        self.vcf_sample_score = {sample_name: 0 for sample_name in self.sample_names}
-        self.vcf_sites_scored = {sample_name: [] for sample_name in self.sample_names}
-        self.vcf_num_sites_not_found = 0
-
-        for _, weight in self.prs_weights.iterrows():
-            site_records = vcf.fetch(weight.contig, weight.position - 1, weight.position)
-
-            # Get first record
-            record = next(site_records, None)
-            self._check_biallelic(record)
-
-            # Find the record that matches the weight
-            while record is None or record.pos != weight.position or record.ref != weight.ref or weight.alt != record.alts[0]:
-                # If fetch yields no more records at this position, break here
-                if record is None:
-                    break
-                record = next(site_records, None)
-                self._check_biallelic(record)
-
-            # Skip the weight if the record was not found
-            if record is None:
-                self.vcf_num_sites_not_found += 1
-                print('  Site not found in VCF:', weight.locus, weight.ref, weight.alt)
-                continue
+        with pysam.VariantFile(wgs_vcf_path, "r") as vcf:
+            if sample_names is None:
+                sample_names = list(vcf.header.samples)
             
-            self._vcf_score_dosage(record, weight)
+            # Check if the sample names match the ones from the WES GVCF scoring, or if they are None (i.e. WES GVCF scoring was not performed), set them below
+            if self.sample_names is not None and sample_names != self.sample_names:
+                raise RuntimeError('Sample names in WES GVCF and WGS VCF do not match. If you want to score only a subset of the samples, provide the same sample_names argument to both score_wes_gvcf and score_wgs_vcf.\nWES GVCF sample names:' +str(self.sample_names) + '\nWGS VCF sample names:' + str(sample_names))
+            self.sample_names = sample_names
+
+            print(f'  Scoring {len(self.sample_names)} samples...')
+
+            if self.gvcf_sites_scored_set is None:
+                self.gvcf_sites_scored_set = {sample_name: set() for sample_name in self.sample_names}
+
+            self.vcf_sample_score = {sample_name: 0 for sample_name in self.sample_names}
+            self.vcf_sites_scored = {sample_name: [] for sample_name in self.sample_names}
+            self.vcf_num_sites_not_found = 0
+
+            asyncio.run(self._process_weights_wgs_asyncio(self.prs_weights, vcf))
+
+        for sample_name in self.sample_names:
+            self.vcf_sites_scored[sample_name].sort(key=self.sites_scored_sort_key)
+        
         self._print_wgs_vcf_metrics()
         if self.gvcf_sites_scored is not None:
             self._print_wes_and_wgs_metrics()
