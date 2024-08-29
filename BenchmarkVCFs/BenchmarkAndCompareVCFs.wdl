@@ -9,7 +9,6 @@ workflow BenchmarkAndCompareVCFs {
         Array[String] configurations
 
         Boolean include_counts = false
-        Boolean generate_gc_plots = false
 
         Array[String]? order_of_samples
         Array[String]? order_of_configurations
@@ -17,80 +16,62 @@ workflow BenchmarkAndCompareVCFs {
 
         Int? preemptible
         # Variables on a input sample level
-        Array[File] evalVcf
-        Array[File] evalVcfIndex
-        Array[File] truthVcf
-        Array[File] confidenceInterval
-        Array[File] truthVcfIndex
+        Array[File] base_vcfs
+        Array[File] base_vcf_indices
+        Array[String] base_output_sample_names
 
-        # Set on an analysis level
-        String? analysisRegion
-        Array[String]? jexlVariantSelectors
-        Array[String]? variantSelectorLabels
-        File? gatkJarForAnnotation
-        Array[String]? annotationNames
-        String? vcfScoreField
-        String? dummyInputForTerraCallCaching
-        File reference
-        File refIndex
-        File refDict
-        File hapMap
-        Array[File] stratIntervals = []
-        Array[String] stratLabels = []
-        String referenceVersion
-        Int? threadsVcfEval=2
-        Boolean doIndelLengthStratification=true
-        Int? preemptible
-        String gatkTag="4.0.11.0"
-        Boolean requireMatchingGenotypes=true
-        Boolean enableRefOverlap = false
-        Boolean passingOnly=true
+        Array[File] evaluation_intervals
+
+        Array[File] query_vcfs
+        Array[File] query_vcf_indices
+        Array[String] query_output_sample_names
+
+        # Reference information
+        File ref_fasta
+        File ref_index
+
+        # Subsetting inputs using intervals
+        Array[File] stratifier_intervals = []
+        Array[String] stratifier_labels = []
+
+        # Evaluation inputs
+        String score_field = "GQ"
+
+        # Columns to add to output files
+        String experiment = ""
+        Array[String] extra_column_names = []
+        Array[String] extra_column_values = []
     }
 
 
-    scatter(i in range(length(evalVcf))) {
-        call BenchmarkVCFs.Benchmark as Benchmark {
+    scatter(i in range(length(base_vcfs))) {
+        call BenchmarkVCFs.BenchmarkVCFs as Benchmark {
             input:
-                evalVcf = evalVcf[i],
-                evalLabel = sample_ids[i],
-                evalVcfIndex = evalVcfIndex[i],
-                truthVcf = truthVcf[i],
-                confidenceInterval = confidenceInterval[i],
-                truthLabel = "truth",
-                truthVcfIndex = truthVcfIndex[i],
+                base_vcf=base_vcfs[i],
+                base_vcf_index=base_vcf_indices[i],
+                base_output_sample_name=base_output_sample_names[i],
+                query_vcf=query_vcfs[i],
+                query_vcf_index=query_vcf_indices[i],
+                query_output_sample_name=query_output_sample_names[i],
+                ref_fasta=ref_fasta,
+                ref_index=ref_index,
+                stratifier_intervals=stratifier_intervals,
+                stratifier_labels=stratifier_labels,
+                score_field=score_field,
+                experiment=experiment,
+                extra_column_names=extra_column_names,
+                extra_column_values=extra_column_values
 
-                analysisRegion = analysisRegion,
-                reference = reference,
-                refIndex = refIndex,
-                refDict = refDict,
-                hapMap = hapMap,
-                stratIntervals = stratIntervals,
-                stratLabels = stratLabels,
-                jexlVariantSelectors = jexlVariantSelectors,
-                variantSelectorLabels = variantSelectorLabels,
-                referenceVersion = referenceVersion,
-                threadsVcfEval = threadsVcfEval,
-                doIndelLengthStratification = doIndelLengthStratification,
-                preemptible = preemptible,
-                gatkTag = gatkTag,
-                requireMatchingGenotypes = requireMatchingGenotypes,
-                gatkJarForAnnotation = gatkJarForAnnotation,
-                annotationNames = annotationNames,
-                enableRefOverlap = enableRefOverlap,
-                passingOnly = passingOnly,
-                vcfScoreField = vcfScoreField,
-                dummyInputForTerraCallCaching = dummyInputForTerraCallCaching
         }
     }
 
     call CompareBenchmarks.CompareBenchmarks as CompareBenchmarks {
         input:
-            benchmark_summaries = Benchmark.summary,
+            benchmark_summaries = Benchmark.SimpleSummary,
             sample_ids = sample_ids,
             configurations = configurations,
-            stratifiers = stratLabels,
+            stratifiers = stratifier_labels,
             include_counts = include_counts,
-            generate_gc_plots = generate_gc_plots,
             order_of_samples = order_of_samples,
             order_of_configurations = order_of_configurations,
             deltas = deltas,
@@ -100,7 +81,7 @@ workflow BenchmarkAndCompareVCFs {
     scatter(i in range(length(sample_ids))) {
         call RenameSummary {
             input:
-                input_summary = Benchmark.summary[i],
+                input_summary = Benchmark.SimpleSummary[i],
                 suffix = sample_ids[i] + "_" + configurations[i],
                 preemptible = preemptible
         }
@@ -109,7 +90,6 @@ workflow BenchmarkAndCompareVCFs {
     output {
         File comparison_csv = CompareBenchmarks.comparison_csv
         File raw_data = CompareBenchmarks.raw_data
-        Array[File]? gc_plots = CompareBenchmarks.gc_plots
         Array[File] summaries = RenameSummary.summary
     }
 }

@@ -9,7 +9,6 @@ workflow CompareBenchmarks {
         Array[String]? stratifiers
 
         Boolean include_counts = false
-        Boolean generate_gc_plots = false
 
         Array[String]? order_of_samples
         Array[String]? order_of_configurations
@@ -32,24 +31,10 @@ workflow CompareBenchmarks {
             mem_gb = mem_gb,
             preemptible = preemptible
     }
-    
-    if (generate_gc_plots) {
-        call CreateGCPlotsTask {
-            input:
-                sample_ids = sample_ids,
-                configurations = configurations,
-                benchmark_summaries = benchmark_summaries,
-                order_of_samples = order_of_samples,
-                order_of_configurations = order_of_configurations,
-                mem_gb = mem_gb,
-                preemptible = preemptible
-        }
-    }
 
     output {
         File comparison_csv = CompareBenchmarksTask.comparison_csv
         File raw_data = CompareBenchmarksTask.raw_data
-        Array[File]? gc_plots = CreateGCPlotsTask.gc_plots
     }
 }
 
@@ -107,7 +92,7 @@ def calculate_metrics(data, unique_sample_ids, unique_configurations, stratifier
                 fn['all'] = fn['SNP'] + fn['INDEL']
                 
                 for var_type in ['SNP', 'INDEL', 'all']:
-                    recalculated_data = recalculated_data.append({
+                    recalculated_data = pd.concat([recalculated_data, pd.DataFrame({
                         'sample_id': sample_id,
                         'configuration': configuration,
                         'Stratifier': stratifier,
@@ -118,8 +103,8 @@ def calculate_metrics(data, unique_sample_ids, unique_configurations, stratifier
                         'Precision': tp[var_type]/(tp[var_type] + fp[var_type]) if tp[var_type] + fp[var_type] > 0 else np.nan,
                         'Sensitivity': tp[var_type]/(tp[var_type] + fn[var_type]) if tp[var_type] + fn[var_type] > 0 else np.nan,
                         'F-Measure': tp[var_type]/(tp[var_type] + 0.5*(fp[var_type] + fn[var_type])) if tp[var_type] + fp[var_type] + fn[var_type] > 0 else np.nan
-                        }, ignore_index=True)
-    return recalculated_data
+                        }, index=[0])])
+    return recalculated_data.reset_index(drop=True)
                 
 def plot_sample(data, i_sample, sample_id, unique_configurations, stratifiers):
     fig, axes = plt.subplots(2, 2, figsize=(10, 8))
@@ -148,7 +133,10 @@ def main(sample_ids, configurations, summaries, order_of_samples, order_of_confi
 
     samples_data = []
     for i in range(len(sample_ids)):
-        sample_data = pd.read_csv(summaries[i])
+        sample_data = pd.read_csv(summaries[i], sep='\t')
+        sample_data = sample_data.rename(columns={
+            'Interval': 'Stratifier'
+        })
 
         # Filter out everything other than SNP or INDEL rows, and stratifiers starting with "gc"
         sample_data = sample_data.loc[((sample_data['Type'] == 'SNP') | (sample_data['Type'] == 'INDEL')) & (sample_data['Stratifier'].str.startswith("gc"))]
@@ -329,7 +317,7 @@ def write_stratifier(output:ChainableOutput, stratifier:str, data:pd.DataFrame, 
                         delta = int(current_value) - int(base_value)
                         output.sep().cells(['{}'.format(delta)])
                     else:
-                        delta_pct = (current_value - base_value) / base_value
+                        delta_pct = np.float64(current_value - base_value) / base_value    # Use numpy in case div by zero
                         output.sep().cells(['{:.2%}'.format(delta_pct)])
         output.sep().cells([var_type, stratifier if var_type == 'SNP' else '']).new_line()
 
@@ -350,7 +338,7 @@ def calculate_metrics(data, unique_sample_ids, unique_configurations, stratifier
                 fn['all'] = fn['SNP'] + fn['INDEL']
                 
                 for var_type in ['SNP', 'INDEL', 'all']:
-                    recalculated_data = recalculated_data.append({
+                    recalculated_data = pd.concat([recalculated_data, pd.DataFrame({
                         'sample_id': sample_id,
                         'configuration': configuration,
                         'Stratifier': stratifier,
@@ -361,8 +349,8 @@ def calculate_metrics(data, unique_sample_ids, unique_configurations, stratifier
                         'Precision': tp[var_type]/(tp[var_type] + fp[var_type]) if tp[var_type] + fp[var_type] > 0 else np.nan,
                         'Sensitivity': tp[var_type]/(tp[var_type] + fn[var_type]) if tp[var_type] + fn[var_type] > 0 else np.nan,
                         'F-Measure': tp[var_type]/(tp[var_type] + 0.5*(fp[var_type] + fn[var_type])) if tp[var_type] + fp[var_type] + fn[var_type] > 0 else np.nan
-                        }, ignore_index=True)
-    return recalculated_data
+                        }, index=[0])])
+    return recalculated_data.reset_index(drop=True)
                 
 
 
@@ -378,7 +366,10 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
 
     samples_data = []
     for i in range(len(sample_ids)):
-        sample_data = pd.read_csv(summaries[i])
+        sample_data = pd.read_csv(summaries[i], sep='\t')
+        sample_data = sample_data.rename(columns={
+            'Interval': 'Stratifier'
+        })
 
         # Filter out everything other than SNP or INDEL rows
         sample_data = sample_data.loc[(sample_data['Type'] == 'SNP') | (sample_data['Type'] == 'INDEL')]
@@ -388,7 +379,7 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
         sample_data['configuration'] = configurations[i]
         samples_data.append(sample_data)
     data = pd.concat(samples_data)
-    data = data.fillna({'Stratifier': 'all'})
+    data = data.fillna({'Stratifier': 'AllRegions'})
 
     if order_of_samples is None:
         unique_sample_ids = data['sample_id'].unique()
@@ -403,7 +394,7 @@ def main(sample_ids, configurations, summaries, stratifiers, order_of_samples, o
     if stratifiers is None:
         stratifiers = data['Stratifier'].unique()
     else:
-        stratifiers = ['all'] + stratifiers
+        stratifiers = ['AllRegions'] + stratifiers
 
     data = calculate_metrics(data, unique_sample_ids, unique_configurations, stratifiers)
 

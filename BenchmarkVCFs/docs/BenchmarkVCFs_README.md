@@ -1,29 +1,29 @@
-# SimpleBenchmark Guide
+# BenchmarkVCFs Guide
 
-This guide describes an overview of the [SimpleBenchmark](SimpleBenchmark.wdl) WDL used for evaluating VCF performance against a known baseline. This includes how to toggle inputs for different goals and a description of the code structure.
+This guide describes an overview of the [BenchmarkVCFs](../BenchmarkVCFs.wdl) WDL used for evaluating VCF performance against a known baseline. This includes how to toggle inputs for different goals and a description of the code structure.
 
 Some useful resources referenced below:
 * `bcftools` [Filtering Expressions](https://samtools.github.io/bcftools/bcftools.html#expressions)
 * [RTG manual](https://cdn.jsdelivr.net/gh/RealTimeGenomics/rtg-core@master/installer/resources/core/RTGOperationsManual.pdf),
-particularly the section on `vcfeval`
+  particularly the section on `vcfeval`
 
 ---
 
 ## Acknowledgements
 
-This tool was heavily inspired by the previously developed BenchmarkVCFs and FindSamplesAndBenchmark tools, with some code lifted directly or slightly modified from both. The overall layout of this workflow follows the GA4GH Benchmarking guidelines as outlined [here](https://github.com/ga4gh/benchmarking-tools/blob/master/doc/ref-impl/README.md). 
+This tool was heavily inspired by the previously developed BenchmarkVCFs (original author: Chris Kachulis) and FindSamplesAndBenchmark (original author: Megan Shand) tools, with some code lifted directly or slightly modified from older versions of both. The overall layout of this workflow follows the GA4GH Benchmarking guidelines as outlined [here](https://github.com/ga4gh/benchmarking-tools/blob/master/doc/ref-impl/README.md).
 
 ---
 
 ## Table of Contents
 
 1. [Usage](#usage)
-   1. [Workflow Inputs](#workflow-inputs)
-   2. [Interpreting Output Data](#interpreting-output-data)
+    1. [Workflow Inputs](#workflow-inputs)
+    2. [Interpreting Output Data](#interpreting-output-data)
 2. [Structure of the Workflow](#structure-of-the-workflow)
-   1. [Classify Variants](#classify-variants)
-   2. [Compute Statistics](#compute-statistics)
-   3. [Combine Statistics](#combine-statistics)
+    1. [Classify Variants](#classify-variants)
+    2. [Compute Statistics](#compute-statistics)
+    3. [Combine Statistics](#combine-statistics)
 3. [Ploidy Defaults](#ploidy-defaults)
 
 
@@ -33,7 +33,7 @@ This tool was heavily inspired by the previously developed BenchmarkVCFs and Fin
 
 ### Workflow Inputs
 
-The following are the top-level inputs for the workflow. 
+The following are the top-level inputs for the workflow.
 
 * `base_vcf` - the VCF to use as baseline.
 * `base_vcf_index` - the index of the VCF to use as baseline.
@@ -56,8 +56,11 @@ The following are the top-level inputs for the workflow.
 * `score_field` - (default = `"GQ"`) an optional field to use for stratifying ROC data. The `vcfeval` tool will be run to produce the proper ROC data with the given string input to `--vcf-score-field`. Example values include `"GQ"`, `INFO.<NAME>`, and `FORMAT.<NAME>`. See the `vcfeval` documentation for more information. **WARNING**: Some values might not make sense to stratify when interested in *both* precision and recall statistics. For example, with the value `FORMAT.DP` it might make sense to evaluate precision of calls made by depth in the callset, but often the baseline/truth doesn't have any intrinsic DP associated with each variant, and so any present in the baseline may lead to misleading recall statistics.
 
 * `experiment` - an optional string to populate "Experiment" column in final output tables. Useful for incorporating Terra table information about experimental groups to do grouped analyses downstream, or for easier integration into provided visualizer tools.
-* `extra_column_name` - an optional string title for an additional column to add to final output tables, for downstream analysis.
-* `extra_column_value` - values to populate in the optional `extra_column`, if specified. To make downstream analysis easier by incorporating Terra table information, e.g. `MEAN_COVERAGE`.
+* `extra_column_names` - an optional list of strings for a additional columns to add to final output tables, for downstream analysis.
+* `extra_column_values` - values to populate in the optional `extra_column_names` entries, if specified. To make downstream analysis easier by incorporating Terra table information, e.g. `MEAN_COVERAGE`.
+
+* `check_fingerprints` - (default = `true`) controls whether to fingerprint base and query against each other to ensure appropriately comparing same samples
+* `haplotype_map` - input required only for when running fingerprinting
 
 * `create_igv_session` - if true, an XML for an IGV session with relevant files will be created and output.
 * `optional_igv_bams` - an optional list of bams to include in the IGV session output; these are considered `String`s, so no overhead runtime cost is accrued from larger files.
@@ -77,10 +80,10 @@ performance on different inputs.
 
 There are four files output by the workflow. They are:
 
-* `SimpleSummary` - This file contains counts of the usual TP, FP, etc. statistics, along with computed Precision, Recall, and F1_Score stats. These are broken down by user-provided intervals, and by zygosity of variants. 
+* `SimpleSummary` - This file contains counts of the usual TP, FP, etc. statistics, along with computed Precision, Recall, and F1_Score stats. These are broken down by user-provided intervals, and by zygosity of variants.
 * `IndelDistributionStats` - This file contains distributions of the TP, FP, etc. statistics by length of INDEL, where negative values correspond to deletions. For convenience, the column `INDEL_Type` labels the variant class as `Ins` or `Del` accordingly, so users can readily group and process their own statistics per class.
 * `SNPSubstitutionStats` - This file contains distributions of the TP, FP, etc. statistics by SNP substitution
-(e.g. `A>C`, `A>G`, etc.). For convenience, the column `Substitution_Type` labels the variant class as `Ti` or `Tv` depending on if the substitution is a transition or transversion accordingly, so users can readily group and process their own statistics per class.
+  (e.g. `A>C`, `A>G`, etc.). For convenience, the column `Substitution_Type` labels the variant class as `Ti` or `Tv` depending on if the substitution is a transition or transversion accordingly, so users can readily group and process their own statistics per class.
 * `ROCStats` - This file is the ROC outputs by `vcfeval`, relative to the whole genome. A `score_field` column records the user input score label for the given row.
 
 The convention as advised by RTG when computing Precision / Recall statistics is:

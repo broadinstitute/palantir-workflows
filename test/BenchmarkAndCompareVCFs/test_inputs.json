@@ -1,0 +1,18 @@
+{
+  "BenchmarkAndCompareVCFs.base_output_sample_names": ["SM-1", "SM-1", "SM-1"],
+  "BenchmarkAndCompareVCFs.base_vcf_indices": ["gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.truth.vcf.gz.tbi", "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.truth.vcf.gz.tbi", "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.truth.vcf.gz.tbi"],
+  "BenchmarkAndCompareVCFs.base_vcfs": ["gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.truth.vcf.gz", "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.truth.vcf.gz", "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.truth.vcf.gz"],
+  "BenchmarkAndCompareVCFs.configurations": ["Test1", "Test2", "Test3"],
+  "BenchmarkAndCompareVCFs.evaluation_intervals": ["gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.confidence.interval_list", "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.confidence.interval_list", "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.confidence.interval_list"],
+  "BenchmarkAndCompareVCFs.query_output_sample_names": ["SM-1", "SM-1", "SM-1"],
+  "BenchmarkAndCompareVCFs.query_vcf_indices": ["gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.eval.vcf.gz.tbi", "gs://palantir-workflows-test-data/BenchmarkAndCompareVCFs/inputs/test2.eval.vcf.gz.tbi", "gs://palantir-workflows-test-data/BenchmarkAndCompareVCFs/inputs/test3.eval.vcf.gz.tbi"],
+  "BenchmarkAndCompareVCFs.query_vcfs": ["gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.eval.vcf.gz", "gs://palantir-workflows-test-data/BenchmarkAndCompareVCFs/inputs/test2.eval.vcf.gz", "gs://palantir-workflows-test-data/BenchmarkAndCompareVCFs/inputs/test3.eval.vcf.gz"],
+  "BenchmarkAndCompareVCFs.ref_fasta": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.fasta",
+  "BenchmarkAndCompareVCFs.ref_index": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.fasta.fai",
+  "BenchmarkAndCompareVCFs.sample_ids": ["SM-1", "SM-1", "SM-1"],
+  "BenchmarkAndCompareVCFs.Benchmark.check_fingerprint": false,
+  "BenchmarkAndCompareVCFs.deltas": [0, 1, 0, 2],
+  "BenchmarkAndCompareVCFs.experiment": "Test",
+  "BenchmarkAndCompareVCFs.stratifier_intervals": ["gs://palantir-workflows-test-data/BenchmarkAndCompareVCFs/inputs/test_region.bed"],
+  "BenchmarkAndCompareVCFs.stratifier_labels": ["TestRegion"]
+}

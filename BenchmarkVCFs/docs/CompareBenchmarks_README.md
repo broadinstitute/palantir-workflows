@@ -20,8 +20,8 @@ It is possible to provide more than two different configurations and more than o
 
 - `Array[String] sample_ids`: The names of one or more different samples. The comparisons will be made between configurations for each sample individually.
 - `Array[String] configurations`: The labels for the different configurations that should be compared to each other.
-- `Array[File] benchmark_summaries`: The output `summary.tsv` files from the `BenchmarkVCFs` workflow.
-- `Array[String]? stratifiers`: This input requires the same labels as the `stratLabels` input that has been passed to `BenchmarkVCFs`.
+- `Array[File] benchmark_summaries`: The output `SimpleSummary.tsv` files from the `BenchmarkVCFs` workflow.
+- `Array[String]? stratifiers`: This input requires the same labels as the `stratifier_labels` input that has been passed to `BenchmarkVCFs`.
 - `Boolean include_counts = false`: If set to false, the resulting metrics will be Sensitivity, Precision and F-Measure. If set to true, the output table will also include the number of TP, FP and FN variants for each stratifier.
 - `Array[String]? order_of_samples`: If multiple different sample names are provided you can specify the order of those samples in the resulting table. Here, each sample name only has to be specified once, not once for each input VCF. If not specified, the order will be determined by the input files.
 - `Array[String]? order_of_configurations`: This input determines the order of the configurations in the resulting table. Just as above, each configuration only has to be specified once, not once for each input VCF. If not specified, the order will be determined by the input files.
@@ -29,9 +29,6 @@ It is possible to provide more than two different configurations and more than o
 - `Int? mem_gb`: Optional input overriding the default memory.
 - `Int? preemptible`: Optional input overriding the default number of preemptible attempts.
 
-### Generating Plots for Different GC Content
-
-In addition to generating the CSV file containing the comparisons, this workflow can generate plots that show precision and sensitivity over different bins of GC content. In order to do this, include the stratifier intervals in `gs://broad-dsde-methods-hydro-gen-truth-data-public/NIST/GIAB/genome_stratifications/gc` (from the [GIAB Github repo](https://github.com/genome-in-a-bottle/genome-stratifications/blob/master/GRCh38/GCcontent/GRCh38-GCcontent-README.md), also available for [GRCh37](https://github.com/genome-in-a-bottle/genome-stratifications/blob/master/GRCh37/GCcontent/GRCh37-GCcontent-README.md)) when running `BenchmarkVCFs`. Whatever set of GC bins is chosen, the `stratLabels` must start with `gc` and will be sorted alphabetically, i.e. `gc15` will be before `gc15to20` on the horizontal axes of the plots.
 
 ## Notebook for Exporting Results to Google Sheets
 
