@@ -6,6 +6,7 @@ task PerformPCA {
     File bed
     File fam
     String basename
+    Int n_pcs = 20
     Int mem = 8
     Int nthreads = 16
   }
@@ -21,7 +22,7 @@ task PerformPCA {
     ~/flashpca/flashpca \
       --bfile ~{basename} \
       -n ~{nthreads} \
-      -d 20 \
+      -d ~{n_pcs} \
       --memory ~{mem_gb} \
       --outpc ~{basename}.pc \
       --outpve ~{basename}.pc.variance \
