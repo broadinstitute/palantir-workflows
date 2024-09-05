@@ -11,6 +11,7 @@ workflow PerformPopulationPCA {
     Array[File] imputed_array_vcfs # limit to TYPED and TYPED_ONLY sites before LD pruning.  Also will limit population to sites in imputed vcf for scoring correction
     Array[File] original_array_vcfs
     Array[File]? subset_to_sites
+    String? chromosome_encoding
   }
  
   # this task seaparates multiallelics and changes variant IDs to chr:pos:ref:alt1 (bc there are no multiallelics now, alt1=alt)
@@ -70,7 +71,8 @@ workflow PerformPopulationPCA {
 	  call SelectSitesOriginalArray {
 		input:
 			vcf = original_array_vcf,
-			basename = basename
+			basename = basename,
+      chromosome_encoding = chromosome_encoding
 	  }
   }
  
@@ -84,7 +86,8 @@ workflow PerformPopulationPCA {
       basename = basename,
       imputed_typed_sites = ExtractIDsTyped.ids,
       original_array_sites = SelectSitesOriginalArray.ids,
-      selected_sites = subset_to_sites
+      selected_sites = subset_to_sites,
+      chromosome_encoding = chromosome_encoding
   }
   
   # perform PCA using flashPCA
@@ -125,6 +128,7 @@ task SelectSitesOriginalArray {
 		File vcf
 		String basename
 		Int mem = 8
+    String? chromosome_encoding
 	}
 
 	Int disk_size =  ceil(size(vcf, "GB")) + 50
@@ -136,7 +140,7 @@ task SelectSitesOriginalArray {
 		--geno 0.001 \
 		--snps-only \
 		--write-snplist \
-		--out ~{basename}_selected
+		--out ~{basename}_selected ~{"--output-chr " + chromosome_encoding}
 	>>>
 
  	runtime {
@@ -190,6 +194,7 @@ task LDPruning {
     Int mem = 8
     Int disk_size = 1000
     String basename
+    String? chromosome_encoding
   }
    
   # all these numbers are from Wallace Wang
@@ -203,7 +208,7 @@ task LDPruning {
     --maf 0.01 \
     --allow-extra-chr \
     --not-chr X \
-    --out ~{basename} 
+    --out ~{basename} ~{"--output-chr " + chromosome_encoding}
 
     /plink2 --vcf ~{vcf} \
     --rm-dup force-first \
@@ -212,7 +217,7 @@ task LDPruning {
     --make-bed \
     --allow-extra-chr \
     --not-chr X \
-    --out ~{basename}
+    --out ~{basename} ~{"--output-chr " + chromosome_encoding}
   >>>
 
   output {

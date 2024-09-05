@@ -79,10 +79,16 @@ workflow ScoringImputedDataset {
 		}
   }
 
+	call ScoringTasks.DetermineChromosomeEncoding {
+		input:
+			weights = named_weight_set.weight_set.linear_weights
+	}
+
 	if (adjustScores && defined(population_vcf)) {
 		call ScoringTasks.ExtractIDsPlink as ExtractIDsPopulation {
 			input:
-				vcf = select_first([population_vcf])
+				vcf = select_first([population_vcf]),
+			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
 		}
 	}
 
@@ -100,11 +106,6 @@ workflow ScoringImputedDataset {
 
 	if (defined(ExtractIDsPopulation.ids) || defined(sites_used_in_scoring_for_model)) {
 		File sites_to_use_in_scoring = select_first([ExtractIDsPopulation.ids, sites_used_in_scoring_for_model])
-	}
-
-	call ScoringTasks.DetermineChromosomeEncoding {
-		input:
-			weights = named_weight_set.weight_set.linear_weights
 	}
 
 	call ScoringTasks.ScoreVcf as ScoreImputedArray {
@@ -140,7 +141,8 @@ workflow ScoringImputedDataset {
 	if (adjustScores) {
 		call ScoringTasks.ExtractIDsPlink {
 			input:
-				vcf = imputed_array_vcf
+				vcf = imputed_array_vcf,
+			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
 		}
 
 		if (redoPCA && defined(population_vcf)) {
@@ -149,7 +151,8 @@ workflow ScoringImputedDataset {
 					vcf = select_first([population_vcf]),
 					pruning_sites = select_first([pruning_sites_for_pca]),
 					subset_to_sites = ExtractIDsPlink.ids,
-					basename = "population"
+					basename = "population",
+					chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
 			}
 
 			call PCATasks.PerformPCA {
@@ -166,7 +169,8 @@ workflow ScoringImputedDataset {
 			vcf = imputed_array_vcf,
 			pruning_sites = select_first([pruning_sites_for_pca]),
 			basename = basename,
-			mem = vcf_to_plink_mem
+			mem = vcf_to_plink_mem,
+			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
 		}
 
 		if (defined(population_vcf)) {

@@ -114,6 +114,7 @@ task ArrayVcfToPlinkDataset {
     File? subset_to_sites
     String basename
     Int mem = 8
+    String? chromosome_encoding
   }
 
   Int disk_space =  3 * ceil(size(vcf, "GB")) + 20
@@ -127,7 +128,7 @@ task ArrayVcfToPlinkDataset {
       --new-id-max-allele-len 1000 missing \
       --out ~{basename} \
       --make-bed \
-      --rm-dup force-first
+      --rm-dup force-first ~{"--output-chr " + chromosome_encoding}
   >>>
 
   output {
