@@ -88,7 +88,7 @@ workflow ScoringImputedDataset {
 		call ScoringTasks.ExtractIDsPlink as ExtractIDsPopulation {
 			input:
 				vcf = select_first([population_vcf]),
-			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
+				chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
 		}
 	}
 
