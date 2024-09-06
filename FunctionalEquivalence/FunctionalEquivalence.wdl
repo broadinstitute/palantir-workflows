@@ -5,8 +5,25 @@ import "subworkflows/FEEvaluation.wdl" as FEEvaluation
 import "subworkflows/F1Evaluation.wdl" as F1Evaluation
 import "subworkflows/PlotROC.wdl" as PlotROC
 
+struct VcfFile {
+    String sample_id
+    File file
+    File index
+    String dataset
+    File confidence_intervals
+    Int num    # placeholder for position in list for cross product
+}
+
+struct TruthVcf {
+    String sample_id
+    File file
+    File index
+    File confidence_intervals
+    String dataset
+}
+
 workflow FunctionalEquivalence {
-    input{
+    input {
         Array[String] sample_id
         Array[String] dataset
 
@@ -19,301 +36,259 @@ workflow FunctionalEquivalence {
 
         Array[String] truth_vcf
         Array[String] truth_vcf_index
+        Array[String] truth_vcf_sample_names
 
-        Array[File]? stratIntervals
-        Array[String]? stratLabels
+        Array[File]? stratifier_intervals
+        Array[String]? stratifier_labels
 
-        File reference
-        String referenceVersion = "hg38"
-        File refIndex
-        File refDict
-        File hapMap
+        String score_field = "QUAL"
+
+        File ref_fasta
+        File ref_index
+        File haplotype_map
 
         String tool1_label
         String tool2_label
         String? additional_label
 
+        # vcfeval Arguments
+        Boolean passing_only = true
+        Boolean require_matching_genotypes = true
+        Boolean enable_ref_overlap = false
+
         Boolean signed_difference = false
 
-        String gatkTag="4.0.11.0"
-        Boolean passingOnly=true
-        Boolean requireMatchingGenotypes=true
-        String vcfScoreField = "QUAL"
-        Int? threadsVcfEval=2
         Int? preemptible = 3
     }
-        
-    scatter (i in range(length(sample_id))) {
-        if (truth_vcf[i] != "null") {
-            call BenchmarkVCFs.Benchmark as EvalVsTruthTool1 {
-                input:
-                    confidenceInterval = confidence_intervals[i],
-                    truthLabel = "truth",
-                    evalLabel = dataset[i] + "." + i + ".tool1",
-                    truthVcf = truth_vcf[i],
-                    truthVcfIndex = truth_vcf_index[i],
-                    evalVcf = tool1_vcf[i],
-                    evalVcfIndex = tool1_vcf_index[i],
-                    stratIntervals = stratIntervals,
-                    stratLabels = stratLabels,
-                    reference = reference,
-                    refIndex = refIndex,
-                    refDict = refDict,
-                    referenceVersion = referenceVersion,
-                    hapMap = hapMap,
-                    gatkTag = gatkTag,
-                    passingOnly = passingOnly,
-                    requireMatchingGenotypes = requireMatchingGenotypes,
-                    vcfScoreField = vcfScoreField,
-                    threadsVcfEval = threadsVcfEval,
-                    preemptible = preemptible,
-                    doIndelLengthStratification = false,
-                    enableRefOverlap = true
-            }
 
-            call BenchmarkVCFs.Benchmark as EvalVsTruthTool2 {
-                input:
-                    confidenceInterval = confidence_intervals[i],
-                    truthLabel = "truth",
-                    evalLabel = dataset[i] + "." + i + ".tool2",
-                    truthVcf = truth_vcf[i],
-                    truthVcfIndex = truth_vcf_index[i],
-                    evalVcf = tool2_vcf[i],
-                    evalVcfIndex = tool2_vcf_index[i],
-                    stratIntervals = stratIntervals,
-                    stratLabels = stratLabels,
-                    reference = reference,
-                    refIndex = refIndex,
-                    refDict = refDict,
-                    referenceVersion = referenceVersion,
-                    hapMap = hapMap,
-                    gatkTag = gatkTag,
-                    passingOnly = passingOnly,
-                    requireMatchingGenotypes = requireMatchingGenotypes,
-                    vcfScoreField = vcfScoreField,
-                    threadsVcfEval = threadsVcfEval,
-                    preemptible = preemptible,
-                    doIndelLengthStratification = false,
-                    enableRefOverlap = true
-            }
+    scatter (i in range(length(tool1_vcf))) {
+        VcfFile tool1_inputs = {"sample_id": sample_id[i], "file": tool1_vcf[i], "index": tool1_vcf_index[i], "dataset": dataset[i], "confidence_intervals": confidence_intervals[i], "num": i}
+    }
 
-            Array[File] roc_tables_1 = flatten([
-                select_all(EvalVsTruthTool1.snpRocs),
-                select_all(EvalVsTruthTool1.nonSnpRocs),
-                select_all(EvalVsTruthTool2.snpRocs),
-                select_all(EvalVsTruthTool2.nonSnpRocs)
-            ])
-        
-            call PlotROC.PlotROC as ROCPlot {
-                input:
-                    sample_id = sample_id[i],
-                    roc_tables = roc_tables_1,
-                    tool1_label = tool1_label,
-                    tool2_label = tool2_label,
-                    stratifiers = select_first([stratLabels, []]),
-                    additional_label = additional_label,
-                    preemptible = preemptible
-            }
-            Array[File] roc_plots_1 = ROCPlot.plots
-        } # if truth_vcf[i] != "null"
+    scatter (i in range(length(tool2_vcf))) {
+        VcfFile tool2_inputs = {"sample_id": sample_id[i], "file": tool2_vcf[i], "index": tool2_vcf_index[i], "dataset": dataset[i], "confidence_intervals": confidence_intervals[i], "num": i}
+    }
 
-        call BenchmarkVCFs.Benchmark as VcfEval_Inter {
+    scatter (i in range(length(truth_vcf))) {
+        TruthVcf truth_inputs = {"sample_id": truth_vcf_sample_names[i], "file": truth_vcf[i], "index": truth_vcf_index[i], "dataset": dataset[i], "confidence_intervals": confidence_intervals[i]}
+    }
+
+    ## Evaluate against the truth files
+    # Only used for F1Evaluation half of pipeline (ROC data)
+    scatter (paired_vcfs in zip(tool1_inputs, truth_inputs)) {
+        call BenchmarkVCFs.BenchmarkVCFs as EvalVsTruthTool1 {
             input:
-                evalLabel = "tool1." + dataset[i] + "." + i,
-                truthLabel = "tool2." + dataset[i] + "." + i,
-                evalVcf = tool1_vcf[i],
-                evalVcfIndex = tool1_vcf_index[i],
-                truthVcf = tool2_vcf[i],
-                truthVcfIndex = tool2_vcf_index[i],
-                confidenceInterval = confidence_intervals[i],
-                reference = reference,
-                refIndex = refIndex,
-                refDict = refDict,
-                hapMap = hapMap,
-                stratIntervals = stratIntervals,
-                stratLabels = stratLabels,
-                referenceVersion = referenceVersion,
-                threadsVcfEval = threadsVcfEval,
-                gatkTag = gatkTag,
-                requireMatchingGenotypes = requireMatchingGenotypes,
-                passingOnly = passingOnly,
-                vcfScoreField = vcfScoreField,
-                preemptible = preemptible,
-                doIndelLengthStratification = false,
-                enableRefOverlap = true
+                base_vcf=paired_vcfs.right.file,
+                base_vcf_index=paired_vcfs.right.index,
+                base_output_sample_name=paired_vcfs.right.sample_id,
+                base_vcf_sample_name=paired_vcfs.right.sample_id,
+                query_vcf=paired_vcfs.left.file,
+                query_vcf_index=paired_vcfs.left.index,
+                query_output_sample_name=paired_vcfs.left.sample_id,
+                query_vcf_sample_name=paired_vcfs.left.sample_id,
+                ref_fasta=ref_fasta,
+                ref_index=ref_index,
+                haplotype_map=haplotype_map,
+                stratifier_intervals=stratifier_intervals,
+                stratifier_labels=stratifier_labels,
+                evaluation_intervals=paired_vcfs.right.confidence_intervals,
+                score_field=score_field,
+                experiment="EvalVsTruthTool1",
+                extra_column_names=["Dataset", "Replicate", "Tool"],
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, "tool1"],
+                passing_only=passing_only,
+                require_matching_genotypes=require_matching_genotypes,
+                enable_ref_overlap=enable_ref_overlap,
         }
+    }
 
-        call RenameSummary as RenameSummaryInter {
+    scatter (paired_vcfs in zip(tool2_inputs, truth_inputs)) {
+        call BenchmarkVCFs.BenchmarkVCFs as EvalVsTruthTool2 {
             input:
-                input_summary = select_first([VcfEval_Inter.summary]),
-                name = "inter." + dataset[i] + "." + i,
+                base_vcf=paired_vcfs.right.file,
+                base_vcf_index=paired_vcfs.right.index,
+                base_output_sample_name=paired_vcfs.right.sample_id,
+                base_vcf_sample_name=paired_vcfs.right.sample_id,
+                query_vcf=paired_vcfs.left.file,
+                query_vcf_index=paired_vcfs.left.index,
+                query_output_sample_name=paired_vcfs.left.sample_id,
+                query_vcf_sample_name=paired_vcfs.left.sample_id,
+                ref_fasta=ref_fasta,
+                ref_index=ref_index,
+                haplotype_map=haplotype_map,
+                stratifier_intervals=stratifier_intervals,
+                stratifier_labels=stratifier_labels,
+                evaluation_intervals=paired_vcfs.right.confidence_intervals,
+                score_field=score_field,
+                experiment="EvalVsTruthTool2",
+                extra_column_names=["Dataset", "Replicate", "Tool"],
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, "tool2"],
+                passing_only=passing_only,
+                require_matching_genotypes=require_matching_genotypes,
+                enable_ref_overlap=enable_ref_overlap,
+        }
+    }
+
+    # Pair sample IDs with pairs of ROC table outputs from above two benchmarks
+    Array[Pair[String, Pair[File, File]]] plot_roc_tables = zip(sample_id, zip(EvalVsTruthTool1.ROCStats, EvalVsTruthTool2.ROCStats))
+
+    # Make ROC plot for each sample ID with paired ROC table outputs between the two tools
+    scatter(table in plot_roc_tables) {
+        call PlotROC.PlotROC as PlotROC {
+            input:
+                sample_id = table.left,
+                roc_tables = [table.right.left, table.right.right],
+                tool1_label = tool1_label,
+                tool2_label = tool2_label,
+                additional_label = additional_label,
                 preemptible = preemptible
         }
+    }
 
-        # Ideally we would want index j in [i+1;N] to avoid duplicates, but WDL does not support range to
-        # start at values != 0. Therefore, start at zero, count until N - i - 1 and then always add i+1.
-        #     j  in [i+1;N]     |  define j' = j-i-1
-        # <=> j' in [0;N-i-1]
-        scatter (j_minus_i_minus_1 in range(length(sample_id) - i - 1)) {
-            Int j = j_minus_i_minus_1 + i + 1
+    ## Evaluate across the two tools
+    # Only used for FEEvaluation half of pipeline
+    scatter (paired_vcfs in zip(tool1_inputs, tool2_inputs)) {
+        call BenchmarkVCFs.BenchmarkVCFs as EvalInterTool {
+            input:
+                base_vcf=paired_vcfs.right.file,
+                base_vcf_index=paired_vcfs.right.index,
+                base_output_sample_name=paired_vcfs.right.sample_id,
+                base_vcf_sample_name=paired_vcfs.right.sample_id,
+                query_vcf=paired_vcfs.left.file,
+                query_vcf_index=paired_vcfs.left.index,
+                query_output_sample_name=paired_vcfs.left.sample_id,
+                query_vcf_sample_name=paired_vcfs.left.sample_id,
+                ref_fasta=ref_fasta,
+                ref_index=ref_index,
+                haplotype_map=haplotype_map,
+                evaluation_intervals=paired_vcfs.left.confidence_intervals,
+                score_field=score_field,
+                stratifier_intervals=stratifier_intervals,
+                stratifier_labels=stratifier_labels,
+                experiment="EvalInterTool",
+                extra_column_names=["Dataset", "Replicate"],
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num],
+                passing_only=passing_only,
+                require_matching_genotypes=require_matching_genotypes,
+                enable_ref_overlap=enable_ref_overlap,
+        }
+    }
 
-            if (dataset[i] == dataset[j]) {
-                call BenchmarkVCFs.Benchmark as VcfEval_IntraTool1 {
-                    input:
-                        evalLabel = "tool1." + dataset[i] + "." + i,
-                        truthLabel = "tool1." + dataset[i] + "." + j,
-                        evalVcf = tool1_vcf[i],
-                        evalVcfIndex = tool1_vcf_index[i],
-                        truthVcf = tool1_vcf[j],
-                        truthVcfIndex = tool1_vcf_index[j],
-                        confidenceInterval = confidence_intervals[i],
-                        reference = reference,
-                        refIndex = refIndex,
-                        refDict = refDict,
-                        hapMap = hapMap,
-                        stratIntervals = stratIntervals,
-                        stratLabels = stratLabels,
-                        referenceVersion = referenceVersion,
-                        threadsVcfEval = threadsVcfEval,
-                        gatkTag = gatkTag,
-                        requireMatchingGenotypes = requireMatchingGenotypes,
-                        passingOnly = passingOnly,
-                        vcfScoreField = vcfScoreField,
-                        preemptible = preemptible,
-                        doIndelLengthStratification = false,
-                        enableRefOverlap = true
-                }
+    ## Evaluate within the same tool all possible pairs for both tools
+    scatter (index in cross(range(length(tool1_inputs)), range(length(tool1_inputs)))) {
+        if ((index.left < index.right) && (tool1_inputs[index.left].dataset == tool1_inputs[index.right].dataset)) {    # Only check when first has index less than second in cross product so no repeats
+            call BenchmarkVCFs.BenchmarkVCFs as EvalIntraTool1 {
+                input:
+                    base_vcf=tool1_inputs[index.left].file,
+                    base_vcf_index=tool1_inputs[index.left].index,
+                    base_output_sample_name=tool1_inputs[index.left].sample_id,
+                    base_vcf_sample_name=tool1_inputs[index.left].sample_id,
+                    query_vcf=tool1_inputs[index.right].file,
+                    query_vcf_index=tool1_inputs[index.right].index,
+                    query_output_sample_name=tool1_inputs[index.right].sample_id,
+                    query_vcf_sample_name=tool1_inputs[index.right].sample_id,
+                    ref_fasta=ref_fasta,
+                    ref_index=ref_index,
+                    haplotype_map=haplotype_map,
+                    evaluation_intervals=tool1_inputs[index.left].confidence_intervals,
+                    score_field=score_field,
+                    stratifier_intervals=stratifier_intervals,
+                    stratifier_labels=stratifier_labels,
+                    experiment="EvalIntraTool1",
+                    extra_column_names=["Dataset", "Replicate"],
+                    extra_column_values=[tool1_inputs[index.left].dataset, tool1_inputs[index.left].num],
+                    passing_only=passing_only,
+                    require_matching_genotypes=require_matching_genotypes,
+                    enable_ref_overlap=enable_ref_overlap,
+            }
+        }
+    }
 
-                call RenameSummary as RenameSummaryIntraTool1 {
-                    input:
-                        input_summary = select_first([VcfEval_IntraTool1.summary]),
-                        name = "tool1." + dataset[i] + "." + i + "." + j,
-                        preemptible = preemptible
-                }
+    scatter (index in cross(range(length(tool2_inputs)), range(length(tool2_inputs)))) {
+        if ((index.left < index.right) && (tool2_inputs[index.left].dataset == tool2_inputs[index.right].dataset)) {    # Only check when first has index less than second in cross product so no repeats
+            call BenchmarkVCFs.BenchmarkVCFs as EvalIntraTool2 {
+                input:
+                    base_vcf=tool2_inputs[index.left].file,
+                    base_vcf_index=tool2_inputs[index.left].index,
+                    base_output_sample_name=tool2_inputs[index.left].sample_id,
+                    base_vcf_sample_name=tool2_inputs[index.left].sample_id,
+                    query_vcf=tool2_inputs[index.right].file,
+                    query_vcf_index=tool2_inputs[index.right].index,
+                    query_output_sample_name=tool2_inputs[index.right].sample_id,
+                    query_vcf_sample_name=tool2_inputs[index.right].sample_id,
+                    ref_fasta=ref_fasta,
+                    ref_index=ref_index,
+                    haplotype_map=haplotype_map,
+                    evaluation_intervals=tool2_inputs[index.left].confidence_intervals,
+                    score_field=score_field,
+                    stratifier_intervals=stratifier_intervals,
+                    stratifier_labels=stratifier_labels,
+                    experiment="EvalIntraTool2",
+                    extra_column_names=["Dataset", "Replicate"],
+                    extra_column_values=[tool2_inputs[index.left].dataset, tool2_inputs[index.left].num],
+                    passing_only=passing_only,
+                    require_matching_genotypes=require_matching_genotypes,
+                    enable_ref_overlap=enable_ref_overlap,
+            }
+        }
+    }
 
-                call BenchmarkVCFs.Benchmark as VcfEval_IntraTool2 {
-                    input:
-                        evalLabel = "tool2." + dataset[i] + "." + i,
-                        truthLabel = "tool2." + dataset[j] + "." + j,
-                        evalVcf = tool2_vcf[i],
-                        evalVcfIndex = tool2_vcf_index[i],
-                        truthVcf = tool2_vcf[j],
-                        truthVcfIndex = tool2_vcf_index[j],
-                        confidenceInterval = confidence_intervals[i],
-                        reference = reference,
-                        refIndex = refIndex,
-                        refDict = refDict,
-                        hapMap = hapMap,
-                        stratIntervals = stratIntervals,
-                        stratLabels = stratLabels,
-                        referenceVersion = referenceVersion,
-                        threadsVcfEval = threadsVcfEval,
-                        gatkTag = gatkTag,
-                        requireMatchingGenotypes = requireMatchingGenotypes,
-                        passingOnly = passingOnly,
-                        vcfScoreField = vcfScoreField,
-                        preemptible = preemptible,
-                        doIndelLengthStratification = false,
-                        enableRefOverlap = true
-                }
-
-                call RenameSummary as RenameSummaryIntraTool2 {
-                    input:
-                        input_summary = select_first([VcfEval_IntraTool2.summary]),
-                        name = "tool2." + dataset[i] + "." + i + "." + j,
-                        preemptible = preemptible
-                }
-            } # if dataset[i] == dataset[j]
-
-            # This is the horrible part of combining all inputs into one array.
-
-            # Combine output from IntraTool1 (File?) and IntraTool2 (File?) to an Array[File] with 2 entries.
-            Array[File] summaries1 = select_all([RenameSummaryIntraTool1.summary, RenameSummaryIntraTool2.summary])
-        } # scatter j
-
-        # summaries1 is now an Array[Array[File]] where the inner arrays consist of each either none or two Files
-        # and the outer array originates from the scatter.
-        Array[File] summaries2 = flatten(summaries1)
-
-        # We also need to do this with the ROC tables. These are only generated if a truth_vcf[i] is present,
-        # therefore roc_tables_1 is an Array[File]?. Either select that or return an empty array.
-        Array[File] roc_tables_2 = select_first([roc_tables_1, []])
-
-        # Very similar with the ROC plots. These are only generated if a truth_vcf[i] is present, therefore
-        # roc_tables_1 is an Array[File]?. Either select that or return an empty array.
-        Array[File] roc_plots_2 = select_first([roc_plots_1, []])
-    } # scatter i
-
-    # Analogous to assignment summaries2 = flatten(...). Here we combine all intra comparisons for samples[0...N]
-    Array[File] summaries3 = flatten(summaries2)
-
-    Array[File] inter_summaries = RenameSummaryInter.summary
-
-    # At this point we want to add the intra summaries (summaries3) to the inter summaries (inter_summaries),
-    # both of which are an Array[File]. Therefore, we define an array consisting of these two arrays and flatten it, thereby appending
-    # one array to the other. This way, we have all files in one single array.
-    Array[File] summaries4 = flatten([summaries3, inter_summaries])
-
-    # We also need to flatten the roc_tables_2 array which has been created over the scatter i.
-    Array[File] roc_tables_3 = flatten(roc_tables_2)
+    Array[File] fe_eval_summaries = flatten([select_all(EvalInterTool.SimpleSummary), select_all(EvalIntraTool1.SimpleSummary), select_all(EvalIntraTool2.SimpleSummary)])
 
     call FEEvaluation.FEEvaluation {
         input:
-            tool1_label = tool1_label,
-            tool2_label = tool2_label,
-            additional_label = additional_label,
-            summaries = summaries4,
-            stratifiers = select_first([stratLabels, []]),
-            preemptible = preemptible
+            benchmark_summaries=fe_eval_summaries,
+            tool1_label=tool1_label,
+            tool2_label=tool2_label,
+            additional_label=additional_label
     }
 
-    call F1Evaluation.F1Evaluation {
+    Array[File] f1_roc_tables = flatten([EvalVsTruthTool1.ROCStats, EvalVsTruthTool2.ROCStats])
+
+    call F1Evaluation.F1Evaluation as F1Evaluation {
         input:
-            tool1_label = tool1_label,
-            tool2_label = tool2_label,
-            additional_label = additional_label,
-            signed_difference = signed_difference,
-            roc_tables = roc_tables_3,
-            preemptible = preemptible
+            roc_tables=f1_roc_tables,
+            tool1_label=tool1_label,
+            tool2_label=tool2_label,
+            additional_label=additional_label
     }
 
     Int fe_status_combined = if FEEvaluation.fe_status > F1Evaluation.fe_status then FEEvaluation.fe_status else F1Evaluation.fe_status
 
-    # For the ROC plots it's ok to just flatten the array resulting from the scatter over i.
-    Array[File] roc_plots_3 = flatten(roc_plots_2)
 
     # Also combine all plots into one image
     call MergePNGs as MergeFE {
         input:
-            pngs = FEEvaluation.fe_plots,
-            preemptible = preemptible
+            pngs=FEEvaluation.fe_plots,
+            preemptible=2
     }
 
     call MergePNGs as MergeF1 {
         input:
-            pngs = F1Evaluation.f1_plots,
-            preemptible = preemptible
+            pngs=F1Evaluation.f1_plots,
+            preemptible=preemptible
     }
 
     call MergePNGs as MergeROC {
         input:
-            pngs = roc_plots_3,
+            pngs = flatten(PlotROC.plots),
             preemptible = preemptible
     }
 
     call CreateHTMLReport {
         input:
-            merged_fe_plots = MergeFE.plots,
-            merged_f1_plots = MergeF1.plots,
-            fe_status = fe_status_combined,
-            additional_label = additional_label,
-            preemptible = preemptible
+            merged_fe_plots=MergeFE.plots,
+            merged_f1_plots=MergeF1.plots,
+            fe_status=fe_status_combined,
+            additional_label=additional_label,
+            preemptible=preemptible
     }
 
-    output{
+
+    output {
         Array[File] fe_plots = FEEvaluation.fe_plots
         Array[File] f1_plots = F1Evaluation.f1_plots
-        Array[File] roc_plots = roc_plots_3
+        Array[File] roc_plots = flatten(PlotROC.plots)
         File merged_fe_plots = MergeFE.plots
         File merged_f1_plots = MergeF1.plots
         File merged_roc_plots = MergeROC.plots
@@ -324,28 +299,6 @@ workflow FunctionalEquivalence {
     }
 }
 
-task RenameSummary {
-    input {
-        File input_summary
-        String name
-        Int? preemptible
-    }
-
-    command {
-        mv ~{input_summary} ./~{name}.csv
-    }
-
-    runtime {
-        docker: "ubuntu:20.04"
-        preemptible: select_first([preemptible, 0])
-        memory: "2 GB"
-        disks: "local-disk 20 HDD"
-    }
-
-    output{
-        File summary = "~{name}.csv"
-    }
-}
 
 task MergePNGs {
     input {
@@ -386,7 +339,7 @@ task CreateHTMLReport {
 
         fe_plots_base64=$(base64 -w 0 ~{merged_fe_plots})
         f1_plots_base64=$(base64 -w 0 ~{merged_f1_plots})
-        
+
         cat <<EOF > report.html
 <!DOCTYPE html>
 <html>

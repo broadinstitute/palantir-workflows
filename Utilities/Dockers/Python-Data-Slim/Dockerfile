@@ -1,7 +1,7 @@
-FROM python:3.9.9
-RUN pip install pandas==1.3.4 \
-numpy==1.21.4 \
-scipy==1.7.2 \
-firecloud==0.16.32 \
-fsspec==2022.7.1 \
-gcsfs==2022.7.1
+FROM python:3.12.5
+RUN pip install pandas==2.2.2 \
+numpy==2.1.0 \
+scipy==1.14.0 \
+firecloud==0.16.37 \
+fsspec==2024.6.1 \
+gcsfs==2024.6.1

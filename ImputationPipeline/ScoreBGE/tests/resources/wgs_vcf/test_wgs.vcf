@@ -1,0 +1,17 @@
+##fileformat=VCFv4.2
+##FORMAT=<ID=DS,Number=1,Type=Float,Description="Genotype dosage">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FILTER=<ID=LowDepth,Description="Set if true:DP<=1">
+##contig=<ID=1,length=248956422>
+##contig=<ID=2,length=242193529>
+##contig=<ID=3,length=198295559>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	testsample
+3	100	hom_ref	A	C	7.36	PASS	.	GT:DS	0/0:0
+3	110	het	A	C	7.36	PASS	.	GT:DS	0/1:1
+3	120	hom_var	A	C	7.36	PASS	.	GT:DS	1/1:2
+3	130	filtered_but_scored	A	C	7.36	LowDepth	.	GT:DS	1/1:2
+3	140	no_call_but_scored	A	C	7.36	PASS	.	GT:DS	./.:0.1
+3	150	half_call_scored	A	C	7.36	PASS	.	GT:DS	1/.:1
+3	300	insertion	A	AC	7.36	PASS	.	GT:DS	0/1:1
+3	400	deletion	AC	A	7.36	PASS	.	GT:DS	0/1:1
+3	600	haploid	A	C	7.36	PASS	.	GT:DS	1:1

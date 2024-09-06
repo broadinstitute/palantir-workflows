@@ -1,0 +1,8 @@
+{
+    "Glimpse2Imputation.coverage_metrics":"gs://palantir-workflows-test-data/Glimpse2Imputation/test.coverage_metrics.txt",
+    "Glimpse2Imputation.qc_metrics":"gs://palantir-workflows-test-data/Glimpse2Imputation/test.qc_metrics.tsv",
+    "Glimpse2Imputation.imputed_vcf_index":null,
+    "Glimpse2Imputation.glimpse_ligate_monitoring":null,
+    "Glimpse2Imputation.glimpse_phase_monitoring":null,
+    "Glimpse2Imputation.imputed_vcf":null
+}

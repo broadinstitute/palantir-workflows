@@ -1,0 +1,37 @@
+FROM ubuntu:24.10
+RUN apt update
+RUN apt install -y openjdk-11-jre ant git unzip python3 python3-pip libbz2-dev liblzma-dev libcurl4-openssl-dev python3-pandas
+
+# Get RTG files for install
+# This clones from this commit https://github.com/RealTimeGenomics/rtg-tools/commit/2d2f97ef6bb90365ca58a472921650ef4638be6d
+# Contains functionality for --roc-cross-join flag for use in BenchmarkVCFs/FE
+# This should be replaced with an actual tagged version once a formal release is out
+RUN git clone -b dev https://github.com/RealTimeGenomics/rtg-tools
+#COPY rtg-tools-3.12.1-dev-2d2f97ef ./rtg-tools-tmp
+WORKDIR rtg-tools
+RUN git checkout 2d2f97e
+RUN ant zip-nojre
+WORKDIR dist
+RUN unzip *.zip
+
+# Install RTG
+WORKDIR rtg-tools-*
+RUN ln -s $(pwd)/rtg /bin/
+RUN yes no | rtg --help
+WORKDIR /root
+
+# Install Python packages
+#RUN pip install pandas
+
+# Add bedtools
+WORKDIR /
+ADD https://github.com/arq5x/bedtools2/releases/download/v2.31.0/bedtools.static .
+RUN mv bedtools.static bedtools && chmod +x bedtools && cp bedtools /bin/
+
+# Make bcftools
+ADD https://github.com/samtools/bcftools/releases/download/1.20/bcftools-1.20.tar.bz2 .
+RUN tar -xvf bcftools-1.20.tar.bz2
+WORKDIR bcftools-1.20
+RUN ./configure
+RUN make
+RUN make install

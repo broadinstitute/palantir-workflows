@@ -13,7 +13,7 @@ This directory contains `Dockerfile` files and descriptions of what each is inte
 * Directory: BCFTools
 * Description: A docker image containing an installation of [bcftools](https://samtools.github.io/bcftools/bcftools.html). Also includes some minimal Python tools (pandas) for data processing.
 * Location: `us.gcr.io/broad-dsde-methods/bcftools:v1.3`
-* Used By: [SimpleBenchmark](../../BenchmarkVCFs/SimpleBenchmark.wdl)
+* Used By: [BenchmarkVCFs](../../BenchmarkVCFs/BenchmarkVCFs.wdl)
 * Usage: `bcftools [COMMAND]`
 * Version Notes:
   * 1.0: Versions are `bcftools` 1.16.
@@ -73,6 +73,16 @@ includes some minimal Python tools (pandas) for data processing.
   * 1.0: Versions are `python3` 3.9.9, `pandas` 1.3.4, `numpy` 1.21.4, `scipy` 1.7.2, `firecloud` 0.16.32, 
   `fsspec` 2022.7.1, `gcsfs` 2022.7.1.
 
+## python-data-slim-pysam
+
+* Directory: Python-Data-Slim-Pysam
+* Description: Same as `python-data-slim` but including `pysam`
+* Location: `us.gcr.io/broad-dsde-methods/python-data-slim-pysam:v1.0`
+* Usage: `python <<CODE [CODE HERE] CODE`
+* Version Notes: 
+  * v1.0: Versions are `python3` 3.9.9, `pandas` 1.3.4, `numpy` 1.21.4, `scipy` 1.7.2, `firecloud` 0.16.32, 
+  `fsspec` 2022.7.1, `gcsfs` 2022.7.1, `pysam` 0.20.0
+
 ## python-data-slim-plots
 
 * Directory: Python-Data-Slim-Plots
@@ -87,7 +97,7 @@ includes some minimal Python tools (pandas) for data processing.
 * Directory: RTG
 * Description: A docker image containing an installation of [RTG Tools](https://github.com/RealTimeGenomics/rtg-tools). In particular, this includes `vcfeval`, and all their other VCF manipulation tools. Also comes with Python (pandas) for convenient data manipulation tools.
 * Location: `us.gcr.io/broad-dsde-methods/rtg:v1.0`
-* Used By: [SimpleBenchmark](../../BenchmarkVCFs/SimpleBenchmark.wdl)
+* Used By: [BenchmarkVCFs](../../BenchmarkVCFs/BenchmarkVCFs.wdl)
 * Usage: `rtg [COMMAND]`
 * Version Notes: 
   * 1.0: Versions are `rtg` 3.12.1
@@ -117,7 +127,7 @@ includes some minimal Python tools (pandas) for data processing.
 * Description: A docker image containing various tools used for running `rtg vcfeval` in benchmarking. These include `rtg`,
 `python`, `bedtools`, and `bcftools`.
 * Location: `"us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.0`
-* Used By: [SimpleBenchmark](../../BenchmarkVCFs/SimpleBenchmark.wdl)
+* Used By: [BenchmarkVCFs](../../BenchmarkVCFs/BenchmarkVCFs.wdl)
 * Usage: `rtg [COMMAND]`, etc.
 * Version Notes:
   * 1.0: Versions are `rtg` 3.12.1, `bedtools` 2.31.0, `bcftools` 1.16 
