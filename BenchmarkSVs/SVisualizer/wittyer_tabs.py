@@ -2,6 +2,8 @@ import pandas as pd
 import plotly.express as px
 import quickboard.base as qbb
 import quickboard.plugins as plg
+import numpy as np
+import plotly.graph_objects as go
 
 from common_utils import read_and_postprocess, add_bbend_stats
 from plugins import make_interval_plugin_bundle, make_type_selector, make_filter_selector, make_stat_selector, make_axes_mode_selector

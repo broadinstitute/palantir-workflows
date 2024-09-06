@@ -1,13 +1,9 @@
 import argparse
 import pickle
-import sys
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from descartes import PolygonPatch
 from shapely.geometry import Point
-import alphashape
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description = "Automatically flag novelties in 2D PCA plots using Concave Hulls generated via alphashapes.")
