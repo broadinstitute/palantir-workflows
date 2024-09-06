@@ -26,7 +26,7 @@ workflow TrainAncestryAdjustmentModel {
       basename = population_basename,
       weights = named_weight_set.weight_set.linear_weights,
       sites = sites,
-			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
+      chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
   }
 
   if (defined(named_weight_set.weight_set.interaction_weights)) {
