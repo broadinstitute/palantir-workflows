@@ -97,6 +97,6 @@ jobs:
       - name: ScoreBGE Unit tests
         run: |
           pip install -r ImputationPipeline/ScoreBGE/requirements.txt
-          export PYTHONPATH = ~/palantir-workflows
+          export PYTHONPATH=~/palantir-workflows
           cd ImputationPipeline/ScoreBGE/tests
           python -m unittest test_ScoreBGE.py
