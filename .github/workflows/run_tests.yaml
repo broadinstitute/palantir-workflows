@@ -100,4 +100,5 @@ jobs:
           cd ImputationPipeline/ScoreBGE/tests
           export PYTHONPATH=~/palantir-workflows
           echo $PYTHONPATH
+          pwd
           python -m unittest test_ScoreBGE.py
