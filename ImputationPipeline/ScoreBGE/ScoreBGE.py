@@ -84,7 +84,7 @@ class BGEScorer():
         num_low_quality_sites = {sample_name: len(self.gvcf_low_quality_sites[sample_name]) for sample_name in self.sample_names}
         num_low_quality_sites_min_max = min(num_low_quality_sites.values()), max(num_low_quality_sites.values())
 
-        print(f'  Metrics:')
+        print('  Metrics:')
         print(f'    Sites scored: Min: {num_sites_scored_min_max[0]} Max: {num_sites_scored_min_max[1]}')
         print(f'    Low quality sites: Min: {num_low_quality_sites_min_max[0]} Max: {num_low_quality_sites_min_max[1]}')
 
@@ -92,7 +92,7 @@ class BGEScorer():
         num_sites_scored = {sample_name: len(self.vcf_sites_scored[sample_name]) for sample_name in self.sample_names}
         num_sites_scored_min_max = min(num_sites_scored.values()), max(num_sites_scored.values())
 
-        print(f'  Metrics:')
+        print('  Metrics:')
         print(f'    Sites scored: Min: {num_sites_scored_min_max[0]} Max: {num_sites_scored_min_max[1]}')
         print(f'    Sites not found: {self.vcf_num_sites_not_found}')
 
@@ -100,7 +100,7 @@ class BGEScorer():
         total_sites_scored = {sample_name: len(self.gvcf_sites_scored[sample_name]) + len(self.vcf_sites_scored[sample_name]) for sample_name in self.sample_names}
         sites_scored_min_max = min(total_sites_scored.values()), max(total_sites_scored.values())
 
-        print(f'WES GVCF + WGS VCF Scoring:')
+        print('WES GVCF + WGS VCF Scoring:')
         print(f'    Total sites scored: Min: {sites_scored_min_max[0]} Max: {sites_scored_min_max[1]}')
 
     def score_wes_gvcf(self, gvcf_path, sample_names=None, site_gq_threshold=30):

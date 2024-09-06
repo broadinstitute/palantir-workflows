@@ -33,7 +33,6 @@ def resolve_relative_path(rel_path: str) -> str:
         return rel_path
 
 def get_wdl_dependencies(womtool_run: subprocess.CompletedProcess):
-    womtool_stdout = womtool_run.stdout
     return [line.decode() for line in womtool_run.stdout.splitlines() if line.endswith(b'.wdl')]
 
 if __name__ == '__main__':

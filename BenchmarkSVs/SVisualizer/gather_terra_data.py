@@ -5,7 +5,6 @@ import json
 import tarfile
 import firecloud.api as fapi
 import pandas as pd
-from datetime import datetime
 
 
 # Parse cmd args
@@ -99,7 +98,7 @@ with open('./wdl_outputs/README.txt', 'w') as file:
     lines = []
     lines += ['Files in this directory were created using the gather_terra_data.py script provided with the SVisualizer script.\n']
     lines += ['Files copied on: {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}\n']
-    lines += [f'Taken from:\n']
+    lines += ['Taken from:\n']
     lines += [f'\tNamespace: {NAMESPACE}\n']
     lines += [f'\tWorkspace: {WORKSPACE}\n']
     lines += [f'\tSubmission ID: {SUBMISSION_ID}\n']

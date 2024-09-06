@@ -1,8 +1,6 @@
 import argparse
 import matplotlib.pyplot as plt
-import pandas as pd
 import seaborn as sns
-import sys
 
 parser = argparse.ArgumentParser(description = "Generate plot for the isoform reconstruction analysis summary.")
 parser.add_argument("-i", "--input", required = True)
@@ -47,7 +45,7 @@ ax[0].bar(tools, sensitivity_list, color = colors[1:7])
 ax[1].bar(tools, precision_list, color = colors[1:7])
 ax[2].bar(tools, f1_score_list, color = colors[1:7])
 
-if args.save == True:
+if args.save:
 	plt.savefig(args.dataset_name + "_analysis_summary_" + args.type + ".png")
 else:
 	plt.show()
