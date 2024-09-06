@@ -98,7 +98,7 @@ jobs:
         run: |
           pip install -r ImputationPipeline/ScoreBGE/requirements.txt
           cd ImputationPipeline/ScoreBGE/tests
-          export PYTHONPATH=~/palantir-workflows
+          export PYTHONPATH=$GITHUB_WORKSPACE
           echo $PYTHONPATH
           pwd
           python -m unittest test_ScoreBGE.py
