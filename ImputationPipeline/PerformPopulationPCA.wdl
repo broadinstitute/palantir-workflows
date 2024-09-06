@@ -72,7 +72,7 @@ workflow PerformPopulationPCA {
 		input:
 			vcf = original_array_vcf,
 			basename = basename,
-      chromosome_encoding = chromosome_encoding
+            chromosome_encoding = chromosome_encoding
 	  }
   }
  

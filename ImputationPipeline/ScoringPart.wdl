@@ -142,7 +142,7 @@ workflow ScoringImputedDataset {
 		call ScoringTasks.ExtractIDsPlink {
 			input:
 				vcf = imputed_array_vcf,
-			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
+				chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
 		}
 
 		if (redoPCA && defined(population_vcf)) {
