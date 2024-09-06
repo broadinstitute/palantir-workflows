@@ -1,4 +1,4 @@
-name: WDL Tests
+name: Tests
 on: 
   push:
     branches:
@@ -10,7 +10,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
-  validate:
+  validate_wdl:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +20,7 @@ jobs:
       - name: Womtool Validate
         run: find . -name '*.wdl' | xargs -tI {} java -jar ${WOMTOOL_JAR} validate {}
 
-  test:
+  test_wdl:
     needs: validate
     runs-on: ubuntu-latest
     permissions:
@@ -94,3 +94,9 @@ jobs:
         run: |
           pip install ruff
           ruff check --output-format=github .
+      - name: ScoreBGE Unit tests
+        run: |
+          pip install -r ImputationPipeline/ScoreBGE/requirements.txt
+          export PYTHONPATH = ~/palantir-workflows
+          cd ImputationPipeline/ScoreBGE/tests
+          python -m unittest test_ScoreBGE.py
