@@ -21,7 +21,7 @@ jobs:
         run: find . -name '*.wdl' | xargs -tI {} java -jar ${WOMTOOL_JAR} validate {}
 
   test_wdl:
-    needs: validate
+    needs: validate_wdl
     runs-on: ubuntu-latest
     permissions:
       contents: 'read'
