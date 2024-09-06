@@ -10,8 +10,7 @@ workflow CKDRiskAdjustment {
 
   call ScoringTasks.DetermineChromosomeEncoding {
 		input:
-			weights = named_weight_set.weight_set.linear_weights
-	}
+			weights = risk_alleles
 
   call GenotypeG1G2RiskAlleles {
     input:
