@@ -1,4 +1,5 @@
 version 1.0
+import "ScoringTasks.wdl" as ScoringTasks
 
 workflow CKDRiskAdjustment {
   input {
@@ -7,10 +8,16 @@ workflow CKDRiskAdjustment {
     File risk_alleles
   }
 
+  call ScoringTasks.DetermineChromosomeEncoding {
+		input:
+			weights = risk_alleles
+  }
+
   call GenotypeG1G2RiskAlleles {
     input:
       vcf = vcf,
-      risk_alleles = risk_alleles
+      risk_alleles = risk_alleles,
+      chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
   }
 
   call AdjustRisk {
@@ -29,6 +36,7 @@ task GenotypeG1G2RiskAlleles {
     File vcf
     File risk_alleles
     Int mem = 8
+    String? chromosome_encoding
   }
 
   Int disk_size = ceil(1.2*size(vcf, "GB")) + 50
@@ -37,11 +45,11 @@ task GenotypeG1G2RiskAlleles {
   command <<<
     /plink2 --vcf ~{vcf} --extract ~{risk_alleles} --export A --export-allele ~{risk_alleles} \
     --allow-extra-chr --set-all-var-ids @:#:\$1:\$2 --new-id-max-allele-len 1000 missing \
-    --memory ~{plink_mem} --out apol1_g1_g2_counts
+    --memory ~{plink_mem} --out apol1_g1_g2_counts ~{"--output-chr " + chromosome_encoding}
   >>>
 
   runtime {
-     docker: "skwalker/plink2:first"
+     docker: "us.gcr.io/broad-dsde-methods/plink2_docker@sha256:4455bf22ada6769ef00ed0509b278130ed98b6172c91de69b5bc2045a60de124"
      disks: "local-disk " + disk_size + " HDD"
      memory: mem + " GB"
   }

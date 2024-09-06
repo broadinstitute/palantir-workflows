@@ -15,12 +15,18 @@ workflow TrainAncestryAdjustmentModel {
     File? sites # set of sites to limit scoring to
   }
 
+  call ScoringTasks.DetermineChromosomeEncoding {
+		input:
+			weights = named_weight_set.weight_set.linear_weights
+	}
+
   call ScoringTasks.ScoreVcf {
     input:
       vcf = population_vcf,
       basename = population_basename,
       weights = named_weight_set.weight_set.linear_weights,
-      sites = sites
+      sites = sites,
+			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
   }
 
   if (defined(named_weight_set.weight_set.interaction_weights)) {

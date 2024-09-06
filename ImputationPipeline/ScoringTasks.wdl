@@ -634,6 +634,7 @@ task ExtractIDsPlink {
     File vcf
     Int disk_size = 2 * ceil(size(vcf, "GB")) + 100
     Int mem = 8
+    String? chromosome_encoding
   }
 
   Int plink_mem = ceil(mem * 0.75 * 1000)
@@ -646,7 +647,7 @@ task ExtractIDsPlink {
       --rm-dup exclude-all \
       --allow-extra-chr \
       --write-snplist allow-dups \
-      --memory ~{plink_mem}
+      --memory ~{plink_mem} ~{"--output-chr " + chromosome_encoding}
   >>>
 
   output {
