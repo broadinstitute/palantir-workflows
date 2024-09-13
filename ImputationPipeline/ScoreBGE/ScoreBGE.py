@@ -60,7 +60,7 @@ class BGEScorer():
             return 0
         return record.pos - weight.position
     
-    def sites_scored_sort_key(self, site):
+    def _sites_scored_sort_key(self, site):
         locus = site[0]
         contig, position = locus.split(':')
         return (self.ref_dict.index(contig), int(position))
@@ -186,7 +186,7 @@ class BGEScorer():
             asyncio.run(self._process_weights_wes_asyncio(self.prs_weights, gvcf, site_gq_threshold))
         
         for sample_name in self.sample_names:
-            self.gvcf_sites_scored[sample_name].sort(key=self.sites_scored_sort_key)
+            self.gvcf_sites_scored[sample_name].sort(key=self._sites_scored_sort_key)
         # Save the scored sites as a set for faster lookup
         self.gvcf_sites_scored_set = {key: set(value) for key, value in self.gvcf_sites_scored.items()}
         self._print_wes_gvcf_metrics()
@@ -263,7 +263,7 @@ class BGEScorer():
             asyncio.run(self._process_weights_wgs_asyncio(self.prs_weights, vcf))
 
         for sample_name in self.sample_names:
-            self.vcf_sites_scored[sample_name].sort(key=self.sites_scored_sort_key)
+            self.vcf_sites_scored[sample_name].sort(key=self._sites_scored_sort_key)
         
         self._print_wgs_vcf_metrics()
         if self.gvcf_sites_scored is not None:

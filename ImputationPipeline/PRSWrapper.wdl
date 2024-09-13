@@ -29,7 +29,7 @@ workflow PRSWrapper {
     File population_pcs
     File pruning_sites_for_pca # and the sites used for PCA
 
-	  Boolean use_ref_alt_for_ids = false
+    Boolean use_ref_alt_for_ids = false
     Int? vcf_to_plink_mem
   }
 
