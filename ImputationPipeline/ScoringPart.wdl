@@ -131,11 +131,6 @@ workflow ScoringImputedDataset {
 		File sites_to_use_in_scoring = select_first([ExtractIDsPopulation.ids, sites_used_in_scoring_for_model])
 	}
 
-	call ScoringTasks.DetermineChromosomeEncoding {
-		input:
-			weights = named_weight_set.weight_set.linear_weights
-	}
-
 	if (use_bge_scoring) {
 		call ScoreBGE.ScoreBGE as BGEScoring {
 			input:
