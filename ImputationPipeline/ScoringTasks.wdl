@@ -208,6 +208,7 @@ task CheckWeightsCoverSitesUsedInTraining {
   input {
     File sites_used_in_training
     WeightSet weight_set
+    Int mem = 2
   }
 
   command <<<
@@ -242,6 +243,7 @@ task CheckWeightsCoverSitesUsedInTraining {
 
   runtime {
     docker : "python:3.9.10"
+    memory : mem + " GB"
   }
 }
 
