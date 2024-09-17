@@ -41,7 +41,7 @@ workflow ProGRESSMultivariateRiskModel {
             imputed_wgs_vcf_index = imputed_wgs_vcf_index,
             basename = basename,
             weights = prs_weights,
-
+            score_haploid_as_diploid = true,
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
             ref_dict = ref_dict
