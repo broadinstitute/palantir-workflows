@@ -112,6 +112,8 @@ task ComputeRiskValue {
         full_risk['combined_risk_score'] = (~{prs_beta}*full_risk.SCORE1_SUM + ~{fam_hist_beta}*full_risk.fam_hist + 
                                             ~{pc1_beta}*full_risk.PC1 + ~{pc2_beta}*full_risk.PC2)
         
+        full_risk = full_risk.rename(columns={"#IID": "sample_id", "SCORE1_SUM": "prs_score", "PC1": "pc1", "PC2": "pc2", "fam_hist": "family_history"})
+
         full_risk.to_csv("~{basename}_full_risk.tsv", sep="\t", index=False)
 
         EOF
