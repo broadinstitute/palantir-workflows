@@ -61,7 +61,7 @@ task ScoreGvcfAndVcf {
         Boolean score_haploid_as_diploid
         Boolean use_emerge_weight_format = false
 
-        String score_bge_docker = "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:palantir-workflows_7311a17"
+        String score_bge_docker = "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:palantir-workflows_bb4c356"
 
         File ref_fasta
         File ref_fasta_index
