@@ -11,6 +11,9 @@ class BGEScorer():
         Args:
             ref_dict_path (str): The file path to the reference dictionary.
             prs_weights_path (str): The file path to the PRS weights.
+            output_basename (str): The base name for the output files. Sites scored will be written during scoring, final scores and any_source_any_sample.sites_scored will be written when calling write_output.
+            score_haploid_as_diploid (bool): Whether to score haploid genotypes as diploid.
+            use_emerge_weight_format (bool, optional): Whether to use the emerge weight format. Default is False.
         """
         self.ref_dict = self._read_ref_dict(ref_dict_path)
         self.prs_weights = self._read_prs_weights(prs_weights_path, use_emerge_weight_format)
@@ -255,7 +258,7 @@ class BGEScorer():
                 self.any_source_any_sample_sites_scored = set()
 
             start_time = datetime.now()
-            step_time = [start_time]  # List for passing by reference
+            step_time = [start_time]  # list in order to pass by reference
 
             with open(self.output_basename + '.imputed_wgs_vcf.sites_scored', 'w') as out_sites_scored:
                 out_sites_scored.write('site\tsamples_scored\n')
