@@ -144,7 +144,8 @@ workflow ScoringImputedDataset {
 				ref_fasta = select_first([ref_fasta]),
 				ref_fasta_index = select_first([ref_fasta_index]),
 				ref_dict = select_first([ref_dict]),
-				use_emerge_weight_format = true
+				use_emerge_weight_format = true,
+				score_haploid_as_diploid = true
 		}
 	}
 	if (!use_bge_scoring) {

@@ -2,16 +2,9 @@ import pandas as pd
 import numpy as np
 import pysam
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
-
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
-import threading
-
-import asyncio
 
 class BGEScorer():
-    def __init__(self, ref_dict_path, prs_weights_path, score_haploid_as_diploid, use_emerge_weight_format=False):
+    def __init__(self, ref_dict_path, prs_weights_path, output_basename, score_haploid_as_diploid, use_emerge_weight_format=False):
         """
         Initialize the BGEScorer object.
 
@@ -21,6 +14,7 @@ class BGEScorer():
         """
         self.ref_dict = self._read_ref_dict(ref_dict_path)
         self.prs_weights = self._read_prs_weights(prs_weights_path, use_emerge_weight_format)
+        self.output_basename = output_basename
         self.sample_names = None
         self.score_haploid_as_diploid = score_haploid_as_diploid
 
@@ -33,7 +27,7 @@ class BGEScorer():
         self.vcf_sites_scored = None
         self.vcf_num_sites_not_found = None
 
-        self.lock = threading.Lock()
+        self.any_source_any_sample_sites_scored = None
 
     def _read_ref_dict(self, ref_dict_path):
         with open(ref_dict_path) as ref_dict:
@@ -48,7 +42,6 @@ class BGEScorer():
             prs_weights[['contig', 'position', 'ref', 'alt']] = prs_weights['CHR:BP:REF:ALT'].str.split(':', expand=True)
             prs_weights = prs_weights.drop(['CHR:BP:REF:ALT'], axis=1)
 
-        prs_weights['locus'] = prs_weights['contig'].astype(str) + ':' + prs_weights['position'].astype(str)
         prs_weights = prs_weights.astype({'effect_allele': str, 'weight': np.float64, 'contig': str, 'position': np.int32, 'ref': str, 'alt': str})
 
         return prs_weights.sort_values(by='position').sort_values(kind='stable', by='contig', key=lambda contig: contig.map(self.ref_dict.index))
@@ -65,9 +58,10 @@ class BGEScorer():
             raise RuntimeError('Only biallelic variants are supported: ' + str(record))
     
     def _gvcf_score_site(self, record, weight, site_gq_threshold):
+        samples_scored = []
         for sample_name in self.sample_names:
             if record.samples[sample_name]['GQ'] < site_gq_threshold or None in record.samples[sample_name]['GT']:
-                self.gvcf_low_quality_sites[sample_name].append((weight.locus, weight.ref, weight.alt))
+                self.gvcf_low_quality_sites[sample_name].append((weight.contig, weight.position, weight.ref, weight.alt))
                 continue
             
             if weight.effect_allele == weight.ref:
@@ -80,22 +74,27 @@ class BGEScorer():
             if self.score_haploid_as_diploid and len(record.samples[sample_name]['GT']) == 1:
                 site_score *= 2
 
-            self.gvcf_sites_scored[sample_name].append((weight.locus, weight.ref, weight.alt))
+            self.gvcf_sites_scored[sample_name].append((weight.contig, weight.position, weight.ref, weight.alt))
             self.gvcf_sample_score[sample_name] += site_score
+            samples_scored.append(sample_name)
+        return samples_scored
     
     def _vcf_score_dosage(self, record, weight):
+        samples_scored = []
         for sample_name in self.sample_names:
-            if (weight.locus, weight.ref, weight.alt) in self.gvcf_sites_scored_set[sample_name]:
+            if (weight.contig, weight.position, weight.ref, weight.alt) in self.gvcf_sites_scored_set[sample_name]:
                 continue
 
             if 'DS' not in record.samples[sample_name]:
-                raise RuntimeError('VCF file does not contain dosage information for sample ' + sample_name + ' at site ' + weight.locus + ':' + weight.ref + ':' + weight.alt)
+                raise RuntimeError(f'VCF file does not contain dosage information for sample {sample_name} at site {weight.contig}:{weight.position}:{weight.ref}:{weight.alt}')
 
             dosage = record.samples[sample_name]['DS'] if record.alts[0] == weight.effect_allele else 2 - record.samples[sample_name]['DS']
             site_score = dosage * weight.weight
 
-            self.vcf_sites_scored[sample_name].append((weight.locus, weight.ref, weight.alt))
+            self.vcf_sites_scored[sample_name].append((weight.contig, weight.position, weight.ref, weight.alt))
             self.vcf_sample_score[sample_name] += site_score
+            samples_scored.append(sample_name)
+        return samples_scored
     
     def _print_wes_gvcf_metrics(self):
         num_sites_scored = {sample_name: len(self.gvcf_sites_scored[sample_name]) for sample_name in self.sample_names}
@@ -122,10 +121,10 @@ class BGEScorer():
         print(f'WES GVCF + WGS VCF Scoring:')
         print(f'    Total sites scored: Min: {sites_scored_min_max[0]} Max: {sites_scored_min_max[1]}')
 
-    def _process_weight_wes(self, weight, gvcf, site_gq_threshold, start_time, step_time):
+    def _process_weight_wes(self, weight, gvcf, site_gq_threshold, start_time, step_time, out_sites_scored):
         i_weight = weight.Index
         if i_weight % 100000 == 0:
-            print(f'Scored {i_weight} sites. Current locus: {weight.locus}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time[0]).total_seconds():,.0f}s')
+            print(f'Scored {i_weight:,} sites. Current locus: {weight.contig}:{weight.position}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time[0]).total_seconds():,.0f}s')
             step_time[0] = datetime.now()
 
         site_records = gvcf.fetch(weight.contig, weight.position - 1, weight.position)
@@ -136,11 +135,18 @@ class BGEScorer():
             if record is None:
                 break
             record = next(site_records, None)
+
         if record is None:
-            return
-        
-        if self._compare_record_and_weight(record, weight) == 0:
-            self._gvcf_score_site(record, weight, site_gq_threshold)
+            samples_scored = []
+        else:
+            if self._compare_record_and_weight(record, weight) == 0:
+                samples_scored = self._gvcf_score_site(record, weight, site_gq_threshold)
+            else:
+                samples_scored = []
+                
+        out_sites_scored.write(f'{weight.contig}:{weight.position}:{weight.ref}:{weight.alt}\t{",".join(samples_scored)}\n')
+        if len(samples_scored) > 0:
+            self.any_source_any_sample_sites_scored.add((weight.contig, weight.position, weight.ref, weight.alt))
 
     def score_wes_gvcf(self, gvcf_path, sample_names=None, site_gq_threshold=30):
         """
@@ -152,6 +158,9 @@ class BGEScorer():
             variant_gq_threshold (int, optional): The genotype quality threshold for variants. Variants with GQ below this threshold will be considered low quality. Default is 30.
             ref_block_gq_threshold (int, optional): The genotype quality threshold for reference blocks. Reference blocks with GQ below this threshold will be considered low quality. Default is 30.
         """
+        if self.gvcf_sample_score is not None or self.vcf_sample_score is not None:
+            raise RuntimeError('Either WES GVCF or WGS VCF scoring has already been performed. If you want to re-score, create a new BGEScorer object.')
+
         print('WES GVCF Scoring:')
         with pysam.VariantFile(gvcf_path, "r", ignore_truncation=True) as gvcf:
             if sample_names is None:
@@ -166,21 +175,24 @@ class BGEScorer():
             self.gvcf_sample_score = {sample_name: 0 for sample_name in self.sample_names}
             self.gvcf_sites_scored = {sample_name: [] for sample_name in self.sample_names}
             self.gvcf_low_quality_sites = {sample_name: [] for sample_name in self.sample_names}
+            self.any_source_any_sample_sites_scored = set()
 
             start_time = datetime.now()
             step_time = [start_time] # list in order to pass by reference
 
-            for weight in self.prs_weights.itertuples():
-                self._process_weight_wes(weight, gvcf, site_gq_threshold, start_time, step_time)
+            with open(self.output_basename + '.exome_gvcf.sites_scored', 'w') as out_sites_scored:
+                out_sites_scored.write('site\tsamples_scored\n')
+                for weight in self.prs_weights.itertuples():
+                    self._process_weight_wes(weight, gvcf, site_gq_threshold, start_time, step_time, out_sites_scored)
 
         # Save the scored sites as a set for faster lookup
         self.gvcf_sites_scored_set = {key: set(value) for key, value in self.gvcf_sites_scored.items()}
         self._print_wes_gvcf_metrics()
 
-    def _process_weight_wgs(self, weight, vcf, start_time, step_time):
+    def _process_weight_wgs(self, weight, vcf, start_time, step_time, out_sites_scored):
         i_weight = weight.Index
         if i_weight % 100000 == 0:
-            print(f'Scored {i_weight} sites. Current locus: {weight.locus}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time[0]).total_seconds():,.0f}s')
+            print(f'Scored {i_weight:,} sites. Current locus: {weight.contig}:{weight.position}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time[0]).total_seconds():,.0f}s')
             step_time[0] = datetime.now()
 
         site_records = vcf.fetch(weight.contig, weight.position - 1, weight.position)
@@ -200,9 +212,14 @@ class BGEScorer():
         # Skip the weight if the record was not found
         if record is None:
             self.vcf_num_sites_not_found += 1
-            print('  Site not found in VCF:', weight.locus, weight.ref, weight.alt)
-            return
-        self._vcf_score_dosage(record, weight)
+            print('  Site not found in VCF:', weight.contig, weight.position, weight.ref, weight.alt)
+            samples_scored = []
+        else:
+            samples_scored = self._vcf_score_dosage(record, weight)
+
+        out_sites_scored.write(f'{weight.contig}:{weight.position}:{weight.ref}:{weight.alt}\t{",".join(samples_scored)}\n')
+        if len(samples_scored) > 0:
+            self.any_source_any_sample_sites_scored.add((weight.contig, weight.position, weight.ref, weight.alt))
 
     def score_wgs_vcf(self, wgs_vcf_path, sample_names=None, allow_wgs_vcf_only=False):
         """
@@ -234,40 +251,33 @@ class BGEScorer():
             self.vcf_sample_score = {sample_name: 0 for sample_name in self.sample_names}
             self.vcf_sites_scored = {sample_name: [] for sample_name in self.sample_names}
             self.vcf_num_sites_not_found = 0
+            if self.any_source_any_sample_sites_scored is None:
+                self.any_source_any_sample_sites_scored = set()
 
             start_time = datetime.now()
             step_time = [start_time]  # List for passing by reference
 
-            for weight in self.prs_weights.itertuples():
-                self._process_weight_wgs(weight, vcf, start_time, step_time)
+            with open(self.output_basename + '.imputed_wgs_vcf.sites_scored', 'w') as out_sites_scored:
+                out_sites_scored.write('site\tsamples_scored\n')
+                for weight in self.prs_weights.itertuples():
+                    self._process_weight_wgs(weight, vcf, start_time, step_time, out_sites_scored)
         
         self._print_wgs_vcf_metrics()
         if self.gvcf_sites_scored is not None:
             self._print_wes_and_wgs_metrics()
 
-    def write_output(self, basename, allow_single_source_scoring=False):
+    def write_output(self, allow_single_source_scoring=False):
         """
         Write the scores to plink-like output files.
         """
         def write_gvcf_or_vcf_output(is_gvcf):
             score = self.gvcf_sample_score if is_gvcf else self.vcf_sample_score
-            sites_scored = self.gvcf_sites_scored if is_gvcf else self.vcf_sites_scored
             score_filename_suffix = '.exome_gvcf.score' if is_gvcf else '.imputed_wgs_vcf.score'
-            sites_scored_filename_suffix = '.exome_gvcf.sites_scored' if is_gvcf else '.imputed_wgs_vcf.sites_scored'
 
-            with open(basename + score_filename_suffix, 'w') as out_score:
+            with open(self.output_basename + score_filename_suffix, 'w') as out_score:
                 out_score.write('#IID\tSCORE1_SUM\n')
                 for sample_name in self.sample_names:
                     out_score.write(f'{sample_name}\t{score[sample_name]}\n')
-
-            with open(basename + sites_scored_filename_suffix, 'w') as out_sites_scored:
-                out_sites_scored.write('site\tsamples_scored\n')
-                for weight in self.prs_weights.iterrows():
-                    locus = weight[1]['locus']
-                    ref = weight[1]['ref']
-                    alt = weight[1]['alt']
-                    weight_samples = [sample_name for sample_name in self.sample_names if (locus, ref, alt) in sites_scored[sample_name]]
-                    out_sites_scored.write(f'{locus}:{ref}:{alt}\t{",".join(weight_samples)}\n')
         
         # GVCF
         if self.gvcf_sites_scored_set is None:
@@ -288,21 +298,13 @@ class BGEScorer():
             write_gvcf_or_vcf_output(False)
         
         # All sites (in plink-compatible format)
-        with open(f'{basename}.any_source_any_sample.sites_scored', 'w') as out_sites:
-            for weight in self.prs_weights.iterrows():
-                locus = weight[1]['locus']
-                ref = weight[1]['ref']
-                alt = weight[1]['alt']
-                if any(
-                    (locus, ref, alt) in self.gvcf_sites_scored[sample_name] or
-                    (locus, ref, alt) in self.vcf_sites_scored[sample_name]
-                        for sample_name in self.sample_names
-                    ):
-                    out_sites.write(f'{locus}:{ref}:{alt}\n')
+        with open(f'{self.output_basename}.any_source_any_sample.sites_scored', 'w') as out_sites:
+            for site in sorted(self.any_source_any_sample_sites_scored, key=lambda site: (self.ref_dict.index(site[0]), site[1], site[2], site[3])):
+                out_sites.write(f'{site[0]}:{site[1]}:{site[2]}:{site[3]}\n')
 
         # Sum
-        with open(f'{basename}.score', 'w') as out_combined_score:
-            out_combined_score.write('#IID	SCORE1_SUM\n')
+        with open(f'{self.output_basename}.score', 'w') as out_combined_score:
+            out_combined_score.write('#IID\tSCORE1_SUM\n')
             for sample_name in self.sample_names:
                 # We already checked above if single source scoring is allowed, so we don't need to check again
                 vcf_score = 0 if self.vcf_sample_score is None else self.vcf_sample_score[sample_name]
@@ -323,7 +325,7 @@ if __name__ == '__main__':
     parser.add_argument('--use-emerge-weight-format', action='store_true', help='Use the emerge weight format', required=False, default=False)
     args = parser.parse_args()
 
-    bge_scorer = BGEScorer(args.ref_dict, args.weights, args.score_haploid_as_diploid, use_emerge_weight_format=args.use_emerge_weight_format)
+    bge_scorer = BGEScorer(args.ref_dict, args.weights, args.basename, args.score_haploid_as_diploid, use_emerge_weight_format=args.use_emerge_weight_format)
     bge_scorer.score_wes_gvcf(args.gvcf, sample_names=args.sample_names)
     bge_scorer.score_wgs_vcf(args.vcf, sample_names=args.sample_names)
-    bge_scorer.write_output(args.basename)
+    bge_scorer.write_output()

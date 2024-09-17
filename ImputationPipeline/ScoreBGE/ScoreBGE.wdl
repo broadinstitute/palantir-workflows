@@ -9,6 +9,7 @@ workflow ScoreBGE {
         String basename
         File weights
         Array[String]? sample_names
+        Boolean score_haploid_as_diploid
         Boolean use_emerge_weight_format = false
 
         String? score_bge_docker
@@ -32,6 +33,7 @@ workflow ScoreBGE {
             basename = basename,
             weights = weights,
             sample_names = sample_names,
+            score_haploid_as_diploid = score_haploid_as_diploid,
             use_emerge_weight_format = use_emerge_weight_format,
             score_bge_docker = score_bge_docker,
             preemptible = preemptible
@@ -56,6 +58,7 @@ task ScoreGvcfAndVcf {
         String basename
         File weights
         Array[String]? sample_names
+        Boolean score_haploid_as_diploid
         Boolean use_emerge_weight_format = false
 
         String score_bge_docker = "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:palantir-workflows_7311a17"
@@ -77,7 +80,7 @@ task ScoreGvcfAndVcf {
     command <<<
         set -xeuo pipefail
         python3 /ScoreBGE.py --ref-dict ~{ref_dict} --weights ~{weights} --gvcf ~{exome_gvcf} --vcf ~{imputed_wgs_vcf} \
-            --basename ~{basename} ~{sample_names_arg} ~{sep=" --sample-names " sample_names} ~{true="--use-emerge-weight-format" false="" use_emerge_weight_format}
+            --basename ~{basename} ~{sample_names_arg} ~{sep=" --sample-names " sample_names} ~{true="--score-haploid-as-diploid" false="" score_haploid_as_diploid} ~{true="--use-emerge-weight-format" false="" use_emerge_weight_format}
     >>>
 
     runtime {
