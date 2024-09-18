@@ -28,8 +28,6 @@ workflow ProGRESSMultivariateRiskModel {
         String chromosome_encoding = "chrMT"
         Int mem_gb_array_vcf_to_plink = 16
 
-        File ref_fasta
-        File ref_fasta_index
         File ref_dict
     }
 
@@ -42,8 +40,6 @@ workflow ProGRESSMultivariateRiskModel {
             basename = basename,
             weights = prs_weights,
             score_haploid_as_diploid = true,
-            ref_fasta = ref_fasta,
-            ref_fasta_index = ref_fasta_index,
             ref_dict = ref_dict
     }
 

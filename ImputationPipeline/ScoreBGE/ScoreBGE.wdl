@@ -63,8 +63,6 @@ task ScoreGvcfAndVcf {
 
         String score_bge_docker = "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:palantir-workflows_0480e5e"
 
-        File ref_fasta
-        File ref_fasta_index
         File ref_dict
 
         Int preemptible = 1
