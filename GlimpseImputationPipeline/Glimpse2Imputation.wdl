@@ -325,8 +325,10 @@ import pandas as pd
 hl.init(default_reference='GRCh38', idempotent=True)
 vcf = hl.import_vcf('~{imputed_vcf}', force_bgz=True)
 qc = hl.sample_qc(vcf)
-qc_pd = qc.cols().flatten().rename({'sample_qc.' + col: col for col in list(qc['sample_qc'])}).to_pandas()
-qc_pd = qc_pd.rename(columns={'s': 'sample_id'})
+qc_pd = qc.cols().flatten() \
+    .rename({'sample_qc.' + col: col for col in list(qc['sample_qc'])}) \
+    .rename({'s': 'sample_id'}) \
+    .to_pandas()
 qc_pd.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t', index=False, float_format='%.4f')
 EOF
         python3 script.py
