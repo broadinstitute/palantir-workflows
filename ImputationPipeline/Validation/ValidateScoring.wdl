@@ -11,7 +11,9 @@ import "../ScoringTasks.wdl" as ScoringTasks
 workflow ValidateScoring {
 	input {
 		File? validationArrays #array to score with this branch
+		File? validationArraysIndex
 		File validationArraysMain #array to score with main branch (will be used for this branch also if validationArrays not provided)
+		File validationArraysIndexMain
 		File validationWgs #wgs to score for comparison
 
 		String population_basename #sets name of population related output files
@@ -40,8 +42,8 @@ workflow ValidateScoring {
 	#need to redo PCA in case input PCA not appropriate for this set of sites
 	call PCATasks.ArrayVcfToPlinkDataset as PopulationArrayVcfToPlinkDataset {
 		input:
-			vcf = select_first([population_vcf]),
-			pruning_sites = select_first([pruning_sites_for_pca]),
+			vcf = population_vcf,
+			pruning_sites = pruning_sites_for_pca,
 			subset_to_sites = extractImputedIDs.ids,
 			basename = "population"
 	}
@@ -87,6 +89,7 @@ workflow ValidateScoring {
 			input:
 				named_weight_set = named_weight_set,
 				imputed_array_vcf = select_first([validationArrays, validationArraysMain]),
+				imputed_array_vcf_index = select_first([validationArraysIndex, validationArraysIndexMain]),
 				population_basename = population_basename,
 				basename = "imputed",
 				population_loadings = population_loadings,
@@ -101,6 +104,7 @@ workflow ValidateScoring {
 			input:
 				named_weight_set = object{condition_name : conditions, weight_set : SubsetWeightSetWGS.subsetted_weight_set},
 				imputed_array_vcf = select_first([validationArrays, validationArraysMain]),
+				imputed_array_vcf_index = select_first([validationArraysIndex, validationArraysIndexMain]),
 				population_basename = population_basename,
 				basename = "imputed",
 				population_loadings = population_loadings,
@@ -116,6 +120,8 @@ workflow ValidateScoring {
 			input:
 				named_weight_set = named_weight_set,
 				imputed_array_vcf = validationArraysMain,
+				# Line below will have to be added once this is merged into main
+				# imputed_array_vcf_index = validationArraysIndexMain,
 				population_basename = population_basename,
 				basename = "imputed",
 				population_loadings = population_loadings,
@@ -131,6 +137,7 @@ workflow ValidateScoring {
 			input:
 				named_weight_set = object{condition_name : conditions, weight_set : SubsetWeightSetWGS.subsetted_weight_set},
 				imputed_array_vcf = QCSites.output_vcf,
+				imputed_array_vcf_index = QCSites.output_vcf_index,
 				population_basename = population_basename,
 				basename = "imputed",
 				population_loadings = population_loadings,
@@ -157,6 +164,7 @@ workflow ValidateScoring {
 			input:
 				named_weight_set = named_weight_set,
 				imputed_array_vcf = validationArraysMain,
+				imputed_array_vcf_index = validationArraysIndexMain,
 				basename = "imputed",
 				population_loadings = PerformPCA.pc_loadings,
 				population_meansd = PerformPCA.mean_sd,
