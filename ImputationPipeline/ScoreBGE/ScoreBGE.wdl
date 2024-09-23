@@ -14,8 +14,6 @@ workflow ScoreBGE {
 
         String? score_bge_docker
 
-        File ref_fasta
-        File ref_fasta_index
         File ref_dict
 
         Int preemptible = 1
@@ -27,8 +25,6 @@ workflow ScoreBGE {
             exome_gvcf_index = exome_gvcf_index,
             imputed_wgs_vcf = imputed_wgs_vcf,
             imputed_wgs_vcf_index = imputed_wgs_vcf_index,
-            ref_fasta = ref_fasta,
-            ref_fasta_index = ref_fasta_index,
             ref_dict = ref_dict,
             basename = basename,
             weights = weights,
@@ -73,7 +69,7 @@ task ScoreGvcfAndVcf {
 
     String sample_names_arg = if defined(sample_names) then "--sample-names" else ""
 
-    Int disk_size_gb = select_first([disk_gb, ceil(size(exome_gvcf, "GiB") + size(imputed_wgs_vcf, "GiB") + size(weights, "GiB") + size(ref_fasta, "GiB") + 50)])
+    Int disk_size_gb = select_first([disk_gb, ceil(size(exome_gvcf, "GiB") + size(imputed_wgs_vcf, "GiB") + size(weights, "GiB") + 50)])
 
     command <<<
         set -xeuo pipefail
