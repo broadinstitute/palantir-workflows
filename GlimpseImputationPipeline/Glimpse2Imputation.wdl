@@ -122,6 +122,7 @@ workflow Glimpse2Imputation {
     output {
         File imputed_vcf = GlimpseLigate.imputed_vcf
         File imputed_vcf_index = GlimpseLigate.imputed_vcf_index
+        File imputed_vcf_md5sum = GlimpseLigate.imputed_vcf_md5sum
         
         File? qc_metrics = CollectQCMetrics.qc_metrics
         File coverage_metrics = CombineCoverageMetrics.coverage_metrics
@@ -274,6 +275,8 @@ task GlimpseLigate {
         java -jar /picard.jar UpdateVcfSequenceDictionary -I old_header.vcf --SD ~{ref_dict} -O new_header.vcf        
         bcftools reheader -h new_header.vcf -o ~{output_basename}.imputed.vcf.gz ligated.vcf.gz
         tabix ~{output_basename}.imputed.vcf.gz
+
+        md5sum ~{output_basename}.imputed.vcf.gz | awk '{ print $1 }' > ~{output_basename}.imputed.vcf.gz.md5sum
     >>>
 
     runtime {
@@ -288,6 +291,7 @@ task GlimpseLigate {
     output {
         File imputed_vcf = "~{output_basename}.imputed.vcf.gz"
         File imputed_vcf_index = "~{output_basename}.imputed.vcf.gz.tbi"
+        File imputed_vcf_md5sum = "~{output_basename}.imputed.vcf.gz.md5sum"
         File? monitoring = "monitoring.log"
     }
 }
