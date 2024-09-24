@@ -216,6 +216,7 @@ class LiftoverSites:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='LiftoverSites')
     parser.add_argument('--output-path', type=str, help='Output directory', required=True)
+    parser.add_argument('--emerge-output', action='store_true', help='If set, output will be in emerge format', required=False, default=False)
     parser.add_argument('--gatk-or-picard-jar', type=str, help='Path to either the GATK executable or the picard.jar', required=True)
     parser.add_argument('--liftover-chain', type=str, help='Path to liftover chain file', required=True)
     parser.add_argument('--ref-fasta', type=str, help='Path to reference fasta file', required=True)
@@ -225,7 +226,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     liftover = LiftoverSites(
-        args.output_path, format_input, format_output_ScoreBGE, ['weight'],
+        args.output_path, format_input, format_output_emerge if args.emerge_output else format_output_ScoreBGE, ['weight'],
         LiftoverSites.LiftoverArguments(False, args.gatk_or_picard_jar, args.liftove_chain, args.ref_fasta),
         True, args.ref_panel)
 
