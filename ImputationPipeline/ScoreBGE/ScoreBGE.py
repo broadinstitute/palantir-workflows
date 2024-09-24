@@ -4,7 +4,7 @@ import pysam
 from datetime import datetime
 
 class BGEScorer():
-    def __init__(self, ref_dict_path, prs_weights_path, output_basename, score_haploid_as_diploid, use_emerge_weight_format=False):
+    def __init__(self, ref_dict_path, prs_weights_path, output_basename, score_haploid_as_diploid):
         """
         Initialize the BGEScorer object.
 
@@ -13,10 +13,9 @@ class BGEScorer():
             prs_weights_path (str): The file path to the PRS weights.
             output_basename (str): The base name for the output files. Sites scored will be written during scoring, final scores and any_source_any_sample.sites_scored will be written when calling write_output.
             score_haploid_as_diploid (bool): Whether to score haploid genotypes as diploid.
-            use_emerge_weight_format (bool, optional): Whether to use the emerge weight format. Default is False.
         """
         self.ref_dict = self._read_ref_dict(ref_dict_path)
-        self.prs_weights = self._read_prs_weights(prs_weights_path, use_emerge_weight_format)
+        self.prs_weights = self._read_prs_weights(prs_weights_path)
         self.output_basename = output_basename
         self.sample_names = None
         self.score_haploid_as_diploid = score_haploid_as_diploid
@@ -38,14 +37,9 @@ class BGEScorer():
 
     # Required TSV format (including header line):
     # contig position ref alt effect_allele weight
-    def _read_prs_weights(self, prs_weights_path, use_emerge_weight_format):
-        prs_weights = pd.read_table(prs_weights_path)
-        
-        if use_emerge_weight_format:
-            prs_weights[['contig', 'position', 'ref', 'alt']] = prs_weights['CHR:BP:REF:ALT'].str.split(':', expand=True)
-            prs_weights = prs_weights.drop(['CHR:BP:REF:ALT'], axis=1)
-
-        prs_weights = prs_weights.astype({'effect_allele': str, 'weight': np.float64, 'contig': str, 'position': np.int32, 'ref': str, 'alt': str})
+    def _read_prs_weights(self, prs_weights_path):
+        prs_weights = pd.read_table(prs_weights_path,
+            dtype={'contig': str, 'position': np.int32, 'ref': str, 'alt': str, 'effect_allele': str, 'weight': np.float64})
 
         return prs_weights.sort_values(by='position').sort_values(kind='stable', by='contig', key=lambda contig: contig.map(self.ref_dict.index))
     
@@ -177,7 +171,7 @@ class BGEScorer():
                 for weight in self.prs_weights.itertuples():
                     i_weight = weight.Index
                     if i_weight % 100000 == 0:
-                        print(f'Scored {i_weight:,} sites. Current locus: {weight.contig}:{weight.position}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time[0]).total_seconds():,.0f}s')
+                        print(f'Scored {i_weight:,} sites. Current locus: {weight.contig}:{weight.position}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time).total_seconds():,.0f}s')
                         step_time = datetime.now()
                     self._process_weight_wes(weight, gvcf, site_gq_threshold, out_sites_scored)
 
@@ -251,9 +245,9 @@ class BGEScorer():
                 for weight in self.prs_weights.itertuples():
                     i_weight = weight.Index
                     if i_weight % 100000 == 0:
-                        print(f'Scored {i_weight:,} sites. Current locus: {weight.contig}:{weight.position}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time[0]).total_seconds():,.0f}s')
+                        print(f'Scored {i_weight:,} sites. Current locus: {weight.contig}:{weight.position}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time).total_seconds():,.0f}s')
                         step_time = datetime.now()
-                    self._process_weight_wgs(weight, vcf, start_time, step_time, out_sites_scored)
+                    self._process_weight_wgs(weight, vcf, out_sites_scored)
         
         self._print_wgs_vcf_metrics()
         if self.gvcf_sites_scored is not None:
@@ -315,10 +309,9 @@ if __name__ == '__main__':
     parser.add_argument('--basename', type=str, help='Path to reference dict file', required=True)
     parser.add_argument('--sample-names', type=str, nargs='+', help='Sample names to score', required=False, default=None)
     parser.add_argument('--score-haploid-as-diploid', action='store_true', help='Always score haploid GTs (such as on chrX) as diploid', required=False, default=False)
-    parser.add_argument('--use-emerge-weight-format', action='store_true', help='Use the emerge weight format', required=False, default=False)
     args = parser.parse_args()
 
-    bge_scorer = BGEScorer(args.ref_dict, args.weights, args.basename, args.score_haploid_as_diploid, use_emerge_weight_format=args.use_emerge_weight_format)
+    bge_scorer = BGEScorer(args.ref_dict, args.weights, args.basename, args.score_haploid_as_diploid)
     bge_scorer.score_wes_gvcf(args.gvcf, sample_names=args.sample_names)
     bge_scorer.score_wgs_vcf(args.vcf, sample_names=args.sample_names)
     bge_scorer.write_output()

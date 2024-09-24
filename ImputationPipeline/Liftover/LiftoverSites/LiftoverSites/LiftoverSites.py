@@ -16,12 +16,18 @@ def format_input(line, header):
     site_id = fields[0]
     return LiftoverSites.InputRow(chrom, pos, a1, a2, effect_allele, {'weight': weight, 'site_id': site_id})
 
-def format_output(sites):
-    #CHR:BP:A1:A2    A1      BETA    CHR     BP      A1      A2
+def format_output_emerge(sites):
+    #CHR:BP:REF:ALT    effect_allele    weight
     w = sites.key_by()
     w = w.annotate(CHR_BP_REF_ALT=w.locus.contig + ":" + hl.str(w.locus.position) + ":" + w.alleles[0] + ":" + w.alleles[1])
     w = w.select(CHR_BP_REF_ALT=w.CHR_BP_REF_ALT, effect_allele=w.effect, weight=w['info.original_weight'])
     w = w.rename({'CHR_BP_REF_ALT': 'CHR:BP:REF:ALT'})
+    return w
+
+def format_output_ScoreBGE(sites):
+    #contig    position    ref    alt    effect_allele    weight
+    w = sites.key_by()
+    w = w.select(contig=w.locus.contig, position=w.locus.position, ref=w.allels[0], alt=w.alleles[1], effect_allele=w.effect, weight=w['info.original_weight'])
     return w
 
 class LiftoverSites:
@@ -219,7 +225,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     liftover = LiftoverSites(
-        args.output_path, format_input, format_output, ['weight'],
+        args.output_path, format_input, format_output_ScoreBGE, ['weight'],
         LiftoverSites.LiftoverArguments(False, args.gatk_or_picard_jar, args.liftove_chain, args.ref_fasta),
         True, args.ref_panel)
 
