@@ -124,28 +124,17 @@ class BGEScorer():
         print(f'WES GVCF + WGS VCF Scoring:')
         print(f'    Total sites scored: Min: {sites_scored_min_max[0]} Max: {sites_scored_min_max[1]}')
 
-    def _process_weight_wes(self, weight, gvcf, site_gq_threshold, start_time, step_time, out_sites_scored):
-        i_weight = weight.Index
-        if i_weight % 100000 == 0:
-            print(f'Scored {i_weight:,} sites. Current locus: {weight.contig}:{weight.position}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time[0]).total_seconds():,.0f}s')
-            step_time[0] = datetime.now()
-
+    def _process_weight_wes(self, weight, gvcf, site_gq_threshold, out_sites_scored):
         site_records = gvcf.fetch(weight.contig, weight.position - 1, weight.position)
         record = next(site_records, None)
         # Skip all records that are before the current record
-        while record is None or self._compare_record_and_weight(record, weight) < 0:
-            # If fetch yields no more records at this position, break here
-            if record is None:
-                break
+        while record is not None and self._compare_record_and_weight(record, weight) < 0:
             record = next(site_records, None)
 
-        if record is None:
+        if record is None or self._compare_record_and_weight(record, weight) != 0:
             samples_scored = []
         else:
-            if self._compare_record_and_weight(record, weight) == 0:
-                samples_scored = self._gvcf_score_site(record, weight, site_gq_threshold)
-            else:
-                samples_scored = []
+            samples_scored = self._gvcf_score_site(record, weight, site_gq_threshold)
                 
         out_sites_scored.write(f'{weight.contig}:{weight.position}:{weight.ref}:{weight.alt}\t{",".join(samples_scored)}\n')
         if len(samples_scored) > 0:
@@ -181,22 +170,22 @@ class BGEScorer():
             self.any_source_any_sample_sites_scored = set()
 
             start_time = datetime.now()
-            step_time = [start_time] # list in order to pass by reference
+            step_time = start_time
 
             with open(self.output_basename + '.exome_gvcf.sites_scored', 'w') as out_sites_scored:
                 out_sites_scored.write('site\tsamples_scored\n')
                 for weight in self.prs_weights.itertuples():
-                    self._process_weight_wes(weight, gvcf, site_gq_threshold, start_time, step_time, out_sites_scored)
+                    i_weight = weight.Index
+                    if i_weight % 100000 == 0:
+                        print(f'Scored {i_weight:,} sites. Current locus: {weight.contig}:{weight.position}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time[0]).total_seconds():,.0f}s')
+                        step_time = datetime.now()
+                    self._process_weight_wes(weight, gvcf, site_gq_threshold, out_sites_scored)
 
         # Save the scored sites as a set for faster lookup
         self.gvcf_sites_scored_set = {key: set(value) for key, value in self.gvcf_sites_scored.items()}
         self._print_wes_gvcf_metrics()
 
-    def _process_weight_wgs(self, weight, vcf, start_time, step_time, out_sites_scored):
-        i_weight = weight.Index
-        if i_weight % 100000 == 0:
-            print(f'Scored {i_weight:,} sites. Current locus: {weight.contig}:{weight.position}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time[0]).total_seconds():,.0f}s')
-            step_time[0] = datetime.now()
+    def _process_weight_wgs(self, weight, vcf, out_sites_scored):
 
         site_records = vcf.fetch(weight.contig, weight.position - 1, weight.position)
 
@@ -205,10 +194,7 @@ class BGEScorer():
         self._check_biallelic(record)
 
         # Find the record that matches the weight
-        while record is None or record.pos != weight.position or record.ref != weight.ref or weight.alt != record.alts[0]:
-            # If fetch yields no more records at this position, break here
-            if record is None:
-                break
+        while record is not None and (self._compare_record_and_weight(record, weight) != 0 or record.ref != weight.ref or weight.alt != record.alts[0]):
             record = next(site_records, None)
             self._check_biallelic(record)
         
@@ -258,11 +244,15 @@ class BGEScorer():
                 self.any_source_any_sample_sites_scored = set()
 
             start_time = datetime.now()
-            step_time = [start_time]  # list in order to pass by reference
+            step_time = start_time
 
             with open(self.output_basename + '.imputed_wgs_vcf.sites_scored', 'w') as out_sites_scored:
                 out_sites_scored.write('site\tsamples_scored\n')
                 for weight in self.prs_weights.itertuples():
+                    i_weight = weight.Index
+                    if i_weight % 100000 == 0:
+                        print(f'Scored {i_weight:,} sites. Current locus: {weight.contig}:{weight.position}. Time elapsed: {(datetime.now() - start_time).total_seconds():,.0f}s. Time since last step: {(datetime.now() - step_time[0]).total_seconds():,.0f}s')
+                        step_time = datetime.now()
                     self._process_weight_wgs(weight, vcf, start_time, step_time, out_sites_scored)
         
         self._print_wgs_vcf_metrics()

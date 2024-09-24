@@ -2,6 +2,7 @@ import hail as hl
 import pandas as pd
 import subprocess
 import collections.abc
+import argparse
 
 def format_input(line, header):
     fields = line.split('\t')
@@ -13,7 +14,7 @@ def format_input(line, header):
     effect_allele = fields[1]
     weight = fields[2]
     site_id = fields[0]
-    return InputRow(chrom, pos, a1, a2, effect_allele, {'weight': weight, 'site_id': site_id})
+    return LiftoverSites.InputRow(chrom, pos, a1, a2, effect_allele, {'weight': weight, 'site_id': site_id})
 
 def format_output(sites):
     #CHR:BP:A1:A2    A1      BETA    CHR     BP      A1      A2
@@ -207,9 +208,19 @@ class LiftoverSites:
         self.disambiguate(basename)
 
 if __name__ == '__main__':
-    liftover = LiftoverSites(
-        'test/output', format_input, format_output, ['weight'],
-        LiftoverSites.LiftoverArguments(False, '/Users/mgatzen/code/gatk/gatk', '/Users/mgatzen/liftover/b37ToHg38.over.chain', '/Users/mgatzen/reference/hg38/Homo_sapiens_assembly38.fasta'),
-        True, 'gs://fc-f0032a5f-c108-4b69-aeb0-9d665405bfdc/_data/1000G_HGDP_no_singletons.sites.vcf.gz')
+    parser = argparse.ArgumentParser(description='LiftoverSites')
+    parser.add_argument('--output-path', type=str, help='Output directory', required=True)
+    parser.add_argument('--gatk-or-picard-jar', type=str, help='Path to either the GATK executable or the picard.jar', required=True)
+    parser.add_argument('--liftover-chain', type=str, help='Path to liftover chain file', required=True)
+    parser.add_argument('--ref-fasta', type=str, help='Path to reference fasta file', required=True)
+    parser.add_argument('--ref-panel', type=str, help='Path to reference panel sites VCF. Output will be subset to these sites.', required=True)
+    parser.add_argument('--input', type=str, help='Path to weights or sites file', required=True)
+    parser.add_argument('--basename', type=str, help='Output basename', required=True)
+    args = parser.parse_args()
 
-    liftover.run_all('test/input/hcl.txt', 'hcl2')
+    liftover = LiftoverSites(
+        args.output_path, format_input, format_output, ['weight'],
+        LiftoverSites.LiftoverArguments(False, args.gatk_or_picard_jar, args.liftove_chain, args.ref_fasta),
+        True, args.ref_panel)
+
+    liftover.run_all(args.input, args.basename)
