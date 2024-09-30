@@ -80,7 +80,7 @@ task CheckScores {
         pc2_within_range = abs(prs_full_risk.loc[0, "pc2"] - acceptable_range.loc[3, "expected"]) <= acceptable_range.loc[3, "margin"]
 
         with open('~{output_basename}.qc_passed.txt', 'w') as qc_passed:
-            if prs_score_passed and combined_risk_score_passed and pc1_within_range and pc2_within range:
+            if prs_score_passed and combined_risk_score_passed and pc1_within_range and pc2_within_range:
                 qc_passed.write("true\n")
             else:
                 qc_passed.write("false\n")
