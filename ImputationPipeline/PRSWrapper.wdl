@@ -10,6 +10,15 @@ workflow PRSWrapper {
     Float z_score_reportable_range
 
     File vcf
+
+    # Files for BGE scoring
+    Boolean use_bge_scoring = false
+    File? bge_wes_gvcf
+    File? bge_wes_gvcf_index
+    File? ref_fasta
+    File? ref_fasta_index
+    File? ref_dict
+
     String sample_id
     String lab_batch_id
     Boolean is_control_sample_in
@@ -19,6 +28,9 @@ workflow PRSWrapper {
     File population_meansd
     File population_pcs
     File pruning_sites_for_pca # and the sites used for PCA
+
+    Boolean use_ref_alt_for_ids = false
+    Int? vcf_to_plink_mem
   }
 
   scatter(condition_resource in condition_resources) {
@@ -33,7 +45,17 @@ workflow PRSWrapper {
           population_pcs = population_pcs,
           basename = sample_id,
           fitted_model_params_and_sites = condition_resource.ancestry_model_params_and_sites,
-          redoPCA = redoPCA
+          redoPCA = redoPCA,
+          use_ref_alt_for_ids = use_ref_alt_for_ids,
+          vcf_to_plink_mem = vcf_to_plink_mem,
+
+          # BGE scoring inputs
+          use_bge_scoring = use_bge_scoring,
+          bge_wes_gvcf = bge_wes_gvcf,
+          bge_wes_gvcf_index = bge_wes_gvcf_index,
+          ref_fasta = ref_fasta,
+          ref_fasta_index = ref_fasta_index,
+          ref_dict = ref_dict
       }
 
       if (condition_resource.named_weight_set.condition_name == "ckd") {
@@ -41,7 +63,9 @@ workflow PRSWrapper {
           input:
             adjustedScores = select_first([ScoringImputedDataset.adjusted_array_scores]),
             vcf = vcf,
-            risk_alleles = ckd_risk_alleles
+            risk_alleles = ckd_risk_alleles,
+            use_ref_alt_for_ids = use_ref_alt_for_ids,
+            mem_plink = vcf_to_plink_mem
         }
       }
 

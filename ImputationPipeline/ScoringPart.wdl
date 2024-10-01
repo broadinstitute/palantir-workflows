@@ -4,12 +4,23 @@ import "PCATasks.wdl" as PCATasks
 import "ScoringTasks.wdl" as ScoringTasks
 import "TrainAncestryAdjustmentModel.wdl" as TrainAncestryAdjustmentModel
 import "Structs.wdl"
+import "ScoreBGE/ScoreBGE.wdl" as ScoreBGE
 
 workflow ScoringImputedDataset {
 	input { 
 	NamedWeightSet named_weight_set
 
 	File imputed_array_vcf  # imputed VCF for scoring (and optionally PCA projection): make sure the variant IDs exactly match those in the weights file
+	File imputed_array_vcf_index
+
+	# Optional files for BGE scoring
+	Boolean use_bge_scoring = false
+	File? bge_wes_gvcf # Optional WES GVCF for BGE input data
+	File? bge_wes_gvcf_index
+	File? ref_fasta
+	File? ref_fasta_index
+	File? ref_dict
+
 	Int scoring_mem = 16
 	Int population_scoring_mem = scoring_mem * 4
 	Int vcf_to_plink_mem = 8
@@ -32,7 +43,19 @@ workflow ScoringImputedDataset {
 	# is the effect allele, and the 13th column is the effect weight
 	Boolean redoPCA = false
 	Boolean adjustScores = true
+
+	Boolean use_ref_alt_for_ids = false
   }
+
+  if (use_bge_scoring) {
+		if (!defined(bge_wes_gvcf) || !defined(bge_wes_gvcf_index) || !defined(ref_fasta) || !defined(ref_fasta_index) || !defined(ref_dict)) {
+			call ErrorWithMessage as ErrorBGEGVCF {
+				input:
+					message = "All of bge_wes_gvcf, bge_wes_gvcf_index, ref_fasta, ref_fasta_index, and ref_dict must be included if using BGE scoring"
+			}
+		}
+  }
+
 
   if (adjustScores) {
 		#check for required optional inputs
@@ -108,23 +131,46 @@ workflow ScoringImputedDataset {
 		File sites_to_use_in_scoring = select_first([ExtractIDsPopulation.ids, sites_used_in_scoring_for_model])
 	}
 
-	call ScoringTasks.ScoreVcf as ScoreImputedArray {
-		input:
-			vcf = imputed_array_vcf,
-			basename = basename,
-			weights = named_weight_set.weight_set.linear_weights,
-			base_mem = scoring_mem,
-			extra_args = columns_for_scoring,
-			sites = sites_to_use_in_scoring,
-			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
+	if (use_bge_scoring) {
+		call ScoreBGE.ScoreBGE as BGEScoring {
+			input:
+				exome_gvcf = select_first([bge_wes_gvcf]),
+				exome_gvcf_index = select_first([bge_wes_gvcf_index]),
+				imputed_wgs_vcf = imputed_array_vcf,
+				imputed_wgs_vcf_index = imputed_array_vcf_index,
+				basename = basename,
+				weights = named_weight_set.weight_set.linear_weights,
+				sample_names = [basename],
+				ref_fasta = select_first([ref_fasta]),
+				ref_fasta_index = select_first([ref_fasta_index]),
+				ref_dict = select_first([ref_dict]),
+				use_emerge_weight_format = true,
+				score_haploid_as_diploid = true
+		}
 	}
+	if (!use_bge_scoring) {
+		call ScoringTasks.ScoreVcf as ScoreImputedArray {
+			input:
+				vcf = imputed_array_vcf,
+				basename = basename,
+				weights = named_weight_set.weight_set.linear_weights,
+				base_mem = scoring_mem,
+				extra_args = columns_for_scoring,
+				sites = sites_to_use_in_scoring,
+				chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
+				use_ref_alt_for_ids = use_ref_alt_for_ids
+		}
+	}
+
+	File prs_scores = select_first([BGEScoring.score, ScoreImputedArray.score])
+	File prs_sites_scored = select_first([BGEScoring.any_source_any_sample_sites_scored, ScoreImputedArray.sites_scored])
 
 	if (defined(named_weight_set.weight_set.interaction_weights)) {
 		call ScoringTasks.AddInteractionTermsToScore {
 			input:
 				vcf = imputed_array_vcf,
 				interaction_weights = select_first([named_weight_set.weight_set.interaction_weights]),
-				scores = ScoreImputedArray.score,
+				scores = prs_scores,
 				sites = sites_to_use_in_scoring,
 				basename = basename,
 				self_exclusive_sites = named_weight_set.weight_set.interaction_self_exclusive_sites
@@ -132,7 +178,7 @@ workflow ScoringImputedDataset {
 
 		call ScoringTasks.CombineScoringSites {
 			input:
-				sites_used_linear_score = ScoreImputedArray.sites_scored,
+				sites_used_linear_score = prs_sites_scored,
 				sites_used_interaction_score = AddInteractionTermsToScore.sites_used_in_interaction_score,
 				basename = basename
 		}
@@ -142,7 +188,9 @@ workflow ScoringImputedDataset {
 		call ScoringTasks.ExtractIDsPlink {
 			input:
 				vcf = imputed_array_vcf,
-				chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
+				chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding,
+				use_ref_alt_for_ids = use_ref_alt_for_ids,
+				mem = vcf_to_plink_mem
 		}
 
 		if (redoPCA && defined(population_vcf)) {
@@ -152,6 +200,7 @@ workflow ScoringImputedDataset {
 					pruning_sites = select_first([pruning_sites_for_pca]),
 					subset_to_sites = ExtractIDsPlink.ids,
 					basename = "population",
+					use_ref_alt_for_ids = use_ref_alt_for_ids,
 					chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
 			}
 
@@ -170,6 +219,7 @@ workflow ScoringImputedDataset {
 			pruning_sites = select_first([pruning_sites_for_pca]),
 			basename = basename,
 			mem = vcf_to_plink_mem,
+			use_ref_alt_for_ids = use_ref_alt_for_ids,
 			chromosome_encoding = DetermineChromosomeEncoding.chromosome_encoding
 		}
 
@@ -206,7 +256,7 @@ workflow ScoringImputedDataset {
 			input:
 				fitted_model_params = select_first([TrainAncestryAdjustmentModel.fitted_params, fitted_params_for_model]),
 				pcs = ProjectArray.projections,
-				scores = select_first([AddInteractionTermsToScore.scores_with_interactions, ScoreImputedArray.score])
+				scores = select_first([AddInteractionTermsToScore.scores_with_interactions, prs_scores])
 		}
 
 		call ScoringTasks.MakePCAPlot {
@@ -218,7 +268,7 @@ workflow ScoringImputedDataset {
 		call ScoringTasks.CompareScoredSitesToSitesUsedInTraining {
 			input:
 				sites_used_in_training = select_first([TrainAncestryAdjustmentModel.sites_used_in_scoring, sites_used_in_scoring_for_model]),
-				sites_used_in_scoring = select_first([CombineScoringSites.combined_scoring_sites, ScoreImputedArray.sites_scored]),
+				sites_used_in_scoring = select_first([CombineScoringSites.combined_scoring_sites, prs_sites_scored]),
 				weight_set = named_weight_set.weight_set
 		}
 
@@ -226,14 +276,14 @@ workflow ScoringImputedDataset {
 			#if there expected sites are missing, calculate potential effect on scores
 			call ScoringTasks.AddShiftToRawScores as ShiftScoresUpForMissingSites {
 				input:
-					raw_scores = select_first([AddInteractionTermsToScore.scores_with_interactions, ScoreImputedArray.score]),
+					raw_scores = select_first([AddInteractionTermsToScore.scores_with_interactions, prs_scores]),
 					shift = CompareScoredSitesToSitesUsedInTraining.max_error_up,
 					basename = "shifted_raw_scores_up_for_missing_sites"
 			}
 
 			call ScoringTasks.AddShiftToRawScores as ShiftScoresDownForMissingSites {
 				input:
-					raw_scores = select_first([AddInteractionTermsToScore.scores_with_interactions, ScoreImputedArray.score]),
+					raw_scores = select_first([AddInteractionTermsToScore.scores_with_interactions, prs_scores]),
 					shift = CompareScoredSitesToSitesUsedInTraining.max_error_down,
 					basename = "shifted_raw_scores_down_for_missing_sites"
 			}
@@ -272,7 +322,7 @@ workflow ScoringImputedDataset {
 
   output {
 	File? pc_projection = ProjectArray.projections
-	File raw_scores = select_first([AddInteractionTermsToScore.scores_with_interactions, ScoreImputedArray.score])
+	File raw_scores = select_first([AddInteractionTermsToScore.scores_with_interactions, prs_scores])
 	File? pc_plot = MakePCAPlot.pca_plot
 	File? adjusted_population_scores = TrainAncestryAdjustmentModel.adjusted_population_scores
 	File? adjusted_array_scores = AdjustScores.adjusted_scores

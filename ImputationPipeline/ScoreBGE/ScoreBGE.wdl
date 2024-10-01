@@ -9,6 +9,8 @@ workflow ScoreBGE {
         String basename
         File weights
         Array[String]? sample_names
+        Boolean score_haploid_as_diploid
+        Boolean use_emerge_weight_format = false
 
         String? score_bge_docker
 
@@ -31,6 +33,8 @@ workflow ScoreBGE {
             basename = basename,
             weights = weights,
             sample_names = sample_names,
+            score_haploid_as_diploid = score_haploid_as_diploid,
+            use_emerge_weight_format = use_emerge_weight_format,
             score_bge_docker = score_bge_docker,
             preemptible = preemptible
     }
@@ -41,6 +45,7 @@ workflow ScoreBGE {
         File score = ScoreGvcfAndVcf.score
         File exome_gvcf_sites_scored = ScoreGvcfAndVcf.exome_gvcf_sites_scored
         File imputed_wgs_vcf_sites_scored = ScoreGvcfAndVcf.imputed_wgs_vcf_sites_scored
+        File any_source_any_sample_sites_scored = ScoreGvcfAndVcf.any_source_any_sample_sites_scored
     }
 }
 
@@ -53,8 +58,10 @@ task ScoreGvcfAndVcf {
         String basename
         File weights
         Array[String]? sample_names
+        Boolean score_haploid_as_diploid
+        Boolean use_emerge_weight_format = false
 
-        String score_bge_docker = "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:palantir-workflows_5feb024"
+        String score_bge_docker = "us.gcr.io/broad-dsde-methods/palantir-workflows-score-bge:palantir-workflows_0480e5e"
 
         File ref_fasta
         File ref_fasta_index
@@ -73,7 +80,7 @@ task ScoreGvcfAndVcf {
     command <<<
         set -xeuo pipefail
         python3 /ScoreBGE.py --ref-dict ~{ref_dict} --weights ~{weights} --gvcf ~{exome_gvcf} --vcf ~{imputed_wgs_vcf} \
-            --basename ~{basename} ~{sample_names_arg} ~{sep=" --sample-names " sample_names}
+            --basename ~{basename} ~{sample_names_arg} ~{sep=" --sample-names " sample_names} ~{true="--score-haploid-as-diploid" false="" score_haploid_as_diploid} ~{true="--use-emerge-weight-format" false="" use_emerge_weight_format}
     >>>
 
     runtime {
@@ -90,5 +97,6 @@ task ScoreGvcfAndVcf {
         File score = "~{basename}.score"
         File exome_gvcf_sites_scored = "~{basename}.exome_gvcf.sites_scored"
         File imputed_wgs_vcf_sites_scored = "~{basename}.imputed_wgs_vcf.sites_scored"
+        File any_source_any_sample_sites_scored = "~{basename}.any_source_any_sample.sites_scored"
     }
 }

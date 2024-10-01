@@ -63,7 +63,9 @@ workflow FullImputationPRSValidation {
 	call ValidateScoring.ValidateScoring {
 		input:
 			validationArrays = validateImputation.imputed_multisample_vcf,
+			validationArraysIndex = validateImputation.imputed_multisample_vcf_index,
 			validationArraysMain = validateImputation.imputed_multisample_vcf_main,
+			validationArraysIndexMain = validateImputation.imputed_multisample_vcf_index_main,
 			validationWgs = validationWGS,
 			population_basename = population_basename,
 			population_loadings = population_loadings,

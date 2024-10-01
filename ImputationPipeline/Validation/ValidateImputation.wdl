@@ -133,7 +133,9 @@ workflow validateImputation {
 		File aggregated_imputation_metrics = ImputationPipeline.aggregated_imputation_metrics
 
 		File imputed_multisample_vcf = ImputationPipeline.imputed_multisample_vcf
+		File imputed_multisample_vcf_index = ImputationPipeline.imputed_multisample_vcf_index
 		File imputed_multisample_vcf_main = ImputationPipelineMain.imputed_multisample_vcf
+		File imputed_multisample_vcf_index_main = ImputationPipelineMain.imputed_multisample_vcf_index
 	}
 }
 
