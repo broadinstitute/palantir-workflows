@@ -68,19 +68,28 @@ task CheckScores {
         cat <<'EOF' > check_scores.py
         import pandas as pd
 
-        prs_full_risk = pd.read_csv('~{prs_full_risk}', sep = '\t', header = 0)
-        acceptable_range = pd.read_csv('~{acceptable_range}', sep = '\t', header = 0)
+        prs_full_risk = pd.read_csv('~{prs_full_risk}', sep = '\t', header = 0, index_col = 0)
+        acceptable_range = pd.read_csv('~{acceptable_range}', sep = '\t', header = 0, index_col = 0)
 
-        # Check whether prs_score and combined_risk_score are within the acceptable range
-        prs_score_passed = prs_full_risk.loc[0, "prs_score"] >= acceptable_range.loc[0, "min"] and prs_full_risk.loc[0, "prs_score"] <= acceptable_range.loc[0, "max"]
-        combined_risk_score_passed = prs_full_risk.loc[0, "combined_risk_score"] >= acceptable_range.loc[1, "min"] and prs_full_risk.loc[0, "combined_risk_score"] <= acceptable_range.loc[1, "max"]
+        # Get sample ids as a list; works with both single-sample or multi-sample files
+        sample_ids = prs_full_risk["sample_id"].tolist()
 
-        # Check whether pc1 and pc2 are within the acceptable range
-        pc1_within_range = abs(prs_full_risk.loc[0, "pc1"] - acceptable_range.loc[2, "expected"]) <= acceptable_range.loc[2, "margin"]
-        pc2_within_range = abs(prs_full_risk.loc[0, "pc2"] - acceptable_range.loc[3, "expected"]) <= acceptable_range.loc[3, "margin"]
+        all_metrics_within_range = True
+        for sample_id in sample_ids:
+            # Check whether prs_score and combined_risk_score are within acceptable range
+            prs_score_within_range = prs_full_risk.loc[sample_id, "prs_score"] >= acceptable_range.loc["prs_score", "min"] and prs_full_risk.loc[sample_id, "prs_score"] <= acceptable_range.loc["prs_score", "max"]
+            combined_risk_score_within_range = prs_full_risk.loc[sample_id, "combined_risk_score"] >= acceptable_range.loc["combined_risk_score", "min"] and prs_full_risk.loc[sample_id, "combined_risk_score"] <= acceptable_range.loc["combined_risk_score", "max"]
+
+            # Check whether pc1 and pc2 are within acceptable range
+            pc1_within_range = prs_full_risk.loc[sample_id, "pc1"] >= acceptable_range.loc["pc1", "min"] and prs_full_risk.loc[sample_id, "pc1"] <= acceptable_range.loc["pc1", "max"]
+            pc2_within_range = prs_full_risk.loc[sample_id, "pc2"] >= acceptable_range.loc["pc2", "min"] and prs_full_risk.loc[sample_id, "pc2"] <= acceptable_range.loc["pc2", "max"]
+
+            if not (prs_score_within_range and combined_risk_score_within_range and pc1_within_range and pc2_within_range):
+                all_metrics_within_range = False
+                break
 
         with open('~{output_basename}.qc_passed.txt', 'w') as qc_passed:
-            if prs_score_passed and combined_risk_score_passed and pc1_within_range and pc2_within_range:
+            if all_metrics_within_range:
                 qc_passed.write("true\n")
             else:
                 qc_passed.write("false\n")
@@ -135,22 +144,34 @@ task DetectPCANovelties {
         dist_thresh = ~{distance_threshold}
 
         # Read input data
-        prs_full_risk = pd.read_csv("~{prs_full_risk}", sep = '\t', header = 0)
-        test_point = Point(prs_full_risk.loc[0, "pc1"], prs_full_risk.loc[0, "pc2"])
+        prs_full_risk = pd.read_csv("~{prs_full_risk}", sep = '\t', header = 0, index_col = 0)
+
+        # Get sample ids as a list; works with both single-sample or multi-sample files
+        sample_ids = prs_full_risk["sample_id"].tolist()
+
+        test_points = []
+        for sample_id in sample_ids:
+            test_points.append(Point(prs_full_risk.loc[sample_id, "pc1"], prs_full_risk.loc[sample_id, "pc2"]))
 
         # Prepare output plot for nice visualization
         fig, ax = plt.subplots()
         ax.add_patch(PolygonPatch(alpha_shape, alpha = 0.2))
 
-        with open("~{output_basename}.pca_qc.txt", 'w') as outfile:
-            # Test and label the sample as a novelty or a regular observation
+        # Test and label each sample as a novelty or a regular observation
+        all_pcs_within_shape = True
+        for test_point in test_points:
             dist = test_point.distance(alpha_shape)
             if alpha_shape.contains(test_point) or dist < dist_thresh:
-                outfile.write("true" + "\n")
                 plt.scatter(test_point.x, test_point.y, c = 'green', alpha = 1.0, s = 10)
             else:
-                outfile.write("false" + "\n")
                 plt.scatter(test_point.x, test_point.y, c = 'red', alpha = 1.0, s = 10)
+                all_pcs_within_shape = False
+
+        with open("~{output_basename}.pca_qc.txt", 'w') as outfile:
+            if all_pcs_within_shape:
+                outfile.write("true" + "\n")
+            else:
+                outfile.write("false" + "\n")
 
         # Plotting for nice visualization
         plt.title("Alphashape Automated Novelty Flagging: ~{output_basename}")
