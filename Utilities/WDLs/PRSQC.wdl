@@ -72,7 +72,7 @@ task CheckScores {
         acceptable_range = pd.read_csv('~{acceptable_range}', sep = '\t', header = 0, index_col = 0)
 
         # Get sample ids as a list; works with both single-sample or multi-sample files
-        sample_ids = prs_full_risk["sample_id"].tolist()
+        sample_ids = prs_full_risk.index.get_level_values("sample_id").tolist()
 
         all_metrics_within_range = True
         for sample_id in sample_ids:
@@ -147,7 +147,7 @@ task DetectPCANovelties {
         prs_full_risk = pd.read_csv("~{prs_full_risk}", sep = '\t', header = 0, index_col = 0)
 
         # Get sample ids as a list; works with both single-sample or multi-sample files
-        sample_ids = prs_full_risk["sample_id"].tolist()
+        sample_ids = prs_full_risk.index.get_level_values("sample_id").tolist()
 
         test_points = []
         for sample_id in sample_ids:
