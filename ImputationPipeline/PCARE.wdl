@@ -4,7 +4,7 @@ import "Structs.wdl"
 import "PCATasks.wdl" as PCATasks
 import "ScoreBGE/ScoreBGE.wdl" as ScoreBGE
 
-workflow ProGRESSMultivariateRiskModel {
+workflow PCARE {
     input {
         File imputed_wgs_vcf
         File imputed_wgs_vcf_index
