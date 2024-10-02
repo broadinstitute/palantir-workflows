@@ -10,6 +10,7 @@ workflow PCAREAndQC {
         File exome_gvcf
         File exome_gvcf_index
         File prs_weights
+        Array[String]? sample_names
 
         File fam_history
         String basename
@@ -41,6 +42,7 @@ workflow PCAREAndQC {
             exome_gvcf = exome_gvcf,
             exome_gvcf_index = exome_gvcf_index,
             prs_weights = prs_weights,
+            sample_names = sample_names,
             fam_history = fam_history,
             basename = basename,
             pc_loadings = pc_loadings,

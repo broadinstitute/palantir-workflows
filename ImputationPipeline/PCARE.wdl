@@ -11,6 +11,7 @@ workflow PCARE {
         File exome_gvcf
         File exome_gvcf_index
         File prs_weights
+        Array[String]? sample_names
 
         File fam_history
         String basename
@@ -37,6 +38,7 @@ workflow PCARE {
             exome_gvcf_index = exome_gvcf_index,
             imputed_wgs_vcf = imputed_wgs_vcf,
             imputed_wgs_vcf_index = imputed_wgs_vcf_index,
+            sample_names = sample_names,
             basename = basename,
             weights = prs_weights,
             score_haploid_as_diploid = true,
