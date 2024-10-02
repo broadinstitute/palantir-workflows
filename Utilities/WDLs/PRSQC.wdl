@@ -3,13 +3,10 @@ version 1.0
 # Simple PRS QC wdl for the PROGRESS VA project
 workflow PRSQC {
     input {
+        File prs_full_risk
+        File acceptable_range
         String output_basename
-        File prs_control
-        File prs_sample
-        File control_acceptable_range
-        File sample_acceptable_range
-        File control_expected_pcs
-        Float margin_control_pcs
+
         # This alphashape is essentially a bounding polygon containing the set of points in the form (PC1, PC2)
         # from a training set, such as 1kG. It was generated using the library: https://github.com/bellockk/alphashape
         # We have a script that allows generating alphashapes with an arbitrary training set (of valid format),
@@ -18,7 +15,6 @@ workflow PRSQC {
         # the bounding polygon is. Our default is set at 8.0, which was determined to be a good value experimentally.
         # Users who intend to use a training set different than the default (1kG) should be aware of this.
         File alphashape
-        Boolean manually_passed_control = false
     }
 
     Int cpu = 1
@@ -26,46 +22,21 @@ workflow PRSQC {
     Int disk_size_gb = 32
     String docker = "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
 
-    if(!manually_passed_control) {
-        call CheckScores as CheckControlScoreAgainstExpectedValue {
-            input:
-                output_basename = "~{output_basename}_control",
-                scores = prs_control,
-                acceptable_range = control_acceptable_range,
-                cpu = cpu,
-                mem_gb = mem_gb,
-                disk_size_gb = disk_size_gb,
-                docker = docker
-        }
-
-        call CheckControlPCsAgainstExpectedValues {
-            input:
-                output_basename = output_basename,
-                scores = prs_control,
-                expected_values = control_expected_pcs,
-                margin = margin_control_pcs,
-                cpu = cpu,
-                mem_gb = mem_gb,
-                disk_size_gb = disk_size_gb,
-                docker = docker
-        }
-    }
-
-    call CheckScores as CheckScoreWithinReportableRange {
+    call CheckScores {
         input:
+            prs_full_risk = prs_full_risk,
+            acceptable_range = acceptable_range,
             output_basename = output_basename,
-            scores = prs_sample,
-            acceptable_range = sample_acceptable_range,
             cpu = cpu,
             mem_gb = mem_gb,
             disk_size_gb = disk_size_gb,
             docker = docker
     }
 
-    call DetectPCANovelties as DetectPCANoveltiesSample {
+    call DetectPCANovelties {
         input:
+            prs_full_risk = prs_full_risk,
             output_basename = output_basename,
-            test_sample = prs_sample,
             alphashape = alphashape,
             cpu = cpu,
             mem_gb = mem_gb,
@@ -73,18 +44,17 @@ workflow PRSQC {
     }
 
     output {
-        Boolean qc_passed = CheckScoreWithinReportableRange.qc_passed && DetectPCANoveltiesSample.pca_qc_passed && select_first([CheckControlScoreAgainstExpectedValue.qc_passed, true]) && select_first([CheckControlPCsAgainstExpectedValues.pca_qc_passed, true])
-        File? qc_failures_control = CheckControlScoreAgainstExpectedValue.qc_failures
-        File qc_failures_sample = CheckScoreWithinReportableRange.qc_failures
-        File pca_qc_plot = DetectPCANoveltiesSample.pca_qc_plot
+        Boolean qc_passed = CheckScores.qc_passed && DetectPCANovelties.pcs_within_shape
+        Boolean pcs_within_shape = DetectPCANovelties.pcs_within_shape
+        File pca_qc_plot = DetectPCANovelties.pca_qc_plot
     }
 }
 
 task CheckScores {
     input {
-        String output_basename
-        File scores
+        File prs_full_risk
         File acceptable_range
+        String output_basename
 
         Int cpu
         Int mem_gb
@@ -95,34 +65,36 @@ task CheckScores {
     command <<<
         set -euo pipefail
 
-        cat <<'EOF' > check_scores_against_expected_values.py
+        cat <<'EOF' > check_scores.py
         import pandas as pd
 
-        scores = pd.read_csv('~{scores}', sep = '\t', header = 0)
-        acceptable_range = pd.read_csv('~{acceptable_range}', sep = '\t', header = 0)
+        prs_full_risk = pd.read_csv('~{prs_full_risk}', sep = '\t', header = 0, index_col = 0)
+        acceptable_range = pd.read_csv('~{acceptable_range}', sep = '\t', header = 0, index_col = 0)
 
-        # Check whether PRS_SCORE and FULL_MODEL_SCORE are within the acceptable range
-        prs_score_passed = scores.loc[0, "PRS_SCORE"] >= acceptable_range.loc[0, "MIN"] and scores.loc[0, "PRS_SCORE"] <= acceptable_range.loc[0, "MAX"]
-        full_model_score_passed = scores.loc[0, "FULL_MODEL_SCORE"] >= acceptable_range.loc[1, "MIN"] and scores.loc[0, "FULL_MODEL_SCORE"] <= acceptable_range.loc[1, "MAX"]
+        # Get sample ids as a list; works with both single-sample or multi-sample files
+        sample_ids = prs_full_risk.index.get_level_values("sample_id").tolist()
+
+        all_metrics_within_range = True
+        for sample_id in sample_ids:
+            # Check whether prs_score and combined_risk_score are within acceptable range
+            prs_score_within_range = prs_full_risk.loc[sample_id, "prs_score"] >= acceptable_range.loc["prs_score", "min"] and prs_full_risk.loc[sample_id, "prs_score"] <= acceptable_range.loc["prs_score", "max"]
+            combined_risk_score_within_range = prs_full_risk.loc[sample_id, "combined_risk_score"] >= acceptable_range.loc["combined_risk_score", "min"] and prs_full_risk.loc[sample_id, "combined_risk_score"] <= acceptable_range.loc["combined_risk_score", "max"]
+
+            # Check whether pc1 and pc2 are within acceptable range
+            pc1_within_range = prs_full_risk.loc[sample_id, "pc1"] >= acceptable_range.loc["pc1", "min"] and prs_full_risk.loc[sample_id, "pc1"] <= acceptable_range.loc["pc1", "max"]
+            pc2_within_range = prs_full_risk.loc[sample_id, "pc2"] >= acceptable_range.loc["pc2", "min"] and prs_full_risk.loc[sample_id, "pc2"] <= acceptable_range.loc["pc2", "max"]
+
+            if not (prs_score_within_range and combined_risk_score_within_range and pc1_within_range and pc2_within_range):
+                all_metrics_within_range = False
+                break
 
         with open('~{output_basename}.qc_passed.txt', 'w') as qc_passed:
-            if prs_score_passed and full_model_score_passed:
+            if all_metrics_within_range:
                 qc_passed.write("true\n")
             else:
                 qc_passed.write("false\n")
-
-        with open('~{output_basename}.qc_failures.tsv', 'w') as qc_failures:
-            # Header
-            qc_failures.write("SAMPLE_ID" + "\t" + "METRIC" + "\t" + "VALUE" + "\t" + "MIN" + "\t" + "MAX" + "\n")
-
-            # No data rows if both PRS_SCORE and FULL_MODEL_SCORE within the acceptable range
-            if not prs_score_passed:
-                qc_failures.write("~{output_basename}" + "\t" + "PRS_SCORE" + "\t" + str(scores.loc[0, "PRS_SCORE"]) + "\t" + str(acceptable_range.loc[0, "MIN"]) + "\t" + str(acceptable_range.loc[0, "MAX"]) + "\n")
-            if not full_model_score_passed:
-                qc_failures.write("~{output_basename}" + "\t" + "FULL_MODEL_SCORE" + "\t" + str(scores.loc[0, "FULL_MODEL_SCORE"]) + "\t" + str(acceptable_range.loc[1, "MIN"]) + "\t" + str(acceptable_range.loc[1, "MAX"]) + "\n")
-
         EOF
-        python3 check_scores_against_expected_values.py
+        python3 check_scores.py
     >>>
 
     runtime {
@@ -134,62 +106,13 @@ task CheckScores {
 
     output {
         Boolean qc_passed = read_boolean("~{output_basename}.qc_passed.txt")
-        File qc_failures = "~{output_basename}.qc_failures.tsv"
     }
 }
 
-task CheckControlPCsAgainstExpectedValues {
+task DetectPCANovelties {
     input {
+        File prs_full_risk
         String output_basename
-        File scores
-        File expected_values
-        Float margin
-
-        Int cpu
-        Int mem_gb
-        Int disk_size_gb
-        String docker
-    }
-
-    command <<<
-        set -euo pipefail
-
-        cat <<'EOF' > check_control_pcs_against_expected_values.py
-        import pandas as pd
-
-        scores = pd.read_csv('~{scores}', sep = '\t', header = 0)
-        expected_values = pd.read_csv('~{expected_values}', sep = '\t', header = 0)
-
-        # Check whether PC1 and PC2 are within the acceptable range
-        pc1_within_range = abs(scores.loc[0, "PC1"] - expected_values.loc[0, "PC1"]) <= ~{margin}
-        pc2_within_range = abs(scores.loc[0, "PC2"] - expected_values.loc[0, "PC2"]) <= ~{margin}
-
-        with open('~{output_basename}.pca_qc_passed.txt', 'w') as pca_qc_passed:
-            if pc1_within_range and pc2_within_range:
-                pca_qc_passed.write("true\n")
-            else:
-                pca_qc_passed.write("false\n")
-
-        EOF
-        python3 check_control_pcs_against_expected_values.py
-    >>>
-
-    runtime {
-        docker: docker
-        disks: "local-disk " + disk_size_gb + " HDD"
-        memory: mem_gb + " GiB"
-        cpu: cpu
-    }
-
-    output {
-        Boolean pca_qc_passed = read_boolean("~{output_basename}.pca_qc_passed.txt")
-    }
-}
-
-task DetectPCANovelties{
-    input {
-        String output_basename
-        File test_sample
         File alphashape
         Float distance_threshold = 0.01
         Int cpu
@@ -221,22 +144,34 @@ task DetectPCANovelties{
         dist_thresh = ~{distance_threshold}
 
         # Read input data
-        df_test = pd.read_csv("~{test_sample}", sep = '\t', header = 0)
-        test_point = Point(df_test.loc[0, "PC1"], df_test.loc[0, "PC2"])
+        prs_full_risk = pd.read_csv("~{prs_full_risk}", sep = '\t', header = 0, index_col = 0)
+
+        # Get sample ids as a list; works with both single-sample or multi-sample files
+        sample_ids = prs_full_risk.index.get_level_values("sample_id").tolist()
+
+        test_points = []
+        for sample_id in sample_ids:
+            test_points.append(Point(prs_full_risk.loc[sample_id, "pc1"], prs_full_risk.loc[sample_id, "pc2"]))
 
         # Prepare output plot for nice visualization
         fig, ax = plt.subplots()
         ax.add_patch(PolygonPatch(alpha_shape, alpha = 0.2))
 
-        with open("~{output_basename}.pca_qc.txt", 'w') as outfile:
-            # Test and label the sample as a novelty or a regular observation
+        # Test and label each sample as a novelty or a regular observation
+        all_pcs_within_shape = True
+        for test_point in test_points:
             dist = test_point.distance(alpha_shape)
             if alpha_shape.contains(test_point) or dist < dist_thresh:
-                outfile.write("true" + "\n")
                 plt.scatter(test_point.x, test_point.y, c = 'green', alpha = 1.0, s = 10)
             else:
-                outfile.write("false" + "\n")
                 plt.scatter(test_point.x, test_point.y, c = 'red', alpha = 1.0, s = 10)
+                all_pcs_within_shape = False
+
+        with open("~{output_basename}.pca_qc.txt", 'w') as outfile:
+            if all_pcs_within_shape:
+                outfile.write("true" + "\n")
+            else:
+                outfile.write("false" + "\n")
 
         # Plotting for nice visualization
         plt.title("Alphashape Automated Novelty Flagging: ~{output_basename}")
@@ -247,13 +182,12 @@ task DetectPCANovelties{
         patches = [(plt.Line2D([], [], color = colors[i], label = "{:s}".format(labels[i]), marker = "o", linewidth = 0)) for i in range(len(labels))]
         plt.legend(loc = 'center left', bbox_to_anchor = (1, 0.5), handles = patches)
         plt.savefig("~{output_basename}.pca_qc.png", dpi = 300, bbox_inches = 'tight')
-
         EOF
         python3 detect_pca_novelties.py
     >>>
 
     output {
-        Boolean pca_qc_passed = read_boolean("~{output_basename}.pca_qc.txt")
+        Boolean pcs_within_shape = read_boolean("~{output_basename}.pca_qc.txt")
         File pca_qc_plot = "~{output_basename}.pca_qc.png"
     }
 
