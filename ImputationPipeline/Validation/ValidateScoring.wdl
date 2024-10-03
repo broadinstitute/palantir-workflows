@@ -120,6 +120,7 @@ workflow ValidateScoring {
 			input:
 				named_weight_set = named_weight_set,
 				imputed_array_vcf = validationArraysMain,
+				imputed_array_vcf_index = validationArraysIndexMain,
 				# Line below will have to be added once this is merged into main
 				# imputed_array_vcf_index = validationArraysIndexMain,
 				population_basename = population_basename,

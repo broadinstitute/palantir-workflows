@@ -17,8 +17,6 @@ workflow ScoringImputedDataset {
 	Boolean use_bge_scoring = false
 	File? bge_wes_gvcf # Optional WES GVCF for BGE input data
 	File? bge_wes_gvcf_index
-	File? ref_fasta
-	File? ref_fasta_index
 	File? ref_dict
 
 	Int scoring_mem = 16
@@ -48,10 +46,10 @@ workflow ScoringImputedDataset {
   }
 
   if (use_bge_scoring) {
-		if (!defined(bge_wes_gvcf) || !defined(bge_wes_gvcf_index) || !defined(ref_fasta) || !defined(ref_fasta_index) || !defined(ref_dict)) {
+		if (!defined(bge_wes_gvcf) || !defined(bge_wes_gvcf_index) || !defined(ref_dict)) {
 			call ErrorWithMessage as ErrorBGEGVCF {
 				input:
-					message = "All of bge_wes_gvcf, bge_wes_gvcf_index, ref_fasta, ref_fasta_index, and ref_dict must be included if using BGE scoring"
+					message = "All of bge_wes_gvcf, bge_wes_gvcf_index, and ref_dict must be included if using BGE scoring"
 			}
 		}
   }
@@ -141,8 +139,6 @@ workflow ScoringImputedDataset {
 				basename = basename,
 				weights = named_weight_set.weight_set.linear_weights,
 				sample_names = [basename],
-				ref_fasta = select_first([ref_fasta]),
-				ref_fasta_index = select_first([ref_fasta_index]),
 				ref_dict = select_first([ref_dict]),
 				use_emerge_weight_format = true,
 				score_haploid_as_diploid = true
