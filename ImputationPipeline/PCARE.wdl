@@ -25,6 +25,9 @@ workflow PCARE {
         Float pc1_beta
         Float pc2_beta
 
+        Float risk_determination_threshold_low_average = 19.69
+        Float risk_determination_threshold_average_high = 20.38
+
         Boolean use_ref_alt_for_ids = true
         String chromosome_encoding = "chrMT"
         Int mem_gb_array_vcf_to_plink = 16
@@ -76,6 +79,8 @@ workflow PCARE {
             fam_hist_beta = fam_hist_beta,
             pc1_beta = pc1_beta,
             pc2_beta = pc2_beta,
+            risk_determination_threshold_low_average = risk_determination_threshold_low_average,
+            risk_determination_threshold_average_high = risk_determination_threshold_average_high,
             basename = basename
     }
 
@@ -95,6 +100,9 @@ task ComputeRiskValue {
         Float pc1_beta
         Float pc2_beta
 
+        Float risk_determination_threshold_low_average
+        Float risk_determination_threshold_average_high
+
         String basename
     }
 
@@ -111,7 +119,7 @@ task ComputeRiskValue {
                                             ~{pc1_beta}*full_risk.PC1 + ~{pc2_beta}*full_risk.PC2)
 
         full_risk['risk_determination'] = full_risk['combined_risk_score'].apply(
-            lambda score: 'low' if score < 19.69 else ('high' if score > 20.38 else 'average'))
+            lambda score: 'low' if score < ~{risk_determination_threshold_low_average} else ('high' if score > ~{risk_determination_threshold_average_high} else 'average'))
         
         full_risk = full_risk.rename(columns={"#IID": "sample_id", "SCORE1_SUM": "prs_score", "PC1": "pc1", "PC2": "pc2", "fam_hist": "family_history"})
 

@@ -24,9 +24,12 @@ workflow PCAREAndQC {
         Float pc1_beta
         Float pc2_beta
 
-        Boolean use_ref_alt_for_ids = true
-        String chromosome_encoding = "chrMT"
-        Int mem_gb_array_vcf_to_plink = 16
+        Float risk_determination_threshold_low_average = 19.69
+        Float risk_determination_threshold_average_high = 20.38
+
+        Boolean? use_ref_alt_for_ids = true
+        String? chromosome_encoding = "chrMT"
+        Int? mem_gb_array_vcf_to_plink = 16
 
         File ref_dict
 
@@ -52,6 +55,8 @@ workflow PCAREAndQC {
             fam_hist_beta = fam_hist_beta,
             pc1_beta = pc1_beta,
             pc2_beta = pc2_beta,
+            risk_determination_threshold_low_average = risk_determination_threshold_low_average,
+            risk_determination_threshold_average_high = risk_determination_threshold_average_high,
             use_ref_alt_for_ids = use_ref_alt_for_ids,
             chromosome_encoding = chromosome_encoding,
             mem_gb_array_vcf_to_plink = mem_gb_array_vcf_to_plink,
