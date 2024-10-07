@@ -122,6 +122,7 @@ workflow Glimpse2Imputation {
     output {
         File imputed_vcf = GlimpseLigate.imputed_vcf
         File imputed_vcf_index = GlimpseLigate.imputed_vcf_index
+        File imputed_vcf_md5sum = GlimpseLigate.imputed_vcf_md5sum
         
         File? qc_metrics = CollectQCMetrics.qc_metrics
         File coverage_metrics = CombineCoverageMetrics.coverage_metrics
@@ -274,6 +275,8 @@ task GlimpseLigate {
         java -jar /picard.jar UpdateVcfSequenceDictionary -I old_header.vcf --SD ~{ref_dict} -O new_header.vcf        
         bcftools reheader -h new_header.vcf -o ~{output_basename}.imputed.vcf.gz ligated.vcf.gz
         tabix ~{output_basename}.imputed.vcf.gz
+
+        md5sum ~{output_basename}.imputed.vcf.gz | awk '{ print $1 }' > ~{output_basename}.imputed.vcf.gz.md5sum
     >>>
 
     runtime {
@@ -288,6 +291,7 @@ task GlimpseLigate {
     output {
         File imputed_vcf = "~{output_basename}.imputed.vcf.gz"
         File imputed_vcf_index = "~{output_basename}.imputed.vcf.gz.tbi"
+        File imputed_vcf_md5sum = "~{output_basename}.imputed.vcf.gz.md5sum"
         File? monitoring = "monitoring.log"
     }
 }
@@ -325,7 +329,11 @@ import pandas as pd
 hl.init(default_reference='GRCh38', idempotent=True)
 vcf = hl.import_vcf('~{imputed_vcf}', force_bgz=True)
 qc = hl.sample_qc(vcf)
-qc.cols().flatten().rename({'sample_qc.' + col: col for col in list(qc['sample_qc'])}).export('~{output_basename}.qc_metrics.tsv')
+qc_pd = qc.cols().flatten() \
+    .rename({'sample_qc.' + col: col for col in list(qc['sample_qc'])}) \
+    .rename({'s': 'sample_id'}) \
+    .to_pandas()
+qc_pd.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t', index=False, float_format='%.4f')
 EOF
         python3 script.py
     >>>

@@ -15,8 +15,6 @@ workflow PRSWrapper {
     Boolean use_bge_scoring = false
     File? bge_wes_gvcf
     File? bge_wes_gvcf_index
-    File? ref_fasta
-    File? ref_fasta_index
     File? ref_dict
 
     String sample_id
@@ -53,8 +51,6 @@ workflow PRSWrapper {
           use_bge_scoring = use_bge_scoring,
           bge_wes_gvcf = bge_wes_gvcf,
           bge_wes_gvcf_index = bge_wes_gvcf_index,
-          ref_fasta = ref_fasta,
-          ref_fasta_index = ref_fasta_index,
           ref_dict = ref_dict
       }
 
