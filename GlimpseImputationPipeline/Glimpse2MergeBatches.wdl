@@ -116,7 +116,7 @@ workflow Glimpse2MergeBatches {
         Int? initial_site_count = CountVariantsInitial.count
         Int? final_sample_count = CountSamplesFinal.num_samples
 
-        File merged_qc_metrics = select_first([MergeQCMetrics.merged_qc_metrics, qc_metric[0]])
+        File merged_qc_metrics = select_first([MergeQCMetrics.merged_qc_metrics, qc_metrics[0]])
     }
 }
 
