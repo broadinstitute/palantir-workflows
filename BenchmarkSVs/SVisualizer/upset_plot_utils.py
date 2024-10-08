@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 
 def make_disqualified_df(close_df, dist_threshold, size_ratio_threshold, color=None):
@@ -510,9 +509,6 @@ class _Upset:
         """
         # Group and count according to inputs
         color = self.color
-        groups = [x for x in [self.color, self.x] if x is not None]
-        # if len(groups) > 0:
-        #     counts_df = self.df.groupby(groups).sum().reset_index()
         if self.color is not None:
             counts_df = self.df.groupby(self.color).sum().reset_index()
             if self.x is not None:

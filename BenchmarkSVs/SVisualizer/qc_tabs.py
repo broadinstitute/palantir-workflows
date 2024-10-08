@@ -165,7 +165,7 @@ def make_hwe_plot(df, interval_name, breakpoint, pct_overlap):
         )
     else:
         fig.add_annotation(
-            text=f"No sites fit criteria selected",
+            text="No sites fit criteria selected",
             xref="paper", yref="paper",
             x=0, y=.9,
             showarrow=False

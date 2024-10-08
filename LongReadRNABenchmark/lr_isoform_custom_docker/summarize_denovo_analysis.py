@@ -1,5 +1,4 @@
 import sys
-import os
 import argparse
 
 # reliable: all methods detected

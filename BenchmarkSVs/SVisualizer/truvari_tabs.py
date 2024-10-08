@@ -1,12 +1,11 @@
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import quickboard.base as qbb
 import quickboard.plugins as plg
 
-from common_utils import read_and_postprocess, convert_missing_to_pass_filter, add_bbend_stats, sort_svtypes, sort_svlen_bins, sort_overlap_pcts
+from common_utils import read_and_postprocess, sort_svtypes, sort_svlen_bins, sort_overlap_pcts
 from decorators import axes_mode
-from plugins import make_type_selector, make_stat_selector, make_length_selector, make_interval_selector, make_axes_mode_selector
+from plugins import make_stat_selector, make_interval_selector, make_axes_mode_selector
 from user_config import COVARIATE_X, EXPERIMENT_ORDER, EXPERIMENT_COLORS, EXPERIMENT_COLOR_DICT, TRUVARI_DUP_TO_INS
 from truvari_data import postprocess_truvari_bench, postprocess_truvari_closest
 from upset_plot_utils import create_upset, make_disqualified_df
