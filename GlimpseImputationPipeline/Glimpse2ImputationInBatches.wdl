@@ -19,7 +19,6 @@ workflow Glimpse2ImputationInBatches {
 
         File ref_dict
 
-        Boolean? collect_qc_metrics
         Boolean? impute_reference_only_variants
         Boolean? call_indels
         Int? n_burnin
@@ -34,9 +33,12 @@ workflow Glimpse2ImputationInBatches {
         Int? mem_gb_merge
         File? monitoring_script
 
-        String? docker_extract_annotations
+        String? docker_gatk
         String? docker_count_samples
         String? docker_merge
+
+        File interval_list_for_merge
+        Int? merge_scatter_count
     }
 
     call SplitIntoBatches {
@@ -57,7 +59,6 @@ workflow Glimpse2ImputationInBatches {
                 fasta = fasta,
                 fasta_index = fasta_index,
                 output_basename = output_basename + "_batch_" + i,
-                collect_qc_metrics = collect_qc_metrics,
                 ref_dict = ref_dict,
                 impute_reference_only_variants = impute_reference_only_variants,
                 call_indels = call_indels,
@@ -73,34 +74,24 @@ workflow Glimpse2ImputationInBatches {
         }
     }
 
-    # We can't access collect_qc_metrics here because we want to inherit the default value
-    # from of the Glimpse2Imputation workflow. But we know that if collect_qc_metrics has
-    # been set there then the qc_metrics output will be defined, so just check if the output
-    # exists for the first batch.
-    Boolean merge_qc_metrics = defined(Glimpse2Imputation.qc_metrics[0])
-
-    if (merge_qc_metrics) {
-        Array[File] qc_metrics = select_all(Glimpse2Imputation.qc_metrics)
-    }
-
     call MergeBatches.Glimpse2MergeBatches {
         input:
             imputed_vcfs = Glimpse2Imputation.imputed_vcf,
             imputed_vcf_indices = Glimpse2Imputation.imputed_vcf_index,
             output_basename = output_basename,
-            qc_metrics = qc_metrics,
+            qc_metrics = Glimpse2Imputation.qc_metrics,
             mem_gb_merge = mem_gb_merge,
-            docker_extract_annotations = docker_extract_annotations,
+            docker_gatk = docker_gatk,
             docker_count_samples = docker_count_samples,
-            docker_merge = docker_merge
+            docker_merge = docker_merge,
+            interval_list = interval_list_for_merge,
+            scatter_count = merge_scatter_count
     }
 
     output {
         File merged_imputed_vcf = Glimpse2MergeBatches.merged_imputed_vcf
         File merged_imputed_vcf_index = Glimpse2MergeBatches.merged_imputed_vcf_index
-        
-        # No select_first here because we want this to be null if merge_qc_metrics is false
-        File? merged_qc_metrics = Glimpse2MergeBatches.merged_qc_metrics
+        File merged_qc_metrics = Glimpse2MergeBatches.merged_qc_metrics
     }
 }
 

@@ -21,8 +21,6 @@ workflow Glimpse2Imputation {
         Int? n_burnin
         Int? n_main
         Int? effective_population_size
-
-        Boolean collect_qc_metrics = true
         
         Int preemptible = 9
         String docker = "us.gcr.io/broad-dsde-methods/glimpse:kachulis_ck_bam_reader_retry_cf5822c"
@@ -109,22 +107,21 @@ workflow Glimpse2Imputation {
             cov_metrics = GlimpsePhase.coverage_metrics,
             output_basename = output_basename
     }
-
-    if (collect_qc_metrics) {
-        call CollectQCMetrics {
-            input:
-                imputed_vcf = GlimpseLigate.imputed_vcf,
-                output_basename = output_basename,
-                monitoring_script = monitoring_script
-        }
+   
+    call CollectQCMetrics {
+        input:
+            imputed_vcf = GlimpseLigate.imputed_vcf,
+            output_basename = output_basename,
+            monitoring_script = monitoring_script
     }
+    
 
     output {
         File imputed_vcf = GlimpseLigate.imputed_vcf
         File imputed_vcf_index = GlimpseLigate.imputed_vcf_index
         File imputed_vcf_md5sum = GlimpseLigate.imputed_vcf_md5sum
         
-        File? qc_metrics = CollectQCMetrics.qc_metrics
+        File qc_metrics = CollectQCMetrics.qc_metrics
         File coverage_metrics = CombineCoverageMetrics.coverage_metrics
 
         Array[File?] glimpse_phase_monitoring = GlimpsePhase.monitoring

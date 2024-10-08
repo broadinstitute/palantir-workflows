@@ -57,7 +57,6 @@ workflow Glimpse2ImputationAndCheckQC {
             n_burnin = n_burnin,
             n_main = n_main,
             effective_population_size = effective_population_size,
-            collect_qc_metrics = true,
             preemptible = preemptible,
             docker = docker,
             docker_extract_num_sites_from_reference_chunk = docker_extract_num_sites_from_reference_chunk,
