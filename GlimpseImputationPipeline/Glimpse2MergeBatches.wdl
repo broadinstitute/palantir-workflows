@@ -5,7 +5,7 @@ workflow Glimpse2MergeBatches {
         Array[File] imputed_vcfs
         Array[File] imputed_vcf_indices
 
-        Array[File]? qc_metrics
+        Array[File] qc_metrics
 
         String output_basename
 
@@ -19,7 +19,7 @@ workflow Glimpse2MergeBatches {
         Int mem_gb_merge = 16
     }
 
-    if (defined(qc_metrics) && (length(imputed_vcfs) != length(select_first([qc_metrics, []])))) {
+    if (length(imputed_vcfs) != length(qc_metrics)) {
         call ErrorWithMessage {
             input:
                 message = "inputed_vcfs and qc_metrics have different lengths"
@@ -100,22 +100,14 @@ workflow Glimpse2MergeBatches {
                 imputed_vcf_index = GatherVcfs.output_vcf_index,
                 docker_count_samples = docker_count_samples
         }
-
-        if (defined(qc_metrics)) {
-            call MergeQCMetrics {
-                input:
-                    qc_metrics = select_first([qc_metrics]),
-                    docker_merge = docker_merge,
-                    output_basename = output_basename
-            }
+    
+        call MergeQCMetrics {
+            input:
+                qc_metrics = qc_metrics,
+                docker_merge = docker_merge,
+                output_basename = output_basename
         }
-    }
-
-    # This handles the qc_metrics in the case of only one batch. If qc_metrics is not
-    # defined then this if statement will be false and qc_metrics_1 will be null.
-    # If qc_metrics is defined then set qc_metrics_1 to the first element
-    if (length(imputed_vcfs) == 1 && defined(qc_metrics)) {
-        File qc_metrics_1 = select_first([qc_metrics])[0]
+        
     }
 
     output {
@@ -124,11 +116,7 @@ workflow Glimpse2MergeBatches {
         Int? initial_site_count = CountVariantsInitial.count
         Int? final_sample_count = CountSamplesFinal.num_samples
 
-        # If input qc_metrics are defined then we want to return the merged qc_metrics here.
-        # MergeAndRecomputeAndAnnotate handles the null case if there are multiple batches.
-        # If there is only one batch (and MergeAndRecomputeAndAnnotate is therefore not called),
-        # return qc_metrics_1, which implements that logic above.
-        File? merged_qc_metrics = if length(imputed_vcfs) > 1 then MergeQCMetrics.merged_qc_metrics else qc_metrics_1
+        File merged_qc_metrics = select_first([MergeQCMetrics.merged_qc_metrics, qc_metric[0]])
     }
 }
 
@@ -268,12 +256,13 @@ task ScatterIntervalList {
       (directory, filename) = os.path.split(interval)
       newName = os.path.join(directory, str(i + 1).zfill(4) + filename)
       os.rename(interval, newName)
-    print(len(intervals))
+    with open('num_intervals.txt', 'w') as num_intervals:
+      num_intervals.write(f'{len(intervals)}\n')
     CODE
   >>>
   output {
     Array[File] out = glob("out/*/*.interval_list")
-    Int interval_count = read_int(stdout())
+    Int interval_count = read_int('num_intervals.txt')
   }
   runtime {
     docker: "us.gcr.io/broad-gotc-prod/picard-python:1.0.0-2.26.10-1663951039"
@@ -468,7 +457,7 @@ task MergeQCMetrics {
 
         cat <<EOF > script.py
     import pandas as pd
-    qc_metrics = ['~{sep="', '" select_first([qc_metrics, []])}']
+    qc_metrics = ['~{sep="', '" qc_metrics}']
     merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t') for qc_metric in qc_metrics])
     merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t')
     EOF
@@ -484,86 +473,6 @@ task MergeQCMetrics {
         memory: mem_gb + " GiB"
         cpu: cpu
         preemptible: preemptible
-    }
-}
-
-
-task MergeAndRecomputeAndAnnotate {
-    input {
-        Array[File] imputed_vcfs
-        Array[File] imputed_vcf_indices
-        Array[File] annotations
-        Array[Int] num_samples
-
-        Array[File]? qc_metrics
-
-        String output_basename
-
-        String docker_merge
-        Int disk_size_gb = ceil(2.2 * size(imputed_vcfs, "GiB") + 50)
-        Int mem_gb
-        Int cpu = 2
-        Int preemptible = 1
-    }
-
-    command <<<
-        set -xeuo pipefail
-
-        bcftools merge -O z -o ~{output_basename}.merged.vcf.gz ~{sep=" " imputed_vcfs}
-
-        cat <<EOF > script.py
-import pandas as pd
-import functools
-
-input_filenames = ['~{sep="', '" annotations}']
-num_samples = [~{sep=", " num_samples}]
-if len(num_samples) != len(input_filenames):
-    raise RuntimeError('The number of input annotations does not match the number of input number of samples.')
-num_batches = len(input_filenames)
-
-def calculate_af(row):
-    return sum([row[f'AF_{i}'] * num_samples[i] for i in range(num_batches)]) / sum(num_samples)
-def calculate_info(row):
-    aggregated_af = row['AF']
-    return 1 if aggregated_af == 0 or aggregated_af == 1 else \
-                     1 - \
-                    (sum([(1 - row[f'INFO_{i}']) * 2 * num_samples[i] * row[f'AF_{i}'] * (1 - row[f'AF_{i}']) for i in range(num_batches)])) / \
-                    (2 * sum(num_samples) * aggregated_af * (1 - aggregated_af))
-
-annotation_dfs = [pd.read_csv(input_filename, sep='\t').rename(columns={'AF': f'AF_{i}', 'INFO': f'INFO_{i}'}) for i, input_filename in enumerate(input_filenames)]
-annotations_merged = functools.reduce(lambda left, right: pd.merge(left, right, on=['CHROM', 'POS', 'REF', 'ALT'], how='inner', validate='one_to_one'), annotation_dfs)
-annotations_merged['AF'] = annotations_merged.apply(lambda row: calculate_af(row), axis=1)
-annotations_merged['INFO'] = annotations_merged.apply(lambda row: calculate_info(row), axis=1)
-annotations_merged.to_csv('aggregated_annotations.tsv', sep='\t', columns=['CHROM', 'POS', 'REF', 'ALT', 'AF', 'INFO'], header=False, index=False)
-
-if ~{if defined(qc_metrics) then "True" else "False"}:
-    qc_metrics = ['~{sep="', '" select_first([qc_metrics, []])}']
-    merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t') for qc_metric in qc_metrics])
-    merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t')
-EOF
-        python3 script.py
-
-        bgzip aggregated_annotations.tsv
-        tabix -s1 -b2 -e2 aggregated_annotations.tsv.gz
-
-        bcftools annotate -a aggregated_annotations.tsv.gz -c CHROM,POS,REF,ALT,AF,INFO -O z -o ~{output_basename}.vcf.gz ~{output_basename}.merged.vcf.gz
-        tabix ~{output_basename}.vcf.gz
-    >>>
-
-    runtime {
-        docker: docker_merge
-        disks: "local-disk " + disk_size_gb + " HDD"
-        memory: mem_gb + " GiB"
-        cpu: cpu
-        preemptible: preemptible
-    }
-
-    output {
-        File merged_imputed_vcf = "~{output_basename}.vcf.gz"
-        File merged_imputed_vcf_index = "~{output_basename}.vcf.gz.tbi"
-        File aggregated_annotations = "aggregated_annotations.tsv.gz"
-
-        File? merged_qc_metrics = "~{output_basename}.qc_metrics.tsv"
     }
 }
 
