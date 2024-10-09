@@ -4,6 +4,8 @@ workflow Glimpse2Imputation {
     input {
         # List of files, one per line
         File reference_chunks
+        File sites_tsv
+        File sites_tsv_index
 
         File? input_vcf
         File? input_vcf_index
@@ -30,6 +32,31 @@ workflow Glimpse2Imputation {
         Int? cpu_phase
         Int? mem_gb_phase
         File? monitoring_script
+    }
+
+    if (defined(crams)) {
+        Int len = length(select_first([crams]))
+        scatter (i_cram in range(len)) {
+            call BcftoolsCall {
+                input:
+                    cram = select_first([crams])[i_cram],
+                    cram_index = select_first([cram_indices])[i_cram],
+                    fasta = select_first([fasta]),
+                    fasta_index = select_first([fasta_index]),
+                    call_indels = call_indels,
+                    sites_tsv = sites_tsv,
+                    sites_tsv_index = sites_tsv_index,
+                    sample_id = sample_ids[i_cram]
+
+            }
+        }
+
+        call BcftoolsMerge {
+            input:
+                vcfs = BcftoolsCall.output_vcf,
+                vcf_indices = BcftoolsCall.output_vcf_index,
+                output_basename = output_basename
+        }
     }
 
     scatter (reference_chunk in read_lines(reference_chunks)) {
@@ -69,15 +96,13 @@ workflow Glimpse2Imputation {
         call GlimpsePhase {
             input:
                 reference_chunk = reference_chunk,
-                input_vcf = input_vcf,
-                input_vcf_index = input_vcf_index,
+                input_vcf = select_first([BcftoolsMerge.merged_vcf,input_vcf]),
+                input_vcf_index = select_first([BcftoolsMerge.merged_vcf_index,input_vcf_index]),
                 impute_reference_only_variants = impute_reference_only_variants,
                 n_burnin = n_burnin,
                 n_main = n_main,
                 effective_population_size = effective_population_size,
                 call_indels = call_indels,
-                crams = crams,
-                cram_indices = cram_indices,
                 sample_ids = sample_ids,
                 fasta = fasta,
                 fasta_index = fasta_index,
@@ -126,6 +151,83 @@ workflow Glimpse2Imputation {
 
         Array[File?] glimpse_phase_monitoring = GlimpsePhase.monitoring
         File? glimpse_ligate_monitoring = GlimpseLigate.monitoring
+    }
+}
+
+task BcftoolsCall {
+    input {
+        File cram
+        File cram_index
+        File fasta
+        File fasta_index
+        Boolean call_indels
+        String sample_id
+
+        File sites_tsv
+        File sites_tsv_index
+        Int mem_gb = 4
+        Int cpu = 2
+        Int preemptible = 3
+    }
+
+    Int disk_size_gb = ceil(1.5*size(cram, "GB") + size(fasta, "GB") + size(sites_tsv, "GB")) + 10
+
+    String out_basename = basename(cram, ".cram")
+
+    command <<<
+        set -euo pipefail
+
+        echo ~{sample_id} > sample_name.txt
+        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP' -T ~{sites_tsv} -Ou | \
+        bcftools call -Aim -C alleles -T ~{sites_tsv} -Ou | bcftools reheader -s sample_name.txt -Oz -o ~{out_basename}.vcf.gz
+
+        bcftools index -t ~{out_basename}.vcf.gz
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
+        disks: "local-disk " + disk_size_gb + " HDD"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        preemptible: preemptible
+    }
+
+    output {
+        File output_vcf = "~{out_basename}.vcf.gz"
+        File output_vcf_index = "~{out_basename}.vcf.gz.tbi"
+    }
+}
+
+task BcftoolsMerge {
+    input {
+        Array[File] vcfs
+        Array[File] vcf_indices
+        Int mem_gb = 4
+        Int cpu = 2
+        Int preemptible = 3
+
+        String output_basename
+    }
+
+    Int disk_size_gb = ceil(1.2*size(vcfs, "GB")) + 10
+
+    command <<<
+        set -euo pipefail
+        bcftools merge -O z -o ~{output_basename}.bcftools.merged.vcf.gz ~{sep=" " vcfs}
+        bcftools index -t ~{output_basename}.bcftools.merged.vcf.gz
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
+        disks: "local-disk " + disk_size_gb + " HDD"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        preemptible: preemptible
+    }
+
+    output {
+        File merged_vcf = "~{output_basename}.bcftools.merged.vcf.gz"
+        File merged_vcf_index = "~{output_basename}.bcftools.merged.vcf.gz.tbi"
     }
 }
 
