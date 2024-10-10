@@ -179,7 +179,7 @@ task BcftoolsCall {
 
         echo ~{sample_id} > sample_name.txt
         bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP' -T ~{sites_tsv} -Ou | \
-        bcftools call -Aim -C alleles -T ~{sites_tsv} -Ou | bcftools reheader -s sample_name.txt -Oz -o ~{out_basename}.vcf.gz
+        bcftools call -Aim -C alleles -T ~{sites_tsv} -Oz | bcftools reheader -s sample_name.txt -o ~{out_basename}.vcf.gz
 
         bcftools index -t ~{out_basename}.vcf.gz
     >>>
