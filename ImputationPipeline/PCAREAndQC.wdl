@@ -36,6 +36,7 @@ workflow PCAREAndQC {
         # For QC:
         File acceptable_range
         File alphashape
+        Float distance_threshold
     }
     
     call PCARE.PCARE {
@@ -68,7 +69,8 @@ workflow PCAREAndQC {
             output_basename = basename,
             prs_full_risk = PCARE.full_risk,
             acceptable_range = acceptable_range,
-            alphashape = alphashape
+            alphashape = alphashape,
+            distance_threshold = distance_threshold
     }
 
     output {
