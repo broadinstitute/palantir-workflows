@@ -123,7 +123,7 @@ task ComputeRiskValue {
         
         full_risk = full_risk.rename(columns={"#IID": "sample_id", "SCORE1_SUM": "prs_score", "PC1": "pc1", "PC2": "pc2", "fam_hist": "family_history"})
 
-        full_risk.to_csv("~{basename}_full_risk.tsv", sep="\t", index=False)
+        full_risk.to_csv("~{basename}_full_risk.tsv", sep="\t", index=False, float_format='%.4f')
 
         EOF
 
