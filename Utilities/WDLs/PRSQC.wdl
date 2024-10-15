@@ -15,6 +15,7 @@ workflow PRSQC {
         # the bounding polygon is. Our default is set at 8.0, which was determined to be a good value experimentally.
         # Users who intend to use a training set different than the default (1kG) should be aware of this.
         File alphashape
+        Float distance_threshold
     }
 
     Int cpu = 1
@@ -38,6 +39,7 @@ workflow PRSQC {
             prs_full_risk = prs_full_risk,
             output_basename = output_basename,
             alphashape = alphashape,
+            distance_threshold = distance_threshold,
             cpu = cpu,
             mem_gb = mem_gb,
             disk_size_gb = disk_size_gb
@@ -114,7 +116,7 @@ task DetectPCANovelties {
         File prs_full_risk
         String output_basename
         File alphashape
-        Float distance_threshold = 0.01
+        Float distance_threshold
         Int cpu
         Int mem_gb
         Int disk_size_gb
