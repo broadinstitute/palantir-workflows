@@ -79,6 +79,7 @@ workflow Glimpse2ImputationAndCheckQC {
     output {
         File imputed_vcf = Glimpse2Imputation.imputed_vcf
         File imputed_vcf_index = Glimpse2Imputation.imputed_vcf_index
+        File imputed_vcf_md5sum = Glimpse2Imputation.imputed_vcf_md5sum
         
         File qc_metrics = select_first([Glimpse2Imputation.qc_metrics])
         File coverage_metrics = Glimpse2Imputation.coverage_metrics
