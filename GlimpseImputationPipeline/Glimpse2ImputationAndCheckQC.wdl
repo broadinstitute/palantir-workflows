@@ -67,7 +67,7 @@ workflow Glimpse2ImputationAndCheckQC {
 
     call Glimpse2CheckQC.Glimpse2CheckQC {
         input:
-            qc_metrics = select_first([Glimpse2Imputation.qc_metrics]),
+            qc_metrics = Glimpse2Imputation.qc_metrics,
             qc_metrics_thresholds = qc_metrics_thresholds,
             output_basename = output_basename,
             preemptible = check_qc_preemptible,
@@ -79,8 +79,9 @@ workflow Glimpse2ImputationAndCheckQC {
     output {
         File imputed_vcf = Glimpse2Imputation.imputed_vcf
         File imputed_vcf_index = Glimpse2Imputation.imputed_vcf_index
+        File imputed_vcf_md5sum = Glimpse2Imputation.imputed_vcf_md5sum
         
-        File qc_metrics = select_first([Glimpse2Imputation.qc_metrics])
+        File qc_metrics = Glimpse2Imputation.qc_metrics
         File coverage_metrics = Glimpse2Imputation.coverage_metrics
 
         Array[File?] glimpse_phase_monitoring = Glimpse2Imputation.glimpse_phase_monitoring
