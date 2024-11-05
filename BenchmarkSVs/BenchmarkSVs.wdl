@@ -268,7 +268,7 @@ task RunTruvari {
                 --use-region-coords \
                 --use-original-vcfs \
                 --align ~{aligner} \
-                outputs
+                output_dir
 
             truvari anno svinfo output_dir/phab_bench/tp-base.vcf.gz -o output_dir/phab_bench/anno-tp-base.vcf.gz
             bcftools index -t output_dir/phab_bench/anno-tp-base.vcf.gz
