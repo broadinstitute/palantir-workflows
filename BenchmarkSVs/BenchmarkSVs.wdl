@@ -1,6 +1,7 @@
 version 1.0
 
 import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/Utilities/WDLs/CreateIGVSession.wdl" as IGV
+import "tasks.wdl" as SV_tasks
 
 struct RuntimeAttributes {
     Int disk_size
@@ -10,21 +11,18 @@ struct RuntimeAttributes {
 
 workflow BenchmarkSVs {
     input {
-        File? base_vcf
-        File? base_vcf_index
-        Array[String] base_sample_names
+        File base_vcf
+        File base_vcf_index
+        String base_sample_name
 
         File comp_vcf
         File comp_vcf_index
-        Array[String] comp_sample_names
+        String comp_sample_name
 
         String? experiment
 
         File ref_fasta
         File ref_fai
-
-        Boolean perform_qc = true
-        Boolean run_truvari = true
 
         File? evaluation_bed
         Float? evaluation_pct    # Defaults to checking at least one base overlap evaluation_bed
@@ -41,7 +39,7 @@ workflow BenchmarkSVs {
 
     # Subset to evaluation regions for remainder of analysis
     if (defined(evaluation_bed)) {
-        call SubsetEvaluation as SubsetComp {
+        call SV_tasks.SubsetEvaluation as SubsetComp {
             input:
                 input_vcf=comp_vcf,
                 input_vcf_index=comp_vcf_index,
@@ -50,7 +48,7 @@ workflow BenchmarkSVs {
         }
 
         if (defined(base_vcf)) {
-            call SubsetEvaluation as SubsetBase {
+            call SV_tasks.SubsetEvaluation as SubsetBase {
                 input:
                     input_vcf=select_first([base_vcf]),
                     input_vcf_index=select_first([base_vcf_index]),
@@ -66,451 +64,106 @@ workflow BenchmarkSVs {
     File subset_base_vcf = select_first([SubsetBase.output_vcf, base_vcf])
     File subset_base_vcf_index = select_first([SubsetBase.output_vcf_index, base_vcf_index])
 
-    # QC Tasks
-    if (perform_qc) {
-        String qc_comp_output_name = if (defined(base_vcf)) then "qc_stats-comp" else "combined_qc_stats"
-        call CollectQcMetrics as CompQcMetrics {
-            input:
-                input_vcf=subset_comp_vcf,
-                input_vcf_index=subset_comp_vcf_index,
-                sample_name=comp_sample_names[0],
-                experiment=experiment,
-                label_suffix="Comp",
-                ref_fai=ref_fai,
-                bed_regions=bed_regions,
-                bed_labels=bed_labels,
-                svlen_bin_cutoffs=svlen_bin_cutoffs
-        }
-
-        if (length(bed_regions) > 0) {
-            call AddIntervalOverlapStats as CompQcMetricsIntervals {
-                input:
-                    input_table=CompQcMetrics.stats,
-                    table_label="qc_comp",
-                    output_name=qc_comp_output_name,
-                    bed_regions=bed_regions,
-                    bed_labels=bed_labels,
-                    ref_fai=ref_fai,
-                    breakpoint_padding=breakpoint_padding
-            }
-        }
-
-        if (defined(base_vcf)) {
-            call CollectQcMetrics as BaseQcMetrics {
-                input:
-                    input_vcf=subset_base_vcf,
-                    input_vcf_index=subset_base_vcf_index,
-                    sample_name=base_sample_names[0],
-                    experiment=experiment,
-                    label_suffix="Base",
-                    ref_fai=ref_fai,
-                    bed_regions=bed_regions,
-                    bed_labels=bed_labels,
-                    svlen_bin_cutoffs=svlen_bin_cutoffs
-            }
-
-            if (length(bed_regions) > 0) {
-                call AddIntervalOverlapStats as BaseQcMetricsIntervals {
-                    input:
-                        input_table=BaseQcMetrics.stats,
-                        table_label="qc_base",
-                        output_name="qc_base",
-                        bed_regions=bed_regions,
-                        bed_labels=bed_labels,
-                        ref_fai=ref_fai,
-                        breakpoint_padding=breakpoint_padding
-                }
-            }
-
-            call CombineSummaries as CombineQcMetrics {
-                input:
-                    tables=[select_first([CompQcMetricsIntervals.output_table, CompQcMetrics.stats]),
-                            select_first([BaseQcMetricsIntervals.output_table, BaseQcMetrics.stats])],
-                    output_file_name="combined_qc_stats.tsv"
-            }
-        }
-
-        File qc_file = select_first([CombineQcMetrics.combined_file, CompQcMetrics.stats])
-    }
-
     # Benchmarking - Truvari tasks
     ## Run Truvari over each sample name pair
-    if (defined(base_vcf) && run_truvari) {
-        scatter(sample_pair in zip(base_sample_names, comp_sample_names)) {
-            call RunTruvari {
-                input:
-                    base_vcf=subset_base_vcf,
-                    base_vcf_index=subset_base_vcf_index,
-                    base_sample_name=sample_pair.left,
-                    comp_vcf=subset_comp_vcf,
-                    comp_vcf_index=subset_comp_vcf_index,
-                    comp_sample_name=sample_pair.right,
-                    experiment=experiment
-            }
-
-            call AddIntervalOverlapStats as TruvariTpBaseIntervals {
-                input:
-                    input_table=RunTruvari.tp_base_table,
-                    table_label="truvari_bench",
-                    output_name=sample_pair.left+"tp_base_intervals",
-                    bed_regions=bed_regions,
-                    bed_labels=bed_labels,
-                    ref_fai=ref_fai,
-                    breakpoint_padding=breakpoint_padding
-            }
-
-            call AddIntervalOverlapStats as TruvariTpCompIntervals {
-                input:
-                    input_table=RunTruvari.tp_comp_table,
-                    table_label="truvari_bench",
-                    output_name=sample_pair.right+"tp_comp_intervals",
-                    bed_regions=bed_regions,
-                    bed_labels=bed_labels,
-                    ref_fai=ref_fai,
-                    breakpoint_padding=breakpoint_padding
-            }
-
-            call AddIntervalOverlapStats as TruvariFpIntervals {
-                input:
-                    input_table=RunTruvari.fp_table,
-                    table_label="truvari_bench",
-                    output_name=sample_pair.right+"fp_intervals",
-                    bed_regions=bed_regions,
-                    bed_labels=bed_labels,
-                    ref_fai=ref_fai,
-                    breakpoint_padding=breakpoint_padding
-            }
-
-            call AddIntervalOverlapStats as TruvariFnIntervals {
-                input:
-                    input_table=RunTruvari.fn_table,
-                    table_label="truvari_bench",
-                    output_name=sample_pair.left+"fn_intervals",
-                    bed_regions=bed_regions,
-                    bed_labels=bed_labels,
-                    ref_fai=ref_fai,
-                    breakpoint_padding=breakpoint_padding
-            }
-
-            call ComputeTruvariIntervalSummaryStats {
-                input:
-                    base_sample_name=sample_pair.left,
-                    comp_sample_name=sample_pair.right,
-                    tp_base_intervals=TruvariTpBaseIntervals.output_table,
-                    tp_comp_intervals=TruvariTpCompIntervals.output_table,
-                    fp_intervals=TruvariFpIntervals.output_table,
-                    fn_intervals=TruvariFnIntervals.output_table,
-                    bed_labels=bed_labels,
-                    experiment=experiment,
-                    svlen_bin_cutoffs=svlen_bin_cutoffs
-            }
-
-            call CollectTruvariClosestStats {
-                input:
-                    base_table=RunTruvari.base_table,
-                    comp_table=RunTruvari.comp_table,
-                    fp_table=RunTruvari.fp_table,
-                    fn_table=RunTruvari.fn_table,
-                    base_sample_name=sample_pair.left,
-                    comp_sample_name=sample_pair.right,
-                    experiment=experiment,
-                    ref_fai=ref_fai
-            }
-        }
-
-        call CombineSummaries as CombineTruvariSummaries {
-            input:
-                tables=ComputeTruvariIntervalSummaryStats.full_summary,
-                output_file_name="truvari_bench_summary.tsv"
-        }
-
-        call CombineSummaries as CombineFPClosest {
-            input:
-                tables=CollectTruvariClosestStats.fp_closest,
-                output_file_name="truvari_fp_closest.tsv"
-        }
-
-        call CombineSummaries as CombineFNClosest {
-            input:
-                tables=CollectTruvariClosestStats.fn_closest,
-                output_file_name="truvari_fn_closest.tsv"
-        }
-
-        if (create_igv_session) {
-            call IGV.CreateIGVSession as IGVSession {
-                input:
-                    bams=optional_igv_bams,
-                    vcfs=flatten([select_all(RunTruvari.tp_base), select_all(RunTruvari.tp_comp),
-                                    select_all(RunTruvari.fp), select_all(RunTruvari.fn)]),
-                    interval_files=bed_regions,
-                    reference=ref_fasta
-            }
-        }
+    call RunTruvari {
+        input:
+            base_vcf=subset_base_vcf,
+            base_vcf_index=subset_base_vcf_index,
+            base_sample_name=base_sample_name,
+            comp_vcf=subset_comp_vcf,
+            comp_vcf_index=subset_comp_vcf_index,
+            comp_sample_name=comp_sample_name,
+            experiment=experiment
     }
 
-    Array[File] qc_files = select_all([qc_file])
-    call CombineFiles {
+    call SV_tasks.AddIntervalOverlapStats as TruvariTpBaseIntervals {
         input:
-            qc_files=qc_files,
-            truvari_files=select_all([CombineTruvariSummaries.combined_file, CombineFPClosest.combined_file, CombineFNClosest.combined_file])
+            input_table=RunTruvari.tp_base_table,
+            table_label="truvari_bench",
+            output_name=base_sample_name+"-tp_base_intervals",
+            bed_regions=bed_regions,
+            bed_labels=bed_labels,
+            ref_fai=ref_fai,
+            breakpoint_padding=breakpoint_padding
+    }
+
+    call SV_tasks.AddIntervalOverlapStats as TruvariTpCompIntervals {
+        input:
+            input_table=RunTruvari.tp_comp_table,
+            table_label="truvari_bench",
+            output_name=comp_sample_name+"-tp_comp_intervals",
+            bed_regions=bed_regions,
+            bed_labels=bed_labels,
+            ref_fai=ref_fai,
+            breakpoint_padding=breakpoint_padding
+    }
+
+    call SV_tasks.AddIntervalOverlapStats as TruvariFpIntervals {
+        input:
+            input_table=RunTruvari.fp_table,
+            table_label="truvari_bench",
+            output_name=comp_sample_name+"-fp_intervals",
+            bed_regions=bed_regions,
+            bed_labels=bed_labels,
+            ref_fai=ref_fai,
+            breakpoint_padding=breakpoint_padding
+    }
+
+    call SV_tasks.AddIntervalOverlapStats as TruvariFnIntervals {
+        input:
+            input_table=RunTruvari.fn_table,
+            table_label="truvari_bench",
+            output_name=base_sample_name+"-fn_intervals",
+            bed_regions=bed_regions,
+            bed_labels=bed_labels,
+            ref_fai=ref_fai,
+            breakpoint_padding=breakpoint_padding
+    }
+
+    call ComputeTruvariIntervalSummaryStats {
+        input:
+            base_sample_name=base_sample_name,
+            comp_sample_name=comp_sample_name,
+            tp_base_intervals=TruvariTpBaseIntervals.output_table,
+            tp_comp_intervals=TruvariTpCompIntervals.output_table,
+            fp_intervals=TruvariFpIntervals.output_table,
+            fn_intervals=TruvariFnIntervals.output_table,
+            bed_labels=bed_labels,
+            experiment=experiment,
+            svlen_bin_cutoffs=svlen_bin_cutoffs
+    }
+
+    call CollectTruvariClosestStats {
+        input:
+            base_table=RunTruvari.base_table,
+            comp_table=RunTruvari.comp_table,
+            fp_table=RunTruvari.fp_table,
+            fn_table=RunTruvari.fn_table,
+            base_sample_name=base_sample_name,
+            comp_sample_name=comp_sample_name,
+            experiment=experiment,
+            ref_fai=ref_fai
+    }
+
+    if (create_igv_session) {
+        call IGV.CreateIGVSession as IGVSession {
+            input:
+                bams=optional_igv_bams,
+                vcfs=[RunTruvari.tp_base, RunTruvari.tp_comp, RunTruvari.fp, RunTruvari.fn],
+                interval_files=bed_regions,
+                reference=ref_fasta
+        }
     }
 
     output {
-        # QC outputs
-        File? qc_summary = qc_file
-
         # Truvari outputs
-        File? truvari_bench_summary = CombineTruvariSummaries.combined_file
-        File? truvari_fp_closest = CombineFPClosest.combined_file
-        File? truvari_fn_closest = CombineFNClosest.combined_file
-
-        # Compressed/combined outputs
-        File? combined_files = CombineFiles.combined_files
+        File truvari_bench_summary = ComputeTruvariIntervalSummaryStats.full_summary
+        File? truvari_fp_closest = CollectTruvariClosestStats.fp_closest
+        File? truvari_fn_closest = CollectTruvariClosestStats.fn_closest
 
         # IGV Session
          File? igv_session = IGVSession.igv_session
-    }
-}
-
-task SubsetEvaluation {
-    input {
-        File input_vcf
-        File input_vcf_index
-
-        File evaluation_bed
-        Float? evaluation_pct
-
-        # Runtime parameters
-        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(2 * size(input_vcf, "GB")) + 100, "cpu": 4, "memory": 16}
-    }
-
-    command <<<
-        set -xueo pipefail
-
-        # Subset input VCF to only sites which intersect evaluation regions over pct overlap threshold
-        bcftools view -h ~{input_vcf} > header.txt
-        bedtools intersect -a ~{input_vcf} -b ~{evaluation_bed} ~{"-f " + evaluation_pct} -u > variants.vcf
-
-        cat header.txt variants.vcf | bcftools view -o output.vcf.gz -
-        bcftools index -t output.vcf.gz
-
-    >>>
-
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
-        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
-        memory: runtimeAttributes.memory + " GB"
-        cpu: runtimeAttributes.cpu
-    }
-
-    output {
-        File output_vcf = "output.vcf.gz"
-        File output_vcf_index = "output.vcf.gz.tbi"
-    }
-}
-
-task AddIntervalOverlapStats {
-    input {
-        File input_table
-        String table_label
-
-        String output_name
-
-        Array[File] bed_regions
-        Array[String] bed_labels
-
-        File ref_fai
-
-        Int breakpoint_padding = 20
-
-        # Runtime Parameters
-        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(2 * size(input_table, "GB")) + 100, "cpu": 4, "memory": 16}
-    }
-
-    command <<<
-        set -xeuo pipefail
-
-        # Clean ref_fai into genome file for bedtools
-        cut -f1,2 ~{ref_fai} > ref.genome
-
-        # Collect interval bed overlap stats
-        # Assumes input_table will have first three columns: CHROM, POS0, END0 with no header
-        generate_interval_stats () {
-            INTERVAL_LABEL=$1
-            INTERVAL_FILE=$2
-            INPUT_LABEL=$3
-            VCF_FILE=$4
-
-            echo -e "${INTERVAL_LABEL}-count\t${INTERVAL_LABEL}-overlap" > header.txt
-            # WARNING: annotate does not preserve order of input bed regions!
-            cut -f1-3 $VCF_FILE > vcf.bed
-            bedtools annotate -both -i vcf.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${INTERVAL_LABEL}-${INPUT_LABEL}-preheader.bed"
-            cat header.txt "${INTERVAL_LABEL}-${INPUT_LABEL}-preheader.bed" > "${INTERVAL_LABEL}-${INPUT_LABEL}-annotated.bed"
-
-            # Also add in breakpoint overlap stats using POS and END values
-            echo -e "${INTERVAL_LABEL}-LBEND-count\t${INTERVAL_LABEL}-LBEND-overlap" > pos-header.txt
-            echo -e "${INTERVAL_LABEL}-RBEND-count\t${INTERVAL_LABEL}-RBEND-overlap" > end-header.txt
-            awk '{OFS="\t"; print $1, $2, $2}' vcf.bed | bedtools slop -b ~{breakpoint_padding} -i - -g ref.genome > pos.bed
-            awk '{OFS="\t"; print $1, $3, $3}' vcf.bed | bedtools slop -b ~{breakpoint_padding} -i - -g ref.genome > end.bed
-            bedtools annotate -both -i pos.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${INTERVAL_LABEL}-${INPUT_LABEL}-pos-preheader.bed"
-            bedtools annotate -both -i end.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${INTERVAL_LABEL}-${INPUT_LABEL}-end-preheader.bed"
-            cat pos-header.txt "${INTERVAL_LABEL}-${INPUT_LABEL}-pos-preheader.bed" > "${INTERVAL_LABEL}-${INPUT_LABEL}-pos-annotated.bed"
-            cat end-header.txt "${INTERVAL_LABEL}-${INPUT_LABEL}-end-preheader.bed" > "${INTERVAL_LABEL}-${INPUT_LABEL}-end-annotated.bed"
-
-            # Paste together three overlap stats files
-            paste "${INTERVAL_LABEL}-${INPUT_LABEL}-annotated.bed" "${INTERVAL_LABEL}-${INPUT_LABEL}-pos-annotated.bed" "${INTERVAL_LABEL}-${INPUT_LABEL}-end-annotated.bed" > "${INTERVAL_LABEL}-${INPUT_LABEL}-full-annotated.bed"
-        }
-
-        INTERVAL_FILES=(~{sep=' ' bed_regions})
-        INTERVAL_LABELS=(~{sep=' ' bed_labels})
-
-        # split header from table content
-        # head -1 "~{input_table}" > table.hdr
-        tail -n+2 "~{input_table}" > table_content.tsv
-
-        for i in {0..~{length(bed_regions)-1}}
-        do
-            INTERVAL_LABEL="${INTERVAL_LABELS[$i]}"
-            CURRENT_FILE="${INTERVAL_FILES[$i]}"
-            generate_interval_stats $INTERVAL_LABEL $CURRENT_FILE "~{table_label}" table_content.tsv
-        done
-
-        # Combine across interval beds
-        paste "~{input_table}" *-~{table_label}-full-annotated.bed > "~{output_name}.tsv"
-
-        # Correct POS0/END0 back to original VCF POS/END coordinates
-        python3 << CODE
-        import pandas as pd
-
-        df = pd.read_csv('~{output_name}.tsv', sep='\t')
-        df['POS'] = df['POS'] + 1
-        df['END'] = df['END'] + 1
-        df.to_csv('~{output_name}.tsv', sep='\t', index=False)
-
-        CODE
-    >>>
-
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
-        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
-        memory: runtimeAttributes.memory + " GB"
-        cpu: runtimeAttributes.cpu
-    }
-
-    output {
-        File output_table = "~{output_name}.tsv"
-    }
-}
-
-task CollectQcMetrics {
-    input {
-        File input_vcf
-        File input_vcf_index
-
-        String sample_name = ""
-        String experiment = ""
-        String label_suffix = "Comp"
-
-        File ref_fai
-
-        Array[File] bed_regions = []
-        Array[String] bed_labels = []
-        Int breakpoint_padding = 20
-
-        Array[Int] svlen_bin_cutoffs = [100, 250, 1000, 2500, 10000, 25000]
-        Array[Int] af_bin_cutoffs = [1, 10, 50]
-        Boolean count_singletons_separate = true
-
-        # Runtime parameters
-        RuntimeAttributes runtimeAttributes = {"disk_size": ceil(2 * size(input_vcf, "GB")) + 100, "cpu": 4, "memory": 16}
-    }
-
-    command <<<
-        set -xueo pipefail
-
-        # Add allele count annotations, in case they're missing
-        bcftools +fill-tags -o tagged.vcf.gz "~{input_vcf}"
-        bcftools index -t -f tagged.vcf.gz
-
-        # Main query formatting
-        # Use POS0/END0 for coherence with bed coordinates later
-        MAIN_HEADER="CHROM\tPOS\tEND\tQUAL\tFILTER\tSVTYPE\tSVLEN\tAC\tAC_Het\tAC_Hom\tAN\tExcHet\tHWE\tAF\tMAF\tNS\tSample\tExperiment"
-        MAIN_QUERY="%CHROM\t%POS0\t%END0\t%QUAL\t%FILTER\t%INFO/SVTYPE\t%INFO/SVLEN\t%AC\t%AC_Het\t%AC_Hom\t%AN\t%ExcHet\t%HWE\t%AF\t%MAF\t%NS\n"
-
-        # Create table of relevant stats from variant annotations
-        # Requires input to have INFO fields: END, SVTYPE, SVLEN
-        echo -e "${MAIN_HEADER}" > qc_stats-pre_intervals.tsv
-        bcftools query -i 'INFO/SVTYPE!="."' \
-            -f"${MAIN_QUERY}" \
-            tagged.vcf.gz | awk -v OFS='\t' '{ print $0, "~{sample_name}-~{label_suffix}", "~{experiment}-~{label_suffix}" }' >> qc_stats-pre_intervals.tsv
-
-        # Add extra stats to QC
-        python3 << CODE
-        import pandas as pd
-
-        qc_df = pd.read_csv('qc_stats-pre_intervals.tsv', sep='\t')
-
-        # Add AC_Ref counts
-        qc_df['AC_Ref'] = qc_df['NS'] - qc_df['AC_Het'] - qc_df['AC_Hom'] / 2
-
-        # Bin AF
-        AF_Bin_cutoffs = [~{default="" sep=", " af_bin_cutoffs}]
-        AF_Bin_start = [f'<{AF_Bin_cutoffs[0]}%']
-        AF_Bins_middle = [f'{AF_Bin_cutoffs[i]}-{AF_Bin_cutoffs[i+1]}%' for i in range(len(AF_Bin_cutoffs)-1)]
-        AF_Bin_end = [f'>{AF_Bin_cutoffs[-1]}%']
-        AF_Bins = AF_Bin_start + AF_Bins_middle + AF_Bin_end
-
-        def bin_af(af):
-            for i, pct in enumerate(AF_Bin_cutoffs):
-                if af < pct/100:
-                    return AF_Bins[i]
-            return AF_Bins[-1]
-
-        # Fill missing AF with 0
-        qc_df['AF_Bin'] = qc_df['AF'].replace('.', 0).astype(float).apply(bin_af)
-        if "~{count_singletons_separate}" == "true":
-            qc_df['AF_Bin'] = qc_df.apply(lambda x: 'AC=1' if x['AC'] == 1 else x['AF_Bin'], axis=1)
-
-        # Bin counts by SVLEN
-        def add_suffix(n):
-            if n < 1_000:
-                return f'{n}'
-            elif n < 1_000_000:
-                return f'{n/1000:.1f}k'
-            elif n < 1_000_000_000:
-                return f'{n/1_000_000:.1f}M'
-            else:
-                return f'{n}'
-
-        SVLEN_Bin_cutoffs = [~{default="" sep=", " svlen_bin_cutoffs}]
-        SVLEN_Bin_start = [f'<{add_suffix(SVLEN_Bin_cutoffs[0])}']
-        SVLEN_Bins_middle = [f'{add_suffix(SVLEN_Bin_cutoffs[i])}-{add_suffix(SVLEN_Bin_cutoffs[i+1])}' for i in range(len(SVLEN_Bin_cutoffs)-1)]
-        SVLEN_Bin_end = [f'>{add_suffix(SVLEN_Bin_cutoffs[-1])}']
-        SVLEN_Bins = SVLEN_Bin_start + SVLEN_Bins_middle + SVLEN_Bin_end
-
-        def bin_svlen(num):
-            for i, bin in enumerate(SVLEN_Bin_cutoffs):
-                if num < bin:
-                    return SVLEN_Bins[i]
-            return SVLEN_Bins[-1]
-
-        qc_df['SVLEN_Bin'] = qc_df['SVLEN'].replace('.', 0).apply(bin_svlen)
-
-        qc_df.to_csv('qc_stats-pre_intervals.tsv', sep='\t', index=False)
-
-        CODE
-
-    >>>
-
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
-        disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
-        memory: runtimeAttributes.memory + " GB"
-        cpu: runtimeAttributes.cpu
-    }
-
-    output {
-        File stats = "qc_stats-pre_intervals.tsv"
     }
 }
 
@@ -868,80 +521,5 @@ task ComputeTruvariIntervalSummaryStats {
 
     output {
         File full_summary = "FullTruvariSummary.tsv"
-    }
-}
-
-task CombineSummaries {
-    input {
-        Array[File] tables
-        String output_file_name
-    }
-
-    Int disk_size = ceil(2 * size(tables, "GB")) + 50
-
-    command <<<
-        set -xueo pipefail
-
-        python3 << CODE
-
-        import pandas as pd
-
-        full_df = pd.DataFrame()
-        for file in ["~{default="" sep="\", \"" tables}"]:
-            df = pd.read_csv(file, sep='\t')
-            full_df = pd.concat([full_df, df])
-
-        full_df.to_csv('~{output_file_name}', sep='\t', index=False)
-
-        CODE
-    >>>
-
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
-        disks: "local-disk " + disk_size + " HDD"
-        memory: 8 + " GB"
-        cpu: 4
-    }
-
-    output {
-        File combined_file = "~{output_file_name}"
-    }
-}
-
-task CombineFiles {
-    input {
-        Array[File] qc_files
-        Array[File] truvari_files
-    }
-
-    command <<<
-        set -xueo pipefail
-
-        mkdir benchmark_outputs
-
-        mkdir benchmark_outputs/qc_files
-        if [ ~{length(qc_files)} -gt 0 ]
-        then
-            cp ~{sep=" " qc_files} benchmark_outputs/qc_files/
-        fi
-
-        mkdir benchmark_outputs/truvari_files
-        if [ ~{length(truvari_files)} -gt 0 ]
-        then
-            cp ~{sep=" " truvari_files} benchmark_outputs/truvari_files/
-        fi
-
-        tar -zcvf benchmark_outputs.tar.gz benchmark_outputs
-    >>>
-
-    runtime {
-        docker: "ubuntu:23.10"
-        disks: "local-disk 250 HDD"
-        memory: "16GB"
-        cpu: 2
-    }
-
-    output {
-        File combined_files = "benchmark_outputs.tar.gz"
     }
 }
