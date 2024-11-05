@@ -88,7 +88,7 @@ task AddIntervalOverlapStats {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.1"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         memory: runtimeAttributes.memory + " GB"
         cpu: runtimeAttributes.cpu
@@ -124,7 +124,7 @@ task SubsetEvaluation {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.1"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         memory: runtimeAttributes.memory + " GB"
         cpu: runtimeAttributes.cpu

@@ -352,6 +352,16 @@ task RunTruvari {
             mv tp-comp-filtered.bed tp-comp.bed
         fi
 
+        # Organize final outputs together
+        mkdir final_outputs
+        mv "${RESULTS_STEM}tp-base.vcf.gz" final_outputs/tp-base.vcf.gz
+        mv "${RESULTS_STEM}tp-base.vcf.gz.tbi" final_outputs/tp-base.vcf.gz.tbi
+        mv "${RESULTS_STEM}fn.vcf.gz" final_outputs/fn.vcf.gz
+        mv "${RESULTS_STEM}fn.vcf.gz.tbi" final_outputs/fn.vcf.gz.tbi
+        mv "${RESULTS_STEM}tp-comp.vcf.gz" final_outputs/tp-comp.vcf.gz
+        mv "${RESULTS_STEM}tp-comp.vcf.gz.tbi" final_outputs/tp-comp.vcf.gz.tbi
+        mv "${RESULTS_STEM}fp.vcf.gz" final_outputs/fp.vcf.gz
+        mv "${RESULTS_STEM}fp.vcf.gz.tbi" final_outputs/fp.vcf.gz.tbi
     >>>
 
     runtime {
@@ -362,14 +372,14 @@ task RunTruvari {
     }
 
     output {
-        File fn = "output_dir/fn.vcf.gz"
-        File fn_index = "output_dir/fn.vcf.gz.tbi"
-        File fp = "output_dir/fp.vcf.gz"
-        File fp_index = "output_dir/fp.vcf.gz.tbi"
-        File tp_base = "output_dir/tp-base.vcf.gz"
-        File tp_base_index = "output_dir/tp-base.vcf.gz.tbi"
-        File tp_comp = "output_dir/tp-comp.vcf.gz"
-        File tp_comp_index = "output_dir/tp-comp.vcf.gz.tbi"
+        File tp_base = "final_outputs/tp-base.vcf.gz"
+        File tp_base_index = "final_outputs/tp-base.vcf.gz.tbi"
+        File fn = "final_outputs/fn.vcf.gz"
+        File fn_index = "final_outputs/fn.vcf.gz.tbi"
+        File tp_comp = "final_outputs/tp-comp.vcf.gz"
+        File tp_comp_index = "final_outputs/tp-comp.vcf.gz.tbi"
+        File fp = "final_outputs/fp.vcf.gz"
+        File fp_index = "final_outputs/fp.vcf.gz.tbi"
 
         File base_table = "base.bed"
         File comp_table = "comp.bed"
