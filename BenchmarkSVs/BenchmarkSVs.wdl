@@ -288,7 +288,7 @@ task RunTruvari {
             bcftools view -i 'FMT/BD="TP"' output_dir/anno-combined_result_query.vcf.gz -o output_dir/anno-comb-tp-comp.vcf.gz -Wtbi
             bcftools view -i 'FMT/BD="FP"' output_dir/anno-combined_result_query.vcf.gz -o output_dir/anno-comb-fp.vcf.gz -Wtbi
 
-            RESULTS_STEM="output_dir/phab_bench/anno-comb-"
+            RESULTS_STEM="output_dir/anno-comb-"
         fi
 
         # Use Python to collect the output results and compile across intervals into one table
