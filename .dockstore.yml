@@ -144,3 +144,9 @@ workflows:
   - name: ScoreBGE
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/ScoreBGE/ScoreBGE.wdl
+  - name: BenchmarkSVs
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/BenchmarkSVs.wdl
+  - name: QcSVs
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkVCFs/QcSVs.wdl
