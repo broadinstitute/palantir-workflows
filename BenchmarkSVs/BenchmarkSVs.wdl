@@ -228,8 +228,13 @@ task RunTruvari {
             bcftools view ~{"-s " + comp_sample_name} --min-ac 1 -o comp-mac1.vcf.gz -Wtbi ~{comp_vcf}
         fi
 
-        bcftools annotate -x ~{sep="," drop_fields} -o base.vcf.gz -Wtbi base-mac1.vcf.gz
-        bcftools annotate -x ~{sep="," drop_fields} -o comp.vcf.gz -Wtbi comp-mac1.vcf.gz
+        # Split MA sites since truvari doesn't allow
+        bcftools norm -m -any -o base-splitMA.vcf.gz -Wtbi base-mac1.vcf.gz
+        bcftools norm -m -any -o comp-splitMA.vcf.gz -Wtbi comp-mac1.vcf.gz
+
+        # Drop some fields that can be problematic due to inconsistent headers but irrelevant for comparison
+        bcftools annotate -x ~{sep="," drop_fields} -o base.vcf.gz -Wtbi base-splitMA.vcf.gz
+        bcftools annotate -x ~{sep="," drop_fields} -o comp.vcf.gz -Wtbi comp-splitMA.vcf.gz
 
         # Run Truvari for benchmarking
         truvari bench \
@@ -253,6 +258,7 @@ task RunTruvari {
             ~{true="--passonly " false="" pass_only} \
             ~{"--pick " + num_matches}
 
+        # Use truvari refine to harmonize phased variants if requested
         RESULTS_STEM="output_dir/"
         if [ ~{harmonize_phased_variants} = true ]; then
             truvari refine \
@@ -402,7 +408,7 @@ task CollectTruvariClosestStats {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.1"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         memory: runtimeAttributes.memory + " GB"
         cpu: runtimeAttributes.cpu
@@ -548,7 +554,7 @@ task ComputeTruvariIntervalSummaryStats {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.1"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         memory: runtimeAttributes.memory + " GB"
         cpu: runtimeAttributes.cpu
