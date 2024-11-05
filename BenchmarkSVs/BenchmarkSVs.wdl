@@ -201,6 +201,7 @@ task RunTruvari {
         Int base_size_min = 50
         Int size_max = 50000
         Boolean pass_only = true
+        Boolean replace_missing_filter_pass = true
         Array[String] drop_fields = ["FMT/AD"]    # For mismatching headers in refine step
 
         ## Refine args
@@ -268,18 +269,26 @@ task RunTruvari {
                 --use-region-coords \
                 --use-original-vcfs \
                 --align ~{aligner} \
+                --threads ~{runtimeAttributes.cpu} \
                 output_dir
 
-            truvari anno svinfo output_dir/phab_bench/tp-base.vcf.gz -o output_dir/phab_bench/anno-tp-base.vcf.gz
-            bcftools index -t output_dir/phab_bench/anno-tp-base.vcf.gz
-            truvari anno svinfo output_dir/phab_bench/tp-comp.vcf.gz -o output_dir/phab_bench/anno-tp-comp.vcf.gz
-            bcftools index -t output_dir/phab_bench/anno-tp-comp.vcf.gz
-            truvari anno svinfo output_dir/phab_bench/fp.vcf.gz -o output_dir/phab_bench/anno-fp.vcf.gz
-            bcftools index -t output_dir/phab_bench/anno-fp.vcf.gz
-            truvari anno svinfo output_dir/phab_bench/fn.vcf.gz -o output_dir/phab_bench/anno-fn.vcf.gz
-            bcftools index -t output_dir/phab_bench/anno-fn.vcf.gz
+            truvari ga4gh \
+                --input output_dir \
+                --output output_dir/combined_result \
+                --with-refine
 
-            RESULTS_STEM="output_dir/phab_bench/anno-"
+            # Annotate the refined VCFs
+            truvari anno svinfo output_dir/combined_result_truth.vcf.gz -o output_dir/anno-combined_result_truth.vcf.gz
+            bcftools index -t output_dir/anno-combined_result_truth.vcf.gz
+            truvari anno svinfo output_dir/combined_result_query.vcf.gz -o output_dir/anno-combined_result_query.vcf.gz
+            bcftools index -t output_dir/anno-combined_result_query.vcf.gz
+
+            bcftools view -i 'FMT/BD="TP"' output_dir/anno-combined_result_truth.vcf.gz -o output_dir/anno-comb-tp-base.vcf.gz -Wtbi
+            bcftools view -i 'FMT/BD="FN"' output_dir/anno-combined_result_truth.vcf.gz -o output_dir/anno-comb-fn.vcf.gz -Wtbi
+            bcftools view -i 'FMT/BD="TP"' output_dir/anno-combined_result_query.vcf.gz -o output_dir/anno-comb-tp-comp.vcf.gz -Wtbi
+            bcftools view -i 'FMT/BD="FP"' output_dir/anno-combined_result_query.vcf.gz -o output_dir/anno-comb-fp.vcf.gz -Wtbi
+
+            RESULTS_STEM="output_dir/phab_bench/anno-comb-"
         fi
 
         # Use Python to collect the output results and compile across intervals into one table
@@ -304,7 +313,7 @@ task RunTruvari {
         # Create tables for making closest data and for interval overlap stats
         # Transform VCFs into bed files for more convenient analysis
         # Use POS0/END0 for coherence with bed coordinates later
-        echo -e "CHROM\tPOS\tEND\tSVLEN\tSVTYPE\tFILTER\tGTMATCH" > input_header.txt
+        echo -e "CHROM\tPOS\tEND\tSVLEN\tSVTYPE\tFILTER" > input_header.txt
         INPUT_QUERY="%CHROM\t%POS0\t%END0\t%SVLEN\t%SVTYPE\t%FILTER\n"
 
         bcftools query -i 'INFO/SVTYPE!="."' -f"${INPUT_QUERY}" base.vcf.gz | bedtools sort -i - > base-preheader.bed
@@ -313,8 +322,8 @@ task RunTruvari {
         bcftools query -i 'INFO/SVTYPE!="."' -f"${INPUT_QUERY}" comp.vcf.gz | bedtools sort -i - > comp-preheader.bed
         cat input_header.txt comp-preheader.bed > comp.bed
 
-        echo -e "CHROM\tPOS\tEND\tSVLEN\tSVTYPE\tFILTER\tGTMATCH" > truvari_header.txt
-        MAIN_QUERY="%CHROM\t%POS0\t%END0\t%SVLEN\t%SVTYPE\t%FILTER\t%GTMatch\n"
+        echo -e "CHROM\tPOS\tEND\tSVLEN\tSVTYPE\tFILTER\tGTMATCH\tGT" > truvari_header.txt
+        MAIN_QUERY="%CHROM\t%POS0\t%END0\t%SVLEN\t%SVTYPE\t%FILTER\t%GTMatch\t[%GT]\n"
 
         bcftools query -i 'INFO/SVTYPE!="."' -f"${MAIN_QUERY}" "${RESULTS_STEM}tp-base.vcf.gz" | bedtools sort -i - > tp-base-preheader.bed
         cat truvari_header.txt tp-base-preheader.bed > tp-base.bed
@@ -327,6 +336,21 @@ task RunTruvari {
 
         bcftools query -i 'INFO/SVTYPE!="."' -f"${MAIN_QUERY}" "${RESULTS_STEM}fp.vcf.gz" | bedtools sort -i - > fp-preheader.bed
         cat truvari_header.txt fp-preheader.bed > fp.bed
+
+        if [ ~{replace_missing_filter_pass} = true ]; then
+            # Make "." FILTER into "PASS"; relies on 6th column being FILTER from above query
+            awk -v OFS="\t" '{ if ($6 == ".") $6 = "PASS"; print }' fn.bed > fn-filtered.bed
+            mv fn-filtered.bed fn.bed
+
+            awk -v OFS="\t" '{ if ($6 == ".") $6 = "PASS"; print }' fp.bed > fp-filtered.bed
+            mv fp-filtered.bed fp.bed
+
+            awk -v OFS="\t" '{ if ($6 == ".") $6 = "PASS"; print }' tp-base.bed > tp-base-filtered.bed
+            mv tp-base-filtered.bed tp-base.bed
+
+            awk -v OFS="\t" '{ if ($6 == ".") $6 = "PASS"; print }' tp-comp.bed > tp-comp-filtered.bed
+            mv tp-comp-filtered.bed tp-comp.bed
+        fi
 
     >>>
 
@@ -446,6 +470,7 @@ task ComputeTruvariIntervalSummaryStats {
 
         python3 << CODE
         import pandas as pd
+        import re
 
         tp_base_df = pd.read_csv("~{tp_base_intervals}", sep='\t')
         tp_comp_df = pd.read_csv("~{tp_comp_intervals}", sep='\t')
@@ -480,13 +505,28 @@ task ComputeTruvariIntervalSummaryStats {
         fp_df['SVLEN_Bin'] = fp_df['SVLEN'].apply(bin_svlen)
         fn_df['SVLEN_Bin'] = fn_df['SVLEN'].apply(bin_svlen)
 
+        def label_gt(gt):
+            # Split on / or | in gt value
+            calls = re.split(r'[|/]', gt)
+
+            # Check if all calls are equal
+            if all(calls[0] == c for c in calls):
+                return 'HOM'
+            else:
+                return 'HET'
+
+        tp_base_df['GT'] = tp_base_df['GT'].apply(label_gt)
+        tp_comp_df['GT'] = tp_comp_df['GT'].apply(label_gt)
+        fp_df['GT'] = fp_df['GT'].apply(label_gt)
+        fn_df['GT'] = fn_df['GT'].apply(label_gt)
+
         intervals = ["~{default="" sep="\", \"" bed_labels}"]
         overlap_percents = [~{default="" sep=", " overlap_percents}] + ['>0']
         full_counts_df = pd.DataFrame()
         for interval in intervals:
             for pct in overlap_percents:
-                merged_df = pd.DataFrame({'SVTYPE': [], 'SVLEN_Bin': [], 'FILTER': []})
-                full_merge_columns = ['SVTYPE', 'SVLEN_Bin', 'FILTER', 'Interval', 'Pct_Overlap']
+                merged_df = pd.DataFrame({'SVTYPE': [], 'SVLEN_Bin': [], 'FILTER': [], 'GT': []})
+                full_merge_columns = ['SVTYPE', 'SVLEN_Bin', 'FILTER', 'GT', 'Interval', 'Pct_Overlap']
                 for label, df in zip(['tp_base', 'tp_comp', 'fp', 'fn'], [tp_base_df, tp_comp_df, fp_df, fn_df]):
                     for overlap_mode in ['full', 'breakpoint']:
                         for gt_mode in ['match', 'no_match']:
@@ -510,15 +550,19 @@ task ComputeTruvariIntervalSummaryStats {
                                 sub_df = df[subset_condition].copy()
                                 if len(sub_df) > 0:
                                     gt_suffix = '-gt' if gt_mode == 'match' else ''
-                                    sub_counts = sub_df.groupby(['SVTYPE', 'SVLEN_Bin', 'FILTER']).apply(len).reset_index().rename(columns={0: f'{count_label}{gt_suffix}_count'})
+                                    sub_counts = sub_df.groupby(['SVTYPE', 'SVLEN_Bin', 'FILTER', 'GT']).apply(len).reset_index().rename(columns={0: f'{count_label}{gt_suffix}_count'})
 
-                                    svtype_all_counts = sub_counts.groupby(['SVLEN_Bin', 'FILTER']).sum(numeric_only=True).reset_index()
+                                    svtype_all_counts = sub_counts.groupby(['SVLEN_Bin', 'FILTER', 'GT']).sum(numeric_only=True).reset_index()
                                     svtype_all_counts['SVTYPE'] = 'ALL'
                                     sub_counts = pd.concat([sub_counts, svtype_all_counts])
 
-                                    svlen_all_counts = sub_counts.groupby(['SVTYPE', 'FILTER']).sum(numeric_only=True).reset_index()
+                                    svlen_all_counts = sub_counts.groupby(['SVTYPE', 'FILTER', 'GT']).sum(numeric_only=True).reset_index()
                                     svlen_all_counts['SVLEN_Bin'] = 'ALL'
                                     sub_counts = pd.concat([sub_counts, svlen_all_counts])
+
+                                    gt_all_counts = sub_counts.groupby(['SVTYPE', 'SVLEN_Bin', 'FILTER']).sum(numeric_only=True).reset_index()
+                                    gt_all_counts['GT'] = 'ALL'
+                                    sub_counts = pd.concat([sub_counts, gt_all_counts])
 
                                     sub_counts['Pct_Overlap'] = pct
                                     sub_counts['Interval'] = interval
@@ -543,7 +587,7 @@ task ComputeTruvariIntervalSummaryStats {
 
         full_counts_df['Experiment'] = "~{experiment}"
 
-        column_order = ['Base_Sample_Name', 'Comp_Sample_Name', 'Experiment', 'SVTYPE', 'SVLEN_Bin', 'FILTER', 'Interval', 'Pct_Overlap',
+        column_order = ['Base_Sample_Name', 'Comp_Sample_Name', 'Experiment', 'SVTYPE', 'SVLEN_Bin', 'FILTER', 'GT', 'Interval', 'Pct_Overlap',
                         'tp_base_count', 'tp_base-BEND_count', 'tp_base-gt_count', 'tp_comp_count', 'tp_comp-BEND_count', 'tp_comp-gt_count', 'fp_count', 'fp-BEND_count',
                         'fn_count', 'fn-BEND_count', 'Precision', 'Precision-BEND', 'Recall', 'Recall-BEND', 'F1_Score', 'F1_Score-BEND', 'GT_concordance']
 
