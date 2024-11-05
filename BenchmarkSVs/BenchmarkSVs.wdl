@@ -74,7 +74,9 @@ workflow BenchmarkSVs {
             comp_vcf=subset_comp_vcf,
             comp_vcf_index=subset_comp_vcf_index,
             comp_sample_name=comp_sample_name,
-            experiment=experiment
+            experiment=experiment,
+            ref_fasta=ref_fasta,
+            ref_fai=ref_fai
     }
 
     call SV_tasks.AddIntervalOverlapStats as TruvariTpBaseIntervals {
@@ -179,6 +181,9 @@ task RunTruvari {
 
         String experiment = "Experiment"
 
+        File ref_fasta
+        File ref_fai
+
         # Tool arguments
         ## Comparison Threshold
         Int ref_dist = 500
@@ -189,13 +194,18 @@ task RunTruvari {
         Boolean type_ignore = false    # Toggle true to ignore matching SV types for TP
         Boolean dup_to_ins = false    # Toggle true to treat DUP as INS
         Int chunk_size = 1000    # Max ref distance to compare calls
-        String num_matches = "single"   # Num times a variant can match; single, ac, or multi
+        String num_matches = "ac"   # Num times a variant can match; single, ac, or multi
 
         ## Filtering
         Int call_size_min = 50
         Int base_size_min = 50
         Int size_max = 50000
         Boolean pass_only = true
+        Array[String] drop_fields = ["FMT/AD"]    # For mismatching headers in refine step
+
+        ## Refine args
+        Boolean harmonize_phased_variants = false    # Use truvari refine on phased inputs
+        String align = "mafft"
 
         Boolean debug_mode = false
 
@@ -209,16 +219,17 @@ task RunTruvari {
         # Subset to sites for given sample names since Truvari flags don't seem to work right
         if [ -z "~{base_sample_name}~{comp_sample_name}" ]
         then
-            mv ~{base_vcf} base.vcf.gz
-            mv ~{base_vcf_index} base.vcf.gz.tbi
-            mv ~{comp_vcf} comp.vcf.gz
-            mv ~{comp_vcf_index} comp.vcf.gz.tbi
+            mv ~{base_vcf} base-mac1.vcf.gz
+            mv ~{base_vcf_index} base-mac1.vcf.gz.tbi
+            mv ~{comp_vcf} comp-mac1.vcf.gz
+            mv ~{comp_vcf_index} comp-mac1.vcf.gz.tbi
         else
-            bcftools view ~{"-s " + base_sample_name} --min-ac 1 -o base.vcf.gz ~{base_vcf}
-            bcftools index -t base.vcf.gz
-            bcftools view ~{"-s " + comp_sample_name} --min-ac 1 -o comp.vcf.gz ~{comp_vcf}
-            bcftools index -t comp.vcf.gz
+            bcftools view ~{"-s " + base_sample_name} --min-ac 1 -o base-mac1.vcf.gz -Wtbi ~{base_vcf}
+            bcftools view ~{"-s " + comp_sample_name} --min-ac 1 -o comp-mac1.vcf.gz -Wtbi ~{comp_vcf}
         fi
+
+        bcftools annotate -x ~{sep="," drop_fields} -o base.vcf.gz -Wtbi base-mac1.vcf.gz
+        bcftools annotate -x ~{sep="," drop_fields} -o comp.vcf.gz -Wtbi comp-mac1.vcf.gz
 
         # Run Truvari for benchmarking
         truvari bench \
@@ -242,12 +253,36 @@ task RunTruvari {
             ~{true="--passonly " false="" pass_only} \
             ~{"--pick " + num_matches}
 
+        RESULTS_STEM="output_dir/"
+        if [ ~{harmonize_phased_variants} = true ]; then
+            truvari refine \
+                --reference ~{ref_fasta} \
+                --regions output_dir/candidate.refine.bed \
+                --recount \
+                --use-region-coords \
+                --use-original-vcfs \
+                --align ~{align} \
+                outputs
+
+            truvari anno svinfo output_dir/phab_bench/tp-base.vcf.gz -o output_dir/phab_bench/anno-tp-base.vcf.gz
+            bcftools index -t output_dir/phab_bench/anno-tp-base.vcf.gz
+            truvari anno svinfo output_dir/phab_bench/tp-comp.vcf.gz -o output_dir/phab_bench/anno-tp-comp.vcf.gz
+            bcftools index -t output_dir/phab_bench/anno-tp-comp.vcf.gz
+            truvari anno svinfo output_dir/phab_bench/fp.vcf.gz -o output_dir/phab_bench/anno-fp.vcf.gz
+            bcftools index -t output_dir/phab_bench/anno-fp.vcf.gz
+            truvari anno svinfo output_dir/phab_bench/fn.vcf.gz -o output_dir/phab_bench/anno-fn.vcf.gz
+            bcftools index -t output_dir/phab_bench/anno-fn.vcf.gz
+
+            RESULTS_STEM="output_dir/phab_bench/anno-"
+        fi
+
         # Use Python to collect the output results and compile across intervals into one table
         python3 << CODE
         import pandas as pd
         import json
 
-        with open(f'output_dir/summary.json') as file:
+        output_dir = 'output_dir' if "~{harmonize_phased_variants}" == "false" else 'output_dir/phab_bench'
+        with open(f'{output_dir}/summary.json') as file:
             json_file = json.load(file)
 
         df = pd.DataFrame({k: v for k,v in json_file.items() if k != 'gt_matrix'}, index=[0])
@@ -275,16 +310,16 @@ task RunTruvari {
         echo -e "CHROM\tPOS\tEND\tSVLEN\tSVTYPE\tFILTER\tGTMATCH" > truvari_header.txt
         MAIN_QUERY="%CHROM\t%POS0\t%END0\t%SVLEN\t%SVTYPE\t%FILTER\t%GTMatch\n"
 
-        bcftools query -i 'INFO/SVTYPE!="."' -f"${MAIN_QUERY}" output_dir/tp-base.vcf.gz | bedtools sort -i - > tp-base-preheader.bed
+        bcftools query -i 'INFO/SVTYPE!="."' -f"${MAIN_QUERY}" "${RESULTS_STEM}tp-base.vcf.gz" | bedtools sort -i - > tp-base-preheader.bed
         cat truvari_header.txt tp-base-preheader.bed > tp-base.bed
 
-        bcftools query -i 'INFO/SVTYPE!="."' -f"${MAIN_QUERY}" output_dir/fn.vcf.gz | bedtools sort -i - > fn-preheader.bed
+        bcftools query -i 'INFO/SVTYPE!="."' -f"${MAIN_QUERY}" "${RESULTS_STEM}fn.vcf.gz" | bedtools sort -i - > fn-preheader.bed
         cat truvari_header.txt fn-preheader.bed > fn.bed
 
-        bcftools query -i 'INFO/SVTYPE!="."' -f"${MAIN_QUERY}" output_dir/tp-comp.vcf.gz | bedtools sort -i - > tp-comp-preheader.bed
+        bcftools query -i 'INFO/SVTYPE!="."' -f"${MAIN_QUERY}" "${RESULTS_STEM}tp-comp.vcf.gz" | bedtools sort -i - > tp-comp-preheader.bed
         cat truvari_header.txt tp-comp-preheader.bed > tp-comp.bed
 
-        bcftools query -i 'INFO/SVTYPE!="."' -f"${MAIN_QUERY}" output_dir/fp.vcf.gz | bedtools sort -i - > fp-preheader.bed
+        bcftools query -i 'INFO/SVTYPE!="."' -f"${MAIN_QUERY}" "${RESULTS_STEM}fp.vcf.gz" | bedtools sort -i - > fp-preheader.bed
         cat truvari_header.txt fp-preheader.bed > fp.bed
 
     >>>
