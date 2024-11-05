@@ -25,7 +25,7 @@ workflow BenchmarkSVs {
         File ref_fai
 
         File? evaluation_bed
-        Float? evaluation_pct    # Defaults to checking at least one base overlap evaluation_bed
+        Float? evaluation_pct    # Defaults to checking at least one base overlap evaluation_bed; between 0 and 1
 
         Array[File] bed_regions = []
         Array[String] bed_labels = []
@@ -205,7 +205,7 @@ task RunTruvari {
 
         ## Refine args
         Boolean harmonize_phased_variants = false    # Use truvari refine on phased inputs
-        String align = "mafft"
+        String aligner = "mafft"
 
         Boolean debug_mode = false
 
@@ -261,7 +261,7 @@ task RunTruvari {
                 --recount \
                 --use-region-coords \
                 --use-original-vcfs \
-                --align ~{align} \
+                --align ~{aligner} \
                 outputs
 
             truvari anno svinfo output_dir/phab_bench/tp-base.vcf.gz -o output_dir/phab_bench/anno-tp-base.vcf.gz
@@ -325,7 +325,7 @@ task RunTruvari {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.0"
+        docker: "us.gcr.io/broad-dsde-methods/sv_docker:v1.1"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         memory: runtimeAttributes.memory + " GB"
         cpu: runtimeAttributes.cpu

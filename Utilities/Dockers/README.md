@@ -105,12 +105,13 @@ includes some minimal Python tools (pandas) for data processing.
 ## sv_docker
 
 * Directory: SVDocker
-* Description: A docker image containing various tools used in workflows for benchmarking SV files. It contains htslib, bcftools, bedtools, truvari, pandas, and pysam.
-* Location: `us.gcr.io/broad-dsde-methods/sv_docker:v1.0`
+* Description: A docker image containing various tools used in workflows for benchmarking SV files. It contains htslib, bcftools, bedtools, truvari, pandas, pysam, mafft, and hiphase.
+* Location: `us.gcr.io/broad-dsde-methods/sv_docker:v1.1`
 * Used By: [BenchmarkSVs](/BenchmarkSVs/BenchmarkSVs.wdl), [CleanSVs](/BenchmarkSVs/CleanSVs.wdl)
 * Usage: Various; e.g. `bcftools [COMMAND]`, `bedtools [COMMAND]`, `truvari [COMMAND]`, and in Python scripts.
 * Version Notes:
   * 1.0: Versions are `htslib` 1.18, `bcftools` 1.18, `bedtools` 2.31.0, `truvari` 4.0.0, `pandas` 2.1.3, `pysam` 0.22.0 
+  * 1.1: Versions are `htslib` 1.21, `bcftools` 1.21, `bedtools` 2.31.0, `truvari` 4.3.1, `pandas` 2.2.3, `pysam` 0.22.1, `mafft` 7.475, `hiphase` 1.4.5
 
 ## vcfdist
 * Directory: Vcfdist
@@ -136,8 +137,9 @@ includes some minimal Python tools (pandas) for data processing.
 
 * Directory: WhatsHap
 * Description: A docker image containing an installation of [WhatsHap](https://whatshap.readthedocs.io/en/latest/).
-* Location: `us.gcr.io/broad-dsde-methods/whatshap:v1`
+* Location: `us.gcr.io/broad-dsde-methods/whatshap:v1.1`
 * Used By: [BenchmarkPhasing](../../BenchmarkPhasing/BenchmarkPhasing.wdl), [PhaseVCF](../../BenchmarkPhasing/PhaseVCF.wdl)
 * Usage: `whatshap [COMMAND]`
 * Version Notes:
   * 1.0: Versions are `whatshap` 1.7
+  * 1.1: Versions are `whatshap` 2.3, `bcftools` 1.21
