@@ -1,4 +1,4 @@
-FROM ubuntu:22.10
+FROM ubuntu:24.04
 RUN apt update
 RUN apt install -y openjdk-11-jre ant git unzip python3 python3-pip libbz2-dev liblzma-dev libcurl4-openssl-dev
 
