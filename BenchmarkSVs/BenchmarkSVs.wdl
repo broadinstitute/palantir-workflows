@@ -517,7 +517,7 @@ task ComputeTruvariIntervalSummaryStats {
 
         def label_gt(gt):
             # Split on / or | in gt value
-            calls = re.split(r'[|/]', gt)
+            calls = re.split(r'[|/]', str(gt))    # Fix weird case where pandas reads 1 as int rather than str
 
             # Check if all calls are equal
             if all(calls[0] == c for c in calls):
