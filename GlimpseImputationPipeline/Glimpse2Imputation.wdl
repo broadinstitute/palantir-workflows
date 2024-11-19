@@ -127,10 +127,12 @@ workflow Glimpse2Imputation {
             monitoring_script = monitoring_script
     }
 
-    call CombineCoverageMetrics {
-        input:
-            cov_metrics = GlimpsePhase.coverage_metrics,
-            output_basename = output_basename
+    if (length(select_all(GlimpsePhase.coverage_metrics)) > 0) {
+        call CombineCoverageMetrics {
+            input:
+                cov_metrics = select_all(GlimpsePhase.coverage_metrics),
+                output_basename = output_basename
+        }
     }
    
     call CollectQCMetrics {
@@ -147,7 +149,7 @@ workflow Glimpse2Imputation {
         File imputed_vcf_md5sum = GlimpseLigate.imputed_vcf_md5sum
         
         File qc_metrics = CollectQCMetrics.qc_metrics
-        File coverage_metrics = CombineCoverageMetrics.coverage_metrics
+        File? coverage_metrics = CombineCoverageMetrics.coverage_metrics
 
         Array[File?] glimpse_phase_monitoring = GlimpsePhase.monitoring
         File? glimpse_ligate_monitoring = GlimpseLigate.monitoring
@@ -339,7 +341,7 @@ task GlimpsePhase {
         File imputed_vcf = "phase_output.bcf"
         File imputed_vcf_index = "phase_output.bcf.csi"
         File? monitoring = "monitoring.log"
-        File coverage_metrics = "phase_output_stats_coverage.txt.gz"
+        File? coverage_metrics = "phase_output_stats_coverage.txt.gz"
     }
 }
 
