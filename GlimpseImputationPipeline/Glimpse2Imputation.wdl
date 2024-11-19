@@ -178,9 +178,9 @@ task BcftoolsCall {
         set -euo pipefail
 
         echo ~{sample_id} > sample_name.txt
-        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_tsv} -O u ~{cram} | \
-        bcftools +tag2tag -O z -o ~{out_basename}.vcf.gz - -- --PL-to-GL | \
-        bcftools reheader -s sample_name.txt -o ~{out_basename}.vcf.gz
+        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_tsv} -O z ~{cram} > ~{out_basename}.pileup.vcf.gz
+        bcftools +tag2tag -O z ~{out_basename}.pileup.vcf.gz -- --PL-to-GL > ~{out_basename}.pileup.gl.vcf.gz
+        bcftools reheader -s sample_name.txt -o ~{out_basename}.vcf.gz ~{out_basename}.pileup.gl.vcf.gz
         bcftools index -t ~{out_basename}.vcf.gz
     >>>
 
