@@ -8,6 +8,7 @@ workflow Glimpse2Imputation {
         File sites_tsv_index
 
         Int bcftools_threads
+        Boolean use_gatk
 
         File? input_vcf
         File? input_vcf_index
@@ -39,25 +40,42 @@ workflow Glimpse2Imputation {
     if (defined(crams)) {
         Int len = length(select_first([crams]))
         scatter (i_cram in range(len)) {
-            call BcftoolsCall {
-                input:
-                    cram = select_first([crams])[i_cram],
-                    cram_index = select_first([cram_indices])[i_cram],
-                    fasta = select_first([fasta]),
-                    fasta_index = select_first([fasta_index]),
-                    call_indels = call_indels,
-                    sites_tsv = sites_tsv,
-                    sites_tsv_index = sites_tsv_index,
-                    sample_id = sample_ids[i_cram],
-                    cpu = bcftools_threads
-
+            if (use_gatk) {
+                call GATKCall {
+                    input:
+                        cram = select_first([crams])[i_cram],
+                        cram_index = select_first([cram_indices])[i_cram],
+                        fasta = select_first([fasta]),
+                        fasta_index = select_first([fasta_index]),
+                        fasta_dict = ref_dict,
+                        sites_tsv = sites_tsv,
+                        sites_tsv_index = sites_tsv_index,
+                        sample_id = sample_ids[i_cram]
+                }
             }
+            if (!use_gatk) {
+                call BcftoolsCall {
+                    input:
+                        cram = select_first([crams])[i_cram],
+                        cram_index = select_first([cram_indices])[i_cram],
+                        fasta = select_first([fasta]),
+                        fasta_index = select_first([fasta_index]),
+                        call_indels = call_indels,
+                        sites_tsv = sites_tsv,
+                        sites_tsv_index = sites_tsv_index,
+                        sample_id = sample_ids[i_cram],
+                        cpu = bcftools_threads
+
+                }
+            }
+            File called_vcf = select_first([BcftoolsCall.output_vcf, GATKCall.output_vcf])
+            File called_vcf_index = select_first([BcftoolsCall.output_vcf_index, GATKCall.output_vcf_index])
         }
 
         call BcftoolsMerge {
             input:
-                vcfs = BcftoolsCall.output_vcf,
-                vcf_indices = BcftoolsCall.output_vcf_index,
+                vcfs = called_vcf,
+                vcf_indices = called_vcf_index,
                 output_basename = output_basename
         }
     }
@@ -191,6 +209,52 @@ task BcftoolsCall {
 
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
+        disks: "local-disk " + disk_size_gb + " HDD"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        preemptible: preemptible
+    }
+
+    output {
+        File output_vcf = "~{out_basename}.vcf.gz"
+        File output_vcf_index = "~{out_basename}.vcf.gz.tbi"
+    }
+}
+
+task GATKCall {
+    input {
+        File cram
+        File cram_index
+        File fasta
+        File fasta_index
+        File fasta_dict
+        String sample_id
+
+        File sites_tsv
+        File sites_tsv_index
+        Int mem_gb = 4
+        Int cpu = 2
+        Int preemptible = 3
+    }
+
+    Int disk_size_gb = ceil(1.5*size(cram, "GB") + size(fasta, "GB") + size(sites_tsv, "GB")) + 10
+
+    String out_basename = basename(cram, ".cram")
+
+    command <<<
+        set -euo pipefail
+
+        gatk --java-options "-Xmx~{mem_gb}g" HaplotypeCaller \
+            -R ~{fasta} \
+            -I ~{cram} \
+            -O ~{out_basename}.vcf.gz \
+            --alleles ~{sites_tsv} \
+            -L ~{sites_tsv} \
+            --sample-name ~{sample_id}
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-gatk/gatk:4.6.1.0"
         disks: "local-disk " + disk_size_gb + " HDD"
         memory: mem_gb + " GiB"
         cpu: cpu
