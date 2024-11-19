@@ -7,6 +7,8 @@ workflow Glimpse2Imputation {
         File sites_tsv
         File sites_tsv_index
 
+        Int bcftools_threads
+
         File? input_vcf
         File? input_vcf_index
         Array[File]? crams
@@ -46,7 +48,8 @@ workflow Glimpse2Imputation {
                     call_indels = call_indels,
                     sites_tsv = sites_tsv,
                     sites_tsv_index = sites_tsv_index,
-                    sample_id = sample_ids[i_cram]
+                    sample_id = sample_ids[i_cram],
+                    cpu = bcftools_threads
 
             }
         }
