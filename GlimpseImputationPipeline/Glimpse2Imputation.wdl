@@ -193,7 +193,7 @@ task BcftoolsCall {
         Int preemptible = 3
     }
 
-    Int disk_size_gb = ceil(1.5*size(cram, "GB") + size(fasta, "GB") + size(sites_tsv, "GB")) + 10
+    Int disk_size_gb = ceil(1.5*size(cram, "GiB") + size(fasta, "GiB") + size(sites_tsv, "GiB")) + 10
 
     String out_basename = basename(cram, ".cram")
 
@@ -237,7 +237,7 @@ task GATKCall {
         Int preemptible = 3
     }
 
-    Int disk_size_gb = ceil(1.5*size(cram, "GB") + size(fasta, "GB") + size(sites_tsv, "GB")) + 10
+    Int disk_size_gb = ceil(1.5*size(cram, "GiB") + size(fasta, "GiB") + size(sites_tsv, "GiB")) + 10
 
     String out_basename = basename(cram, ".cram")
 
@@ -278,7 +278,7 @@ task BcftoolsMerge {
         String output_basename
     }
 
-    Int disk_size_gb = ceil(1.2*size(vcfs, "GB")) + 10
+    Int disk_size_gb = ceil(2*size(vcfs, "GiB")) + 10
 
     command <<<
         set -euo pipefail
