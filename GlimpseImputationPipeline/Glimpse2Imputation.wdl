@@ -296,7 +296,7 @@ task GATKCall {
     String out_basename = "batch"
 
     command <<<
-        set -euo pipefail
+        set -xeuo pipefail
 
         gatk --java-options "-Xmx~{mem_gb}g" HaplotypeCaller \
             -R ~{fasta} \
