@@ -9,6 +9,7 @@ workflow Glimpse2Imputation {
 
         Int bcftools_threads
         Boolean use_gatk
+        Int calling_batch_size
 
         File? input_vcf
         File? input_vcf_index
@@ -38,32 +39,39 @@ workflow Glimpse2Imputation {
     }
 
     if (defined(crams)) {
-        Int len = length(select_first([crams]))
-        scatter (i_cram in range(len)) {
+        call SplitIntoBatches {
+                input:
+                    batch_size = calling_batch_size,
+                    crams = select_first([crams]),
+                    cram_indices = select_first([cram_indices]),
+                    sample_ids = sample_ids
+        }
+
+        scatter(i in range(length(SplitIntoBatches.crams_batches))) {
             if (use_gatk) {
                 call GATKCall {
                     input:
-                        cram = select_first([crams])[i_cram],
-                        cram_index = select_first([cram_indices])[i_cram],
+                        crams = SplitIntoBatches.crams_batches[i],
+                        cram_indices = SplitIntoBatches.cram_indices_batches[i],
                         fasta = select_first([fasta]),
                         fasta_index = select_first([fasta_index]),
                         fasta_dict = ref_dict,
                         sites_tsv = sites_tsv,
                         sites_tsv_index = sites_tsv_index,
-                        sample_id = sample_ids[i_cram]
+                        sample_ids = SplitIntoBatches.sample_ids_batches[i],
                 }
             }
             if (!use_gatk) {
                 call BcftoolsCall {
                     input:
-                        cram = select_first([crams])[i_cram],
-                        cram_index = select_first([cram_indices])[i_cram],
+                        crams = SplitIntoBatches.crams_batches[i],
+                        cram_indices = SplitIntoBatches.cram_indices_batches[i],
                         fasta = select_first([fasta]),
                         fasta_index = select_first([fasta_index]),
                         call_indels = call_indels,
                         sites_tsv = sites_tsv,
                         sites_tsv_index = sites_tsv_index,
-                        sample_id = sample_ids[i_cram],
+                        sample_ids = SplitIntoBatches.sample_ids_batches[i],
                         cpu = bcftools_threads
 
                 }
@@ -177,14 +185,61 @@ workflow Glimpse2Imputation {
     }
 }
 
+task SplitIntoBatches {
+    input {
+        Int batch_size
+
+        Array[String] crams
+        Array[String] cram_indices
+        Array[String] sample_ids
+    }
+
+    command <<<
+        cat <<EOF > script.py
+import json
+
+batch_size = ~{batch_size}
+crams = ['~{sep="', '" crams}']
+cram_indices = ['~{sep="', '" cram_indices}']
+sample_ids = ['~{sep="', '" sample_ids}']
+        
+crams_batches = [crams[i:i + batch_size] for i in range(0, len(crams), batch_size)]
+cram_indices_batches = [cram_indices[i:i + batch_size] for i in range(0, len(cram_indices), batch_size)]
+sample_ids_batches = [sample_ids[i:i + batch_size] for i in range(0, len(sample_ids), batch_size)]
+
+with open('crams.json', 'w') as json_file:
+    json.dump(crams_batches, json_file)
+with open('cram_indices.json', 'w') as json_file:
+    json.dump(cram_indices_batches, json_file)
+with open('sample_ids.json', 'w') as json_file:
+    json.dump(sample_ids_batches, json_file)
+EOF
+        python3 script.py
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
+        cpu: 1
+        disks: "local-disk 10 HDD"
+        memory: "1 GiB"
+        preemptible: 3
+    }
+
+    output {
+        Array[Array[String]] crams_batches = read_json('crams.json')
+        Array[Array[String]] cram_indices_batches = read_json('cram_indices.json')
+        Array[Array[String]] sample_ids_batches = read_json('sample_ids.json')
+    }
+}
+
 task BcftoolsCall {
     input {
-        File cram
-        File cram_index
+        Array[File] crams
+        Array[File] cram_indices
         File fasta
         File fasta_index
         Boolean call_indels
-        String sample_id
+        Array[String] sample_ids
 
         File sites_tsv
         File sites_tsv_index
@@ -193,17 +248,16 @@ task BcftoolsCall {
         Int preemptible = 3
     }
 
-    Int disk_size_gb = ceil(1.5*size(cram, "GiB") + size(fasta, "GiB") + size(sites_tsv, "GiB")) + 10
+    Int disk_size_gb = ceil(1.5*size(crams, "GiB") + size(fasta, "GiB") + size(sites_tsv, "GiB")) + 10
 
-    String out_basename = basename(cram, ".cram")
+    String out_basename = "batch"
 
     command <<<
         set -euo pipefail
 
-        echo ~{sample_id} > sample_name.txt
-        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_tsv} -O u ~{cram} | \
-        bcftools +tag2tag -O z - -- --PL-to-GL | \
-        bcftools reheader -s sample_name.txt -o ~{out_basename}.vcf.gz
+        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_tsv} -O u ~{sep=" " crams} | \
+        bcftools +tag2tag -O z -o ~{out_basename}.vcf.gz - -- --PL-to-GL | \
+        #bcftools reheader -s sample_name.txt
         bcftools index -t ~{out_basename}.vcf.gz
     >>>
 
@@ -223,12 +277,12 @@ task BcftoolsCall {
 
 task GATKCall {
     input {
-        File cram
-        File cram_index
+        Array[File] crams
+        Array[File] cram_indices
         File fasta
         File fasta_index
         File fasta_dict
-        String sample_id
+        Array[String] sample_ids
 
         File sites_tsv
         File sites_tsv_index
@@ -237,20 +291,20 @@ task GATKCall {
         Int preemptible = 3
     }
 
-    Int disk_size_gb = ceil(1.5*size(cram, "GiB") + size(fasta, "GiB") + size(sites_tsv, "GiB")) + 10
+    Int disk_size_gb = ceil(1.5*size(crams, "GiB") + size(fasta, "GiB") + size(sites_tsv, "GiB")) + 10
 
-    String out_basename = basename(cram, ".cram")
+    String out_basename = "batch"
 
     command <<<
         set -euo pipefail
 
         gatk --java-options "-Xmx~{mem_gb}g" HaplotypeCaller \
             -R ~{fasta} \
-            -I ~{cram} \
+            -I ~{sep=" -I " crams} \
             -O ~{out_basename}.vcf.gz \
             --alleles ~{sites_tsv} \
-            -L ~{sites_tsv} \
-            --sample-name ~{sample_id}
+            -L ~{sites_tsv}
+        bcftools index -t ~{out_basename}.vcf.gz
     >>>
 
     runtime {
