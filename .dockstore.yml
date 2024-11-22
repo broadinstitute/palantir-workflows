@@ -147,3 +147,6 @@ workflows:
   - name: ScoreBGE
     subclass: WDL
     primaryDescriptorPath: /ImputationPipeline/ScoreBGE/ScoreBGE.wdl
+  - name: DebugGlimpseCalling
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/DebugGlimpseCalling.wdl
