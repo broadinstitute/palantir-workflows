@@ -148,6 +148,7 @@ task BcftoolsCall {
         set -euo pipefail
 
         bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_tsv} -O u ~{sep=" " crams} | \
+        bcftools call -Aim -C alleles -T ~{sites_tsv} -O u | \
         bcftools +tag2tag -O z -o ~{out_basename}.vcf.gz - -- --PL-to-GL
         #bcftools reheader -s sample_name.txt
         bcftools index -t ~{out_basename}.vcf.gz
@@ -224,7 +225,7 @@ task BcftoolsMerge {
         String output_basename
     }
 
-    Int disk_size_gb = ceil(2*size(vcfs, "GiB")) + 10
+    Int disk_size_gb = ceil(3*size(vcfs, "GiB")) + 10
 
     command <<<
         set -euo pipefail
