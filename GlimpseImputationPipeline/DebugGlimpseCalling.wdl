@@ -2,6 +2,8 @@ version 1.0
 
 workflow Glimpse2Imputation {
     input {
+        File sites_vcf
+        File sites_vcf_index
         File sites_tsv
         File sites_tsv_index
 
@@ -133,11 +135,13 @@ task BcftoolsCall {
         Boolean call_indels
         Array[String] sample_ids
 
+        File sites_vcf
+        File sites_vcf_index
         File sites_tsv
         File sites_tsv_index
         Int mem_gb = 4
         Int cpu = 2
-        Int preemptible = 3
+        Int preemptible = 1
     }
 
     Int disk_size_gb = ceil(1.5*size(crams, "GiB") + size(fasta, "GiB") + size(sites_tsv, "GiB")) + 10
@@ -147,9 +151,9 @@ task BcftoolsCall {
     command <<<
         set -euo pipefail
 
-        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_tsv} -O u ~{sep=" " crams} | \
-        bcftools call -Aim -C alleles -T ~{sites_tsv} -O u | \
-        bcftools +tag2tag -O z -o ~{out_basename}.vcf.gz - -- --PL-to-GL
+        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} | \
+        bcftools call -Aim -C alleles -T ~{sites_tsv} -O z -o ~{out_basename}.vcf.gz # | \
+        #bcftools +tag2tag -O z -o ~{out_basename}.vcf.gz - -- --PL-to-GL
         #bcftools reheader -s sample_name.txt
         bcftools index -t ~{out_basename}.vcf.gz
     >>>
@@ -181,7 +185,7 @@ task GATKCall {
         File sites_tsv_index
         Int mem_gb = 4
         Int cpu = 2
-        Int preemptible = 3
+        Int preemptible = 1
     }
 
     Int disk_size_gb = ceil(1.5*size(crams, "GiB") + size(fasta, "GiB") + size(sites_tsv, "GiB")) + 10
