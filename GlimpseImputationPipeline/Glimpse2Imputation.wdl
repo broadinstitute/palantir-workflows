@@ -10,6 +10,7 @@ workflow Glimpse2Imputation {
         Int bcftools_threads
         Boolean use_gatk
         Int calling_batch_size
+        Int calling_mem_gb
 
         File? input_vcf
         File? input_vcf_index
@@ -59,6 +60,7 @@ workflow Glimpse2Imputation {
                         sites_tsv = sites_tsv,
                         sites_tsv_index = sites_tsv_index,
                         sample_ids = SplitIntoBatches.sample_ids_batches[i],
+                        mem_gb = calling_mem_gb
                 }
             }
             if (!use_gatk) {
@@ -72,8 +74,8 @@ workflow Glimpse2Imputation {
                         sites_tsv = sites_tsv,
                         sites_tsv_index = sites_tsv_index,
                         sample_ids = SplitIntoBatches.sample_ids_batches[i],
-                        cpu = bcftools_threads
-
+                        cpu = bcftools_threads,
+                        mem_gb = calling_mem_gb
                 }
             }
             File called_vcf = select_first([BcftoolsCall.output_vcf, GATKCall.output_vcf])
