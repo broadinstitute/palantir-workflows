@@ -42,6 +42,7 @@ workflow Glimpse2Imputation {
                     sites_tsv = sites_tsv,
                     sites_tsv_index = sites_tsv_index,
                     sample_ids = SplitIntoBatches.sample_ids_batches[i],
+                    cpu = bcftools_threads,
                     mem_gb = calling_mem_gb
             }
         }
