@@ -33,6 +33,7 @@ workflow BenchmarkSVs {
 
         Array[Int] svlen_bin_cutoffs = [100, 250, 1000, 2500, 10000, 25000]
 
+        Boolean collect_closest_stats = true
         Boolean create_igv_session = true
         Array[File]? optional_igv_bams
     }
@@ -136,16 +137,18 @@ workflow BenchmarkSVs {
             svlen_bin_cutoffs=svlen_bin_cutoffs
     }
 
-    call CollectTruvariClosestStats {
-        input:
-            base_table=RunTruvari.base_table,
-            comp_table=RunTruvari.comp_table,
-            fp_table=RunTruvari.fp_table,
-            fn_table=RunTruvari.fn_table,
-            base_sample_name=base_sample_name,
-            comp_sample_name=comp_sample_name,
-            experiment=experiment,
-            ref_fai=ref_fai
+    if (collect_closest_stats) {
+        call CollectTruvariClosestStats {
+            input:
+                base_table=RunTruvari.base_table,
+                comp_table=RunTruvari.comp_table,
+                fp_table=RunTruvari.fp_table,
+                fn_table=RunTruvari.fn_table,
+                base_sample_name=base_sample_name,
+                comp_sample_name=comp_sample_name,
+                experiment=experiment,
+                ref_fai=ref_fai
+        }
     }
 
     if (create_igv_session) {
