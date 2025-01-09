@@ -1,5 +1,5 @@
 FROM ubuntu:24.04
-RUN apt-get update && apt-get install -y git python3 python3-pip wget libbz2-dev liblzma-dev libcurl4-openssl-dev libncurses-dev curl libdeflate-dev
+RUN apt-get update && apt-get install -y git python3 python3-pandas wget libbz2-dev liblzma-dev libcurl4-openssl-dev libncurses-dev curl libdeflate-dev
 
 # Htslib
 RUN wget https://github.com/samtools/htslib/releases/download/1.21/htslib-1.21.tar.bz2 && \
@@ -26,5 +26,3 @@ make && \
 make install
 
 RUN curl -sSL https://sdk.cloud.google.com | bash
-
-RUN pip install pandas
