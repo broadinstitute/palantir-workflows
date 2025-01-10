@@ -82,12 +82,17 @@ workflow Glimpse2Imputation {
             File called_vcf_index = select_first([BcftoolsCall.output_vcf_index, GATKCall.output_vcf_index])
         }
 
-        call BcftoolsMerge {
-            input:
-                vcfs = called_vcf,
-                vcf_indices = called_vcf_index,
-                output_basename = output_basename
+        if (length(called_vcf) > 1) {
+            call BcftoolsMerge {
+                input:
+                    vcfs = called_vcf,
+                    vcf_indices = called_vcf_index,
+                    output_basename = output_basename
+            }
         }
+
+        File merged_vcf = select_first([BcftoolsMerge.merged_vcf, called_vcf[0]])
+        File merged_vcf_index = select_first([BcftoolsMerge.merged_vcf_index, called_vcf_index[0]])
     }
 
     scatter (reference_chunk in read_lines(reference_chunks)) {
@@ -127,8 +132,8 @@ workflow Glimpse2Imputation {
         call GlimpsePhase {
             input:
                 reference_chunk = reference_chunk,
-                input_vcf = select_first([BcftoolsMerge.merged_vcf,input_vcf]),
-                input_vcf_index = select_first([BcftoolsMerge.merged_vcf_index,input_vcf_index]),
+                input_vcf = select_first([merged_vcf,input_vcf]),
+                input_vcf_index = select_first([merged_vcf_index,input_vcf_index]),
                 impute_reference_only_variants = impute_reference_only_variants,
                 n_burnin = n_burnin,
                 n_main = n_main,

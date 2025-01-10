@@ -24,7 +24,7 @@ workflow Glimpse2Imputation {
         Boolean call_indels = false
     }
 
-    call SplitIntoBatches {
+    call SplitCRAMsIntoBatches {
         input:
             batch_size = calling_batch_size,
             crams = select_first([crams]),
@@ -32,18 +32,18 @@ workflow Glimpse2Imputation {
             sample_ids = sample_ids
     }
 
-    scatter(i in range(length(SplitIntoBatches.crams_batches))) {
+    scatter(i in range(length(SplitCRAMsIntoBatches.crams_batches))) {
         if (use_gatk) {
             call GATKCall {
                 input:
-                    crams = SplitIntoBatches.crams_batches[i],
-                    cram_indices = SplitIntoBatches.cram_indices_batches[i],
+                    crams = SplitCRAMsIntoBatches.crams_batches[i],
+                    cram_indices = SplitCRAMsIntoBatches.cram_indices_batches[i],
                     fasta = select_first([fasta]),
                     fasta_index = select_first([fasta_index]),
                     fasta_dict = ref_dict,
                     sites_tsv = sites_tsv,
                     sites_tsv_index = sites_tsv_index,
-                    sample_ids = SplitIntoBatches.sample_ids_batches[i],
+                    sample_ids = SplitCRAMsIntoBatches.sample_ids_batches[i],
                     cpu = bcftools_threads,
                     mem_gb = calling_mem_gb
             }
@@ -51,14 +51,14 @@ workflow Glimpse2Imputation {
         if (!use_gatk) {
             call BcftoolsCall {
                 input:
-                    crams = SplitIntoBatches.crams_batches[i],
-                    cram_indices = SplitIntoBatches.cram_indices_batches[i],
+                    crams = SplitCRAMsIntoBatches.crams_batches[i],
+                    cram_indices = SplitCRAMsIntoBatches.cram_indices_batches[i],
                     fasta = select_first([fasta]),
                     fasta_index = select_first([fasta_index]),
                     call_indels = call_indels,
                     sites_tsv = sites_tsv,
                     sites_tsv_index = sites_tsv_index,
-                    sample_ids = SplitIntoBatches.sample_ids_batches[i],
+                    sample_ids = SplitCRAMsIntoBatches.sample_ids_batches[i],
                     cpu = bcftools_threads,
                     mem_gb = calling_mem_gb
             }
@@ -79,7 +79,7 @@ workflow Glimpse2Imputation {
         File merged_vcf_index = BcftoolsMerge.merged_vcf_index
     }
 }
-task SplitIntoBatches {
+task SplitCRAMsIntoBatches {
     input {
         Int batch_size
 
@@ -126,6 +126,44 @@ EOF
     }
 }
 
+task SplitArraysIntoBatches {
+    input {
+        Int batch_size
+
+        Array[String] arr1
+        Array[String]? arr2
+        Array[String]? arr3
+    }
+
+    command <<<
+        cat <<EOF > script.py
+import json
+
+batch_size = ~{batch_size}
+
+arr = ['~{sep="', '" arr1}']
+        
+batches = [arr[i:i + batch_size] for i in range(0, len(arr), batch_size)]
+
+with open('batches.json', 'w') as json_file:
+    json.dump(batches, json_file)
+EOF
+        python3 script.py
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
+        cpu: 1
+        disks: "local-disk 10 HDD"
+        memory: "1 GiB"
+        preemptible: 3
+    }
+
+    output {
+        Array[Array[String]] batches = read_json('batches.json')
+    }
+}
+
 task BcftoolsCall {
     input {
         Array[File] crams
@@ -152,7 +190,8 @@ task BcftoolsCall {
         set -euo pipefail
 
         bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} | \
-        bcftools call -Aim -C alleles -T ~{sites_tsv} -O z -o ~{out_basename}.vcf.gz # | \
+        bcftools call -Aim -C alleles -T ~{sites_tsv} -O u | \
+        bcftools norm -m -both -O z -o ~{out_basename}.vcf.gz
         #bcftools +tag2tag -O z -o ~{out_basename}.vcf.gz - -- --PL-to-GL
         #bcftools reheader -s sample_name.txt
         bcftools index -t ~{out_basename}.vcf.gz

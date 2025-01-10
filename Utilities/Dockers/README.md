@@ -20,6 +20,7 @@ This directory contains `Dockerfile` files and descriptions of what each is inte
   * 1.1: Added the `python-is-python3` package so that `python` is a valid command.
   * 1.2: Versions are `bcftools` 1.18 (and Ubuntu from 22.10 to 23.10).
   * 1.3: Added gcloud SDK to allow streaming
+  * 1.4: Updated base image from unsupported Ubuntu interim release to LTS version 24.04
 
 ## bedtools
 

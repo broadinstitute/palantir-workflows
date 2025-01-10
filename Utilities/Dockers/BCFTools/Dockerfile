@@ -1,4 +1,4 @@
-FROM ubuntu:23.10
+FROM ubuntu:24.04
 RUN apt-get update && apt-get install -y git python3 python-is-python3 python3-pip wget libbz2-dev liblzma-dev libcurl4-openssl-dev python3-pandas curl
 
 # Make bcftools
