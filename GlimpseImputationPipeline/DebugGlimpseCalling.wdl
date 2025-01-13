@@ -56,6 +56,8 @@ workflow Glimpse2Imputation {
                     fasta = select_first([fasta]),
                     fasta_index = select_first([fasta_index]),
                     call_indels = call_indels,
+                    sites_vcf = sites_vcf,
+                    sites_vcf_index = sites_vcf_index,
                     sites_tsv = sites_tsv,
                     sites_tsv_index = sites_tsv_index,
                     sample_ids = SplitCRAMsIntoBatches.sample_ids_batches[i],
