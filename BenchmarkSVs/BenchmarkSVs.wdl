@@ -167,8 +167,17 @@ workflow BenchmarkSVs {
         File? truvari_fp_closest = CollectTruvariClosestStats.fp_closest
         File? truvari_fn_closest = CollectTruvariClosestStats.fn_closest
 
+        File truvari_tp_base = RunTruvari.tp_base
+        File truvari_tp_base_index = RunTruvari.tp_base_index
+        File truvari_fn = RunTruvari.fn
+        File truvari_fn_index = RunTruvari.fn_index
+        File truvari_tp_comp = RunTruvari.tp_comp
+        File truvari_tp_comp_index = RunTruvari.tp_comp_index
+        File truvari_fp = RunTruvari.fp
+        File truvari_fp_index = RunTruvari.fp_index
+
         # IGV Session
-         File? igv_session = IGVSession.igv_session
+        File? igv_session = IGVSession.igv_session
     }
 }
 
