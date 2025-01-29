@@ -23,12 +23,13 @@ workflow Glimpse2Imputation {
         Int? effective_population_size
         
         Int preemptible = 9
-        String docker = "us.gcr.io/broad-dsde-methods/glimpse:kachulis_ck_bam_reader_retry_cf5822c"
+        String docker = "us.gcr.io/broad-dsde-methods/glimpse:odelaneau_bd93ade"
         String docker_extract_num_sites_from_reference_chunk = "us.gcr.io/broad-dsde-methods/glimpse_extract_num_sites_from_reference_chunks:michaelgatzen_edc7f3a"
         Int cpu_ligate = 4
         Int mem_gb_ligate = 4
         Int? cpu_phase
         Int? mem_gb_phase
+        Float mem_scaling_factor_phase = 1.0
         File? monitoring_script
     }
 
@@ -59,7 +60,7 @@ workflow Glimpse2Imputation {
                     n_samples = n_samples
             }
 
-            if (SelectResourceParameters.memory_gb > 256 || SelectResourceParameters.request_n_cpus > 32) {
+            if (ceil(SelectResourceParameters.memory_gb * mem_scaling_factor_phase) > 256 || SelectResourceParameters.request_n_cpus > 32) {
                 # force failure if we're accidently going to request too much resources and spend too much money
                 Int safety_check_memory_gb = -1
                 Int safety_check_n_cpu = -1
@@ -84,7 +85,7 @@ workflow Glimpse2Imputation {
                 preemptible = preemptible,
                 docker = docker,
                 cpu = select_first([cpu_phase, safety_check_n_cpu, SelectResourceParameters.request_n_cpus]),
-                mem_gb = select_first([mem_gb_phase, safety_check_memory_gb, SelectResourceParameters.memory_gb]),
+                mem_gb = select_first([mem_gb_phase, safety_check_memory_gb, ceil(SelectResourceParameters.memory_gb * mem_scaling_factor_phase)]),
                 monitoring_script = monitoring_script
         }
     }

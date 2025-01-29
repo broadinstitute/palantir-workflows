@@ -22,7 +22,7 @@ Available options:
 -h, --help      Print this help and exit.
 -p, --push      If set, push image.
 -y, --yes       If set, don't ask for confirmation.
--t, --tag       Tag for the newly created docker image. Suggestion: Use {github_namespace}_{commit_id} as the version tag. E.g. us.gcr.io/broad-dsde-methods/glimpse:odelaneau_e0b9b56.
+-t, --tag       Tag for the newly created docker image. If the tag does not contain a colon, it will be determined automatically based on the repo and commit hash.
 -r, --repo      Repo URL for the GLIMPSE2 base image (e.g. https://github.com/odelaneau/GLIMPSE.git).
 -b, --branch    Branch name for the GLIMPSE2 base image (e.g. master).
 EOF
@@ -46,7 +46,7 @@ msg() {
   echo >&2 -e "${1-}"
 }
 
-die() {
+end_program() {
   local msg=$1
   local code=${2-1} # default exit status 1
   msg "$msg"
@@ -77,16 +77,16 @@ parse_params() {
       branch="${2-}"
       shift
       ;;
-    -?*) die "Unknown option: $1" ;;
+    -?*) end_program "Unknown option: $1" ;;
     *) break ;;
     esac
     shift
   done
 
   # check required params and arguments
-  [[ -z "${tag-}" ]] && die "Missing required parameter: tag"
-  [[ -z "${repo-}" ]] && die "Missing required parameter: repo"
-  [[ -z "${branch-}" ]] && die "Missing required parameter: branch"
+  [[ -z "${tag-}" ]] && end_program "Missing required parameter: tag"
+  [[ -z "${repo-}" ]] && end_program "Missing required parameter: repo"
+  [[ -z "${branch-}" ]] && end_program "Missing required parameter: branch"
 
   return 0
 }
@@ -96,33 +96,50 @@ setup_colors
 
 pushing=$(if [ "${push}" -eq "1" ]; then echo "pushing"; else echo "not pushing"; fi)
 
-msg "Building docker image based on GLIMPSE repo ${YELLOW}${repo}${NOFORMAT} on branch ${YELLOW}${branch}${NOFORMAT} and tagging it as ${YELLOW}${tag}${NOFORMAT} and ${YELLOW}${pushing}${NOFORMAT} it."
+tag_string=$(if [[ "$tag" != *":"* ]]; then echo "${YELLOW}automatically${NOFORMAT} tagging it based on the repo name and commit hash"; else echo "${YELLOW}manually${NOFORMAT} tagging it as ${YELLOW}${tag}${NOFORMAT}"; fi)
+
+msg "Building docker image based on GLIMPSE repo ${YELLOW}${repo}${NOFORMAT} on branch ${YELLOW}${branch}${NOFORMAT} and ${tag_string} and ${YELLOW}${pushing}${NOFORMAT} it."
 
 if [ "${yes}" -eq "0" ]; then
     read -p "Continue (y/n)? " choice
     case "$choice" in 
         y|Y ) msg "Continuing...";;
-        * ) die "Aborting.";;
+        * ) end_program "Aborting.";;
     esac
 fi
 
 if [ -d "${script_dir}/glimpse_base" ]; then
-    die "The glimpse_base subdirectory already exist. Please remove it before building the docker."
+    end_program "The glimpse_base subdirectory already exist. Please remove it before building the docker."
 fi
 
 trap cleanup SIGINT SIGTERM ERR EXIT
 
 if ! docker images > /dev/null; then
-    die "Couldn't determine docker images, probably because the docker deamon isn't running. Please start docker and restart this script."
+    end_program "Couldn't determine docker images, probably because the docker deamon isn't running. Please start docker and restart this script."
     exit 1
 fi
 
 if docker images | grep "temp_glimpse_base" > /dev/null; then
-    die "temp_glimpse_base Docker image exists already. Please remove it before building to ensure that the correct base image is used: docker image rm temp_glimpse_base"
+    end_program "temp_glimpse_base Docker image exists already. Please remove it before building to ensure that the correct base image is used: docker image rm temp_glimpse_base"
     exit 1
 fi
 
 git clone $repo --branch $branch --single-branch ${script_dir}/glimpse_base
+
+if [[ "$tag" != *":"* ]]; then
+    prefix="https://github.com/"
+    suffix="/GLIMPSE.git"
+    if [[ "$repo" != "$prefix"*"$suffix" ]]; then
+        end_program "repo does not match the expected format. When providing only a Docker path and not a tag, the URL must follow this format: $prefix<GITHUB_NAMESPACE>$suffix"
+        exit 1
+    fi
+
+    github_namespace=${repo#"$prefix"}
+    github_namespace=${github_namespace%"$suffix"}
+    
+    glimpse_commit_hash=$(git -C "${script_dir}/glimpse_base" rev-parse --short HEAD)
+    tag="${tag}:${github_namespace}_${glimpse_commit_hash}"
+fi
 
 docker build --platform linux/amd64 -t temp_glimpse_base ${script_dir}/glimpse_base
 docker build --platform linux/amd64 -t ${tag} ${script_dir}

@@ -30,7 +30,7 @@ workflow Glimpse2SplitReference {
         Boolean keep_monomorphic_ref_sites = true
         
         Int preemptible = 1
-        String docker = "us.gcr.io/broad-dsde-methods/glimpse:odelaneau_e0b9b56"
+        String docker = "us.gcr.io/broad-dsde-methods/glimpse:odelaneau_bd93ade"
         File? monitoring_script
     }
 
