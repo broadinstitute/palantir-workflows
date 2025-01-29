@@ -28,6 +28,7 @@ workflow Glimpse2ImputationInBatches {
         Int? preemptible
         String? docker
         String? docker_extract_num_sites_from_reference_chunk
+        Float? mem_scaling_factor_phase
         Int? cpu_ligate
         Int? mem_gb_ligate
         Int? mem_gb_merge
@@ -68,6 +69,7 @@ workflow Glimpse2ImputationInBatches {
                 preemptible = preemptible,
                 docker = docker,
                 docker_extract_num_sites_from_reference_chunk = docker_extract_num_sites_from_reference_chunk,
+                mem_scaling_factor_phase = mem_scaling_factor_phase,
                 cpu_ligate = cpu_ligate,
                 mem_gb_ligate = mem_gb_ligate,
                 monitoring_script = monitoring_script
