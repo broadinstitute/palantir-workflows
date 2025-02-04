@@ -98,6 +98,7 @@ The memory and CPU resource requirements for the computationally intensive phasi
 - **File imputed_vcf**: Single imputed VCF that covers all regions defined in the `contig_regions` input in GlimpseSplitReference. The name of the file is the basename of `input_vcf` with `.imputed.vcf.gz` added.
 - **File imputed_vcf_index**: Index to `imputed_vcf`.
 - **File? qc_metrics**: Output of Hail's [`sample_qc`](https://hail.is/docs/0.2/methods/genetics.html#hail.methods.sample_qc) method as a TSV table if `collect_qc_metrics` is set, otherwise null.
+- **File? coverage_metrics**: A TSV file containing metrics about the input CRAMs as a way for checking that sufficient coverage has been provided. This output is null if VCF input is provided instead of CRAM input.
 - **Array[File?] glimpse_phase_monitoring**: A monitoring log for each parallelized chunk if the `monitoring_script` input is set, otherwise null.
 - **File? glimpse_ligate_monitoring**: A monitoring log for the ligate task if the `monitoring_script` input is set, otherwise null.
 
@@ -108,6 +109,8 @@ This workflow merges multiple batches of imputed multi-sample VCFs into one and 
 ### Input
 - **Array[File] imputed_vcf**: GLIMPSE2 output imputed VCFs.
 - **Array[File] imputed_vcf_indices**: Indices to `imputed_vcf`.
+- **Int? scatter_count**: Merging large batches of samples (approx. more than 100) requires too much resources to be done in one job. This parameter defines the number of chunks that the genome (as defined by `interval_list`) should be divided into. The default value of 100 is appropriate for merging multiple batches of 1,000 samples each.
+- **File? interval_list**: This file should contain all chromosomes that imputation has been performed on. The default value contains the hg38 contigs chr1-chr22, chrX, chrY, and chrM from start until end. Adding unused contigs only affects the efficiency for the merging process.
 - **Array[File?]? qc_metrics**: Optional array of qc_metrics of the individual batches to be merged into one `merged_qc_metrics` TSV file. Can otherwise be _null_ or can only contain _null_ values.
 - **String output_basename**: Basename for merged output VCF.
 

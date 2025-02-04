@@ -38,7 +38,7 @@ workflow Glimpse2ImputationInBatches {
         String? docker_count_samples
         String? docker_merge
 
-        File interval_list_for_merge
+        File? interval_list_for_merge
         Int? merge_scatter_count
     }
 
