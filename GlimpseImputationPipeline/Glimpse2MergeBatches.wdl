@@ -455,12 +455,12 @@ task MergeQCMetrics {
         set -xeuo pipefail
         
 
-        cat <<EOF > script.py
-    import pandas as pd
-    qc_metrics = ['~{sep="', '" qc_metrics}']
-    merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t') for qc_metric in qc_metrics])
-    merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t')
-    EOF
+        python3 <<EOF
+        import pandas as pd
+        qc_metrics = ['~{sep="', '" qc_metrics}']
+        merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t') for qc_metric in qc_metrics])
+        merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t')
+        EOF
     >>>
 
     output {
