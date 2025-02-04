@@ -32,6 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.all-dockerfiles.outputs.files}}
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       -
