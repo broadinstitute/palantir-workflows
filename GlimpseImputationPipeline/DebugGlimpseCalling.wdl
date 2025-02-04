@@ -194,8 +194,8 @@ task BcftoolsCall {
         set -euo pipefail
 
         bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} | \
-        bcftools call -Aim -C alleles -T ~{sites_tsv} -O z -o ~{out_basename}.vcf.gz
-        #bcftools norm -m -both -O z -o ~{out_basename}.vcf.gz
+        bcftools call -Aim -C alleles -T ~{sites_tsv} -O u | \
+        bcftools norm -m -both -O z -o ~{out_basename}.vcf.gz
         #bcftools +tag2tag -O z -o ~{out_basename}.vcf.gz - -- --PL-to-GL
         #bcftools reheader -s sample_name.txt
         bcftools index -t ~{out_basename}.vcf.gz
