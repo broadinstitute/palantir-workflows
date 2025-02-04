@@ -1,0 +1,21 @@
+name: Dockerfile tests
+on:
+  push:
+    branches:
+      - main
+    pull_request:
+    schedule:
+      - cron: '23 2 * * 0'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  test_builds:
+    steps:
+      - uses: actions/checkout@v4
+      -
+        name: Build
+        uses: docker/build-push-action@v6
+        with:
+          file: Utilities/Dockers/Alphashape/Dockerfile
+
