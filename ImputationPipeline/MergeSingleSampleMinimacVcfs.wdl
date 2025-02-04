@@ -1,6 +1,6 @@
 version 1.0
 
-workflow MergeVcfs {
+workflow MergeSingleSampleMinimacVcfs {
     input {
         Array[File] vcfs
         Int n_per_batch
