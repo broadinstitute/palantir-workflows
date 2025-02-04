@@ -151,6 +151,7 @@ task GatherVcfs {
     Int disk_size_gb = ceil(1.2 * size(input_vcfs, "GiB") + 50)
     Int machine_mem_mb = 7000
     String gatk_docker = "us.gcr.io/broad-gatk/gatk:4.5.0.0"
+    Int preemptible = 1
   }
 
   parameter_meta {
@@ -180,7 +181,7 @@ task GatherVcfs {
     cpu: "1"
     bootDiskSizeGb: 15
     disks: "local-disk " + disk_size_gb + " HDD"
-    preemptible: 1
+    preemptible: preemptible
     docker: gatk_docker
   }
 
@@ -232,6 +233,7 @@ task SubsetToIntervals {
         File vcf_index
         File interval_list
         Int disk_size_gb = ceil(size(vcf, "GiB") + 50)
+        Int preemptible = 3
 
     }
 
@@ -258,6 +260,7 @@ task SubsetToIntervals {
         docker: "us.gcr.io/broad-gatk/gatk:4.3.0.0"
         memory: "2000 MiB"
         disks: "local-disk " + disk_size_gb + " HDD"
+        preemptible: preemptible
     }
 }
 
@@ -308,7 +311,7 @@ task dfvm_merge {
              Int disk_size_gb = ceil(2.2 * size(vcfs, "GiB") + 50)
             Int mem_gb = 16
             Int cpu = 2
-            Int preemptible = 1
+            Int preemptible = 3
             }
         
         command <<<
@@ -335,9 +338,9 @@ task reannotate_from_dosages {
         File vcf
         Int n_samples
         Int disk_size_gb = ceil(3.3 * size(vcf, "GiB")) + 50
-        Int mem_gb = 16
-        Int cpu = 2
-        Int preemptible = 0
+        Int mem_gb = 4
+        Int cpu = 1
+        Int preemptible = 3
     }
 
     String output_base = basename(vcf, ".vcf.gz")
@@ -353,12 +356,24 @@ task reannotate_from_dosages {
         import pandas as pd
         import numpy as np
 
-        df = pd.read_csv("dosage_tbl.csv.gz", names=["CHROM","POS","REF","ALT"]+[f'sample_{i}' for i in range(~{n_samples})],dtype={f'sample_{i}':'float' for i in range(306)}, na_values=".")
-        df = df.dropna()
-        dosages = df[[f'sample_{i}' for i in range(~{n_samples})]].to_numpy()
-        df["AF"] = dosages.mean(axis=1)/2
-        df["R2"] = np.where((df["AF"]==0) | (df["AF"]==1),0,dosages.var(axis=1)/(2*df["AF"]*(1-df["AF"])))
-        df.to_csv("annotations.tsv", sep="\t", index=False, header=False, columns=["CHROM","POS","REF","ALT","AF","R2"])
+
+        # chunksize calculation
+        # 2x safety factor
+        # bytes per row:
+        # 8x(2+n_samples) (index, pos) + 50x3 (chrom, ref, alt)
+        bytes_per_row = 8*(2 + ~{n_samples}) + 150
+        chunksize = int(~{mem_gb}*1e9/bytes_per_row/2)
+        out_annotation_dfs = []
+        for chunk in pd.read_csv("dosage_tbl.csv.gz", names=["CHROM","POS","REF","ALT"]+[f'sample_{i}' for i in range(~{n_samples})],dtype={f'sample_{i}':'float' for i in range(306)}, 
+                        na_values=".", chunksize = chunksize):
+            chunk = chunk.dropna()
+            dosages = chunk[[f'sample_{i}' for i in range(~{n_samples})]].to_numpy()
+            chunk_annotations = chunk[["CHROM","POS","REF","ALT"]]
+            chunk_annotations["AF"] = dosages.mean(axis=1)/2
+            chunk_annotations["R2"] = np.where((chunk_annotations["AF"]==0) | (chunk_annotations["AF"]==1),1,dosages.var(axis=1)/(2*chunk_annotations["AF"]*(1-chunk_annotations["AF"])))
+            out_annotation_dfs.append(chunk_annotations)
+        annotations_df = pd.concat(out_annotation_dfs)
+        annotations_df.to_csv("annotations.tsv", sep="\t", index=False, header=False)
         EOF
         
         echo "annotations recomputed"
