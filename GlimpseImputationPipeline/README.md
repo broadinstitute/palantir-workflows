@@ -47,14 +47,12 @@ contig_name_in_reference_panel = "chr1"
 - **Int? min_window_cm**: Optional minimum window size in [Centimorgan](https://en.wikipedia.org/wiki/Centimorgan). See note on chunk sizes above.
 - **Boolean uniform_number_variants = false**: When set to true, each chunk will have approximately the same number of sites while. Each chunk will cover a different (Centimorgan) genetic linkage region with the smallest chunk still being larger than `min_window_cm`.
 - **Int preemtible = 1**: Number of preemptible attempts.
-- **File? monitoring_script**: Optional path to monitoring script. If ommitted, no monitoring will occur and the `split_reference_monitoring** output will not be available.
 
 ### Output
 - **Array[File] chunks**: One `chunks_contigindex_{CONTIGINDEX}.txt` file per region as defined in the `contig_regions` input that each include the definitions of the chunks in that region.
 - **Array[File] split_reference_chunks**: All binary representations of the reference panel for each chunk in each contig region. Each file is named `reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX}` with `CONTIGINDEX` and `CHUNKINDEX` being 4-digit zero-based indices with leading zeros in order to simplify the correct ordering of intervals.
 - **Array[String] num_sites**: The number of sites in each chunk.
 - **Array[String] num_sites_uniform**: The number of sites in each chunk when using `uniform_number_variants`, otherwise empty.
-- **File? monitoring**: A monitoring log if the `monitoring_script` input is set, otherwise null.
 
 ## Glimpse2Imputation
 
@@ -91,7 +89,6 @@ The memory and CPU resource requirements for the computationally intensive phasi
 - **String docker_extract_num_sites_from_reference_chunk**: Docker image to extract the number of common and rare sites from each reference chunk. See the [Docker section](#docker-image-for-extracting-number-of-sites-from-reference-panel) of this README for more information.
 - **String mem_scaling_factor_phase**: Linear scaling of the automatically determined memory requirement.
 - **Int preemtible = 9**: Number of preemptible attempts.
-- **File? monitoring_script**: Optional path to monitoring script. If ommitted, no monitoring will occur and the `split_reference_monitoring** output will not be available.
 
 ### Output
 
@@ -99,8 +96,6 @@ The memory and CPU resource requirements for the computationally intensive phasi
 - **File imputed_vcf_index**: Index to `imputed_vcf`.
 - **File? qc_metrics**: Output of Hail's [`sample_qc`](https://hail.is/docs/0.2/methods/genetics.html#hail.methods.sample_qc) method as a TSV table if `collect_qc_metrics` is set, otherwise null.
 - **File? coverage_metrics**: A TSV file containing metrics about the input CRAMs as a way for checking that sufficient coverage has been provided. This output is null if VCF input is provided instead of CRAM input.
-- **Array[File?] glimpse_phase_monitoring**: A monitoring log for each parallelized chunk if the `monitoring_script` input is set, otherwise null.
-- **File? glimpse_ligate_monitoring**: A monitoring log for the ligate task if the `monitoring_script` input is set, otherwise null.
 
 ## Glimpse2MergeBatches
 
