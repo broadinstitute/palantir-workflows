@@ -48,9 +48,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       -
+        name: Get context
+        id: get-context
+        run: |
+            echo "context=$(dirname ${{ matrix.dockerfile }})" >> $GITHUB_OUTPUT
+
+      -
         name: Build
         uses: docker/build-push-action@v6
         with:
-          context: ${{ dirname matrix.dockerfile }}
+          context: ${{ get-context.outputs.context }}
           file: ${{ matrix.dockerfile }}
 
