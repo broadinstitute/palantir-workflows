@@ -32,7 +32,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.all-dockerfiles.outputs.files}}
-      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       -
@@ -53,7 +52,8 @@ jobs:
     strategy:
       matrix:
         dockerfile: ${{ github.ref != 'refs/heads/main' && fromJSON(needs.define_changed_dockerfile_matrix.outputs.matrix) || fromJSON(needs.define_all_dockerfile_matrix.outputs.matrix) }}
-
+      fail-fast: false
+      
     steps:
       - uses: actions/checkout@v4
       -
