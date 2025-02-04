@@ -57,6 +57,6 @@ jobs:
         name: Build
         uses: docker/build-push-action@v6
         with:
-          context: ${{ get-context.outputs.context }}
+          context: ${{ steps.get-context.outputs.context }}
           file: ${{ matrix.dockerfile }}
 
