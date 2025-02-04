@@ -4,20 +4,53 @@ on:
     branches:
       - main
   pull_request:
+    paths:
+      - '**/Dockerfile'
   schedule:
     - cron: '23 2 * * 0'
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
+  define_changed_dockerfile_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.changed-dockerfiles.outputs.all_changed_files }}
+    steps:
+      - uses: actions/checkout@v4
+      -
+        name: Get Changed Dockerfiles
+        id: changed-dockerfiles
+        uses: tj-actions/changed-files@v44
+        with:
+          matrix: true
+          files: '**Dockerfile'
+  
+  define_all_dockerfile_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.all-dockerfiles.outputs.files}}
+    steps:
+      - uses: actions/checkout@v4
+      -
+        name: Get all Dockerfiles
+        id: all-dockerfiles
+        run: |
+             find . -name "Dockerfile" | jq -Rs '{"files": split("\n") | map(select(. != ""))}' >> "$GITHUB_OUTPUT"
+
   test_builds:
     runs-on: ubuntu-latest
+    needs: [define_changed_dockerfile_matrix, define_all_dockerfile_matrix]
+    strategy:
+      matrix:
+        dockerfile: ${{ github.ref != 'refs/heads/main' && fromJSON(needs.define_changed_dockerfile_matrix.outputs.matrix) || fromJSON(needs.define_all_dockerfile_matrix.outputs.matrix) }}
+
     steps:
       - uses: actions/checkout@v4
       -
         name: Build
         uses: docker/build-push-action@v6
         with:
-          context: Utilities/Dockers/Alphashape
-          file: Utilities/Dockers/Alphashape/Dockerfile
+          context: ${{ dirname matrix.dockerfile }}
+          file: ${{ matrix.dockerfile }}
 
