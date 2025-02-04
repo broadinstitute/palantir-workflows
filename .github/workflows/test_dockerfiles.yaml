@@ -36,7 +36,7 @@ jobs:
         name: Get all Dockerfiles
         id: all-dockerfiles
         run: |
-            files=$(find . -name "Dockerfile" | jq -Rs 'split("\n") | map(select(. != ""))')
+            files=$(find . -name "Dockerfile" | jq -R . | jq -s .)
             echo "files=$files" >> "$GITHUB_OUTPUT"
 
   test_builds:
