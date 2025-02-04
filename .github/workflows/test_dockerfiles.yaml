@@ -24,7 +24,7 @@ jobs:
         uses: tj-actions/changed-files@v44
         with:
           matrix: true
-          files: '**Dockerfile'
+          files: '**/Dockerfile'
       - name: List dockerfiles
         run: echo '${{ steps.changed-dockerfiles.outputs.all_changed_files}}'
   
