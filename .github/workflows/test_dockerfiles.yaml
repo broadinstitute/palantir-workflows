@@ -25,6 +25,8 @@ jobs:
         with:
           matrix: true
           files: '**Dockerfile'
+      - name: List dockerfiles
+        run: echo '${{ steps.changed-dockerfiles.outputs.all_changed_files}}'
   
   define_all_dockerfile_matrix:
     runs-on: ubuntu-latest
@@ -41,6 +43,8 @@ jobs:
             find . -name "Dockerfile" | jq -R . | jq -s .
             echo EOF
           } >> "$GITHUB_OUTPUT"
+      - name: List dockerfiles
+        run: echo '${{ steps.all-dockerfiles.outputs.files}}'
 
   test_builds:
     runs-on: ubuntu-latest
