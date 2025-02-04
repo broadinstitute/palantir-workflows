@@ -31,7 +31,6 @@ workflow Glimpse2ImputationAndCheckQC {
         Float? mem_scaling_factor_phase
         Int? cpu_ligate
         Int? mem_gb_ligate
-        File? monitoring_script
 
         # For documentation, please refer to CheckQC.wdl
         File qc_metrics_thresholds
@@ -63,8 +62,7 @@ workflow Glimpse2ImputationAndCheckQC {
             docker_extract_num_sites_from_reference_chunk = docker_extract_num_sites_from_reference_chunk,
             mem_scaling_factor_phase = mem_scaling_factor_phase,
             cpu_ligate = cpu_ligate,
-            mem_gb_ligate = mem_gb_ligate,
-            monitoring_script = monitoring_script
+            mem_gb_ligate = mem_gb_ligate
     }
 
     call Glimpse2CheckQC.Glimpse2CheckQC {
@@ -85,9 +83,6 @@ workflow Glimpse2ImputationAndCheckQC {
         
         File qc_metrics = Glimpse2Imputation.qc_metrics
         File coverage_metrics = Glimpse2Imputation.coverage_metrics
-
-        Array[File?] glimpse_phase_monitoring = Glimpse2Imputation.glimpse_phase_monitoring
-        File? glimpse_ligate_monitoring = Glimpse2Imputation.glimpse_ligate_monitoring
 
         Boolean qc_passed = Glimpse2CheckQC.qc_passed
         File qc_failures = Glimpse2CheckQC.qc_failures

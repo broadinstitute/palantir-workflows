@@ -31,7 +31,6 @@ workflow Glimpse2SplitReference {
         
         Int preemptible = 1
         String docker = "us.gcr.io/broad-dsde-methods/glimpse:odelaneau_bd93ade"
-        File? monitoring_script
     }
 
     scatter (i_contig in range(length(contig_regions))) {
@@ -54,15 +53,13 @@ workflow Glimpse2SplitReference {
                 uniform_number_variants = uniform_number_variants,
                 keep_monomorphic_ref_sites = keep_monomorphic_ref_sites,
                 preemptible = preemptible,
-                docker = docker,
-                monitoring_script = monitoring_script
+                docker = docker
         }
     }
 
     output {
         Array[File] chunks = GlimpseSplitReferenceTask.chunks
         Array[File] reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks)
-        Array[File?] split_reference_monitoring = GlimpseSplitReferenceTask.monitoring
     }
 }
 
@@ -84,7 +81,6 @@ task GlimpseSplitReferenceTask {
         Int disk_size_gb = ceil(2.2 * size(reference_panel, "GiB") + size(genetic_map, "GiB") + 100)
         Int preemptible = 1
         String docker
-        File? monitoring_script
     }
 
     String reference_output_dir = "reference_output_dir"
@@ -93,8 +89,6 @@ task GlimpseSplitReferenceTask {
     String keep_monomorphic_ref_sites_string = if keep_monomorphic_ref_sites then "--keep-monomorphic-ref-sites" else ""
     command <<<
         set -xeuo pipefail
-
-        ~{"bash " + monitoring_script + " > monitoring.log &"}
 
         NPROC=$(nproc)
         echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
@@ -145,7 +139,5 @@ task GlimpseSplitReferenceTask {
         # have a built-in way to do that, we have to rely on the command section to do that. However, we don't have access to that bash
         # variable in the output section, so we have to use glob here and return the first (and only) result.
         File chunks = glob("chunks_contigindex_*.txt")[0]
-
-        File? monitoring = "monitoring.log"
     }
 }

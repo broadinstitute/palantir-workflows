@@ -32,7 +32,6 @@ workflow Glimpse2ImputationInBatches {
         Int? cpu_ligate
         Int? mem_gb_ligate
         Int? mem_gb_merge
-        File? monitoring_script
 
         String? docker_gatk
         String? docker_count_samples
@@ -71,8 +70,7 @@ workflow Glimpse2ImputationInBatches {
                 docker_extract_num_sites_from_reference_chunk = docker_extract_num_sites_from_reference_chunk,
                 mem_scaling_factor_phase = mem_scaling_factor_phase,
                 cpu_ligate = cpu_ligate,
-                mem_gb_ligate = mem_gb_ligate,
-                monitoring_script = monitoring_script
+                mem_gb_ligate = mem_gb_ligate
         }
     }
 
