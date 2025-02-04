@@ -69,16 +69,18 @@ workflow Glimpse2Imputation {
         File called_vcf_index = select_first([BcftoolsCall.output_vcf_index, GATKCall.output_vcf_index])
     }
 
-    call BcftoolsMerge {
-        input:
-            vcfs = called_vcf,
-            vcf_indices = called_vcf_index,
-            output_basename = output_basename
+    if (length(SplitCRAMsIntoBatches.crams_batches) > 1) {
+        call BcftoolsMerge {
+            input:
+                vcfs = called_vcf,
+                vcf_indices = called_vcf_index,
+                output_basename = output_basename
+        }
     }
 
     output {
-        File merged_vcf = BcftoolsMerge.merged_vcf
-        File merged_vcf_index = BcftoolsMerge.merged_vcf_index
+        File merged_vcf = select_first([BcftoolsMerge.merged_vcf, called_vcf[0]])
+        File merged_vcf_index = select_first([BcftoolsMerge.merged_vcf_index, called_vcf_index[0]])
     }
 }
 task SplitCRAMsIntoBatches {
@@ -193,7 +195,7 @@ task BcftoolsCall {
 
         bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} | \
         bcftools call -Aim -C alleles -T ~{sites_tsv} -O u | \
-        bcftools norm -m -both -O z -o ~{out_basename}.vcf.gz
+        #bcftools norm -m -both -O z -o ~{out_basename}.vcf.gz
         #bcftools +tag2tag -O z -o ~{out_basename}.vcf.gz - -- --PL-to-GL
         #bcftools reheader -s sample_name.txt
         bcftools index -t ~{out_basename}.vcf.gz
