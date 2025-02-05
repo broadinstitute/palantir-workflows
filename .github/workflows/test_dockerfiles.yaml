@@ -51,9 +51,9 @@ jobs:
     needs: [define_changed_dockerfile_matrix, define_all_dockerfile_matrix]
     strategy:
       matrix:
-        dockerfile: ${{ github.ref != 'refs/heads/main' && fromJSON(needs.define_changed_dockerfile_matrix.outputs.matrix) || fromJSON(needs.define_all_dockerfile_matrix.outputs.matrix) }}
+        dockerfile: ${{ github.ref != 'refs/heads/ck_dockerfile_updates' && fromJSON(needs.define_changed_dockerfile_matrix.outputs.matrix) || fromJSON(needs.define_all_dockerfile_matrix.outputs.matrix) }}
       fail-fast: false
-      
+
     steps:
       - uses: actions/checkout@v4
       -
