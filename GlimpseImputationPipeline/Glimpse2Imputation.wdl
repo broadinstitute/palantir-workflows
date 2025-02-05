@@ -6,6 +6,8 @@ workflow Glimpse2Imputation {
         File reference_chunks
         File sites_tsv
         File sites_tsv_index
+        File sites_vcf
+        File sites_vcf_index
 
         Int bcftools_threads
         Boolean use_gatk
@@ -71,9 +73,10 @@ workflow Glimpse2Imputation {
                         fasta = select_first([fasta]),
                         fasta_index = select_first([fasta_index]),
                         call_indels = call_indels,
+                        sites_vcf = sites_vcf,
+                        sites_vcf_index = sites_vcf_index,
                         sites_tsv = sites_tsv,
                         sites_tsv_index = sites_tsv_index,
-                        sample_ids = SplitIntoBatches.sample_ids_batches[i],
                         cpu = bcftools_threads,
                         mem_gb = calling_mem_gb
                 }
@@ -246,8 +249,11 @@ task BcftoolsCall {
         File fasta
         File fasta_index
         Boolean call_indels
-        Array[String] sample_ids
 
+        File sites_vcf
+        File sites_vcf_index
+        File sites_tsv
+        File sites_tsv_index
         File sites_tsv
         File sites_tsv_index
         Int mem_gb = 4
@@ -262,9 +268,9 @@ task BcftoolsCall {
     command <<<
         set -euo pipefail
 
-        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_tsv} -O u ~{sep=" " crams} | \
-        bcftools +tag2tag -O z -o ~{out_basename}.vcf.gz - -- --PL-to-GL
-        #bcftools reheader -s sample_name.txt
+        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} | \
+        bcftools call -Aim -C alleles -T ~{sites_tsv} -O u | \
+        bcftools norm -m -both -O z -o ~{out_basename}.vcf.gz
         bcftools index -t ~{out_basename}.vcf.gz
     >>>
 
