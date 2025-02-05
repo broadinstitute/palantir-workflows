@@ -19,28 +19,27 @@ This document describes the usage and outputs of the BenchmarkSVs WDL along with
 
 ### Summary
 
-This workflow allows you to collect some QC metrics on an input VCF and/or benchmark compare two SV VCFs. There are currently two key overall steps to the process, each optional depending on user inputs:
-1. Collect QC Metrics -- uses `bcftools` to generate some statistics on a cohort VCF, like AF, HWE p-values, etc. per site.
-2. Run Truvari -- uses `truvari` to compare your input `comp_vcf` against the `base_vcf` provided. 
+There are two primary workflows contained in evaluating performance of SV VCFs. Both call some common tasks from the [tasks](tasks.wdl) file. The main workflows are:
+1. [QcSVs.wdl](QcSVs.wdl): Collect QC Metrics -- uses `bcftools` to generate some statistics on a cohort VCF, like AF, HWE p-values, etc. per site.
+2. [BenchmarkSVs.wdl](BenchmarkSVs.wdl): Run Truvari -- uses `truvari` to compare your input `comp_vcf` against the `base_vcf` provided. 
 
-In the latter step, statistics are collected over various subsets of your data, including relative to a list of interval files the user can supply.
+In the latter, statistics are collected over various subsets of your data, including relative to a list of interval files the user can supply.
 
 The final outputs include tables of cleaned data that can then be used for your downstream analysis, either on your own or using the provided [SVisualizer](#svisualizer).
 
-### Inputs
+### BenchmarkSVs Workflow
 
-- `base_vcf` - (optional) proxy for "truth" VCF to use; must contain `END`, `SVTYPE`, and `SVLEN` INFO fields.
-- `base_vcf_index` - (optional) index for `base_vcf`
-- `base_sample_names` - (optional) list of sample names to use when comparing via a cohort VCF. Note the order must match the order of `comp_sample_names` to get the correct matches. If not provided, only the first sample will be used.
+#### Inputs
+
+- `base_vcf` - proxy for "truth" VCF to use; must contain `END`, `SVTYPE`, and `SVLEN` INFO fields.
+- `base_vcf_index` - index for `base_vcf`
+- `base_sample_name` - sample name to use when comparing via a cohort VCF
 - `comp_vcf` - the main input VCF you want to QC/benchmark; must contain `END`, `SVTYPE`, and `SVLEN` INFO fields.
 - `comp_vcf_index` - the index for `comp_vcf`
-- `comp_sample_names` - (optional) list of sample names to use when comparing via cohort VCF. Note the order must match
-  the order of `base_sample_names` to get the correct matches. If not provided, only the first sample will be used.
+- `comp_sample_name` - sample name to use when comparing via cohort VCF
 - `experiment` - (optional) label to populate output tables with. Useful for running multiple iterations of the workflow, and then concatenating outputs to use this label for downstream clustering in plots.
 - `ref_fasta` - reference fasta file
 - `ref_fai` - reference fasta index file
-- `perform_qc` - (default = true) decides whether to run QC task
-- `run_truvari` - (default = true) decides whether to run Truvari tasks
 - `evaluation_bed` - (optional) a bed to subset both inputs VCFs to before performing any of the following analysis
 - `evaluation_pct` - (default 1) a float between 0 and 1 for the percent overlap with `evaluation_bed` required when subsetting to keep
 - `bed_regions` - (optional) bed files to collect stats relative to
@@ -52,15 +51,25 @@ The final outputs include tables of cleaned data that can then be used for your 
 
 In addition to these, specific tasks expose flags for certain tools. The `RunTruvari` task, for example, has inputs for toggling all the available flags for the tool. See the [documentation](https://github.com/acenglish/truvari/wiki/bench) for that tool for more details. 
 
-### Outputs
+#### Outputs
 
-- `qc_summary` - table containing cohort level stats per site, including AF, HWE, etc.
 - `truvari_bench_summary` - table containing summary stats produced by Truvari, combined over interval files provided
 - `truvari_fn_closest` - table containing data on the FNs marked by Truvari along with their (default = 3) closest variants in the opposing file
 - `truvari_fp_closest` - table containing data on the FPs marked by Truvari along with their (default = 3) closest variants in the opposing file
-- `combined_files` - a zip file containing all the above packaged into one file
 - `igv_session` - output from [CreateIGVSession](/Utilities/WDLs/CreateIGVSession.wdl) if toggled on
 
+### QcSVs Workflow
+
+#### Inputs
+
+- `vcf`: input file for SV calls
+- `vcf_index`: index for `vcf`
+
+For documentation on other arguments, see the above on `BenchmarkSVs`.
+
+#### Outputs
+
+- `qc_summary` - table containing cohort level stats per site, including AF, HWE, etc.
 
 ## SVisualizer
 
@@ -78,9 +87,9 @@ Follow these steps to ensure your environment is prepared.
 
 Once you've followed all the steps from the [Dependencies](#dependencies), using the script is straightforward. You can open and run the `.ipynb` file provided in Jupyter. This will start a local Flask server (hosted on port 8050 by default) you can navigate to in order to interact with the dashboard. It will be automatically populated using the WDL output data in the `wdl_outputs` directory. The notebook version has some markdown headers to make it easier to navigate the different blocks of code, if you wish to modify it for your own purposes. It also makes it easier to see what variables/settings can be toggled at the top of the page.
 
-### Optional Data Gathering Script
+### Optional Data Gathering Script (Legacy)
 
-Because there are a lot of files output by the workflow, you might want to use the provided `gather_terra_data.py` script to automatically set up your environment. This works using the Firecloud API to grab your files from a Terra submission and put them in the right location, combining outputs from separate workflows run under the same submission. To use it, you need to:
+In the legacy version of a single workflow, there are a lot of files output, and you might want to use the provided `gather_terra_data.py` script to automatically set up your environment. This works using the Firecloud API to grab your files from a Terra submission and put them in the right location, combining outputs from separate workflows run under the same submission. To use it, you need to:
 
 1. Make sure you have the Firecloud API Python package installed, e.g. `pip install firecloud`.
 2. Make sure you have `gsutil` installed and configured with the correct permissions relative to your Terra workspace.
