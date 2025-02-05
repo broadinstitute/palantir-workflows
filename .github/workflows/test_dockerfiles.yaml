@@ -61,6 +61,7 @@ jobs:
         id: get-context
         run: |
             echo "context=$(dirname ${{ matrix.dockerfile }})" >> $GITHUB_OUTPUT
+      - run: echo "${{ github.ref }}"
 
       -
         name: Build
