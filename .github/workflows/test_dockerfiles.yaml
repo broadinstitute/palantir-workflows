@@ -69,6 +69,8 @@ jobs:
         with:
           context: ${{ steps.get-context.outputs.context }}
           file: ${{ matrix.dockerfile }}
+          cache-from: type=gha
+          cache-to: type=gha, mode=max
 
   test_glimpse_docker:
     runs-on: ubuntu-latest
