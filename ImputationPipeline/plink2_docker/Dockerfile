@@ -2,12 +2,16 @@
 ARG UBUNTU_VERSION=20.04
 FROM ubuntu:${UBUNTU_VERSION}
 
-RUN apt-get update \
-  && apt-get install -y wget \
-  && apt-get install -y unzip
+ARG PLINK_VERSION=v2.00a2.3
 
-RUN wget https://s3.amazonaws.com/plink2-assets/alpha2/plink2_linux_avx2.zip
-RUN unzip plink2_linux_avx2.zip -d /
-RUN rm plink2_linux_avx2.zip
+RUN apt-get update \
+  && apt-get install -y wget unzip build-essential zlib1g-dev libatlas-base-dev
+
+RUN wget https://github.com/chrchang/plink-ng/archive/refs/tags/$PLINK_VERSION.zip
+RUN unzip $PLINK_VERSION.zip
+RUN plink_dir=$(find . -type d -name "plink*") && \
+    make -C ${plink_dir}/2.0/build_dynamic/ NO_AVX2= && \
+    mv ${plink_dir}/2.0/build_dynamic/plink2 / && \
+    rm -r ${plink_dir}
 
 WORKDIR /

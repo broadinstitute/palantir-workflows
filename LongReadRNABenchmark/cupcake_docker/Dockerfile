@@ -40,7 +40,7 @@ RUN pip3 install biopython
 RUN pip3 install bx-python
 
 # cython
-RUN pip3 install Cython
+RUN pip3 install Cython==0.29.34
 
 # numpy should be <1.20, otherwise cDNA_Cupcake fails
 RUN pip3 uninstall --yes numpy
@@ -50,6 +50,8 @@ RUN pip3 install --upgrade numpy==1.19
 WORKDIR $SRC
 
 COPY remove_fastq_duplicates.py $SRC/remove_fastq_duplicates.py
+
+ENV SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True
 
 RUN git clone https://github.com/Magdoll/cDNA_Cupcake.git && \
 	cd cDNA_Cupcake && \

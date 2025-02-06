@@ -1,17 +1,11 @@
 version: 1.2
 workflows:
-  - name: ImputationWorkflow
-    subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/Imputation.wdl
   - name: PRScoringWorkflow
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/ScoringPart.wdl
-  - name: EndToEndPipeline
-    subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/EndToEndPipeline.wdl
+    primaryDescriptorPath: /PRS/ScoringPart.wdl
   - name: PerformPopulationPCA
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/PerformPopulationPCA.wdl
+    primaryDescriptorPath: /PRS/PerformPopulationPCA.wdl
   - name: BenchmarkVCFs
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/BenchmarkVCFs.wdl
@@ -21,15 +15,9 @@ workflows:
   - name: BenchmarkAndCompareVCFs
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/BenchmarkAndCompareVCFs.wdl
-  - name: ValidateImputation
-    subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/Validation/ValidateImputation.wdl
   - name: ValidateScoring
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/Validation/ValidateScoring.wdl
-  - name: FullImputationPRSValidation
-    subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/Validation/FullImputationPRSValidation.wdl
+    primaryDescriptorPath: /PRS/Validation/ValidateScoring.wdl
   - name: FindSamplesAndBenchmark
     subclass: WDL
     primaryDescriptorPath: /BenchmarkVCFs/FindSamplesAndBenchmark.wdl
@@ -47,19 +35,19 @@ workflows:
     primaryDescriptorPath: /FunctionalEquivalence/FunctionalEquivalence.wdl
   - name: PRSWrapper
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/PRSWrapper.wdl
+    primaryDescriptorPath: /PRS/PRSWrapper.wdl
   - name: CKDRiskAdjustment
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/CKDRiskAdjustment.wdl
+    primaryDescriptorPath: /PRS/CKDRiskAdjustment.wdl
   - name: CollectBenchmarkSucceeded
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/CollectBenchmarkSucceeded.wdl
   - name: AggregatePRSResults
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/AggregatePRSResults.wdl
+    primaryDescriptorPath: /PRS/AggregatePRSResults.wdl
   - name: TrainAncestryAdjustmentModel
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/TrainAncestryAdjustmentModel.wdl
+    primaryDescriptorPath: /PRS/TrainAncestryAdjustmentModel.wdl
   - name: Glimpse1Imputation
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse1Imputation.wdl
@@ -140,13 +128,13 @@ workflows:
     primaryDescriptorPath: /Utilities/WDLs/PRSQC.wdl
   - name: PCARE
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/PCARE.wdl
+    primaryDescriptorPath: /PRS/PCARE.wdl
   - name: PCAREAndQC
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/PCAREAndQC.wdl
+    primaryDescriptorPath: /PRS/PCAREAndQC.wdl
   - name: ScoreBGE
     subclass: WDL
-    primaryDescriptorPath: /ImputationPipeline/ScoreBGE/ScoreBGE.wdl
+    primaryDescriptorPath: /PRS/ScoreBGE/ScoreBGE.wdl
   - name: BenchmarkSVs
     subclass: WDL
     primaryDescriptorPath: /BenchmarkSVs/BenchmarkSVs.wdl
