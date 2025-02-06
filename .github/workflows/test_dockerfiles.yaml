@@ -25,6 +25,7 @@ jobs:
         with:
           matrix: true
           files: '**/Dockerfile'
+          files_ignore: '**/GlimpseImputationPipeline/glimpse_docker/Dockerfile'
       - name: List dockerfiles
         run: echo '${{ steps.changed-dockerfiles.outputs.all_changed_files}}'
   
@@ -40,7 +41,7 @@ jobs:
         run: |
           {
             echo 'files<<EOF'
-            find . -name "Dockerfile" | jq -R . | jq -s .
+            find . -name "Dockerfile" ! -path "*/GlimpseImputationPipeline/glimpse_docker/*" | jq -R . | jq -s .
             echo EOF
           } >> "$GITHUB_OUTPUT"
       - name: List dockerfiles
@@ -70,4 +71,20 @@ jobs:
         with:
           context: ${{ steps.get-context.outputs.context }}
           file: ${{ matrix.dockerfile }}
+
+  test_glimpse_docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      -
+        name: Build main GLIMPSE Docker
+        run: |
+          cd GlimpseImputationPipeline/glimpse_docker
+          ./build_base_and_extension_docker.sh -r https://github.com/odelaneau/GLIMPSE.git -t test -b master
+      -
+        name: Build Extract Num Sites Docker
+        run: |
+          cd GlimpseImputationPipeline/glimpse_docker
+          ./build_extract_num_sites_from_reference_chunk_docker.sh -r https://github.com/michaelgatzen/GLIMPSE.git -t test -b master
+          
 
