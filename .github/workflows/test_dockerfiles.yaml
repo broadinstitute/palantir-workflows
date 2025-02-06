@@ -52,7 +52,7 @@ jobs:
     needs: [define_changed_dockerfile_matrix, define_all_dockerfile_matrix]
     strategy:
       matrix:
-        #refs/heads/main
+        #change github.ref check to refs/heads/main
         dockerfile: ${{ github.ref != 'refs/pull/202/merge' && fromJSON(needs.define_changed_dockerfile_matrix.outputs.matrix) || fromJSON(needs.define_all_dockerfile_matrix.outputs.matrix) }}
       fail-fast: false
 
@@ -63,8 +63,6 @@ jobs:
         id: get-context
         run: |
             echo "context=$(dirname ${{ matrix.dockerfile }})" >> $GITHUB_OUTPUT
-      - run: echo "${{ github.ref }}"
-
       -
         name: Build
         uses: docker/build-push-action@v6
@@ -77,14 +75,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       -
+        name: Check if Dockerfile has changed
+        id: check-if-changed
+        #change github.ref check to refs/heads/main
+        if: ${{ github.ref != 'refs/pull/202/merge' }}
+        uses: tj-actions/changed-files@v44
+        with:
+          files: '**/GlimpseImputationPipeline/glimpse_docker/Dockerfile'
+      -
         name: Build main GLIMPSE Docker
+        #change github.ref check to refs/heads/main
+        if: ${{ github.ref == 'refs/pull/202/merge' || steps.check-if-changed.outputs.all_changed_files_count > 0 }}
         run: |
           cd GlimpseImputationPipeline/glimpse_docker
-          ./build_base_and_extension_docker.sh -r https://github.com/odelaneau/GLIMPSE.git -t test -b master
+          ./build_base_and_extension_docker.sh -r https://github.com/odelaneau/GLIMPSE.git -t test -b master -y
       -
         name: Build Extract Num Sites Docker
+        #change github.ref check to refs/heads/main
+        if: ${{ github.ref == 'refs/pull/202/merge' || steps.check-if-changed.outputs.all_changed_files_count > 0 }}
         run: |
           cd GlimpseImputationPipeline/glimpse_docker
-          ./build_extract_num_sites_from_reference_chunk_docker.sh -r https://github.com/michaelgatzen/GLIMPSE.git -t test -b master
+          ./build_extract_num_sites_from_reference_chunk_docker.sh -y -r https://github.com/michaelgatzen/GLIMPSE.git -t test -b master
           
 
