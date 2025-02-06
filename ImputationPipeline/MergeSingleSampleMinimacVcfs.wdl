@@ -85,7 +85,7 @@ workflow MergeSingleSampleMinimacVcfs {
 
     output {
         File merged_vcf = GatherVcfs.output_vcf
-        File merged_imputed_vcf_index = GatherVcfs.output_vcf_index
+        File merged_vcf_index = GatherVcfs.output_vcf_index
         File merged_qc_metrics = MergeQCMetrics.merged_qc_metrics
     }
     
