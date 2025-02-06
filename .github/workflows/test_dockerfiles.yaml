@@ -64,16 +64,11 @@ jobs:
         run: |
             echo "context=$(dirname ${{ matrix.dockerfile }})" >> $GITHUB_OUTPUT
       -
-        name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      -
         name: Build
         uses: docker/build-push-action@v6
         with:
           context: ${{ steps.get-context.outputs.context }}
           file: ${{ matrix.dockerfile }}
-          cache-from: type=gha
-          cache-to: type=gha, mode=max
 
   test_glimpse_docker:
     runs-on: ubuntu-latest
