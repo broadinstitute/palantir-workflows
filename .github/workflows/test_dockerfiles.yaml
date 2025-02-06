@@ -52,8 +52,7 @@ jobs:
     needs: [define_changed_dockerfile_matrix, define_all_dockerfile_matrix]
     strategy:
       matrix:
-        #change github.ref check to refs/heads/main
-        dockerfile: ${{ github.ref != 'refs/pull/202/merge' && fromJSON(needs.define_changed_dockerfile_matrix.outputs.matrix) || fromJSON(needs.define_all_dockerfile_matrix.outputs.matrix) }}
+        dockerfile: ${{ github.ref != 'refs/heads/main' && fromJSON(needs.define_changed_dockerfile_matrix.outputs.matrix) || fromJSON(needs.define_all_dockerfile_matrix.outputs.matrix) }}
       fail-fast: false
 
     steps:
@@ -77,22 +76,19 @@ jobs:
       -
         name: Check if Dockerfile has changed
         id: check-if-changed
-        #change github.ref check to refs/heads/main
-        if: ${{ github.ref != 'refs/pull/202/merge' }}
+        if: ${{ github.ref != 'refs/heads/main' }}
         uses: tj-actions/changed-files@v44
         with:
           files: '**/GlimpseImputationPipeline/glimpse_docker/Dockerfile'
       -
         name: Build main GLIMPSE Docker
-        #change github.ref check to refs/heads/main
-        if: ${{ github.ref == 'refs/pull/202/merge' || steps.check-if-changed.outputs.all_changed_files_count > 0 }}
+        if: ${{ github.ref == 'refs/heads/main' || steps.check-if-changed.outputs.all_changed_files_count > 0 }}
         run: |
           cd GlimpseImputationPipeline/glimpse_docker
           ./build_base_and_extension_docker.sh -r https://github.com/odelaneau/GLIMPSE.git -t test -b master -y
       -
         name: Build Extract Num Sites Docker
-        #change github.ref check to refs/heads/main
-        if: ${{ github.ref == 'refs/pull/202/merge' || steps.check-if-changed.outputs.all_changed_files_count > 0 }}
+        if: ${{ github.ref == 'refs/heads/main' || steps.check-if-changed.outputs.all_changed_files_count > 0 }}
         run: |
           cd GlimpseImputationPipeline/glimpse_docker
           ./build_extract_num_sites_from_reference_chunk_docker.sh -y -r https://github.com/michaelgatzen/GLIMPSE.git -t test -b master
