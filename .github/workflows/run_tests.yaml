@@ -79,7 +79,7 @@ jobs:
           name: cromwell_logs
           path: cromwell_logs/
 
-  python:
+  python_lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -94,6 +94,18 @@ jobs:
         run: |
           pip install ruff
           ruff check --output-format=github .
+
+  python_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
       - name: ScoreBGE Unit tests
         run: |
           pip install -r ImputationPipeline/ScoreBGE/requirements.txt
