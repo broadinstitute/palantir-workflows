@@ -1,9 +1,7 @@
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import seaborn as sns
-import sys
 
 parser = argparse.ArgumentParser(description = "Generate plot for the isoform reconstruction denovo analysis statistics.")
 parser.add_argument("-i", "--input", required = True)
@@ -59,7 +57,7 @@ ax.set_title("Denovo Analysis Summary: " + args.dataset_name)
 ax.set_xticks(x + width, tools)
 ax.legend(loc = "upper left", ncols = len(tools))
 
-if args.save == True:
+if args.save:
 	plt.savefig(args.dataset_name + "_analysis_summary_denovo_" + args.type + ".png")
 else:
 	plt.show()
