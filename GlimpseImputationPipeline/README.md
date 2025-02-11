@@ -64,7 +64,7 @@ This implementation uses Cromwell's [checkpoint feature](https://cromwell.readth
 
 The memory and CPU resource requirements for the computationally intensive phasing task are automatically determined, based on the number of sites in the reference panel chunks and the number of samples, unless these resource requirements are explicitly defined by setting `cpu_phase` and `mem_gb_phase`. The extraction of the number of sites in the reference panel chunks requires functionality not implemented directly into GLIMPSE2 and is provided in the `docker_extract_num_sites_from_reference_chunk` argument. See the [Docker section](#docker-image-for-extracting-number-of-sites-from-reference-panel) of this README for more information. The memory resource requirement can be scaled linearly using the `mem_scaling_factor_phase` argument.
 
-**Note:** The automatic resource requirement determination provides an estimate of the required resources, it is expected that in some cases the amount of required memory is underestimated. It is therefore advised to run this workflow with Cromwell's [retry with more memory](https://cromwell.readthedocs.io/en/stable/cromwell_features/RetryWithMoreMemory/) feature (also available in [Terra](https://support.terra.bio/hc/en-us/articles/4403215299355-Out-of-Memory-Retry))._
+**Note:** _The automatic resource requirement determination provides an estimate of the required resources, it is expected that in some cases the amount of required memory is underestimated. **It is therefore advised to run this workflow with Cromwell's [retry with more memory](https://cromwell.readthedocs.io/en/stable/cromwell_features/RetryWithMoreMemory/) feature (also available in [Terra](https://support.terra.bio/hc/en-us/articles/4403215299355-Out-of-Memory-Retry)).**_
 
 **Note**: _GLIMPSE2 does not support the input of multiple CRAM files with the same basename when streaming (e.g. `gs://a/file.cram`, `gs://b/file.cram`), due to the way that htslib is implemented. This workflow will check for a potential filename collision and will fail with an error message if such a collision occurs._
 
@@ -87,7 +87,7 @@ The memory and CPU resource requirements for the computationally intensive phasi
 - **Int? effective_population_size**: See [GLIMPSE2 documentation](https://odelaneau.github.io/GLIMPSE/docs/documentation/phase/#model-parameters).
 - **String docker**: Docker image to run imputation with. This docker image requires a few features that the original GLIMPSE2 does not include, see the [Docker section](#Docker-Images) of this README for more information.
 - **String docker_extract_num_sites_from_reference_chunk**: Docker image to extract the number of common and rare sites from each reference chunk. See the [Docker section](#docker-image-for-extracting-number-of-sites-from-reference-panel) of this README for more information.
-- **String mem_scaling_factor_phase**: Linear scaling of the automatically determined memory requirement.
+- **String mem_scaling_factor_phase**: Linear scaling of the automatically determined memory requirement. For running single samples with reference panel chunk sizes of 48 cM, a value of 1.5 is recommended.
 - **Int preemtible = 9**: Number of preemptible attempts.
 
 ### Output
