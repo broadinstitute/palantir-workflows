@@ -51,6 +51,10 @@ WORKDIR $SRC
 
 COPY remove_fastq_duplicates.py $SRC/remove_fastq_duplicates.py
 
+# cupcake installs sklearn from sklean, instead of from scikit-learn.
+# optimally this would be fixed in cupcake, but
+# for now we can set this environment variable to allow the installation
+# see https://pypi.org/project/sklearn/
 ENV SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True
 
 RUN git clone https://github.com/Magdoll/cDNA_Cupcake.git && \
