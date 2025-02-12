@@ -108,7 +108,7 @@ jobs:
           python -m pip install --upgrade pip
       - name: ScoreBGE Unit tests
         run: |
-          pip install -r ImputationPipeline/ScoreBGE/requirements.txt
-          cd ImputationPipeline/ScoreBGE/tests
+          pip install -r PRS/ScoreBGE/requirements.txt
+          cd PRS/ScoreBGE/tests
           export PYTHONPATH=$GITHUB_WORKSPACE
           python -m unittest test_ScoreBGE.py
