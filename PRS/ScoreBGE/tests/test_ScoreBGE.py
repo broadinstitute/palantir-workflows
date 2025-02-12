@@ -2,7 +2,7 @@ from unittest import TestCase
 from collections import namedtuple
 import tempfile
 
-from ImputationPipeline.ScoreBGE import ScoreBGE
+from PRS.ScoreBGE import ScoreBGE
 
 TestRecord = namedtuple('TestRecord', ['contig', 'pos', 'stop'])
 TestWeight = namedtuple('TestWeight', ['contig', 'position'])
