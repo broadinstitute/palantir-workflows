@@ -1,5 +1,5 @@
-# default ubuntu version: 20.04
-ARG UBUNTU_VERSION=20.04
+# default ubuntu version: 24.04
+ARG UBUNTU_VERSION=24.04
 FROM ubuntu:${UBUNTU_VERSION}
 
 ARG PLINK_VERSION=v2.00a2.3
