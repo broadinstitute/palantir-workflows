@@ -84,7 +84,7 @@ workflow Glimpse2Imputation {
                 preemptible = preemptible,
                 docker = docker,
                 cpu = select_first([cpu_phase, safety_check_n_cpu, SelectResourceParameters.request_n_cpus]),
-                mem_gb = select_first([mem_gb_phase, safety_check_memory_gb, ceil(SelectResourceParameters.memory_gb * mem_scaling_factor_phase)])
+                mem_gb = select_first([mem_gb_phase, safety_check_memory_gb, ceil(select_first([SelectResourceParameters.memory_gb, -1]) * mem_scaling_factor_phase)])
         }
     }
 
