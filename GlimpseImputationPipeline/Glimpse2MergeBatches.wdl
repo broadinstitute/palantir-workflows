@@ -13,7 +13,7 @@ workflow Glimpse2MergeBatches {
         String docker_count_samples = "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
         String docker_merge = "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
 
-        File interval_list
+        File interval_list = "gs://gcp-public-data--broad-references/hg38/v0/wgs_metrics_intervals.interval_list"
         Int scatter_count = 100
 
         Int mem_gb_merge = 16

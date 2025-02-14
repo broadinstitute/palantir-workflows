@@ -23,13 +23,13 @@ workflow Glimpse2Imputation {
         Int? effective_population_size
         
         Int preemptible = 9
-        String docker = "us.gcr.io/broad-dsde-methods/glimpse:kachulis_ck_bam_reader_retry_cf5822c"
+        String docker = "us.gcr.io/broad-dsde-methods/glimpse:odelaneau_bd93ade"
         String docker_extract_num_sites_from_reference_chunk = "us.gcr.io/broad-dsde-methods/glimpse_extract_num_sites_from_reference_chunks:michaelgatzen_edc7f3a"
         Int cpu_ligate = 4
         Int mem_gb_ligate = 4
         Int? cpu_phase
         Int? mem_gb_phase
-        File? monitoring_script
+        Float mem_scaling_factor_phase = 1.0
     }
 
     scatter (reference_chunk in read_lines(reference_chunks)) {
@@ -59,7 +59,7 @@ workflow Glimpse2Imputation {
                     n_samples = n_samples
             }
 
-            if (SelectResourceParameters.memory_gb > 256 || SelectResourceParameters.request_n_cpus > 32) {
+            if (ceil(SelectResourceParameters.memory_gb * mem_scaling_factor_phase) > 256 || SelectResourceParameters.request_n_cpus > 32) {
                 # force failure if we're accidently going to request too much resources and spend too much money
                 Int safety_check_memory_gb = -1
                 Int safety_check_n_cpu = -1
@@ -84,8 +84,7 @@ workflow Glimpse2Imputation {
                 preemptible = preemptible,
                 docker = docker,
                 cpu = select_first([cpu_phase, safety_check_n_cpu, SelectResourceParameters.request_n_cpus]),
-                mem_gb = select_first([mem_gb_phase, safety_check_memory_gb, SelectResourceParameters.memory_gb]),
-                monitoring_script = monitoring_script
+                mem_gb = select_first([mem_gb_phase, safety_check_memory_gb, ceil(select_first([SelectResourceParameters.memory_gb, -1]) * mem_scaling_factor_phase)])
         }
     }
 
@@ -99,7 +98,6 @@ workflow Glimpse2Imputation {
             docker = docker,
             cpu = cpu_ligate,
             mem_gb = mem_gb_ligate,
-            monitoring_script = monitoring_script
     }
 
     call CombineCoverageMetrics {
@@ -112,7 +110,6 @@ workflow Glimpse2Imputation {
         input:
             imputed_vcf = GlimpseLigate.imputed_vcf,
             output_basename = output_basename,
-            monitoring_script = monitoring_script
     }
     
 
@@ -123,9 +120,6 @@ workflow Glimpse2Imputation {
         
         File qc_metrics = CollectQCMetrics.qc_metrics
         File coverage_metrics = CombineCoverageMetrics.coverage_metrics
-
-        Array[File?] glimpse_phase_monitoring = GlimpsePhase.monitoring
-        File? glimpse_ligate_monitoring = GlimpseLigate.monitoring
     }
 }
 
@@ -152,7 +146,6 @@ task GlimpsePhase {
         Int preemptible = 9
         Int max_retries = 3
         String docker
-        File? monitoring_script
     }
 
     parameter_meta {
@@ -169,7 +162,6 @@ task GlimpsePhase {
         set -euo pipefail
 
         export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
-        ~{"bash " + monitoring_script + " > monitoring.log &"}
 
         cram_paths=( ~{sep=" " crams} )
         cram_index_paths=( ~{sep=" " cram_indices} )
@@ -236,7 +228,6 @@ task GlimpsePhase {
     output {
         File imputed_vcf = "phase_output.bcf"
         File imputed_vcf_index = "phase_output.bcf.csi"
-        File? monitoring = "monitoring.log"
         File coverage_metrics = "phase_output_stats_coverage.txt.gz"
     }
 }
@@ -254,13 +245,10 @@ task GlimpseLigate {
         Int preemptible = 1
         Int max_retries = 3
         String docker
-        File? monitoring_script
     }
 
     command <<<
         set -xeuo pipefail
-
-        ~{"bash " + monitoring_script + " > monitoring.log &"}
 
         NPROC=$(nproc)
         echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
@@ -289,7 +277,6 @@ task GlimpseLigate {
         File imputed_vcf = "~{output_basename}.imputed.vcf.gz"
         File imputed_vcf_index = "~{output_basename}.imputed.vcf.gz.tbi"
         File imputed_vcf_md5sum = "~{output_basename}.imputed.vcf.gz.md5sum"
-        File? monitoring = "monitoring.log"
     }
 }
 
@@ -302,7 +289,6 @@ task CollectQCMetrics {
         String docker = "hailgenetics/hail:0.2.126-py3.11"
         Int cpu = 4
         Int mem_gb = 16
-        File? monitoring_script
     }
 
     parameter_meta {
@@ -315,8 +301,6 @@ task CollectQCMetrics {
     
     command <<<
         set -euo pipefail
-
-        ~{"bash " + monitoring_script + " > monitoring.log &"}
 
         cat <<'EOF' > script.py
 import hail as hl
@@ -345,7 +329,6 @@ EOF
 
     output {
         File qc_metrics = "~{output_basename}.qc_metrics.tsv"
-        File? monitoring = "monitoring.log"
     }
 }
 
