@@ -1,7 +1,7 @@
 version 1.0
 
 import "../ScoringPart.wdl" as Scoring
-import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/ImputationPipeline/ScoringPart.wdl" as ScoringMain
+import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/PRS/ScoringPart.wdl" as ScoringMain
 import "../TrainAncestryAdjustmentModel.wdl" as TrainModel
 import "../PCATasks.wdl" as PCATasks
 import "../Structs.wdl" as Structs
