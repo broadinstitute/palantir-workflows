@@ -47,14 +47,12 @@ contig_name_in_reference_panel = "chr1"
 - **Int? min_window_cm**: Optional minimum window size in [Centimorgan](https://en.wikipedia.org/wiki/Centimorgan). See note on chunk sizes above.
 - **Boolean uniform_number_variants = false**: When set to true, each chunk will have approximately the same number of sites while. Each chunk will cover a different (Centimorgan) genetic linkage region with the smallest chunk still being larger than `min_window_cm`.
 - **Int preemtible = 1**: Number of preemptible attempts.
-- **File? monitoring_script**: Optional path to monitoring script. If ommitted, no monitoring will occur and the `split_reference_monitoring** output will not be available.
 
 ### Output
 - **Array[File] chunks**: One `chunks_contigindex_{CONTIGINDEX}.txt` file per region as defined in the `contig_regions` input that each include the definitions of the chunks in that region.
 - **Array[File] split_reference_chunks**: All binary representations of the reference panel for each chunk in each contig region. Each file is named `reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX}` with `CONTIGINDEX` and `CHUNKINDEX` being 4-digit zero-based indices with leading zeros in order to simplify the correct ordering of intervals.
 - **Array[String] num_sites**: The number of sites in each chunk.
 - **Array[String] num_sites_uniform**: The number of sites in each chunk when using `uniform_number_variants`, otherwise empty.
-- **File? monitoring**: A monitoring log if the `monitoring_script` input is set, otherwise null.
 
 ## Glimpse2Imputation
 
@@ -64,7 +62,9 @@ The input to this workflow can bei either single-sample or multi-sample VCFs wit
 
 This implementation uses Cromwell's [checkpoint feature](https://cromwell.readthedocs.io/en/stable/optimizations/CheckpointFiles/) to drastically reduce cost by being able to run entirely on preemptible machines and preserving the computation progress made leading up to a preemption event. It is therefore recommended to allow for a relatively high number of preemptible attempts (the default value for the `preemptible` input is 9).
 
-**Note:** _The checkpointing feature, as well as a separate binary required to extract the number of sites in a given reference chunk for resource selection, is not available in the official GLIMPSE repo yet. Therefore, the default value for the `docker` input is set to `us.gcr.io/broad-dsde-methods/ckachulis/glimpse_for_wdl_pipeline:checkpointing_and_extract_num_sites`._
+The memory and CPU resource requirements for the computationally intensive phasing task are automatically determined, based on the number of sites in the reference panel chunks and the number of samples, unless these resource requirements are explicitly defined by setting `cpu_phase` and `mem_gb_phase`. The extraction of the number of sites in the reference panel chunks requires functionality not implemented directly into GLIMPSE2 and is provided in the `docker_extract_num_sites_from_reference_chunk` argument. See the [Docker section](#docker-image-for-extracting-number-of-sites-from-reference-panel) of this README for more information. The memory resource requirement can be scaled linearly using the `mem_scaling_factor_phase` argument.
+
+**Note:** _The automatic resource requirement determination provides an estimate of the required resources, it is expected that in some cases the amount of required memory is underestimated. **It is therefore advised to run this workflow with Cromwell's [retry with more memory](https://cromwell.readthedocs.io/en/stable/cromwell_features/RetryWithMoreMemory/) feature (also available in [Terra](https://support.terra.bio/hc/en-us/articles/4403215299355-Out-of-Memory-Retry)).**_
 
 **Note**: _GLIMPSE2 does not support the input of multiple CRAM files with the same basename when streaming (e.g. `gs://a/file.cram`, `gs://b/file.cram`), due to the way that htslib is implemented. This workflow will check for a potential filename collision and will fail with an error message if such a collision occurs._
 
@@ -87,16 +87,15 @@ This implementation uses Cromwell's [checkpoint feature](https://cromwell.readth
 - **Int? effective_population_size**: See [GLIMPSE2 documentation](https://odelaneau.github.io/GLIMPSE/docs/documentation/phase/#model-parameters).
 - **String docker**: Docker image to run imputation with. This docker image requires a few features that the original GLIMPSE2 does not include, see the [Docker section](#Docker-Images) of this README for more information.
 - **String docker_extract_num_sites_from_reference_chunk**: Docker image to extract the number of common and rare sites from each reference chunk. See the [Docker section](#docker-image-for-extracting-number-of-sites-from-reference-panel) of this README for more information.
+- **String mem_scaling_factor_phase**: Linear scaling of the automatically determined memory requirement. For running single samples with reference panel chunk sizes of 48 cM, a value of 1.5 is recommended.
 - **Int preemtible = 9**: Number of preemptible attempts.
-- **File? monitoring_script**: Optional path to monitoring script. If ommitted, no monitoring will occur and the `split_reference_monitoring** output will not be available.
 
 ### Output
 
 - **File imputed_vcf**: Single imputed VCF that covers all regions defined in the `contig_regions` input in GlimpseSplitReference. The name of the file is the basename of `input_vcf` with `.imputed.vcf.gz` added.
 - **File imputed_vcf_index**: Index to `imputed_vcf`.
 - **File? qc_metrics**: Output of Hail's [`sample_qc`](https://hail.is/docs/0.2/methods/genetics.html#hail.methods.sample_qc) method as a TSV table if `collect_qc_metrics` is set, otherwise null.
-- **Array[File?] glimpse_phase_monitoring**: A monitoring log for each parallelized chunk if the `monitoring_script` input is set, otherwise null.
-- **File? glimpse_ligate_monitoring**: A monitoring log for the ligate task if the `monitoring_script` input is set, otherwise null.
+- **File? coverage_metrics**: A TSV file containing metrics about the input CRAMs as a way for checking that sufficient coverage has been provided. This output is null if VCF input is provided instead of CRAM input.
 
 ## Glimpse2MergeBatches
 
@@ -105,6 +104,8 @@ This workflow merges multiple batches of imputed multi-sample VCFs into one and 
 ### Input
 - **Array[File] imputed_vcf**: GLIMPSE2 output imputed VCFs.
 - **Array[File] imputed_vcf_indices**: Indices to `imputed_vcf`.
+- **Int? scatter_count**: Merging large batches of samples (approx. more than 100) requires too much resources to be done in one job. This parameter defines the number of chunks that the genome (as defined by `interval_list`) should be divided into. The default value of 100 is appropriate for merging multiple batches of 1,000 samples each.
+- **File? interval_list**: This file should contain all chromosomes that imputation has been performed on. The default value contains the hg38 contigs chr1-chr22, chrX, chrY, and chrM from start until end. Adding unused contigs only affects the efficiency for the merging process.
 - **Array[File?]? qc_metrics**: Optional array of qc_metrics of the individual batches to be merged into one `merged_qc_metrics` TSV file. Can otherwise be _null_ or can only contain _null_ values.
 - **String output_basename**: Basename for merged output VCF.
 
