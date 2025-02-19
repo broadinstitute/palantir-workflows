@@ -134,7 +134,7 @@ includes some minimal Python tools (pandas) for data processing.
 * Usage: `rtg [COMMAND]`, etc.
 * Version Notes:
   * 1.0: Versions are `rtg` 3.12.1, `bedtools` 2.31.0, `bcftools` 1.16
-  * 1.1: Added htslib 1.20 (includes tabix and bgzip); bumped bcftools to 1.20
+  * 1.1: Added `htslib` 1.21 (includes `tabix` and `bgzip`); bumped `bcftools` to 1.21
 
 ## whatshap
 
