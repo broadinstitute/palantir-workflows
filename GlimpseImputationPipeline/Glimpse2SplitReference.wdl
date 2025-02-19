@@ -12,6 +12,8 @@ workflow Glimpse2SplitReference {
         Array[String] contig_names_in_reference_panel
         Array[String] contig_names_in_genetic_maps
 
+        Array[String?] pre_chunked_contigs
+
         # Example path for chr1: gs://bucket/to/panel/reference_panel_chr1_merged.bcf(.csi)
         # reference_panel_prefix = "gs://bucket/to/panel/reference_panel_"
         # reference_panel_suffix = "_merged.bcf"
@@ -41,10 +43,13 @@ workflow Glimpse2SplitReference {
         String reference_filename = reference_panel_prefix + contig_name_in_reference_panel + reference_panel_suffix
         String genetic_map_filename = genetic_map_path_prefix + contig_name_in_genetic_maps + genetic_map_path_suffix
 
+        File? pre_chunked_contig = pre_chunked_contigs[i_contig]
+
         call GlimpseSplitReferenceTask {
             input:
                 reference_panel = reference_filename,
                 reference_panel_index = reference_filename + reference_panel_index_suffix,
+                pre_chunked_contig = pre_chunked_contig,
                 contig = contig_region,
                 i_contig = i_contig,
                 genetic_map = genetic_map_filename,
@@ -70,6 +75,7 @@ task GlimpseSplitReferenceTask {
         File reference_panel
         File reference_panel_index
         File genetic_map
+        String? pre_chunked_contig
 
         Int? seed
         Float? min_window_cm
@@ -87,6 +93,8 @@ task GlimpseSplitReferenceTask {
 
     String uniform_number_variants_string = if uniform_number_variants then "--uniform-number-variants" else ""
     String keep_monomorphic_ref_sites_string = if keep_monomorphic_ref_sites then "--keep-monomorphic-ref-sites" else ""
+
+    String pre_chunked = if defined(pre_chunked_contig) then "true" else "false"
     command <<<
         set -xeuo pipefail
 
@@ -96,9 +104,13 @@ task GlimpseSplitReferenceTask {
         # Print chunk index to variable
         CONTIGINDEX=$(printf "%04d" ~{i_contig})
 
-        /bin/GLIMPSE2_chunk --input ~{reference_panel} --region ~{contig} --map ~{genetic_map} --sequential \
-            --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt \
-            ~{"--seed "+seed} ~{"--window-cm "+min_window_cm} ~{uniform_number_variants_string}
+        if [ "~{pre_chunked}" == "false" ]; then
+            /bin/GLIMPSE2_chunk --input ~{reference_panel} --region ~{contig} --map ~{genetic_map} --sequential \
+                --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt \
+                ~{"--seed "+seed} ~{"--window-cm "+min_window_cm} ~{uniform_number_variants_string}
+        else
+            cp ~{pre_chunked_contig} chunks_contigindex_${CONTIGINDEX}.txt
+        fi
 
         if [ -f chunks_contigindex_${CONTIGINDEX}.txt_uniform ]; then
             mv chunks_contigindex_${CONTIGINDEX}.txt_uniform chunks_contigindex_${CONTIGINDEX}.txt
