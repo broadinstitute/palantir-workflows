@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-write_to = "ImputationPipeline/CreateAggregationSets/_version.py"
+write_to = "PRS/CreateAggregationSets/_version.py"
 root = "../../"
 git_describe_command = ['git', 'describe', '--dirty', '--tags', '--long', '--match', 'v[0-9]*']
 
