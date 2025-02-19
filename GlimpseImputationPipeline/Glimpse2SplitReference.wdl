@@ -12,7 +12,7 @@ workflow Glimpse2SplitReference {
         Array[String] contig_names_in_reference_panel
         Array[String] contig_names_in_genetic_maps
 
-        Array[String?] pre_chunked_contigs
+        Array[File?] pre_chunked_contigs
 
         # Example path for chr1: gs://bucket/to/panel/reference_panel_chr1_merged.bcf(.csi)
         # reference_panel_prefix = "gs://bucket/to/panel/reference_panel_"
@@ -75,7 +75,7 @@ task GlimpseSplitReferenceTask {
         File reference_panel
         File reference_panel_index
         File genetic_map
-        String? pre_chunked_contig
+        File? pre_chunked_contig
 
         Int? seed
         Float? min_window_cm
