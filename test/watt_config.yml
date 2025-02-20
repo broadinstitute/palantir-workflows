@@ -1,5 +1,5 @@
 AggregatePRSResults:
-  path: "/ImputationPipeline/AggregatePRSResults.wdl"
+  path: "/PRS/AggregatePRSResults.wdl"
   tests:
     base:
       test_inputs: "/test/AggregatePRSResults/test_inputs.json"

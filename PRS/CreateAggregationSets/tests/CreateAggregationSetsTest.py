@@ -1,4 +1,4 @@
-import ImputationPipeline.CreateAggregationSets.CreateAggregationSets as CreateAggregationSets
+import PRS.CreateAggregationSets.CreateAggregationSets as CreateAggregationSets
 import unittest
 import os
 import firecloud.api as fapi

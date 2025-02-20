@@ -1,7 +1,7 @@
 import random
 import ipywidgets
 import pandas as pd
-import ImputationPipeline.ManualQCPRS.ManualQCPRS as ManualQCPRS
+import PRS.ManualQCPRS.ManualQCPRS as ManualQCPRS
 import os
 import itertools
 import unittest
@@ -151,7 +151,7 @@ class ResultsModificationTest(unittest.TestCase):
         self.results_modification_gui.agg_batch_selection_dropdown.value = batch
         self.assert_widget_status(batch_selection_value=batch, save_enabled=False, discard_enabled=False)
 
-    @patch("ImputationPipeline.ManualQCPRS.ManualQCPRS.SelectedBatchModificationGui")
+    @patch("PRS.ManualQCPRS.ManualQCPRS.SelectedBatchModificationGui")
     def test_load_batch(self, mock_selected_batch_modification_gui: MagicMock):
 
         batch = "BATCH_12345_group_2"
@@ -170,7 +170,7 @@ class ResultsModificationTest(unittest.TestCase):
 
         self.assert_widget_status(batch_selection_value=batch, batch_selection_enabled=False, load_enabled=False)
 
-    @patch("ImputationPipeline.ManualQCPRS.ManualQCPRS.DeliveryConfirmationBox")
+    @patch("PRS.ManualQCPRS.ManualQCPRS.DeliveryConfirmationBox")
     def test_save_batch(self, mock_delivery_confirmation_box: MagicMock):
         batch = "BATCH_12345_group_2"
         self.results_modification_gui.agg_batch_selection_dropdown.value = batch
