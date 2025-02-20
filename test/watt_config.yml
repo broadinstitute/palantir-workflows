@@ -31,3 +31,10 @@ Glimpse2Imputation:
     base:
       test_inputs: "/test/Glimpse2Imputation/test_inputs.json"
       expected_outputs: "/test/Glimpse2Imputation/test_outputs.json"
+
+MergeSingleSampleMinimacVcfs:
+  path: "/ImputationPipeline/MergeSingleSampleMinimacVcfs.wdl"
+  tests:
+    base:
+      test_inputs: "/test/MergeSingleSampleMinimacVcfs/test_inputs.json"
+      expected_outputs: "/test/MergeSingleSampleMinimacVcfs/test_outputs.json"

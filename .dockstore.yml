@@ -141,3 +141,6 @@ workflows:
   - name: QcSVs
     subclass: WDL
     primaryDescriptorPath: /BenchmarkSVs/QcSVs.wdl
+  - name: MergeSingleSampleMinimacVcfs
+    subclass: WDL
+    primaryDescriptorPath: /ImputationPipeline/MergeSingleSampleMinimacVcfs.wdl
