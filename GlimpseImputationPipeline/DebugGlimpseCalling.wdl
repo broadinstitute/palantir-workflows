@@ -181,9 +181,11 @@ task BcftoolsCall {
         File sites_vcf_index
         File sites_tsv
         File sites_tsv_index
+        File sites_tsv
+        File sites_tsv_index
         Int mem_gb = 4
         Int cpu = 2
-        Int preemptible = 1
+        Int preemptible = 3
     }
 
     Int disk_size_gb = ceil(1.5*size(crams, "GiB") + size(fasta, "GiB") + size(sites_tsv, "GiB")) + 10
@@ -193,11 +195,16 @@ task BcftoolsCall {
     command <<<
         set -euo pipefail
 
-        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} | \
+        crams=(~{sep=' ' crams})
+        sample_ids = (~{sep=' ' sample_ids})
+
+        for i in "${!crams[@]}"; do
+            echo "* ${crams[$i]} ${sample_ids[$i]}" >> sample_name_mapping.txt
+        done
+
+        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -G sample_name_mapping.txt -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} | \
         bcftools call -Aim -C alleles -T ~{sites_tsv} -O u | \
         bcftools norm -m -both -O z -o ~{out_basename}.vcf.gz
-        #bcftools +tag2tag -O z -o ~{out_basename}.vcf.gz - -- --PL-to-GL
-        #bcftools reheader -s sample_name.txt
         bcftools index -t ~{out_basename}.vcf.gz
     >>>
 
