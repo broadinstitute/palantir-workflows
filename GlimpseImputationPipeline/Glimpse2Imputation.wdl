@@ -70,6 +70,7 @@ workflow Glimpse2Imputation {
                     input:
                         crams = SplitIntoBatches.crams_batches[i],
                         cram_indices = SplitIntoBatches.cram_indices_batches[i],
+                        sample_ids = SplitIntoBatches.sample_ids_batches[i],
                         fasta = select_first([fasta]),
                         fasta_index = select_first([fasta_index]),
                         call_indels = call_indels,
@@ -249,6 +250,7 @@ task BcftoolsCall {
         File fasta
         File fasta_index
         Boolean call_indels
+        Array[String] sample_ids
 
         File sites_vcf
         File sites_vcf_index
@@ -268,7 +270,14 @@ task BcftoolsCall {
     command <<<
         set -euo pipefail
 
-        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} | \
+        crams=(~{sep=' ' crams})
+        sample_ids=(~{sep=' ' sample_ids})
+
+        for i in "${!crams[@]}"; do
+            echo "* ${crams[$i]} ${sample_ids[$i]}" >> sample_name_mapping.txt
+        done
+
+        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -G sample_name_mapping.txt -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} | \
         bcftools call -Aim -C alleles -T ~{sites_tsv} -O u | \
         bcftools norm -m -both -O z -o ~{out_basename}.vcf.gz
         bcftools index -t ~{out_basename}.vcf.gz
