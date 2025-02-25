@@ -196,7 +196,7 @@ task BcftoolsCall {
         set -euo pipefail
 
         crams=(~{sep=' ' crams})
-        sample_ids = (~{sep=' ' sample_ids})
+        sample_ids=(~{sep=' ' sample_ids})
 
         for i in "${!crams[@]}"; do
             echo "* ${crams[$i]} ${sample_ids[$i]}" >> sample_name_mapping.txt
