@@ -424,7 +424,7 @@ task AnnotateWithPoNFreq {
         tabix -s1 -b2 -e2 --skip-lines 1 ~{annotations}.gz
         echo '##INFO=<ID=PANEL_FREQ,Number=1,Type=Float,Description="Frequency in panel">' > header_lines.txt
         echo '##INFO=<ID=PANEL_COUNT,Number=1,Type=Float,Description="Count in panel">' >> header_lines.txt
-        bcftools annotate -a ~{annotations}.gz -c CHROM,POS,PANEL_FREQ,PANEL_COUNT -h header_lines.txt -o  ~{output_basename}.vcf.gz ~{vcf}
+        bcftools annotate --no-version -a ~{annotations}.gz -c CHROM,POS,PANEL_FREQ,PANEL_COUNT -h header_lines.txt -o  ~{output_basename}.vcf.gz ~{vcf}
 
     >>>
 
@@ -457,7 +457,7 @@ task FilterVCF {
 
         for i in ${!filters[@]}
         do
-            eval bcftools filter -m + -e \'${filters[$i]}\' --soft-filter ${filter_names[$i]} -o tmp_out.vcf.gz tmp.vcf.gz
+            eval bcftools filter --no-version -m + -e \'${filters[$i]}\' --soft-filter ${filter_names[$i]} -o tmp_out.vcf.gz tmp.vcf.gz
             mv tmp_out.vcf.gz tmp.vcf.gz
         done
 
