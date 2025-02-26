@@ -22,6 +22,8 @@ workflow Glimpse2Imputation {
         File ref_dict
 
         Boolean call_indels = false
+
+        Boolean multithread
     }
 
     call SplitCRAMsIntoBatches {
@@ -62,7 +64,8 @@ workflow Glimpse2Imputation {
                     sites_tsv_index = sites_tsv_index,
                     sample_ids = SplitCRAMsIntoBatches.sample_ids_batches[i],
                     cpu = bcftools_threads,
-                    mem_gb = calling_mem_gb
+                    mem_gb = calling_mem_gb,
+                    multithread = multithread
             }
         }
         File called_vcf = select_first([BcftoolsCall.output_vcf, GATKCall.output_vcf])
@@ -186,11 +189,15 @@ task BcftoolsCall {
         Int mem_gb = 4
         Int cpu = 2
         Int preemptible = 3
+
+        Boolean multithread
     }
 
     Int disk_size_gb = ceil(1.5*size(crams, "GiB") + size(fasta, "GiB") + size(sites_tsv, "GiB")) + 10
 
     String out_basename = "batch"
+
+    String threads_argument = if multithread then "--threads " + cpu else ""
 
     command <<<
         set -euo pipefail
@@ -202,9 +209,9 @@ task BcftoolsCall {
             echo "* ${crams[$i]} ${sample_ids[$i]}" >> sample_name_mapping.txt
         done
 
-        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -G sample_name_mapping.txt -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} | \
-        bcftools call -Aim -C alleles -T ~{sites_tsv} -O u | \
-        bcftools norm -m -both -O z -o ~{out_basename}.vcf.gz
+        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -G sample_name_mapping.txt -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} ~{threads_argument} | \
+        bcftools call -Aim -C alleles -T ~{sites_tsv} -O u ~{threads_argument} | \
+        bcftools norm -m -both -O z -o ~{out_basename}.vcf.gz ~{threads_argument}
         bcftools index -t ~{out_basename}.vcf.gz
     >>>
 
