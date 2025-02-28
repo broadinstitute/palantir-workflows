@@ -33,7 +33,7 @@ Glimpse2Imputation:
       expected_outputs: "/test/Glimpse2Imputation/test_outputs.json"
 
 CNVCallingAndMergeForFabric:
-  path: "/gcnv/cnv_calling_and_merge_for_fabric.wdl"
+  path: "/gCNV/cnv_calling_and_merge_for_fabric.wdl"
   tests:
     base:
       test_inputs: "/test/CNVCallingAndMergeForFabric/test_base_inputs.json"
