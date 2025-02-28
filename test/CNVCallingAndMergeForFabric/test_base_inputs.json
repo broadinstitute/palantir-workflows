@@ -1,6 +1,6 @@
 {
   "CNVCallingAndMergeForFabric.allosomal_contigs": [],
-  "CNVCallingAndMergeForFabric.contig_ploidy_model":"gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/blood_new-contig-ploidy-model-subset.tar.gz",
+  "CNVCallingAndMergeForFabric.contig_ploidy_model_tar":"gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/blood_new-contig-ploidy-model-subset.tar.gz",
   "CNVCallingAndMergeForFabric.filtered_intervals" : "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/twist_hg38_targets.preprocessed.filtered.subset.interval_list",
   "CNVCallingAndMergeForFabric.gatk_docker": "broadinstitute/gatk:4.4.0.0",
   "CNVCallingAndMergeForFabric.gcnv_model_tars": ["gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/blood_new-gcnv-model-shard-0.tar.gz",
