@@ -1,0 +1,10 @@
+{
+  "CNVCallingAndMergeForFabric.filtered_cnv_genotyped_segments_vcf": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/pon_genotyped_segments/genotyped-segments-0437196673.cram.vcf.gz",
+  "CNVCallingAndMergeForFabric.filtered_cnv_genotyped_segments_vcf_index": null,
+  "CNVCallingAndMergeForFabric.filtered_cnv_genotyped_segments_vcf_md5": null,
+  "CNVCallingAndMergeForFabric.merged_vcf": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/pon_genotyped_segments/genotyped-segments-0437196673.cram.vcf.gz",
+  "CNVCallingAndMergeForFabric.merged_vcf_index": null,
+  "CNVCallingAndMergeForFabric.merged_vcf_md5sum": null,
+  "CNVCallingAndMergeForFabric.qc_passed": true,
+  "CNVCallingAndMergeForFabric.cnv_metrics": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/pon_genotyped_segments/genotyped-segments-0437196673.cram.vcf.gz"
+}
