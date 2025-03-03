@@ -38,6 +38,8 @@ workflow Glimpse2ImputationAndCheckQC {
         String? check_qc_docker
         Int? check_qc_cpu
         Int? check_qc_mem_gb
+        Int? glimpse_phase_cpu
+        Int? glimpse_phase_mem_gb
     }
 
     call Glimpse2Imputation.Glimpse2Imputation {
@@ -62,7 +64,9 @@ workflow Glimpse2ImputationAndCheckQC {
             docker_extract_num_sites_from_reference_chunk = docker_extract_num_sites_from_reference_chunk,
             mem_scaling_factor_phase = mem_scaling_factor_phase,
             cpu_ligate = cpu_ligate,
-            mem_gb_ligate = mem_gb_ligate
+            mem_gb_ligate = mem_gb_ligate,
+            cpu_phase = glimpse_phase_cpu,
+            mem_gb_phase = glimpse_phase_mem_gb
     }
 
     call Glimpse2CheckQC.Glimpse2CheckQC {
