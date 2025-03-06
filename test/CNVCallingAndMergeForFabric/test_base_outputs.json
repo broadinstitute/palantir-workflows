@@ -12,5 +12,5 @@
   "CNVCallingAndMergeForFabric.merged_vcf_index": null,
   "CNVCallingAndMergeForFabric.merged_vcf_md5sum": null,
   "CNVCallingAndMergeForFabric.qc_passed": true,
-  "CNVCallingAndMergeForFabric.cnv_metrics": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/0437227296_subset.cnv_metrics.tsv.gz"
+  "CNVCallingAndMergeForFabric.cnv_metrics": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/0437227296_subset.cnv_metrics.tsv"
 }
