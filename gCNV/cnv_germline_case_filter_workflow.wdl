@@ -357,21 +357,21 @@ task ExtractPoNFreq {
         df_panel = pd.concat([read_vcf_to_df(vcf) for vcf in vcfs])
         df_panel_expanded = get_exon_expanded_events(df_panel, intervals)
 
-        df_expanded = df_expanded.join(df_panel_expanded, how="left", lsuffix="_sample", rsuffix="_panel")
+        df_expanded_with_panel = df_expanded.join(df_panel_expanded, how="left", lsuffix="_sample", rsuffix="_panel")
 
-        df_expanded['overlapping_panel_exon_start']=np.maximum(df_expanded.event_exon_start_sample, df_expanded.event_exon_start_panel)
-        df_expanded['overlapping_panel_exon_end']=np.minimum(df_expanded.event_exon_end_sample, df_expanded.event_exon_end_panel)
+        df_expanded_with_panel['overlapping_panel_exon_start']=np.maximum(df_expanded_with_panel.event_exon_start_sample, df_expanded_with_panel.event_exon_start_panel)
+        df_expanded_with_panel['overlapping_panel_exon_end']=np.minimum(df_expanded_with_panel.event_exon_end_sample, df_expanded_with_panel.event_exon_end_panel)
 
-        df_expanded['event_exon_length_sample']=df_expanded.event_exon_end_sample - df_expanded.event_exon_start_sample
-        df_expanded['overlapping_panel_exon_length']=(df_expanded.overlapping_panel_exon_end - df_expanded.overlapping_panel_exon_start).fillna(0)
+        df_expanded['event_exon_length']=df_expanded.event_exon_end - df_expanded.event_exon_start
+        df_expanded_with_panel['overlapping_panel_exon_length']=(df_expanded_with_panel.overlapping_panel_exon_end - df_expanded_with_panel.overlapping_panel_exon_start).fillna(0)
 
-        df_panel_counts = df_expanded.groupby(['ID_sample','sample_name_panel']).agg(
-            {'event_exon_length_sample':'sum',
-            'overlapping_panel_exon_length':'sum'}
+        df_panel_counts = df_expanded_with_panel.groupby(['ID_sample','sample_name_panel']).agg(
+            {'overlapping_panel_exon_length':'sum'}
+            ).reset_index('sample_name_panel').join(df_expanded.renamegroupby('ID').agg({'event_exon_length':'sum'})
         )
 
-        df_panel_counts['PANEL_COUNT'] = np.where(df_panel_counts.overlapping_panel_exon_length/df_panel_counts.event_exon_length_sample>~{overlap_thresh}, 1, 0)
-        df_panel_counts = df_panel_counts.groupby('ID_sample').agg({'PANEL_COUNT':'sum'})
+        df_panel_counts['PANEL_COUNT'] = np.where(df_panel_counts.overlapping_panel_exon_length/df_panel_counts.event_exon_length>0.5, 1, 0)
+        df_panel_counts = df_panel_counts.groupby(df_panel_counts.index).agg({'PANEL_COUNT':'sum'})
 
         df = df.set_index('ID').join(df_panel_counts).fillna({'PANEL_COUNT':0}).astype({'PANEL_COUNT':int})
 
