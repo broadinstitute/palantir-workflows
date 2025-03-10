@@ -299,7 +299,7 @@ task ExtractPoNFreq {
         Array[File] panel_vcfs
         File intervals
         Float overlap_thresh = 0.5
-        Int mem_gb = 4
+        Int mem_gb = 16
         Int disk_size_gb = 100
     }
 
