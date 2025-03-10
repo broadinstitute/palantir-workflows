@@ -19,8 +19,8 @@ workflow Glimpse2Imputation {
         Array[File]? crams
         Array[File]? cram_indices
         Array[String] sample_ids
-        File? fasta
-        File? fasta_index
+        File fasta
+        File fasta_index
         String output_basename
 
         File ref_dict
@@ -42,61 +42,47 @@ workflow Glimpse2Imputation {
     }
 
     if (defined(crams)) {
-        call SplitIntoBatches {
+        if (length(crams) > 1) {
+            call SplitIntoBatches {
+                    input:
+                        batch_size = calling_batch_size,
+                        crams = select_first([crams]),
+                        cram_indices = select_first([cram_indices]),
+                        sample_ids = sample_ids
+            }
+        }
+        crams_batches = select_first([SplitIntoBatches.crams_batches, [crams]])
+        cram_indices_batches = select_first([SplitIntoBatches.cram_indices_batches, [cram_indices]])
+        sample_ids_batches = select_first([SplitIntoBatches.sample_ids_batches, [sample_ids]])
+
+        scatter(i in range(length(crams_batches))) {
+            call BcftoolsCall {
                 input:
-                    batch_size = calling_batch_size,
-                    crams = select_first([crams]),
-                    cram_indices = select_first([cram_indices]),
-                    sample_ids = sample_ids
-        }
-
-        scatter(i in range(length(SplitIntoBatches.crams_batches))) {
-            if (use_gatk) {
-                call GATKCall {
-                    input:
-                        crams = SplitIntoBatches.crams_batches[i],
-                        cram_indices = SplitIntoBatches.cram_indices_batches[i],
-                        fasta = select_first([fasta]),
-                        fasta_index = select_first([fasta_index]),
-                        fasta_dict = ref_dict,
-                        sites_tsv = sites_tsv,
-                        sites_tsv_index = sites_tsv_index,
-                        sample_ids = SplitIntoBatches.sample_ids_batches[i],
-                        mem_gb = calling_mem_gb
-                }
+                    crams = SplitIntoBatches.crams_batches[i],
+                    cram_indices = SplitIntoBatches.cram_indices_batches[i],
+                    sample_ids = SplitIntoBatches.sample_ids_batches[i],
+                    fasta = fasta,
+                    fasta_index = fasta_index,
+                    call_indels = call_indels,
+                    sites_vcf = sites_vcf,
+                    sites_vcf_index = sites_vcf_index,
+                    sites_tsv = sites_tsv,
+                    sites_tsv_index = sites_tsv_index,
+                    cpu = bcftools_threads,
+                    mem_gb = calling_mem_gb
             }
-            if (!use_gatk) {
-                call BcftoolsCall {
-                    input:
-                        crams = SplitIntoBatches.crams_batches[i],
-                        cram_indices = SplitIntoBatches.cram_indices_batches[i],
-                        sample_ids = SplitIntoBatches.sample_ids_batches[i],
-                        fasta = select_first([fasta]),
-                        fasta_index = select_first([fasta_index]),
-                        call_indels = call_indels,
-                        sites_vcf = sites_vcf,
-                        sites_vcf_index = sites_vcf_index,
-                        sites_tsv = sites_tsv,
-                        sites_tsv_index = sites_tsv_index,
-                        cpu = bcftools_threads,
-                        mem_gb = calling_mem_gb
-                }
-            }
-            File called_vcf = select_first([BcftoolsCall.output_vcf, GATKCall.output_vcf])
-            File called_vcf_index = select_first([BcftoolsCall.output_vcf_index, GATKCall.output_vcf_index])
-        }
 
-        if (length(called_vcf) > 1) {
+        if (length(BcftoolsCall.output_vcf) > 1) {
             call BcftoolsMerge {
                 input:
-                    vcfs = called_vcf,
-                    vcf_indices = called_vcf_index,
+                    vcfs = BcftoolsCall.output_vcf,
+                    vcf_indices = BcftoolsCall.output_vcf_index,
                     output_basename = output_basename
             }
         }
 
-        File merged_vcf = select_first([BcftoolsMerge.merged_vcf, called_vcf[0]])
-        File merged_vcf_index = select_first([BcftoolsMerge.merged_vcf_index, called_vcf_index[0]])
+        File merged_vcf = select_first([BcftoolsMerge.merged_vcf, BcftoolsCall.output_vcf[0]])
+        File merged_vcf_index = select_first([BcftoolsMerge.merged_vcf_index, BcftoolsCall.output_vcf_index[0]])
     }
 
     scatter (reference_chunk in read_lines(reference_chunks)) {
@@ -297,52 +283,6 @@ task BcftoolsCall {
     }
 }
 
-task GATKCall {
-    input {
-        Array[File] crams
-        Array[File] cram_indices
-        File fasta
-        File fasta_index
-        File fasta_dict
-        Array[String] sample_ids
-
-        File sites_tsv
-        File sites_tsv_index
-        Int mem_gb = 4
-        Int cpu = 2
-        Int preemptible = 3
-    }
-
-    Int disk_size_gb = ceil(1.5*size(crams, "GiB") + size(fasta, "GiB") + size(sites_tsv, "GiB")) + 10
-
-    String out_basename = "batch"
-
-    command <<<
-        set -xeuo pipefail
-
-        gatk --java-options "-Xmx~{mem_gb}g" HaplotypeCaller \
-            -R ~{fasta} \
-            -I ~{sep=" -I " crams} \
-            -O ~{out_basename}.vcf.gz \
-            --alleles ~{sites_tsv} \
-            -L ~{sites_tsv}
-        bcftools index -t ~{out_basename}.vcf.gz
-    >>>
-
-    runtime {
-        docker: "us.gcr.io/broad-gatk/gatk:4.6.1.0"
-        disks: "local-disk " + disk_size_gb + " HDD"
-        memory: mem_gb + " GiB"
-        cpu: cpu
-        preemptible: preemptible
-    }
-
-    output {
-        File output_vcf = "~{out_basename}.vcf.gz"
-        File output_vcf_index = "~{out_basename}.vcf.gz.tbi"
-    }
-}
-
 task BcftoolsMerge {
     input {
         Array[File] vcfs
@@ -404,11 +344,11 @@ task GlimpsePhase {
 
     parameter_meta {
         crams: {
-                        localization_optional: true
-                    }
+            localization_optional: true
+        }
         cram_indices: {
-                        localization_optional: true
-                    }
+            localization_optional: true
+        }
     }
 
     String bam_file_list_input = if defined(crams) then "--bam-list crams.list" else ""
