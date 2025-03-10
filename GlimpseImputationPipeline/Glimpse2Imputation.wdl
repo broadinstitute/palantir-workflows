@@ -223,6 +223,7 @@ task GlimpsePhase {
         preemptible: preemptible
         maxRetries: max_retries
         checkpointFile: "checkpoint.bin"
+        noAddress: true
     }
 
     output {
