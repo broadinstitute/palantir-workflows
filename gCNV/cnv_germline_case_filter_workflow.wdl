@@ -363,7 +363,7 @@ task ExtractPoNFreq {
         df_expanded_with_panel['overlapping_panel_exon_end']=np.minimum(df_expanded_with_panel.event_exon_end_sample, df_expanded_with_panel.event_exon_end_panel)
 
         df_expanded['event_exon_length']=df_expanded.event_exon_end - df_expanded.event_exon_start
-        df_expanded_with_panel['overlapping_panel_exon_length']=(df_expanded_with_panel.overlapping_panel_exon_end - df_expanded_with_panel.overlapping_panel_exon_start).fillna(0)
+        df_expanded_with_panel['overlapping_panel_exon_length']=np.maximum(df_expanded_with_panel.overlapping_panel_exon_end - df_expanded_with_panel.overlapping_panel_exon_start,0).fillna(0)
 
         df_panel_counts = df_expanded_with_panel.groupby(['ID_sample','sample_name_panel']).agg(
             {'overlapping_panel_exon_length':'sum'}
