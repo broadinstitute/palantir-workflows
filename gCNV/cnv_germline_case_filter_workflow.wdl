@@ -370,7 +370,7 @@ task ExtractPoNFreq {
             ).reset_index('sample_name_panel').join(df_expanded.groupby('ID').agg({'event_exon_length':'sum'})
         )
 
-        df_panel_counts['PANEL_COUNT'] = np.where(df_panel_counts.overlapping_panel_exon_length/df_panel_counts.event_exon_length>0.5, 1, 0)
+        df_panel_counts['PANEL_COUNT'] = np.where(df_panel_counts.overlapping_panel_exon_length/df_panel_counts.event_exon_length>~{overlap_thresh}, 1, 0)
         df_panel_counts = df_panel_counts.groupby(df_panel_counts.index).agg({'PANEL_COUNT':'sum'})
 
         df = df.set_index('ID').join(df_panel_counts).fillna({'PANEL_COUNT':0}).astype({'PANEL_COUNT':int})
