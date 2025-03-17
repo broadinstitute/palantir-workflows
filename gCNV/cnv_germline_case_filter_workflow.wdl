@@ -322,12 +322,13 @@ task ExtractPoNFreq {
                                                                                df.loc[df.contig==contig].start,"left")
                     df.loc[df.contig==contig,"end_exon_idx"]=np.searchsorted(exons.loc[exons.contig==contig].start,
                                                                                df.loc[df.contig==contig].end,"right")
+
         def get_exon_expanded_events(df, exons):
             add_exon_idxs(df, exons)
-            df = df.loc[df.start_exon_idx != df.end_exon_idx].reset_index()
+            df = df.loc[df.start_exon_idx != df.end_exon_idx].reset_index().astype({'start_exon_idx':int,'end_exon_idx':int})
             df_expanded = df.loc[df.index.repeat(df.end_exon_idx-df.start_exon_idx)]
             df_expanded['exon_idx'] = df_expanded.groupby(df_expanded.index).cumcount() + df_expanded.start_exon_idx
-            df_expanded = df_expanded.set_index(df_expanded.contig + "_" + df_expanded.exon_idx.astype(int).astype(str))
+            df_expanded = df_expanded.set_index(df_expanded.contig + "_" + df_expanded.exon_idx.astype(str))
             df_expanded = df_expanded.join(exons[['start','end']], rsuffix='_exon')
             df_expanded['event_exon_start']=np.maximum(df_expanded.start, df_expanded.start_exon)
             df_expanded['event_exon_end']=np.minimum(df_expanded.end, df_expanded.end_exon)
@@ -341,11 +342,17 @@ task ExtractPoNFreq {
                 df[f] = df['SAMPLE'].str.split(':').apply(lambda x: x[num])
             return df
 
+        def get_sample_id(vcf):
+            with gzip.open(vcf,"r") as f_vcf:
+                for line in f_vcf:
+                    if line.startswith(b'#CHROM'):
+                        return line.split(b'\t')[-1].decode()
+
         def read_vcf_to_df(vcf):
             df = pd.read_csv(vcf, sep='\t',comment='#',compression='gzip',
                                  names=['contig','start','ID','REF','ALT','QUAL','FILTER','INFO','FORMAT','SAMPLE'])
             df = standardize_gt_vcf(df)
-            df['sample_name']=vcf.split("/")[-1].split(".")[0]
+            df['sample_name']=get_sample_id(vcf)
             for c in ['NP','CN','QA','QS']:
                 df[c]=df[c].astype(int)
             return df
@@ -373,7 +380,7 @@ task ExtractPoNFreq {
         df_panel_counts['PANEL_COUNT'] = np.where(df_panel_counts.overlapping_panel_exon_length/df_panel_counts.event_exon_length>~{overlap_thresh}, 1, 0)
         df_panel_counts = df_panel_counts.groupby(df_panel_counts.index).agg({'PANEL_COUNT':'sum'})
 
-        df = df.set_index('ID').join(df_panel_counts).fillna({'PANEL_COUNT':0}).astype({'PANEL_COUNT':int})
+        df = df.set_index('ID').join(df_panel_counts).fillna({'PANEL_COUNT':0})
 
         n_panel_samples = len(set(df_panel.sample_name))
         df['PANEL_FREQ'] = df['PANEL_COUNT']/n_panel_samples
