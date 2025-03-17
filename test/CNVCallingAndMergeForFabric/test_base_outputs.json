@@ -12,5 +12,6 @@
   "CNVCallingAndMergeForFabric.merged_vcf_index": null,
   "CNVCallingAndMergeForFabric.merged_vcf_md5sum": null,
   "CNVCallingAndMergeForFabric.qc_passed": true,
-  "CNVCallingAndMergeForFabric.cnv_metrics": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/0437227296_subset_Mar_28_2025.cnv_metrics.tsv"
+  "CNVCallingAndMergeForFabric.cnv_metrics": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/0437227296_subset_Mar_28_2025.cnv_metrics.tsv",
+  "CNVCallingAndMergeForFabric.cnv_event_report": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/0437227296_subset_cnv_event_report.html"
 }
