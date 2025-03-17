@@ -310,6 +310,7 @@ task ExtractPoNFreq {
         python << "EOF"
         import pandas as pd
         import numpy as np
+        import gzip
 
         intervals = pd.read_csv("~{intervals}", sep="\t", comment="@", names = ["contig","start","end","dummy1","dummy2"])
         intervals['contig_idx'] = intervals.groupby('contig').cumcount()
