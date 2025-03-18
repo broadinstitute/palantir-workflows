@@ -299,7 +299,7 @@ task ExtractPoNFreq {
         Array[File] panel_vcfs
         File intervals
         Float overlap_thresh = 0.5
-        Int mem_gb = 4
+        Int mem_gb = 16
         Int disk_size_gb = 100
     }
 
@@ -310,16 +310,31 @@ task ExtractPoNFreq {
         python << "EOF"
         import pandas as pd
         import numpy as np
+        import gzip
 
         intervals = pd.read_csv("~{intervals}", sep="\t", comment="@", names = ["contig","start","end","dummy1","dummy2"])
+        intervals['contig_idx'] = intervals.groupby('contig').cumcount()
+        intervals = intervals.set_index(intervals.contig + "_" + intervals.contig_idx.astype(str))
 
         def add_exon_idxs(df, exons):
-            contigs = set(df.contig)
-            for contig in contigs:
-                df.loc[df.contig==contig,"start_exon_idx"]=np.searchsorted(exons.loc[exons.contig==contig].start,
-                                                                           df.loc[df.contig==contig].start,"left")
-                df.loc[df.contig==contig,"end_exon_idx"]=np.searchsorted(exons.loc[exons.contig==contig].start,
-                                                                           df.loc[df.contig==contig].end,"right")
+                contigs = set(df.contig)
+                for contig in contigs:
+                    df.loc[df.contig==contig,"start_exon_idx"]=np.searchsorted(exons.loc[exons.contig==contig].end,
+                                                                               df.loc[df.contig==contig].start,"left")
+                    df.loc[df.contig==contig,"end_exon_idx"]=np.searchsorted(exons.loc[exons.contig==contig].start,
+                                                                               df.loc[df.contig==contig].end,"right")
+
+        def get_exon_expanded_events(df, exons):
+            add_exon_idxs(df, exons)
+            df = df.loc[df.start_exon_idx != df.end_exon_idx].reset_index().astype({'start_exon_idx':int,'end_exon_idx':int})
+            df_expanded = df.loc[df.index.repeat(df.end_exon_idx-df.start_exon_idx)]
+            df_expanded['exon_idx'] = df_expanded.groupby(df_expanded.index).cumcount() + df_expanded.start_exon_idx
+            df_expanded = df_expanded.set_index(df_expanded.contig + "_" + df_expanded.exon_idx.astype(str))
+            df_expanded = df_expanded.join(exons[['start','end']], rsuffix='_exon')
+            df_expanded['event_exon_start']=np.maximum(df_expanded.start, df_expanded.start_exon)
+            df_expanded['event_exon_end']=np.minimum(df_expanded.end, df_expanded.end_exon)
+            df_expanded = df_expanded.set_index(df_expanded.index + "_" + df_expanded.svtype)
+            return df_expanded
 
         def standardize_gt_vcf(df):
             df['end'] = df['INFO'].str.replace('END=','').astype(int) #split('=').apply(lambda x: x[1])
@@ -327,65 +342,51 @@ task ExtractPoNFreq {
             for num,f in enumerate(df.loc[0,'FORMAT'].split(':')):
                 df[f] = df['SAMPLE'].str.split(':').apply(lambda x: x[num])
             return df
-        
+
+        def get_sample_id(vcf):
+            with gzip.open(vcf,"r") as f_vcf:
+                for line in f_vcf:
+                    if line.startswith(b'#CHROM'):
+                        return line.split(b'\t')[-1].decode()
+
         def read_vcf_to_df(vcf):
             df = pd.read_csv(vcf, sep='\t',comment='#',compression='gzip',
                                  names=['contig','start','ID','REF','ALT','QUAL','FILTER','INFO','FORMAT','SAMPLE'])
             df = standardize_gt_vcf(df)
-            df['sample_path']=vcf
+            df['sample_name']=get_sample_id(vcf)
             for c in ['NP','CN','QA','QS']:
                 df[c]=df[c].astype(int)
             return df
             
         df = read_vcf_to_df("~{vcf}")
-        add_exon_idxs(df, intervals)
-        df = df.sort_values(["contig","start_exon_idx","end_exon_idx"])
+        df_expanded = get_exon_expanded_events(df, intervals)
 
         vcfs = ["~{sep='","' panel_vcfs}"]
         df_panel = pd.concat([read_vcf_to_df(vcf) for vcf in vcfs])
-        add_exon_idxs(df_panel, intervals)
-        df_panel = df_panel.sort_values(["contig","start_exon_idx","end_exon_idx"])
+        df_panel_expanded = get_exon_expanded_events(df_panel, intervals)
 
-        def annotate_with_panel_count(panel_df, df, svtype, contig):
-            panel_df_mask = ((panel_df.svtype==svtype) &
-                             (panel_df.contig == contig))
-            df_mask = ((df.svtype==svtype) &
-                             (df.contig == contig)
-                          )
-            panel_df_slice = panel_df.loc[panel_df_mask]
-            df_slice = df.loc[df_mask]
+        df_expanded_with_panel = df_expanded.join(df_panel_expanded, how="left", lsuffix="_sample", rsuffix="_panel")
 
-            df.loc[df_mask,"start_panel_idx"]=np.searchsorted(panel_df_slice.end_exon_idx,
-                                                                 df_slice.start_exon_idx, "left")
-            df.loc[df_mask,"end_panel_idx"]=np.searchsorted(panel_df_slice.start_exon_idx,
-                                                                 df_slice.end_exon_idx, "right")
+        df_expanded_with_panel['overlapping_panel_exon_start']=np.maximum(df_expanded_with_panel.event_exon_start_sample, df_expanded_with_panel.event_exon_start_panel)
+        df_expanded_with_panel['overlapping_panel_exon_end']=np.minimum(df_expanded_with_panel.event_exon_end_sample, df_expanded_with_panel.event_exon_end_panel)
 
-            df.loc[df_mask & (df.start_panel_idx ==
-                                         df.end_panel_idx), "PANEL_COUNT"] = 0
-            panel_counts=[]
-            for i, r in df.loc[df_mask & (df.start_panel_idx !=
-                                         df.end_panel_idx)].iterrows():
-                overlapping_panel_events = panel_df_slice.iloc[int(r.start_panel_idx):int(r.end_panel_idx)]
-                overlapping_exon_lengths = (np.minimum(r.end_exon_idx,overlapping_panel_events.end_exon_idx) -
-                                           np.maximum(r.start_exon_idx,overlapping_panel_events.start_exon_idx))
-                overlapping_panel_fracs = overlapping_exon_lengths/(r.end_exon_idx - r.start_exon_idx)
-                overlapping_panel_events = overlapping_panel_events.loc[overlapping_panel_fracs>=~{overlap_thresh}]
-                panel_count =  len(set(overlapping_panel_events.sample_path))
-                panel_counts.append(panel_count)
+        df_expanded['event_exon_length']=df_expanded.event_exon_end - df_expanded.event_exon_start
+        df_expanded_with_panel['overlapping_panel_exon_length']=np.maximum(df_expanded_with_panel.overlapping_panel_exon_end - df_expanded_with_panel.overlapping_panel_exon_start,0).fillna(0)
 
-            df.loc[df_mask & (df.start_panel_idx !=
-                                         df.end_panel_idx), "PANEL_COUNT"] = panel_counts
+        df_panel_counts = df_expanded_with_panel.groupby(['ID_sample','sample_name_panel']).agg(
+            {'overlapping_panel_exon_length':'sum'}
+            ).reset_index('sample_name_panel').join(df_expanded.groupby('ID').agg({'event_exon_length':'sum'})
+        )
 
-        n_panel_samples = len(set(df_panel.sample_path))
-        contigs = set(df.contig)
-        svtypes = set(df.svtype)
-        for contig in contigs:
-            for svtype in svtypes:
-                annotate_with_panel_count(df_panel, df, svtype, contig)
+        df_panel_counts['PANEL_COUNT'] = np.where(df_panel_counts.overlapping_panel_exon_length/df_panel_counts.event_exon_length>~{overlap_thresh}, 1, 0)
+        df_panel_counts = df_panel_counts.groupby(df_panel_counts.index).agg({'PANEL_COUNT':'sum'})
 
-        df.loc[:,"PANEL_FREQ"]=(df.PANEL_COUNT/n_panel_samples)
+        df = df.set_index('ID').join(df_panel_counts).fillna({'PANEL_COUNT':0})
 
-        df_annotations = df[["contig","start","PANEL_FREQ","PANEL_COUNT"]].copy()
+        n_panel_samples = len(set(df_panel.sample_name))
+        df['PANEL_FREQ'] = df['PANEL_COUNT']/n_panel_samples
+
+        df_annotations = df[['contig','start','PANEL_FREQ','PANEL_COUNT']].copy()
         df_annotations = df_annotations.rename({"contig":"CHROM","start":"POS"}, axis=1)
         df_annotations = df_annotations.astype({"PANEL_COUNT":int})
         df_annotations.to_csv("~{basename_out}.annotations.tsv", index = False, sep="\t", float_format="%g")
