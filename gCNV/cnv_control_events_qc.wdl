@@ -68,7 +68,7 @@ def read_vcf_to_df(vcf_path, sample_name, sample_alias):
 
 if '~{eval_control_sample_name}' == 'NA12878':
     control_sample_common_events_path = '~{control_sample_common_events_na12878}'
-elif eval_control_sample_name == 'NA24385':
+elif '~{eval_control_sample_name}' == 'NA24385':
     control_sample_common_events_path = '~{control_sample_common_events_na24385}'
 else:
     raise RuntimeError('Invalid control sample name. Must be either "NA12878" or "NA24385".')
