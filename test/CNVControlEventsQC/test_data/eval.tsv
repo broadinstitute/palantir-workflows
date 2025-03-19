@@ -1,0 +1,16 @@
+contig	start	end	svtype	test type	overlap
+chr1	60	90	DUP	left	0
+chr1	190	220	DEL	half left	20
+chr1	290	360	DUP	full	50
+chr1	410	440	DEL	partial	30
+chr1	520	590	DUP	half right	30
+chr1	660	690	DUP	right	0
+chr1	710	720	DUP	two events 1	10
+chr1	730	740	DUP	two events 2	10
+chr1	800	850	DUP	two truth events	20
+chr2	100	195	DEL	wrong svtype	0
+chr2	295	455	DUP	spanning 2 exons	100
+chr2	570	710	DUP	spanning 1.5 exons	60
+chr2	815	825	DUP	spanning part exon	5
+chr2	900	950	DUP	false positive 1	0
+chr2	1000	2000	DUP	false positive 2	0

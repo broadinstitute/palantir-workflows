@@ -1,0 +1,11 @@
+{
+  "CNVControlEventsQC.eval_control_sample": "gs://palantir-workflows-test-data/CNVControlEventsQC/inputs/eval.vcf",
+  "CNVControlEventsQC.control_sample_common_events": "gs://palantir-workflows-test-data/CNVControlEventsQC/inputs/truth.tsv",
+  "CNVControlEventsQC.exon_intervals": "gs://palantir-workflows-test-data/CNVControlEventsQC/inputs/intervals.tsv",
+  "CNVControlEventsQC.threshold_max_expected_events_not_seen": "1",
+  "CNVControlEventsQC.threshold_min_precision": "0.8",
+  "CNVControlEventsQC.threshold_min_sensitivity": "0.8",
+  "CNVControlEventsQC.threshold_min_expected_events_seen": "6",
+  "CNVControlEventsQC.threshold_max_unexpected_events_seen": "1"
+}
+
