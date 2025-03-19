@@ -78,7 +78,8 @@ eval_control_events = read_vcf_to_df(eval_control_sample_path, 'eval', '')
 
 merged = truth.merge(eval_control_events[['contig', 'exon_idx', 'ALT']], how='left', on=['contig', 'exon_idx', 'ALT'], indicator=True)
 
-sensitivity = len(merged[merged['_merge'] == 'both']) / len(truth.shape[0])
+sensitivity = len(merged[merged['_merge'] == 'both']) / len(truth)
+precision = len(merged[merged['_merge'] == 'both']) / len(eval_control_events)
 
 if sensitivity >= ~{exon_sensitivity_threshold}:
     qc_passed = True
@@ -89,7 +90,10 @@ with open('qc_passed.txt', 'w') as f:
     f.write(str(qc_passed))
 
 with open('sensitivity.txt', 'w') as f:
-    f.write(f'{sensitivity:.4f}'))
+    f.write(f'{sensitivity:.4f}')
+
+with open('precision.txt', 'w') as f:
+    f.write(f'{precision:.4f}')
 EOF
     >>>
 
