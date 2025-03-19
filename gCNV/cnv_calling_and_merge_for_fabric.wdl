@@ -6,8 +6,6 @@ workflow CNVCallingAndMergeForFabric {
         File normal_bam
         File normal_bai
         File short_variant_vcf
-        File short_variant_vcf_index
-        File short_variant_vcf_md5sum
 
         File contig_ploidy_model_tar
         File filtered_intervals
@@ -54,18 +52,17 @@ workflow CNVCallingAndMergeForFabric {
             overlap_thresh = overlap_thresh
     }
 
-    if (SingleSampleGCNVAndFilterVCFs.qc_passed) {
-        call ReformatGCNVForFabric {
-            input:
-                cnv_vcf = SingleSampleGCNVAndFilterVCFs.filtered_vcf
-        }
 
-        call MergeVcfs {
-            input:
-                cnv_vcf = ReformatGCNVForFabric.reformatted_vcf,
-                short_variant_vcf = short_variant_vcf,
-                gatk_docker = gatk_docker
-        }
+    call ReformatGCNVForFabric {
+        input:
+            cnv_vcf = SingleSampleGCNVAndFilterVCFs.filtered_vcf
+    }
+
+    call MergeVcfs {
+        input:
+            cnv_vcf = ReformatGCNVForFabric.reformatted_vcf,
+            short_variant_vcf = short_variant_vcf,
+            gatk_docker = gatk_docker
     }
 
     output {
@@ -73,9 +70,9 @@ workflow CNVCallingAndMergeForFabric {
         File filtered_cnv_genotyped_segments_vcf_index = SingleSampleGCNVAndFilterVCFs.filtered_vcf_index
         File filtered_cnv_genotyped_segments_vcf_md5sum = SingleSampleGCNVAndFilterVCFs.filtered_vcf_md5sum
 
-        File merged_vcf = select_first([MergeVcfs.merged_vcf, short_variant_vcf])
-        File merged_vcf_index = select_first([MergeVcfs.merged_vcf_index, short_variant_vcf_index])
-        File merged_vcf_md5sum = select_first([MergeVcfs.merged_vcf_md5sum, short_variant_vcf_md5sum])
+        File merged_vcf = MergeVcfs.merged_vcf
+        File merged_vcf_index = MergeVcfs.merged_vcf_index
+        File merged_vcf_md5sum = MergeVcfs.merged_vcf_md5sum
 
         Boolean qc_passed = SingleSampleGCNVAndFilterVCFs.qc_passed
         File cnv_metrics = SingleSampleGCNVAndFilterVCFs.cnv_metrics
