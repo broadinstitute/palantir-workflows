@@ -74,7 +74,7 @@ else:
     raise RuntimeError('Invalid control sample name. Must be either "NA12878" or "NA24385".')
 
 truth = pd.read_table(control_sample_common_events_path)
-eval_control_events = read_vcf_to_df(eval_control_sample_path, 'eval', '')
+eval_control_events = read_vcf_to_df('~{eval_control_sample_path}', '', '')
 
 merged = truth.merge(eval_control_events[['contig', 'exon_idx', 'ALT']], how='left', on=['contig', 'exon_idx', 'ALT'], indicator=True)
 
