@@ -44,6 +44,7 @@ task cnv_control_events_qc_task {
     command <<<
         python3 << "EOF"
 import pandas as pd
+import numpy as np
 
 def add_exon_idxs(df, exons):
     contigs = set(df.contig)
