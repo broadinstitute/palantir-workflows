@@ -25,6 +25,7 @@ workflow cnv_control_events_qc {
     output {
         Boolean qc_passed = cnv_control_events_qc_task.qc_passed
         Float sensitivity = cnv_control_events_qc_task.sensitivity
+        Float precision = cnv_control_events_qc_task.precision
     }
 }
 
