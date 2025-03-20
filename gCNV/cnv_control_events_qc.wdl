@@ -114,7 +114,8 @@ EOF
     }
 
     output {
-        Boolean qc_passed = read_string('qc_passed.txt')
-        Float sensitivity = read_string('sensitivity.txt')
+        Boolean qc_passed = read_boolean('qc_passed.txt')
+        Float sensitivity = read_float('sensitivity.txt')
+        Float precision = read_float('precision.txt')
     }
 }
