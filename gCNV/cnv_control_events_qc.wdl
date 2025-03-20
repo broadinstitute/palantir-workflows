@@ -9,6 +9,7 @@ workflow cnv_control_events_qc {
 
         File control_sample_common_events_na12878
         File control_sample_common_events_na24385
+        File exon_intervals
     }
 
     call cnv_control_events_qc_task {
@@ -17,7 +18,8 @@ workflow cnv_control_events_qc {
             eval_control_sample_name = eval_control_sample_name,
             exon_sensitivity_threshold = exon_sensitivity_threshold,
             control_sample_common_events_na12878 = control_sample_common_events_na12878,
-            control_sample_common_events_na24385 = control_sample_common_events_na24385
+            control_sample_common_events_na24385 = control_sample_common_events_na24385,
+            exon_intervals = exon_intervals
     }
 
     output {
@@ -35,6 +37,7 @@ task cnv_control_events_qc_task {
 
         File control_sample_common_events_na12878
         File control_sample_common_events_na24385
+        File exon_intervals
     }
 
     command <<<
@@ -73,8 +76,13 @@ elif '~{eval_control_sample_name}' == 'NA24385':
 else:
     raise RuntimeError('Invalid control sample name. Must be either "NA12878" or "NA24385".')
 
+intervals = pd.read_csv('~{exon_intervals}', sep="\t", comment="@", names = ["contig","start","end","dummy1","dummy2"])
+intervals['contig_idx'] = intervals.groupby('contig').cumcount()
+intervals = intervals.set_index(intervals.contig + "_" + intervals.contig_idx.astype(str))
+
 truth = pd.read_table(control_sample_common_events_path)
 eval_control_events = read_vcf_to_df('~{eval_control_sample}', '', '')
+eval_control_events = get_exon_expanded_events(add_exon_idxs(eval_control_events, intervals), intervals)
 
 merged = truth.merge(eval_control_events[['contig', 'exon_idx', 'ALT']], how='left', on=['contig', 'exon_idx', 'ALT'], indicator=True)
 
