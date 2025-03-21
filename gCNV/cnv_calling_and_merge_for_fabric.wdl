@@ -346,127 +346,129 @@ task GCNVVisualzation {
        \`\`\`
 
        \`\`\`{r events, results='asis', fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
-       for (i in 1:n_passing_events) {
-         contig<- contigs[[i]]
-         start<- starts[[i]]
-         end<- ends[[i]]
-         alt <- alts[[i]]
-         cn <- cns[[i]]
-         qual <- quals[[i]]
-         width <- end - start
+       if (n_passing_events > 0) {
+           for (i in 1:n_passing_events) {
+             contig<- contigs[[i]]
+             start<- starts[[i]]
+             end<- ends[[i]]
+             alt <- alts[[i]]
+             cn <- cns[[i]]
+             qual <- quals[[i]]
+             width <- end - start
 
-         cat(paste0("## ", contig,":",comma(start),"-",comma(end), " {.tabset .custom-tabset}"))
+             cat(paste0("## ", contig,":",comma(start),"-",comma(end), " {.tabset .custom-tabset}"))
 
 
-         points_before <- cr_case %>% filter(CONTIG==contig, START<start) %>% pull(START)
-         points_after <- cr_case %>% filter(CONTIG==contig, START>end) %>% pull(START)
-         total_before <- length(points_before)
-         total_after <- length(points_after)
+             points_before <- cr_case %>% filter(CONTIG==contig, START<start) %>% pull(START)
+             points_after <- cr_case %>% filter(CONTIG==contig, START>end) %>% pull(START)
+             total_before <- length(points_before)
+             total_after <- length(points_after)
 
-         n_before <- 0
-         n_after <- 0
-         min_non_event_points <- 10
-         max_width_factor <- 10
-         min_width_factor <- 2.5
-         get_point_before <- function(n_step) {
-           if (n_step>0) {
-             return(points_before[[total_before-n_step+1]])
-           } else {
-            return(start)
-           }
-         }
-
-         get_point_after <- function(n_step) {
-           if (n_step>0) {
-             return(points_after[[n_step]])
-           } else {
-             return(end)
-           }
-         }
-
-         while ((n_before < total_before ||
-                n_after < total_after) &&
-                (get_point_after(n_after) - get_point_before(n_before) < min_width_factor * width ||
-                 n_after + n_before < min_non_event_points) &&
-                get_point_after(n_after) - get_point_before(n_before) < max_width_factor * width) {
-           prev_n_before <- n_before
-           prev_n_after <- n_after
-           #decide which direction to increase
-           # if already to one edge, increase the other
-           if (n_before == total_before) {
-             n_after <- n_after +1
-           } else if (n_after == total_after) {
-             n_before <- n_before + 1
-           } else {
-             # increment whichever direction is a smaller step
-             step_before <- get_point_before(n_before) - get_point_before(n_before+1)
-             step_after <- get_point_after(n_after+1) - get_point_after(n_after)
-             if (step_before < step_after) {
-               n_before <- n_before + 1
-             } else {
-               n_after <- n_after + 1
+             n_before <- 0
+             n_after <- 0
+             min_non_event_points <- 10
+             max_width_factor <- 10
+             min_width_factor <- 2.5
+             get_point_before <- function(n_step) {
+               if (n_step>0) {
+                 return(points_before[[total_before-n_step+1]])
+               } else {
+                return(start)
+               }
              }
+
+             get_point_after <- function(n_step) {
+               if (n_step>0) {
+                 return(points_after[[n_step]])
+               } else {
+                 return(end)
+               }
+             }
+
+             while ((n_before < total_before ||
+                    n_after < total_after) &&
+                    (get_point_after(n_after) - get_point_before(n_before) < min_width_factor * width ||
+                     n_after + n_before < min_non_event_points) &&
+                    get_point_after(n_after) - get_point_before(n_before) < max_width_factor * width) {
+               prev_n_before <- n_before
+               prev_n_after <- n_after
+               #decide which direction to increase
+               # if already to one edge, increase the other
+               if (n_before == total_before) {
+                 n_after <- n_after +1
+               } else if (n_after == total_after) {
+                 n_before <- n_before + 1
+               } else {
+                 # increment whichever direction is a smaller step
+                 step_before <- get_point_before(n_before) - get_point_before(n_before+1)
+                 step_after <- get_point_after(n_after+1) - get_point_after(n_after)
+                 if (step_before < step_after) {
+                   n_before <- n_before + 1
+                 } else {
+                   n_after <- n_after + 1
+                 }
+               }
+             }
+             if (get_point_after(n_after) - get_point_before(n_before) > max_width_factor * width) {
+               n_after <- prev_n_after
+               n_before <- prev_n_before
+             }
+
+             window_start <- get_point_before(n_before)
+             window_end <- get_point_after(n_after)
+
+             sorted_sample_names <- cr_panel %>% filter(CONTIG==contig, START>=start, START<=end) %>% group_by(sample_name) %>%
+                                summarise(mean_cr = mean(LINEAR_COPY_RATIO)) %>% arrange(mean_cr) %>% pull(sample_name)
+             extreme_samples <- if (alt=="<DEL>") {
+               sorted_sample_names[1:2]
+             } else {
+               sorted_sample_names[(length(sorted_sample_names)-1):length(sorted_sample_names)]
+             }
+
+             cat("\n")
+             cat("### Denoised Copy Ratio")
+             cat("\n")
+
+             p_cr <- ggplot(cr_panel %>% filter(CONTIG==contig, START>=window_start, START<=window_end), aes(x=START, y=LINEAR_COPY_RATIO)) +
+               geom_point(alpha=0.2, aes(color='Panel')) + theme_bw() + ylim(0,7) +
+               geom_point(data=cr_case %>% filter(CONTIG==contig, START>=window_start, START<=window_end), aes(color="Case")) +
+               geom_line(data=cr_case %>% filter(CONTIG==contig, START>=window_start, START<=window_end),aes(color="Case")) +
+               annotate("rect",xmin=start, xmax=end, ymin=0, ymax=Inf, alpha=0.2) +
+               guides(color = guide_legend(override.aes = list(alpha = 1))) +
+               scale_color_manual(name="",values=c("Panel"="blue",
+                                                   "Case"="black"))+
+               geom_hline(yintercept=1, linetype="dashed", alpha=0.8) +
+               geom_hline(yintercept=2, linetype="dashed", alpha=0.8) +
+               geom_hline(yintercept=3, linetype="dashed", alpha=0.8) +
+               scale_x_continuous(labels=comma) +
+               xlab("Position") + ylab("Denoised Linear Copy Ratio")
+             print(p_cr)
+
+             cat("\n\n")
+             cat("### Adjusted Read Counts")
+             cat("\n")
+
+             p_counts <- ggplot(panel_read_counts %>% filter(CONTIG==contig, START>=window_start, START<=window_end), aes(x=START, y=adjusted_counts)) +
+               geom_point(alpha=0.2, aes(color='Panel')) + theme_bw() + ylim(0,7) +
+               geom_point(data=case_read_counts %>% filter(CONTIG==contig, START>=window_start, START<=window_end), aes(color="Case")) +
+               geom_line(data=case_read_counts %>% filter(CONTIG==contig, START>=window_start, START<=window_end),aes(color="Case")) +
+               annotate("rect",xmin=start, xmax=end, ymin=0, ymax=Inf, alpha=0.2) +
+               guides(color = guide_legend(override.aes = list(alpha = 1))) +
+               scale_color_manual(name="",values=c("Panel"="blue",
+                                                   "Panel Second Most Extreme Values"="blue",
+                                                   "Case"="black"))+
+               geom_hline(yintercept=1, linetype="dashed", alpha=0.8) +
+               geom_hline(yintercept=2, linetype="dashed", alpha=0.8) +
+               geom_hline(yintercept=3, linetype="dashed", alpha=0.8) +
+               scale_x_continuous(labels=comma) +
+               xlab("Position") + ylab("Adjusted Read Counts")
+             print(p_counts)
+
+             t <- tibble(x=c(1,2), y=c(1,2))
+
+             cat("\n\n")
+             cat("\n\n")
            }
-         }
-         if (get_point_after(n_after) - get_point_before(n_before) > max_width_factor * width) {
-           n_after <- prev_n_after
-           n_before <- prev_n_before
-         }
-
-         window_start <- get_point_before(n_before)
-         window_end <- get_point_after(n_after)
-
-         sorted_sample_names <- cr_panel %>% filter(CONTIG==contig, START>=start, START<=end) %>% group_by(sample_name) %>%
-                            summarise(mean_cr = mean(LINEAR_COPY_RATIO)) %>% arrange(mean_cr) %>% pull(sample_name)
-         extreme_samples <- if (alt=="<DEL>") {
-           sorted_sample_names[1:2]
-         } else {
-           sorted_sample_names[(length(sorted_sample_names)-1):length(sorted_sample_names)]
-         }
-
-         cat("\n")
-         cat("### Denoised Copy Ratio")
-         cat("\n")
-
-         p_cr <- ggplot(cr_panel %>% filter(CONTIG==contig, START>=window_start, START<=window_end), aes(x=START, y=LINEAR_COPY_RATIO)) +
-           geom_point(alpha=0.2, aes(color='Panel')) + theme_bw() + ylim(0,7) +
-           geom_point(data=cr_case %>% filter(CONTIG==contig, START>=window_start, START<=window_end), aes(color="Case")) +
-           geom_line(data=cr_case %>% filter(CONTIG==contig, START>=window_start, START<=window_end),aes(color="Case")) +
-           annotate("rect",xmin=start, xmax=end, ymin=0, ymax=Inf, alpha=0.2) +
-           guides(color = guide_legend(override.aes = list(alpha = 1))) +
-           scale_color_manual(name="",values=c("Panel"="blue",
-                                               "Case"="black"))+
-           geom_hline(yintercept=1, linetype="dashed", alpha=0.8) +
-           geom_hline(yintercept=2, linetype="dashed", alpha=0.8) +
-           geom_hline(yintercept=3, linetype="dashed", alpha=0.8) +
-           scale_x_continuous(labels=comma) +
-           xlab("Position") + ylab("Denoised Linear Copy Ratio")
-         print(p_cr)
-
-         cat("\n\n")
-         cat("### Adjusted Read Counts")
-         cat("\n")
-
-         p_counts <- ggplot(panel_read_counts %>% filter(CONTIG==contig, START>=window_start, START<=window_end), aes(x=START, y=adjusted_counts)) +
-           geom_point(alpha=0.2, aes(color='Panel')) + theme_bw() + ylim(0,7) +
-           geom_point(data=case_read_counts %>% filter(CONTIG==contig, START>=window_start, START<=window_end), aes(color="Case")) +
-           geom_line(data=case_read_counts %>% filter(CONTIG==contig, START>=window_start, START<=window_end),aes(color="Case")) +
-           annotate("rect",xmin=start, xmax=end, ymin=0, ymax=Inf, alpha=0.2) +
-           guides(color = guide_legend(override.aes = list(alpha = 1))) +
-           scale_color_manual(name="",values=c("Panel"="blue",
-                                               "Panel Second Most Extreme Values"="blue",
-                                               "Case"="black"))+
-           geom_hline(yintercept=1, linetype="dashed", alpha=0.8) +
-           geom_hline(yintercept=2, linetype="dashed", alpha=0.8) +
-           geom_hline(yintercept=3, linetype="dashed", alpha=0.8) +
-           scale_x_continuous(labels=comma) +
-           xlab("Position") + ylab("Adjusted Read Counts")
-         print(p_counts)
-
-         t <- tibble(x=c(1,2), y=c(1,2))
-
-         cat("\n\n")
-         cat("\n\n")
        }
        \`\`\`
        EOF
