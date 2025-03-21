@@ -65,7 +65,5 @@
   "CNVCallingAndMergeForFabric.ref_fasta": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta",
   "CNVCallingAndMergeForFabric.ref_fasta_dict": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dict",
   "CNVCallingAndMergeForFabric.ref_fasta_fai": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.fai",
-  "CNVCallingAndMergeForFabric.short_variant_vcf": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/0437227296_subset.hard-filtered.vcf.gz",
-  "CNVCallingAndMergeForFabric.short_variant_vcf_index": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/0437227296_subset.hard-filtered.vcf.gz.tbi",
-  "CNVCallingAndMergeForFabric.short_variant_vcf_md5sum": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/0437227296_subset.hard-filtered.vcf.gz.md5sum"
-}
+  "CNVCallingAndMergeForFabric.short_variant_vcf": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/0437227296_subset.hard-filtered.vcf.gz"
+ }
