@@ -270,6 +270,7 @@ workflow SingleSampleGCNVAndFilterVCFs {
         Boolean qc_passed = (QCFilteredVCF.qc_status == "PASS")
         File cnv_metrics = QCFilteredVCF.cnv_metrics
         File denoised_copy_ratios = CNVGermlineCaseWorkflow.denoised_copy_ratios[0]
+        Array[File] sharded_interval_list = CNVGermlineCaseWorkflow.sharded_interval_list
     }
 }
 
