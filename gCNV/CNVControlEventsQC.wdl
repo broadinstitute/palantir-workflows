@@ -25,13 +25,13 @@ workflow CNVControlEventsQC {
     }
 
     output {
-        Boolean qc_passed = CNVControlEventsQC.qc_passed
-        Float sensitivity = CNVControlEventsQC.sensitivity
-        Float precision = CNVControlEventsQC.precision
+        Boolean qc_passed = CNVControlEventsQCTask.qc_passed
+        Float sensitivity = CNVControlEventsQCTask.sensitivity
+        Float precision = CNVControlEventsQCTask.precision
     }
 }
 
-task CNVControlEventsQC {
+task CNVControlEventsQCTask {
     input {
         File eval_control_sample
         String eval_control_sample_name
