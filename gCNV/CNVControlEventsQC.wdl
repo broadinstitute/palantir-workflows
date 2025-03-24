@@ -1,6 +1,6 @@
 version 1.0
 
-workflow cnv_control_events_qc {
+workflow CNVControlEventsQC {
     input {
         File eval_control_sample
         String eval_control_sample_name
@@ -13,7 +13,7 @@ workflow cnv_control_events_qc {
         File exon_intervals
     }
 
-    call cnv_control_events_qc_task {
+    call CNVControlEventsQCTask {
         input: 
             eval_control_sample = eval_control_sample,
             eval_control_sample_name = eval_control_sample_name,
@@ -25,13 +25,13 @@ workflow cnv_control_events_qc {
     }
 
     output {
-        Boolean qc_passed = cnv_control_events_qc_task.qc_passed
-        Float sensitivity = cnv_control_events_qc_task.sensitivity
-        Float precision = cnv_control_events_qc_task.precision
+        Boolean qc_passed = CNVControlEventsQC.qc_passed
+        Float sensitivity = CNVControlEventsQC.sensitivity
+        Float precision = CNVControlEventsQC.precision
     }
 }
 
-task cnv_control_events_qc_task {
+task CNVControlEventsQC {
     input {
         File eval_control_sample
         String eval_control_sample_name
