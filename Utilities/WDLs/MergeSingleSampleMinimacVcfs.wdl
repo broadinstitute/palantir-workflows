@@ -386,7 +386,7 @@ task cut_paste_task {
 
         mkfifo fifo_to_cat
 
-        paste fifo_to_paste_0 "${fifos_to_paste[@]}" | tee fifo_to_cat | awk 'NR % 5000000 == 0' &
+        paste fifo_to_paste_0 "${fifos_to_paste[@]}" | tee fifo_to_cat | awk 'NR % 5000000 == 0' | cut -f 1-5 &
 
 
         cat header.vcf fifo_to_cat | bgzip -o merged.vcf.gz
@@ -395,19 +395,7 @@ task cut_paste_task {
             diff <(cat md5sum_0) <(cat $md5sum_file) >> /dev/null || (echo "Fields 1-5,9 do not match for $md5sum_file" && exit 1)
         done
 
-        rm fifo_to_paste_0
-        rm fifo_0
-        rm fifo_to_cat
-
-        for fifo in "${fifos_to_paste[@]}"; do
-            rm $fifo
-        done
-
         for fifo in fifo_*; do
-            rm $fifo
-        done
-
-        for fifo in fifo_to_md5_*; do
             rm $fifo
         done
 
