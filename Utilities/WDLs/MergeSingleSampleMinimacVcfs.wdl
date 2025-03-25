@@ -446,12 +446,13 @@ task reannotate_from_dosages {
         # 2x safety factor
         # bytes per row:
         # 8x(2+n_samples) (index, pos) + 50x3 (chrom, ref, alt)
+        # 2 copies per iteration
         bytes_per_row = 8*(2 + ~{n_samples}) + 150
-        chunksize = int(~{mem_gb}*1e9/bytes_per_row/2)
+        chunksize = int(~{mem_gb}*1e9/bytes_per_row/4)
         out_annotation_dfs = []
-        for chunk in pd.read_csv("dosage_tbl.csv.gz", names=["CHROM","POS","REF","ALT"]+[f'sample_{i}' for i in range(~{n_samples})],dtype={f'sample_{i}':'float' for i in range(306)}, 
+        for chunk in pd.read_csv("dosage_tbl.csv.gz", names=["CHROM","POS","REF","ALT"]+[f'sample_{i}' for i in range(~{n_samples})],dtype={f'sample_{i}':'float' for i in range(~{n_samples})},
                         na_values=".", chunksize = chunksize):
-            chunk = chunk.dropna()
+            chunk.dropna(inplace=True)
             dosages = chunk[[f'sample_{i}' for i in range(~{n_samples})]].to_numpy()
             chunk_annotations = chunk[["CHROM","POS","REF","ALT"]]
             chunk_annotations["AF"] = dosages.mean(axis=1)/2
