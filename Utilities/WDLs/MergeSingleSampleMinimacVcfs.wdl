@@ -10,7 +10,8 @@ workflow MergeSingleSampleMinimacVcfs {
         Int interval_scatter_count = 100
     }
 
-    Int n_batches = ceil(length(vcfs)/n_per_batch)
+    Float n_per_batch_float = n_per_batch
+    Int n_batches = ceil(length(vcfs)/n_per_batch_float)
 
     scatter (i_batch in range(n_batches)) {
         scatter (i in range(length(vcfs))) {
