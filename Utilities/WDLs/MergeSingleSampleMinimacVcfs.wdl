@@ -468,7 +468,7 @@ task reannotate_from_dosages {
 
         echo "annotating vcf with new annotations"
 
-        bcftools annotate -a annotations.tsv.gz -c CHROM,POS,REF,ALT,AF,R2 -x INFO/MAF -Oz -o ~{output_base}.reannotated.vcf.gz ~{vcf}
+        bcftools annotate --no-version -a annotations.tsv.gz -c CHROM,POS,REF,ALT,AF,R2 -x INFO/MAF -Oz -o ~{output_base}.reannotated.vcf.gz ~{vcf}
         
         
 
