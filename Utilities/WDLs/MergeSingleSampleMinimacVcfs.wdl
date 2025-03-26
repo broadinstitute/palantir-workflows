@@ -426,6 +426,7 @@ task reannotate_from_dosages {
         Int disk_size_gb = ceil(3.3 * size(vcf, "GiB")) + 50
         Int mem_gb = 4
         Int cpu = 1
+        Int chunksize = 1000000
         Int preemptible = 3
     }
 
@@ -443,16 +444,9 @@ task reannotate_from_dosages {
         import numpy as np
 
 
-        # chunksize calculation
-        # 2x safety factor
-        # bytes per row:
-        # 8x(2+n_samples) (index, pos) + 50x3 (chrom, ref, alt)
-        # 2 copies per iteration
-        bytes_per_row = 8*(2 + ~{n_samples}) + 150
-        chunksize = int(~{mem_gb}*1e9/bytes_per_row/4)
         out_annotation_dfs = []
         for chunk in pd.read_csv("dosage_tbl.csv.gz", names=["CHROM","POS","REF","ALT"]+[f'sample_{i}' for i in range(~{n_samples})],dtype={f'sample_{i}':'float' for i in range(~{n_samples})},
-                        na_values=".", chunksize = chunksize):
+                        na_values=".", chunksize = ~{chunksize}):
             chunk.dropna(inplace=True)
             dosages = chunk[[f'sample_{i}' for i in range(~{n_samples})]].to_numpy()
             chunk_annotations = chunk[["CHROM","POS","REF","ALT"]]
