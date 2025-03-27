@@ -1,5 +1,5 @@
 {
-    "MergeSingleSampleMinimacVcfs.merged_vcf":null,
+    "MergeSingleSampleMinimacVcfs.merged_vcf":"gs://palantir-workflows-test-data/MergeSingleSampleMinimacVcfs/test.vcf.gz",
     "MergeSingleSampleMinimacVcfs.merged_vcf_index":null,
     "MergeSingleSampleMinimacVcfs.merged_qc_metrics":"gs://palantir-workflows-test-data/MergeSingleSampleMinimacVcfs/test.qc_metrics.tsv"
 }
