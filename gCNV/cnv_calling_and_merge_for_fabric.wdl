@@ -52,15 +52,9 @@ workflow CNVCallingAndMergeForFabric {
             overlap_thresh = overlap_thresh
     }
 
-
-    call ReformatGCNVForFabric {
+    call ReformatAndMergeForFabric {
         input:
-            cnv_vcf = SingleSampleGCNVAndFilterVCFs.filtered_vcf
-    }
-
-    call MergeVcfs {
-        input:
-            cnv_vcf = ReformatGCNVForFabric.reformatted_vcf,
+            cnv_vcf = SingleSampleGCNVAndFilterVCFs.filtered_vcf,
             short_variant_vcf = short_variant_vcf,
             gatk_docker = gatk_docker
     }
@@ -70,9 +64,9 @@ workflow CNVCallingAndMergeForFabric {
         File filtered_cnv_genotyped_segments_vcf_index = SingleSampleGCNVAndFilterVCFs.filtered_vcf_index
         File filtered_cnv_genotyped_segments_vcf_md5sum = SingleSampleGCNVAndFilterVCFs.filtered_vcf_md5sum
 
-        File merged_vcf = MergeVcfs.merged_vcf
-        File merged_vcf_index = MergeVcfs.merged_vcf_index
-        File merged_vcf_md5sum = MergeVcfs.merged_vcf_md5sum
+        File merged_vcf = ReformatAndMergeForFabric.merged_vcf
+        File merged_vcf_index = ReformatAndMergeForFabric.merged_vcf_index
+        File merged_vcf_md5sum = ReformatAndMergeForFabric.merged_vcf_md5sum
 
         Boolean qc_passed = SingleSampleGCNVAndFilterVCFs.qc_passed
         File cnv_metrics = SingleSampleGCNVAndFilterVCFs.cnv_metrics
@@ -155,6 +149,62 @@ task MergeVcfs {
     }
 
      runtime {
+        docker: gatk_docker
+        memory: mem_gb + " GB"
+        disks: "local-disk " + disk_size_gb + " HDD"
+        preemptible: 5
+    }
+}
+
+task ReformatAndMergeForFabric {
+    input {
+            File cnv_vcf
+            File short_variant_vcf
+
+            String gatk_docker
+            Int mem_gb=4
+            Int disk_size_gb = 100
+        }
+
+    String output_basename = basename(cnv_vcf, ".filtered.genotyped-segments.vcf.gz")
+    String output_short_variant_basename = basename(short_variant_vcf, ".hard-filtered.vcf.gz")
+
+    command <<<
+        set -euo pipefail
+
+        if [ "~{output_basename}" != "~{output_short_variant_basename}" ]; then
+            echo "input vcf names do not agree"
+            exit 1
+        fi
+
+        python << CODE
+        from pysam import VariantFile
+
+        with VariantFile("~{cnv_vcf}") as cnv_vcf_in:
+            header_out = cnv_vcf_in.header
+            header_out.info.add("CN", "A", "Integer", "Copy number associated with <CNV> alleles")
+            with VariantFile("~{output_basename}.reformatted_for_fabric.vcf.gz",'w', header = header_out) as cnv_vcf_out:
+                for rec in cnv_vcf_in.fetch():
+                    if 'PASS' in rec.filter:
+                        if rec.alts and rec.alts[0] == "<DUP>":
+                            for rec_sample in rec.samples.values():
+                                ploidy = len(rec_sample.alleles)
+                                rec_sample.allele_indices = (None,)*(ploidy - 1) + (1,)
+                        cnv_vcf_out.write(rec)
+        CODE
+
+        gatk --java-options "-Dsamjdk.create_md5=true" MergeVcfs -I ~{short_variant_vcf} -I ~{cnv_vcf} -O ~{output_basename}.merged.vcf.gz
+
+        mv ~{output_basename}.merged.vcf.gz.md5 ~{output_basename}.merged.vcf.gz.md5sum
+    >>>
+
+    output {
+        File merged_vcf = "~{output_basename}.merged.vcf.gz"
+        File merged_vcf_index = "~{output_basename}.merged.vcf.gz.tbi"
+        File merged_vcf_md5sum = "~{output_basename}.merged.vcf.gz.md5sum"
+    }
+
+    runtime {
         docker: gatk_docker
         memory: mem_gb + " GB"
         disks: "local-disk " + disk_size_gb + " HDD"

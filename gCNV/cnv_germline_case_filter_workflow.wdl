@@ -213,48 +213,25 @@ workflow SingleSampleGCNVAndFilterVCFs {
 
     File vcf = CNVGermlineCaseWorkflow.genotyped_segments_vcfs[0]
     File vcf_index = CNVGermlineCaseWorkflow.genotyped_intervals_vcf_indexes[0]
-    call ExtractSamplename {
-        input:
-            vcf_filename = basename(vcf),
-            gatk_docker = gatk_docker
-    }
+    String samplename = CNVGermlineCaseWorkflow.entity_id[0]
 
-    call ExtractPoNFreq {
-        input:
-            vcf = vcf,
-            panel_vcfs = pon_genotyped_segments_vcfs,
-            intervals = intervals,
-            overlap_thresh = overlap_thresh
-    }
-
-    call AnnotateWithPoNFreq {
+    call ExtractPoNFreqAnnotateFilterAndQC {
         input:
             vcf = vcf,
             vcf_idx = vcf_index,
-            annotations = ExtractPoNFreq.annotations
-    }
-
-    call FilterVCF{
-        input:
-            samplename = ExtractSamplename.samplename,
-            vcf_file = AnnotateWithPoNFreq.output_vcf,
+            panel_vcfs = pon_genotyped_segments_vcfs,
+            intervals = intervals,
+            overlap_thresh = overlap_thresh,
             filter_expressions = filter_expressions,
             filter_names = filter_names,
-            gatk_docker = gatk_docker
-    }
-
-    call QCFilteredVCF {
-        input:
-            filtered_vcf = FilterVCF.filtered_vcf,
             max_events = maximum_number_events_per_sample,
-            max_pass_events = maximum_number_pass_events_per_sample,
-            samplename = ExtractSamplename.samplename
+            max_pass_events = maximum_number_pass_events_per_sample
     }
 
     output {
-        File filtered_vcf = FilterVCF.filtered_vcf
-        File filtered_vcf_index = FilterVCF.filtered_vcf_index
-        File filtered_vcf_md5sum = FilterVCF.filtered_vcf_md5sum
+        File filtered_vcf = ExtractPoNFreqAnnotateFilterAndQC.filtered_vcf
+        File filtered_vcf_index = ExtractPoNFreqAnnotateFilterAndQC.filtered_vcf_index
+        File filtered_vcf_md5sum = ExtractPoNFreqAnnotateFilterAndQC.filtered_vcf_md5sum
 
         File preprocessed_intervals = CNVGermlineCaseWorkflow.preprocessed_intervals
         File read_counts_entity_id = CNVGermlineCaseWorkflow.read_counts_entity_id[0]
@@ -266,9 +243,9 @@ workflow SingleSampleGCNVAndFilterVCFs {
         File genotyped_intervals_vcf_indexes = CNVGermlineCaseWorkflow.genotyped_intervals_vcf_indexes[0]
         File genotyped_segments_vcfs = CNVGermlineCaseWorkflow.genotyped_segments_vcfs[0]
         File genotyped_segments_vcf_indexes = CNVGermlineCaseWorkflow.genotyped_segments_vcf_indexes[0]
-        String qc_status_string = QCFilteredVCF.qc_status
-        Boolean qc_passed = (QCFilteredVCF.qc_status == "PASS")
-        File cnv_metrics = QCFilteredVCF.cnv_metrics
+        String qc_status_string = ExtractPoNFreqAnnotateFilterAndQC.qc_status
+        Boolean qc_passed = (ExtractPoNFreqAnnotateFilterAndQC.qc_status == "PASS")
+        File cnv_metrics = ExtractPoNFreqAnnotateFilterAndQC.cnv_metrics
         File denoised_copy_ratios = CNVGermlineCaseWorkflow.denoised_copy_ratios[0]
     }
 }
@@ -407,6 +384,170 @@ task ExtractPoNFreq {
     output {
         File annotations = "~{basename_out}.annotations.tsv"
     }
+}
+
+task ExtractPoNFreqAnnotateFilterAndQC {
+    input {
+        File vcf
+        File vcf_idx
+        Array[File] panel_vcfs
+        File intervals
+        Float overlap_thresh = 0.5
+        Array[String] filter_expressions = ['(GT=="alt" | GT=="mis") & ((FMT/CN>1 & QUAL<50) | (FMT/CN==1 & QUAL<100 ) | (FMT/CN==0 & QUAL<400))','(GT=="alt" | GT=="mis") & (INFO/PANEL_COUNT>1)']
+        Array[String] filter_names = ['LowQual','PanelOverlap']
+        Int max_events
+        Int max_pass_events
+        Int mem_gb = 16
+        Int disk_size_gb = 100
+    }
+
+    String output_basename = basename(vcf)
+    command <<<
+        set -euo pipefail
+
+        python << "EOF"
+        import pandas as pd
+        import numpy as np
+        import gzip
+
+        intervals = pd.read_csv("~{intervals}", sep="\t", comment="@", names = ["contig","start","end","dummy1","dummy2"])
+        intervals['contig_idx'] = intervals.groupby('contig').cumcount()
+        intervals = intervals.set_index(intervals.contig + "_" + intervals.contig_idx.astype(str))
+
+        def add_exon_idxs(df, exons):
+                contigs = set(df.contig)
+                for contig in contigs:
+                    df.loc[df.contig==contig,"start_exon_idx"]=np.searchsorted(exons.loc[exons.contig==contig].end,
+                                                                               df.loc[df.contig==contig].start,"left")
+                    df.loc[df.contig==contig,"end_exon_idx"]=np.searchsorted(exons.loc[exons.contig==contig].start,
+                                                                               df.loc[df.contig==contig].end,"right")
+
+        def get_exon_expanded_events(df, exons):
+            add_exon_idxs(df, exons)
+            df = df.loc[df.start_exon_idx != df.end_exon_idx].reset_index().astype({'start_exon_idx':int,'end_exon_idx':int})
+            df_expanded = df.loc[df.index.repeat(df.end_exon_idx-df.start_exon_idx)]
+            df_expanded['exon_idx'] = df_expanded.groupby(df_expanded.index).cumcount() + df_expanded.start_exon_idx
+            df_expanded = df_expanded.set_index(df_expanded.contig + "_" + df_expanded.exon_idx.astype(str))
+            df_expanded = df_expanded.join(exons[['start','end']], rsuffix='_exon')
+            df_expanded['event_exon_start']=np.maximum(df_expanded.start, df_expanded.start_exon)
+            df_expanded['event_exon_end']=np.minimum(df_expanded.end, df_expanded.end_exon)
+            df_expanded = df_expanded.set_index(df_expanded.index + "_" + df_expanded.svtype)
+            return df_expanded
+
+        def standardize_gt_vcf(df):
+            df['end'] = df['INFO'].str.replace('END=','').astype(int) #split('=').apply(lambda x: x[1])
+            df["svtype"] = df.ALT.str.replace("<","").str.replace(">","")
+            for num,f in enumerate(df.loc[0,'FORMAT'].split(':')):
+                df[f] = df['SAMPLE'].str.split(':').apply(lambda x: x[num])
+            return df
+
+        def get_sample_id(vcf):
+            with gzip.open(vcf,"r") as f_vcf:
+                for line in f_vcf:
+                    if line.startswith(b'#CHROM'):
+                        return line.split(b'\t')[-1].decode()
+
+        def read_vcf_to_df(vcf):
+            df = pd.read_csv(vcf, sep='\t',comment='#',compression='gzip',
+                                 names=['contig','start','ID','REF','ALT','QUAL','FILTER','INFO','FORMAT','SAMPLE'])
+            df = standardize_gt_vcf(df)
+            df['sample_name']=get_sample_id(vcf)
+            for c in ['NP','CN','QA','QS']:
+                df[c]=df[c].astype(int)
+            return df
+
+        df = read_vcf_to_df("~{vcf}")
+        df_expanded = get_exon_expanded_events(df, intervals)
+
+        vcfs = ["~{sep='","' panel_vcfs}"]
+        df_panel = pd.concat([read_vcf_to_df(vcf) for vcf in vcfs])
+        df_panel_expanded = get_exon_expanded_events(df_panel, intervals)
+
+        df_expanded_with_panel = df_expanded.join(df_panel_expanded, how="left", lsuffix="_sample", rsuffix="_panel")
+
+        df_expanded_with_panel['overlapping_panel_exon_start']=np.maximum(df_expanded_with_panel.event_exon_start_sample, df_expanded_with_panel.event_exon_start_panel)
+        df_expanded_with_panel['overlapping_panel_exon_end']=np.minimum(df_expanded_with_panel.event_exon_end_sample, df_expanded_with_panel.event_exon_end_panel)
+
+        df_expanded['event_exon_length']=df_expanded.event_exon_end - df_expanded.event_exon_start
+        df_expanded_with_panel['overlapping_panel_exon_length']=np.maximum(df_expanded_with_panel.overlapping_panel_exon_end - df_expanded_with_panel.overlapping_panel_exon_start,0).fillna(0)
+
+        df_panel_counts = df_expanded_with_panel.groupby(['ID_sample','sample_name_panel']).agg(
+            {'overlapping_panel_exon_length':'sum'}
+            ).reset_index('sample_name_panel').join(df_expanded.groupby('ID').agg({'event_exon_length':'sum'})
+        )
+
+        df_panel_counts['PANEL_COUNT'] = np.where(df_panel_counts.overlapping_panel_exon_length/df_panel_counts.event_exon_length>~{overlap_thresh}, 1, 0)
+        df_panel_counts = df_panel_counts.groupby(df_panel_counts.index).agg({'PANEL_COUNT':'sum'})
+
+        df = df.set_index('ID').join(df_panel_counts).fillna({'PANEL_COUNT':0})
+
+        n_panel_samples = len(set(df_panel.sample_name))
+        df['PANEL_FREQ'] = df['PANEL_COUNT']/n_panel_samples
+
+        df_annotations = df[['contig','start','PANEL_FREQ','PANEL_COUNT']].copy()
+        df_annotations = df_annotations.rename({"contig":"CHROM","start":"POS"}, axis=1)
+        df_annotations = df_annotations.astype({"PANEL_COUNT":int})
+        df_annotations.to_csv("~{output_basename}.annotations.tsv", index = False, sep="\t", float_format="%g")
+        EOF
+
+        bgzip ~{output_basename}.annotations.tsv
+        tabix -s1 -b2 -e2 --skip-lines 1 ~{output_basename}.annotations.tsv.gz
+        echo '##INFO=<ID=PANEL_FREQ,Number=1,Type=Float,Description="Frequency in panel">' > header_lines.txt
+        echo '##INFO=<ID=PANEL_COUNT,Number=1,Type=Float,Description="Count in panel">' >> header_lines.txt
+        bcftools annotate --no-version -a ~{output_basename}.annotations.tsv.gz -c CHROM,POS,PANEL_FREQ,PANEL_COUNT -h header_lines.txt -o  ~{output_basename}.vcf.gz ~{vcf}
+
+        cp ~{output_basename}.vcf.gz tmp.vcf
+        filters=('~{sep="' '" filter_expressions}')
+        filter_names=(~{sep=" " filter_names})
+
+        for i in ${!filters[@]}
+        do
+            eval bcftools filter --no-version -m + -e \'${filters[$i]}\' --soft-filter ${filter_names[$i]} -o tmp_out.vcf.gz tmp.vcf.gz
+            mv tmp_out.vcf.gz tmp.vcf.gz
+        done
+
+        mv tmp.vcf.gz ~{output_basename}.filtered.genotyped-segments.vcf.gz
+
+        bcftools index -t ~{output_basename}.filtered.genotyped-segments.vcf.gz
+
+        md5sum ~{output_basename}.filtered.genotyped-segments.vcf.gz | awk '{ print $1 }' > ~{output_basename}.filtered.genotyped-segments.vcf.gz.md5sum
+
+        n_total_events=$(bcftools view --no-header -e '(GT=="ref")' ~{output_basename}.filtered.genotyped-segments.vcf.gz | wc -l)
+        n_pass_events=$(bcftools view --no-header -e '(GT=="ref") || (FILTER!~"PASS")' ~{output_basename}.filtered.genotyped-segments.vcf.gz | wc -l)
+
+        if [ $n_total_events -le ~{max_events} ]; then
+            if [ $n_pass_events -le ~{max_pass_events} ]; then
+                echo "PASS" > qc_status.txt
+            else
+                echo "EXCESSIVE_NUMBER_OF_PASS_EVENTS" > qc_status.txt
+            fi
+        else
+            echo "EXCESSIVE_NUMBER_OF_EVENTS" > qc_status.txt
+        fi
+
+        echo $n_total_events > n_total_events.txt
+        echo $n_pass_events > n_pass_events.txt
+
+        echo -e "sample\ttotal_cnv_events\tpassing_cnv_events" > ~{output_basename}.cnv_metrics.tsv
+        echo -e "~{output_basename}\t${n_total_events}\t${n_pass_events}" >> ~{output_basename}.cnv_metrics.tsv
+    >>>
+
+    runtime {
+            docker: "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
+            disks: "local-disk " + disk_size_gb + " HDD"
+            memory: mem_gb + " GiB"
+    }
+
+    output {
+        File output_vcf = "~{output_basename}.filtered.genotyped-segments.vcf.gz"
+        File output_vcf_index = "~{output_basename}.filtered.genotyped-segments.vcf.gz.tbi"
+        File output_vcf_md5sum = "~{output_basename}.filtered.genotyped-segments.vcf.gz.md5sum"
+        String qc_status = read_string("qc_status.txt")
+        Int n_total_events = read_int("n_total_events.txt")
+        Int n_pass_events = read_int("n_pass_events.txt")
+        File cnv_metrics = "~{output_basename}.cnv_metrics.tsv"
+    }
+
 }
 
 task AnnotateWithPoNFreq {
