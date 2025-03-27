@@ -1,26 +1,3 @@
-# Workflow for running GATK GermlineCNVCaller on multiple case samples using a trained model (obtained from running 
-# GATK GermlineCNVCaller in the cohort mode). Supports both WGS and WES.
-#
-# Notes:
-#
-# - The intervals argument is required for both WGS and WES workflows and accepts formats compatible with the
-#   GATK -L argument (see https://gatkforums.broadinstitute.org/gatk/discussion/11009/intervals-and-interval-lists).
-#   These intervals will be padded on both sides by the amount specified by padding (default 250)
-#   and split into bins of length specified by bin_length (default 1000; specify 0 to skip binning,
-#   e.g., for WES).  For WGS, the intervals should simply cover the chromosomes of interest.
-#
-# - Intervals can be blacklisted from coverage collection and all downstream steps by using the blacklist_intervals
-#   argument, which accepts formats compatible with the GATK -XL argument
-#   (see https://gatkforums.broadinstitute.org/gatk/discussion/11009/intervals-and-interval-lists).
-#   This may be useful for excluding centromeric regions, etc. from analysis.  Alternatively, these regions may
-#   be manually filtered from the final callset.
-#
-# - Example invocation:
-#
-#       java -jar cromwell.jar run cnv_germline_case_workflow.wdl -i my_parameters.json
-#
-#############
-
 version 1.0
 
 import "cnv_common_tasks.wdl" as CNVTasks
