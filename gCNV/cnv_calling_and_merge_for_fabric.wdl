@@ -9,7 +9,8 @@ workflow CNVCallingAndMergeForFabric {
 
         File contig_ploidy_model_tar
         File filtered_intervals
-        Array[File] gcnv_model_tars
+        Fike preprocessed_intervals
+        File gcnv_model_tar
         Array[File] gcnv_panel_genotyped_segments
 
         Float overlap_thresh = 0.5
@@ -36,7 +37,8 @@ workflow CNVCallingAndMergeForFabric {
             normal_bai = normal_bai,
             contig_ploidy_model_tar = contig_ploidy_model_tar,
             filtered_intervals = filtered_intervals,
-            gcnv_model_tars = gcnv_model_tars,
+            preprocessed_intervals = preprocessed_intervals,
+            gcnv_model_tar = gcnv_model_tar,
             pon_genotyped_segments_vcfs = gcnv_panel_genotyped_segments,
             gatk_docker = gatk_docker,
             intervals = intervals,
