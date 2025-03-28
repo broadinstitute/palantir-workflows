@@ -9,14 +9,13 @@ workflow CNVCallingAndMergeForFabric {
 
         File contig_ploidy_model_tar
         File filtered_intervals
-        Fike preprocessed_intervals
+        File preprocessed_intervals
         File gcnv_model_tar
         Array[File] gcnv_panel_genotyped_segments
 
         Float overlap_thresh = 0.5
 
         String gatk_docker
-        File intervals
 
         Int maximum_number_events_per_sample
         Int maximum_number_pass_events_per_sample
@@ -41,7 +40,6 @@ workflow CNVCallingAndMergeForFabric {
             gcnv_model_tar = gcnv_model_tar,
             pon_genotyped_segments_vcfs = gcnv_panel_genotyped_segments,
             gatk_docker = gatk_docker,
-            intervals = intervals,
             maximum_number_events_per_sample = maximum_number_events_per_sample,
             maximum_number_pass_events_per_sample = maximum_number_pass_events_per_sample,
             num_intervals_per_scatter = num_intervals_per_scatter,
@@ -50,7 +48,6 @@ workflow CNVCallingAndMergeForFabric {
             ref_fasta_fai = ref_fasta_fai,
             ref_fasta_dict = ref_fasta_dict,
             allosomal_contigs = allosomal_contigs,
-            padding = padding,
             overlap_thresh = overlap_thresh
     }
 

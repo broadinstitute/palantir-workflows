@@ -523,9 +523,9 @@ task ExtractPoNFreqAnnotateFilterAndQC {
     }
 
     output {
-        File output_vcf = "~{output_basename}.filtered.genotyped-segments.vcf.gz"
-        File output_vcf_index = "~{output_basename}.filtered.genotyped-segments.vcf.gz.tbi"
-        File output_vcf_md5sum = "~{output_basename}.filtered.genotyped-segments.vcf.gz.md5sum"
+        File filtered_vcf = "~{output_basename}.filtered.genotyped-segments.vcf.gz"
+        File filtered_vcf_index = "~{output_basename}.filtered.genotyped-segments.vcf.gz.tbi"
+        File filtered_vcf_md5sum = "~{output_basename}.filtered.genotyped-segments.vcf.gz.md5sum"
         String qc_status = read_string("qc_status.txt")
         Int n_total_events = read_int("n_total_events.txt")
         Int n_pass_events = read_int("n_pass_events.txt")
