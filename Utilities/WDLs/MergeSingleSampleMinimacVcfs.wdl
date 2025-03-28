@@ -211,7 +211,7 @@ task MergeQCMetrics {
         import pandas as pd
         qc_metrics = ['~{sep="', '" qc_metrics}']
         merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t') for qc_metric in qc_metrics])
-        merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', index=FALSE, sep='\t')
+        merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', index=False, sep='\t')
         EOF
     >>>
 
