@@ -203,16 +203,16 @@ workflow SingleSampleGCNVAndFilterVCFs {
         File read_counts_entity_id = CollectCounts.entity_id
         File read_counts = CollectCounts.counts
         File contig_ploidy_calls_tar = DetermineGermlineContigPloidyCaseMode.contig_ploidy_calls_tar
-        File gcnv_call_tar = GermlineCNVCallerCaseMode.gcnv_call_tar
-        File gcnv_tracking_tar = GermlineCNVCallerCaseMode.gcnv_tracking_tar
-        File genotyped_intervals_vcf = PostprocessGermlineCNVCalls.genotyped_intervals_vcf
-        File genotyped_intervals_vcf_index = PostprocessGermlineCNVCalls.genotyped_intervals_vcf_index
-        File genotyped_segments_vcf = PostprocessGermlineCNVCalls.genotyped_segments_vcf
-        File genotyped_segments_vcf_index = PostprocessGermlineCNVCalls.genotyped_segments_vcf_index
+        File gcnv_call_tar = GermlineCNVCallerCaseModeAndPostProcess.gcnv_call_tar
+        File gcnv_tracking_tar = GermlineCNVCallerCaseModeAndPostProcess.gcnv_tracking_tar
+        File genotyped_intervals_vcf = GermlineCNVCallerCaseModeAndPostProcess.genotyped_intervals_vcf
+        File genotyped_intervals_vcf_index = GermlineCNVCallerCaseModeAndPostProcess.genotyped_intervals_vcf_index
+        File genotyped_segments_vcf = GermlineCNVCallerCaseModeAndPostProcess.genotyped_segments_vcf
+        File genotyped_segments_vcf_index = GermlineCNVCallerCaseModeAndPostProcess.genotyped_segments_vcf_index
         String qc_status_string = ExtractPoNFreqAnnotateFilterAndQC.qc_status
         Boolean qc_passed = (ExtractPoNFreqAnnotateFilterAndQC.qc_status == "PASS")
         File cnv_metrics = ExtractPoNFreqAnnotateFilterAndQC.cnv_metrics
-        File denoised_copy_ratios = PostprocessGermlineCNVCalls.denoised_copy_ratios
+        File denoised_copy_ratios = GermlineCNVCallerCaseModeAndPostProcess.denoised_copy_ratios
     }
 }
 
@@ -835,7 +835,7 @@ task GermlineCNVCallerCaseModeAndPostProcess {
       File read_counts_file
       File contig_ploidy_calls_tar
       File gcnv_model_tar
-      Array[String] allosomal_contigs
+      Array[String]? allosomal_contigs
       Int ref_copy_number_autosomal_contigs
       String entity_id
       String? output_dir
