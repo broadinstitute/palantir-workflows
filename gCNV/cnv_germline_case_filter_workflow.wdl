@@ -18,7 +18,6 @@ workflow SingleSampleGCNVAndFilterVCFs {
         File contig_ploidy_model_tar
         File gcnv_model_tar
         Array[File]+ pon_genotyped_segments_vcfs
-        Int num_intervals_per_scatter
         File ref_fasta_dict
         File ref_fasta_fai
         File ref_fasta

@@ -40,7 +40,6 @@ workflow CNVCallingAndMergeForFabric {
             gatk_docker = gatk_docker,
             maximum_number_events_per_sample = maximum_number_events_per_sample,
             maximum_number_pass_events_per_sample = maximum_number_pass_events_per_sample,
-            num_intervals_per_scatter = num_intervals_per_scatter,
             ref_copy_number_autosomal_contigs = ref_copy_number_autosomal_contigs,
             ref_fasta = ref_fasta,
             ref_fasta_fai = ref_fasta_fai,
