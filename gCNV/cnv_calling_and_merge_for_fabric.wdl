@@ -19,7 +19,6 @@ workflow CNVCallingAndMergeForFabric {
 
         Int maximum_number_events_per_sample
         Int maximum_number_pass_events_per_sample
-        Int num_intervals_per_scatter
         Int ref_copy_number_autosomal_contigs
 
         File ref_fasta
@@ -27,7 +26,6 @@ workflow CNVCallingAndMergeForFabric {
         File ref_fasta_dict
 
         Array[String] allosomal_contigs
-        Int padding
     }
 
     call cnv_case_and_filter.SingleSampleGCNVAndFilterVCFs {
