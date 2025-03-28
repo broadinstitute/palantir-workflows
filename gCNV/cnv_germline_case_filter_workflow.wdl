@@ -135,65 +135,48 @@ workflow SingleSampleGCNVAndFilterVCFs {
             preemptible_attempts = preemptible_attempts
     }
 
-    call GermlineCNVCallerCaseMode {
-        input:
-            read_counts_file = CollectCounts.counts,
-            contig_ploidy_calls_tar = DetermineGermlineContigPloidyCaseMode.contig_ploidy_calls_tar,
-            gcnv_model_tar = gcnv_model_tar,
-            gatk4_jar_override = gatk4_jar_override,
-            gatk_docker = gatk_docker,
-            mem_gb = mem_gb_for_germline_cnv_caller,
-            cpu = cpu_for_germline_cnv_caller,
-            p_alt = gcnv_p_alt,
-            cnv_coherence_length = gcnv_cnv_coherence_length,
-            max_copy_number = gcnv_max_copy_number,
-            mapping_error_rate = gcnv_mapping_error_rate,
-            sample_psi_scale = gcnv_sample_psi_scale,
-            depth_correction_tau = gcnv_depth_correction_tau,
-            copy_number_posterior_expectation_mode = gcnv_copy_number_posterior_expectation_mode,
-            active_class_padding_hybrid_mode = gcnv_active_class_padding_hybrid_mode,
-            learning_rate = gcnv_learning_rate,
-            adamax_beta_1 = gcnv_adamax_beta_1,
-            adamax_beta_2 = gcnv_adamax_beta_2,
-            log_emission_samples_per_round = gcnv_log_emission_samples_per_round,
-            log_emission_sampling_median_rel_error = gcnv_log_emission_sampling_median_rel_error,
-            log_emission_sampling_rounds = gcnv_log_emission_sampling_rounds,
-            max_advi_iter_first_epoch = gcnv_max_advi_iter_first_epoch,
-            max_advi_iter_subsequent_epochs = gcnv_max_advi_iter_subsequent_epochs,
-            min_training_epochs = gcnv_min_training_epochs,
-            max_training_epochs = gcnv_max_training_epochs,
-            initial_temperature = gcnv_initial_temperature,
-            num_thermal_advi_iters = gcnv_num_thermal_advi_iters,
-            convergence_snr_averaging_window = gcnv_convergence_snr_averaging_window,
-            convergence_snr_trigger_threshold = gcnv_convergence_snr_trigger_threshold,
-            convergence_snr_countdown_window = gcnv_convergence_snr_countdown_window,
-            max_calling_iters = gcnv_max_calling_iters,
-            caller_update_convergence_threshold = gcnv_caller_update_convergence_threshold,
-            caller_internal_admixing_rate = gcnv_caller_internal_admixing_rate,
-            caller_external_admixing_rate = gcnv_caller_external_admixing_rate,
-            disable_annealing = gcnv_disable_annealing,
-            preemptible_attempts = preemptible_attempts
-    }
-
-     call CNVTasks.PostprocessGermlineCNVCalls {
-        input:
-            entity_id = CollectCounts.entity_id,
-            gcnv_calls_tars = [GermlineCNVCallerCaseMode.gcnv_call_tar],
-            gcnv_model_tars = [gcnv_model_tar],
-            calling_configs = [GermlineCNVCallerCaseMode.calling_config_json],
-            denoising_configs = [GermlineCNVCallerCaseMode.denoising_config_json],
-            gcnvkernel_version = [GermlineCNVCallerCaseMode.gcnvkernel_version_json],
-            sharded_interval_lists = [GermlineCNVCallerCaseMode.sharded_interval_list],
-            allosomal_contigs = allosomal_contigs,
-            ref_copy_number_autosomal_contigs = ref_copy_number_autosomal_contigs,
-            contig_ploidy_calls_tar = DetermineGermlineContigPloidyCaseMode.contig_ploidy_calls_tar,
-            sample_index = 0,
-            maximum_number_events = maximum_number_events_per_sample,
-            maximum_number_pass_events = maximum_number_pass_events_per_sample,
-            gatk4_jar_override = gatk4_jar_override,
-            gatk_docker = gatk_docker,
-            preemptible_attempts = preemptible_attempts
-    }
+     call GermlineCNVCallerCaseModeAndPostProcess {
+            input:
+                read_counts_file = CollectCounts.counts,
+                contig_ploidy_calls_tar = DetermineGermlineContigPloidyCaseMode.contig_ploidy_calls_tar,
+                gcnv_model_tar = gcnv_model_tar,
+                allosomal_contigs = allosomal_contigs,
+                ref_copy_number_autosomal_contigs = ref_copy_number_autosomal_contigs,
+                entity_id = CollectCounts.entity_id,
+                gatk4_jar_override = gatk4_jar_override,
+                gatk_docker = gatk_docker,
+                mem_gb = mem_gb_for_germline_cnv_caller,
+                cpu = cpu_for_germline_cnv_caller,
+                p_alt = gcnv_p_alt,
+                cnv_coherence_length = gcnv_cnv_coherence_length,
+                max_copy_number = gcnv_max_copy_number,
+                mapping_error_rate = gcnv_mapping_error_rate,
+                sample_psi_scale = gcnv_sample_psi_scale,
+                depth_correction_tau = gcnv_depth_correction_tau,
+                copy_number_posterior_expectation_mode = gcnv_copy_number_posterior_expectation_mode,
+                active_class_padding_hybrid_mode = gcnv_active_class_padding_hybrid_mode,
+                learning_rate = gcnv_learning_rate,
+                adamax_beta_1 = gcnv_adamax_beta_1,
+                adamax_beta_2 = gcnv_adamax_beta_2,
+                log_emission_samples_per_round = gcnv_log_emission_samples_per_round,
+                log_emission_sampling_median_rel_error = gcnv_log_emission_sampling_median_rel_error,
+                log_emission_sampling_rounds = gcnv_log_emission_sampling_rounds,
+                max_advi_iter_first_epoch = gcnv_max_advi_iter_first_epoch,
+                max_advi_iter_subsequent_epochs = gcnv_max_advi_iter_subsequent_epochs,
+                min_training_epochs = gcnv_min_training_epochs,
+                max_training_epochs = gcnv_max_training_epochs,
+                initial_temperature = gcnv_initial_temperature,
+                num_thermal_advi_iters = gcnv_num_thermal_advi_iters,
+                convergence_snr_averaging_window = gcnv_convergence_snr_averaging_window,
+                convergence_snr_trigger_threshold = gcnv_convergence_snr_trigger_threshold,
+                convergence_snr_countdown_window = gcnv_convergence_snr_countdown_window,
+                max_calling_iters = gcnv_max_calling_iters,
+                caller_update_convergence_threshold = gcnv_caller_update_convergence_threshold,
+                caller_internal_admixing_rate = gcnv_caller_internal_admixing_rate,
+                caller_external_admixing_rate = gcnv_caller_external_admixing_rate,
+                disable_annealing = gcnv_disable_annealing,
+                preemptible_attempts = preemptible_attempts
+        }
 
 #    File vcf = CNVGermlineCaseWorkflow.genotyped_segments_vcfs[0]
 #    File vcf_index = CNVGermlineCaseWorkflow.genotyped_intervals_vcf_indexes[0]
@@ -201,8 +184,8 @@ workflow SingleSampleGCNVAndFilterVCFs {
 
     call ExtractPoNFreqAnnotateFilterAndQC {
         input:
-            vcf = PostprocessGermlineCNVCalls.genotyped_segments_vcf,
-            vcf_idx = PostprocessGermlineCNVCalls.genotyped_segments_vcf_index,
+            vcf = GermlineCNVCallerCaseModeAndPostProcess.genotyped_segments_vcf,
+            vcf_idx = GermlineCNVCallerCaseModeAndPostProcess.genotyped_segments_vcf_index,
             panel_vcfs = pon_genotyped_segments_vcfs,
             intervals = preprocessed_intervals,
             overlap_thresh = overlap_thresh,
