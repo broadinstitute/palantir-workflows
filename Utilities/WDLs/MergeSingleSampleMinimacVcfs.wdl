@@ -1,5 +1,6 @@
 version 1.0
 
+#
 workflow MergeSingleSampleMinimacVcfs {
     input {
         Array[File] vcfs
