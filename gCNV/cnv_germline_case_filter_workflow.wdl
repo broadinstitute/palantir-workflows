@@ -371,7 +371,7 @@ task ExtractPoNFreqAnnotateFilterAndQC {
     command <<<
         set -euo pipefail
 
-        python << "EOF"
+        python3 << "EOF"
         import pandas as pd
         import numpy as np
         import gzip
