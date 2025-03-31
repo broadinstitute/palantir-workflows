@@ -220,7 +220,7 @@ task CollectCounts {
     Array[String] disabled_read_filters_arr = if defined(disabled_read_filters) then prefix("--disable-read-filter ", select_first([disabled_read_filters])) else []
 
     # Sample name is derived from the bam filename
-    String base_filename = basename(bam, ".bam")
+    String base_filename = basename(basename(bam, ".bam"), ".cram")
     String format_ = select_first([format, "HDF5"])
     String hdf5_or_tsv_or_null_format =
         if format_ == "HDF5" then "HDF5" else
