@@ -192,7 +192,8 @@ workflow SingleSampleGCNVAndFilterVCFs {
             filter_expressions = filter_expressions,
             filter_names = filter_names,
             max_events = maximum_number_events_per_sample,
-            max_pass_events = maximum_number_pass_events_per_sample
+            max_pass_events = maximum_number_pass_events_per_sample,
+            sample_name = CollectCounts.entity_id
     }
 
     output {
@@ -365,6 +366,7 @@ task ExtractPoNFreqAnnotateFilterAndQC {
         Int max_pass_events
         Int mem_gb = 16
         Int disk_size_gb = 100
+        String sample_name
     }
 
     String output_basename = basename(vcf)
@@ -472,14 +474,14 @@ task ExtractPoNFreqAnnotateFilterAndQC {
             mv tmp_out.vcf.gz tmp.vcf.gz
         done
 
-        mv tmp.vcf.gz ~{output_basename}.filtered.genotyped-segments.vcf.gz
+        mv tmp.vcf.gz ~{sample_name}.filtered.genotyped-segments.vcf.gz
 
-        bcftools index -t ~{output_basename}.filtered.genotyped-segments.vcf.gz
+        bcftools index -t ~{sample_name}.filtered.genotyped-segments.vcf.gz
 
-        md5sum ~{output_basename}.filtered.genotyped-segments.vcf.gz | awk '{ print $1 }' > ~{output_basename}.filtered.genotyped-segments.vcf.gz.md5sum
+        md5sum ~{sample_name}.filtered.genotyped-segments.vcf.gz | awk '{ print $1 }' > ~{sample_name}.filtered.genotyped-segments.vcf.gz.md5sum
 
-        n_total_events=$(bcftools view --no-header -e '(GT=="ref")' ~{output_basename}.filtered.genotyped-segments.vcf.gz | wc -l)
-        n_pass_events=$(bcftools view --no-header -e '(GT=="ref") || (FILTER!~"PASS")' ~{output_basename}.filtered.genotyped-segments.vcf.gz | wc -l)
+        n_total_events=$(bcftools view --no-header -e '(GT=="ref")' ~{sample_name}.filtered.genotyped-segments.vcf.gz | wc -l)
+        n_pass_events=$(bcftools view --no-header -e '(GT=="ref") || (FILTER!~"PASS")' ~{sample_name}.filtered.genotyped-segments.vcf.gz | wc -l)
 
         if [ $n_total_events -le ~{max_events} ]; then
             if [ $n_pass_events -le ~{max_pass_events} ]; then
@@ -494,8 +496,8 @@ task ExtractPoNFreqAnnotateFilterAndQC {
         echo $n_total_events > n_total_events.txt
         echo $n_pass_events > n_pass_events.txt
 
-        echo -e "sample\ttotal_cnv_events\tpassing_cnv_events" > ~{output_basename}.cnv_metrics.tsv
-        echo -e "~{output_basename}\t${n_total_events}\t${n_pass_events}" >> ~{output_basename}.cnv_metrics.tsv
+        echo -e "sample\ttotal_cnv_events\tpassing_cnv_events" > ~{sample_name}.cnv_metrics.tsv
+        echo -e "~{sample_name}\t${n_total_events}\t${n_pass_events}" >> ~{sample_name}.cnv_metrics.tsv
     >>>
 
     runtime {
@@ -505,13 +507,13 @@ task ExtractPoNFreqAnnotateFilterAndQC {
     }
 
     output {
-        File filtered_vcf = "~{output_basename}.filtered.genotyped-segments.vcf.gz"
-        File filtered_vcf_index = "~{output_basename}.filtered.genotyped-segments.vcf.gz.tbi"
-        File filtered_vcf_md5sum = "~{output_basename}.filtered.genotyped-segments.vcf.gz.md5sum"
+        File filtered_vcf = "~{sample_name}.filtered.genotyped-segments.vcf.gz"
+        File filtered_vcf_index = "~{sample_name}.filtered.genotyped-segments.vcf.gz.tbi"
+        File filtered_vcf_md5sum = "~{sample_name}.filtered.genotyped-segments.vcf.gz.md5sum"
         String qc_status = read_string("qc_status.txt")
         Int n_total_events = read_int("n_total_events.txt")
         Int n_pass_events = read_int("n_pass_events.txt")
-        File cnv_metrics = "~{output_basename}.cnv_metrics.tsv"
+        File cnv_metrics = "~{sample_name}.cnv_metrics.tsv"
     }
 
 }
