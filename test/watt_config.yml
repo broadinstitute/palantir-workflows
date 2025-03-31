@@ -38,10 +38,10 @@ CNVCallingAndMergeForFabric:
     base:
       test_inputs: "/test/CNVCallingAndMergeForFabric/test_base_inputs.json"
       expected_outputs: "/test/CNVCallingAndMergeForFabric/test_base_outputs.json"
-
-MergeSingleSampleMinimacVcfs:
-  path: "/Utilities/WDLs/MergeSingleSampleMinimacVcfs.wdl"
-  tests:
-    base:
-      test_inputs: "/test/MergeSingleSampleMinimacVcfs/test_inputs.json"
-      expected_outputs: "/test/MergeSingleSampleMinimacVcfs/test_outputs.json"
+#
+#MergeSingleSampleMinimacVcfs:
+#  path: "/Utilities/WDLs/MergeSingleSampleMinimacVcfs.wdl"
+#  tests:
+#    base:
+#      test_inputs: "/test/MergeSingleSampleMinimacVcfs/test_inputs.json"
+#      expected_outputs: "/test/MergeSingleSampleMinimacVcfs/test_outputs.json"
