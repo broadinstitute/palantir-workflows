@@ -462,7 +462,7 @@ task ExtractPoNFreqAnnotateFilterAndQC {
         echo '##INFO=<ID=PANEL_COUNT,Number=1,Type=Float,Description="Count in panel">' >> header_lines.txt
         bcftools annotate --no-version -a ~{output_basename}.annotations.tsv.gz -c CHROM,POS,PANEL_FREQ,PANEL_COUNT -h header_lines.txt -o  ~{output_basename}.vcf.gz ~{vcf}
 
-        cp ~{output_basename}.vcf.gz tmp.vcf
+        cp ~{output_basename}.vcf.gz tmp.vcf.gz
         filters=('~{sep="' '" filter_expressions}')
         filter_names=(~{sep=" " filter_names})
 
