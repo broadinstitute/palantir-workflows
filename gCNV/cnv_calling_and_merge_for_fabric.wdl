@@ -157,6 +157,7 @@ task ReformatAndMergeForFabric {
             File cnv_vcf
             File short_variant_vcf
 
+
             String gatk_docker
             Int mem_gb=4
             Int disk_size_gb = 100
