@@ -32,13 +32,13 @@ Glimpse2Imputation:
       test_inputs: "/test/Glimpse2Imputation/test_inputs.json"
       expected_outputs: "/test/Glimpse2Imputation/test_outputs.json"
 
-#CNVCallingAndMergeForFabric:
-#  path: "/gCNV/cnv_calling_and_merge_for_fabric.wdl"
-#  tests:
-#    base:
-#      test_inputs: "/test/CNVCallingAndMergeForFabric/test_base_inputs.json"
-#      expected_outputs: "/test/CNVCallingAndMergeForFabric/test_base_outputs.json"
-#
+CNVCallingAndMergeForFabric:
+  path: "/gCNV/cnv_calling_and_merge_for_fabric.wdl"
+  tests:
+    base:
+      test_inputs: "/test/CNVCallingAndMergeForFabric/test_base_inputs.json"
+      expected_outputs: "/test/CNVCallingAndMergeForFabric/test_base_outputs.json"
+
 MergeSingleSampleMinimacVcfs:
   path: "/Utilities/WDLs/MergeSingleSampleMinimacVcfs.wdl"
   tests:
