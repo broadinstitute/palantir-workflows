@@ -164,9 +164,9 @@ task ExportReferencePanel {
     }
 
     command <<<
-        gcloud storage cp ~{sep=" " reference_chunks} ~{output_path}/chunks
-        gcloud storage ls ~{output_path}/chunks > ~{output_panel_name}.txt
-        gcloud storage cp ~{output_panel_name}.txt ~{output_path}/
+        /root/google-cloud-sdk/bin/gcloud storage cp ~{sep=" " reference_chunks} ~{output_path}/chunks
+        /root/google-cloud-sdk/bin/gcloud storage ls ~{output_path}/chunks > ~{output_panel_name}.txt
+        /root/google-cloud-sdk/bin/gcloud storage cp ~{output_panel_name}.txt ~{output_path}/
     >>>
 
     runtime {
