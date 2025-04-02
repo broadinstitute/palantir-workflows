@@ -164,7 +164,7 @@ task ExportReferencePanel {
     }
 
     command <<<
-        gcloud storage mv ~{sep=" " reference_chunks} ~{output_path}/chunks
+        gcloud storage cp ~{sep=" " reference_chunks} ~{output_path}/chunks
         gcloud storage ls ~{output_path}/chunks > ~{output_panel_name}.txt
         gcloud storage cp ~{output_panel_name}.txt ~{output_path}/
     >>>
