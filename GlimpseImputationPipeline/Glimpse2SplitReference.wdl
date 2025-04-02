@@ -60,9 +60,19 @@ workflow Glimpse2SplitReference {
         }
     }
 
+    if defined(output_path) {
+        call ExportReferencePanel {
+            input:
+                reference_chunks = GlimpseSplitReferenceTask.split_reference_chunks,
+                output_path = output_path,
+                output_panel_name = if defined(output_panel_name) then output_panel_name else "reference_panel"
+        }
+    }
+
     output {
         Array[File] chunks = GlimpseSplitReferenceTask.chunks
         Array[File] reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks)
+        File? exported_reference_panel = ExportReferencePanel.exported_reference_panel
     }
 }
 
@@ -164,5 +174,9 @@ task ExportReferencePanel {
         memory: "1 GiB"
         cpu: 1
         preemptible: 1
+    }
+
+    output {
+        File exported_reference_panel = output_path + "/" + output_panel_name + ".txt"
     }
 }
