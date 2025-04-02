@@ -24,6 +24,9 @@ workflow Glimpse2SplitReference {
         String genetic_map_path_prefix
         String genetic_map_path_suffix
 
+        String? output_path
+        String? output_panel_name
+
         Int? seed
         Float min_window_cm
         Boolean uniform_number_variants = false
@@ -139,5 +142,27 @@ task GlimpseSplitReferenceTask {
         # have a built-in way to do that, we have to rely on the command section to do that. However, we don't have access to that bash
         # variable in the output section, so we have to use glob here and return the first (and only) result.
         File chunks = glob("chunks_contigindex_*.txt")[0]
+    }
+}
+
+task ExportReferencePanel {
+    input {
+        Array[String] reference_chunks
+        String output_path
+        String output_panel_name
+        String docker = "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
+    }
+
+    command <<<
+        gcloud storage mv ~{sep=" " reference_chunks} ~{output_path}/chunks
+        gcloud storage ls ~{output_path}/chunks > ~{output_panel_name}.txt
+        gcloud storage cp ~{output_panel_name}.txt ~{output_path}/
+    >>>
+
+    runtime {
+        docker: docker
+        memory: "1 GiB"
+        cpu: 1
+        preemptible: 1
     }
 }
