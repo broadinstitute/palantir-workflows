@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/install-cromwell
         with:
-          CROMWELL_VERSION: 87
+          CROMWELL_VERSION: 88
       - name: Womtool Validate
         run: find . -name '*.wdl' | xargs -tI {} java -jar ${WOMTOOL_JAR} validate {}
 
@@ -36,22 +36,24 @@ jobs:
           service_account: palantir-workflows-service-acc@broad-dsde-methods.iam.gserviceaccount.com
       - uses: ./.github/actions/install-cromwell
         with:
-          CROMWELL_VERSION: 87
+          CROMWELL_VERSION: 88
       - uses: ./.github/actions/install-watt
         with:
           WATT_VERSION: v1.2.1
       - name: Get changed Files
         if: github.ref != 'refs/heads/main'
         id: changed-files
-        uses: tj-actions/changed-files@v44
+        uses: tj-actions/changed-files@v46
         with:
           files_yaml: |
             wdl: '**.wdl'
             json: '**.json'
-            watt_config: test/watt_config.yml
+            configs: |
+              test/watt_config.yml 
+              test/simple_cromwell.conf
       - name: Choose tests to run
         id: choose_tests_to_run
-        if: github.ref != 'refs/heads/main' && !steps.changed-files.outputs.watt_config_all_changed_and_modified_files && (steps.changed-files.outputs.wdl_all_changed_and_modified_files || steps.changed-files.outputs.json_all_changed_and_modified_files)
+        if: github.ref != 'refs/heads/main' && !steps.changed-files.outputs.configs_all_changed_and_modified_files && (steps.changed-files.outputs.wdl_all_changed_and_modified_files || steps.changed-files.outputs.json_all_changed_and_modified_files)
         env:
           CHANGED_WDLS: ${{ steps.changed-files.outputs.wdl_all_changed_and_modified_files }}
           CHANGED_JSON: ${{ steps.changed-files.outputs.json_all_changed_and_modified_files }}
@@ -69,7 +71,7 @@ jobs:
 
           echo "n_wf_to_test=${#WF_TESTS_TO_RUN[@]}" >> $GITHUB_OUTPUT
       - name: Run tests with WATT
-        if: steps.choose_tests_to_run.outputs.n_wf_to_test > 0 || github.ref == 'refs/heads/main' || steps.changed-files.outputs.watt_config_all_changed_and_modified_files
+        if: steps.choose_tests_to_run.outputs.n_wf_to_test > 0 || github.ref == 'refs/heads/main' || steps.changed-files.outputs.configs_all_changed_and_modified_files
         env:
           WF_PARAM_NAME: ${{ steps.choose_tests_to_run.outputs.n_wf_to_test && '--workflow' || '' }}
         run: python ~/watt/watt.py -e ${CROMWELL_JAR} -c test/watt_config.yml ${WF_PARAM_NAME} ${WF_TESTS_TO_RUN} --cromwell-config test/simple_cromwell.conf -p 50 --executor-log-prefix cromwell_logs/
