@@ -60,12 +60,12 @@ workflow Glimpse2SplitReference {
         }
     }
 
-    if defined(output_path) {
+    if (defined(output_path)) {
         call ExportReferencePanel {
             input:
-                reference_chunks = GlimpseSplitReferenceTask.split_reference_chunks,
-                output_path = output_path,
-                output_panel_name = if defined(output_panel_name) then output_panel_name else "reference_panel"
+                reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks),
+                output_path = select_first([output_path]),
+                output_panel_name = select_first([output_panel_name, "reference_panel"])
         }
     }
 
