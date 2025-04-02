@@ -190,7 +190,7 @@ task ReformatAndMergeForFabric {
                         cnv_vcf_out.write(rec)
         CODE
 
-        gatk --java-options "-Dsamjdk.create_md5=true" MergeVcfs -I ~{short_variant_vcf} -I ~{cnv_vcf} -O ~{output_basename}.merged.vcf.gz
+        gatk --java-options "-Dsamjdk.create_md5=true" MergeVcfs -I ~{short_variant_vcf} -I ~{output_basename}.reformatted_for_fabric.vcf.gz -O ~{output_basename}.merged.vcf.gz
 
         mv ~{output_basename}.merged.vcf.gz.md5 ~{output_basename}.merged.vcf.gz.md5sum
     >>>
