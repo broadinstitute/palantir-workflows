@@ -1,6 +1,6 @@
 version 1.0
 
-import "cnv_germline_case_filter_workflow.wdl" as cnv_case_and_filter
+import "singl_sample_cnv_germline_case_filter_workflow.wdl" as cnv_case_and_filter
 workflow CNVCallingAndMergeForFabric {
     input {
         File normal_bam
