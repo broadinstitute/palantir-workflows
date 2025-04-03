@@ -22,7 +22,9 @@ For selecting the correct resources for imputation, one task of the [Glimpse2Imp
 
 ## Glimpse2SplitReference
 
-This workflow splits the provided reference panel into a series of chunks that each span a specified region of the genome, and converts the reference panel into a binary representation that can be ingested by the `Glimpse2Imputation` workflow. This significantly speeds up the imputation process since this step only has to be performed once per reference panel instead of once per sample.
+This workflow splits the provided reference panel into a series of chunks that each span a specified region of the genome, and converts the reference panel into a binary representation that can be ingested by the [Glimpse2Imputation](#Glimpse2Imputation) workflow. This significantly speeds up the imputation process since this step only has to be performed once per reference panel instead of once per sample.
+
+This workflow optionally supports an export of the generated reference panel to a Google bucket. If `output_path` is set, the binary files will be copied to `{output_path}/chunks/`, and a list of filenames will be written to `{output_path}/{output_panel_name}.txt`. The latter can be used as the `reference_chunks` input to [Glimpse2Imputation](#Glimpse2Imputation), and is returned by this workflow as the `exported_reference_panel` output. There must not be any files in the `{output_path}/chunks/` before the export.
 
 **Note on chunk sizes:** The choice of the chunk size is a trade-off between runtime per chunk and number of chunks (and therefore number of parallel jobs to be started). For imputation of single samples we would want to choose a larger minimum window size since each chunk will be processed in a relatively short amount of time and the overhead of starting many jobs for smaller chunks will be considerable. For large batches, however, a smaller minimum window size might be more desireable in order to parallelize more the longer running jobs.
 
@@ -43,6 +45,8 @@ contig_name_in_reference_panel = "chr1"
 - **String reference_panel_index_suffix**: See note on paths to the reference panel and genetic maps.
 - **String genetic_map_path_prefix**: See note on paths to the reference panel and genetic maps.
 - **String genetic_map_path_suffix**: See note on paths to the reference panel and genetic maps.
+- **String? output_path**: Optional Google cloud storage (gs://) path to write the reference chunks to. See notes on the export above.
+- **String? output_panel_name**: Optional file name to use for export. If not set, "reference_panel" will be used.
 - **Int? seed**: Optional integer seed for the generation of chunks
 - **Int? min_window_cm**: Optional minimum window size in [Centimorgan](https://en.wikipedia.org/wiki/Centimorgan). See note on chunk sizes above.
 - **Boolean uniform_number_variants = false**: When set to true, each chunk will have approximately the same number of sites while. Each chunk will cover a different (Centimorgan) genetic linkage region with the smallest chunk still being larger than `min_window_cm`.
@@ -53,6 +57,7 @@ contig_name_in_reference_panel = "chr1"
 - **Array[File] split_reference_chunks**: All binary representations of the reference panel for each chunk in each contig region. Each file is named `reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX}` with `CONTIGINDEX` and `CHUNKINDEX` being 4-digit zero-based indices with leading zeros in order to simplify the correct ordering of intervals.
 - **Array[String] num_sites**: The number of sites in each chunk.
 - **Array[String] num_sites_uniform**: The number of sites in each chunk when using `uniform_number_variants`, otherwise empty.
+- **String? exported_reference_panel**: If `output_path` is set, this output will contain the path to the exported reference chunks list, which itself points to the exported chunks themselves. This output can be used as the `reference_chunks` input to [Glimpse2Imputation](#Glimpse2Imputation).
 
 ## Glimpse2Imputation
 
