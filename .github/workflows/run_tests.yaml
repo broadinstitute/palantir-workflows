@@ -39,7 +39,7 @@ jobs:
           CROMWELL_VERSION: 88
       - uses: ./.github/actions/install-watt
         with:
-          WATT_VERSION: v1.2.1
+          WATT_VERSION: ck_comparison_in_chunks
       - name: Get changed Files
         if: github.ref != 'refs/heads/main'
         id: changed-files
