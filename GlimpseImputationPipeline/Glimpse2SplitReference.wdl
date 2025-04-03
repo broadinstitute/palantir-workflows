@@ -192,6 +192,6 @@ task ExportReferencePanel {
     }
 
     output {
-        String exported_reference_panel = output_path + "/" + output_panel_name + ".txt"
+        String exported_reference_panel = output_path_no_trailing_slash + "/" + output_panel_name + ".txt"
     }
 }
