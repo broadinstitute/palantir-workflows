@@ -163,10 +163,17 @@ task ExportReferencePanel {
         String docker = "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
     }
 
+    String output_path_no_trailing_slash = sub(output_path, "/$", "")
+
     command <<<
-        /root/google-cloud-sdk/bin/gcloud storage cp ~{sep=" " reference_chunks} ~{output_path}/chunks
-        /root/google-cloud-sdk/bin/gcloud storage ls ~{output_path}/chunks > ~{output_panel_name}.txt
-        /root/google-cloud-sdk/bin/gcloud storage cp ~{output_panel_name}.txt ~{output_path}/
+        if [[ "~{output_path}" != gs://* ]]; then
+            echo "Error: Output path must start with gs://"
+            exit 1
+        fi
+        
+        /root/google-cloud-sdk/bin/gcloud storage cp ~{sep=" " reference_chunks} ~{output_path_no_trailing_slash}/chunks
+        /root/google-cloud-sdk/bin/gcloud storage ls ~{output_path_no_trailing_slash}/chunks > ~{output_panel_name}.txt
+        /root/google-cloud-sdk/bin/gcloud storage cp ~{output_panel_name}.txt ~{output_path_no_trailing_slash}/
     >>>
 
     runtime {
