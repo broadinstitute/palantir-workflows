@@ -164,6 +164,7 @@ task ExportReferencePanel {
     }
 
     String output_path_no_trailing_slash = sub(output_path, "/$", "")
+    Int reference_chunks_count = length(reference_chunks)
 
     command <<<
         if [[ "~{output_path}" != gs://* ]]; then
@@ -173,6 +174,13 @@ task ExportReferencePanel {
         
         /root/google-cloud-sdk/bin/gcloud storage cp ~{sep=" " reference_chunks} ~{output_path_no_trailing_slash}/chunks
         /root/google-cloud-sdk/bin/gcloud storage ls ~{output_path_no_trailing_slash}/chunks > ~{output_panel_name}.txt
+
+        LINE_COUNT=$(wc -l < ~{output_panel_name}.txt)
+        if [[ "$LINE_COUNT" -ne "~{reference_chunks_count}" ]]; then
+            echo "Error: There are more binary files in ~{output_path_no_trailing_slash}/chunks/ than expected, probably the output path was not empty. Please remove all files in ~{output_path_no_trailing_slash}/chunks/ and try again."
+            exit 1
+        fi
+
         /root/google-cloud-sdk/bin/gcloud storage cp ~{output_panel_name}.txt ~{output_path_no_trailing_slash}/
     >>>
 
