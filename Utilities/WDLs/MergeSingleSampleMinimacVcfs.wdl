@@ -221,7 +221,7 @@ task MergeQCMetrics {
     }
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slime:1.1"
         disks: "local-disk " + disk_size_gb + " HDD"
         memory: mem_gb + " GiB"
         cpu: cpu
@@ -303,6 +303,7 @@ task ScatterIntervalList {
   runtime {
     docker: "us.gcr.io/broad-gotc-prod/picard-python:1.0.0-2.26.10-1663951039"
     memory: "2000 MiB"
+    disks: "local-disk 20 HDD"
   }
 }
 
@@ -406,7 +407,7 @@ task cut_paste_task {
     >>>
 
 	runtime {
-        docker: "us.gcr.io/broad-dsde-methods/ckachulis/bcftools_bgzip"
+        docker: "us.gcr.io/broad-dsde-methods/ckachulis/bcftools_bgzip@sha256:6035c38fbc4b8631af796a99c568253f2c26886a97c5fd42ce4b8355f424307d"
         disks: "local-disk " + disk_size_gb + " HDD"
         memory: mem_gb + " GiB"
         cpu: cpu
