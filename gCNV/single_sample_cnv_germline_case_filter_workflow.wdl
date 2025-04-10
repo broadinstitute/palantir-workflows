@@ -217,26 +217,6 @@ workflow SingleSampleGCNVAndFilterVCFs {
     }
 }
 
-
-task ExtractSamplename {
-    input {
-        String vcf_filename
-        String gatk_docker
-    }
-    command <<<
-        set -euo pipefail
-        echo ~{vcf_filename} | sed -E 's/genotyped-segments-(.*)\.cram\.vcf\.gz/\1/' > output.txt
-        >>>
-    output {
-        String samplename = read_string("output.txt")
-    }
-    runtime {
-        docker: gatk_docker
-        memory: "2G"
-        cpu: 2
-    }
-}
-
 task ExtractPoNFreq {
     input {
         File vcf
