@@ -46,6 +46,7 @@ This WDL takes a VCF and adds various annotations based on user input. Optionall
 * `query_bam_index`: (optional) index for `query_bam`
 * `gatk_jar`: (optional) path to GATK jar file if using custom build for user-defined `VariantAnnotation` classes; if not provided, the WDL will use the `gatk` command
 
+The output tables will be split into SNPs and INDELs and will be in the format of a (gzipped) TSV file with a header row. This makes it easier for downstream analysis, like training separate models for SNPs and INDELs (see the `TrainEBMVariantAnnotations` notebook for some ideas).
 
 ## CollectBenchmarkSucceeded
 
