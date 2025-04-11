@@ -2,12 +2,49 @@
 
 This directory contains a collection of miscellaneous WDLs useful for some small tasks. Check below for documentation on each.
 
+* [AnnotateVCF](#annotatevcf)
 * [CollectBenchmarkSucceeded](#collectbenchmarksucceeded)
 * [CreateIGVSession](#createigvsession)
 * [Dipcall](#dipcall)
 * [DownsampleAndCollectCoverage](#downsampleandcollectcoverage)
 * [IndexCramOrBam](#indexcramorbam)
 * [MatchFingerprints](#matchfingerprints)
+
+
+## AnnotateVCF
+
+### Summary
+
+This WDL takes a VCF and adds various annotations based on user input. Optionally, users can include a truth VCF to do a `vcfeval` benchmarking comparison, and use the resulting TP, FP, etc. labels in the output. The truth dataset will also be annotated using the input configuration. The final output will be table(s) with rows given by variants, and columns the resulting annotations. The families of possible annotations are:
+* bed region membership: for each bed file provided, each variant gets a binary flag annotation with the corresponding label depending on if it lies in the region.
+* reference / GC context: using bedtools, gather some statistics about GC content in a window around the variant, or occurrences of a custom sequence motif.
+* general GATK annotations: using `VariantAnnotator`, add any of the annotations available in GATK, e.g. `Coverage`, or `FisherStrand`; requires reads be provided.
+
+### Inputs
+* `query_vcf`: VCF to annotate
+* `query_vcf_index`: index for `query_vcf`
+* `truth_vcf`: (optional) truth VCF to use for benchmarking
+* `truth_vcf_index`: index for `truth_vcf`
+* `truth_bed`: (optional) bed file for truth VCF evaluation regions
+* `ref_fasta`: reference FASTA
+* `ref_fasta_index`: index for `ref_fasta`
+* `fasta_dict`: sequence dictionary for `ref_fasta`
+* `bed_files`: list of bed files to use for region membership annotations
+* `bed_labels`: list of labels for the bed files
+* `add_gc_content`: (default: `true`) toggle to add GC content annotations
+* `window_size`: (default: `25`) size of window to use for GC content annotations
+* `include_N_count`: (default: `false`) toggle to include count of N's in GC content annotations
+* `annotate_sequence`: (default: `false`) toggle to add reference sequence of `window_size` as an annotation
+* `sequence_motif`: (optional) if provided, the number of occurrences of this sequence motif in the `window_size` will be added as an annotation
+* `extra_query_fields`: (default: `[]`) list of extra fields to add to final table already in the query VCF
+* `extra_truth_fields`: (default: `[]`) list of extra fields to add to final table already in the truth VCF
+* `gatk_query_annotations`: (default: `[]`) list of GATK annotations to add to the query VCF
+* `gatk_query_annotation_labels`: (default: `[]`) list of labels for the GATK annotations in the query VCF
+* `gatk_truth_annotations`: (default: `[]`) list of GATK annotations to add to the truth VCF
+* `gatk_truth_annotation_labels`: (default: `[]`) list of labels for the GATK annotations in the truth VCF
+* `query_bam`: (optional) BAM file to use for GATK annotations
+* `query_bam_index`: (optional) index for `query_bam`
+* `gatk_jar`: (optional) path to GATK jar file if using custom build for user-defined `VariantAnnotation` classes; if not provided, the WDL will use the `gatk` command
 
 
 ## CollectBenchmarkSucceeded
