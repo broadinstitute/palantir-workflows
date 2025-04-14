@@ -1,0 +1,16 @@
+{
+    "MergeSingleSampleMinimacVcfs.vcfs":["gs://palantir-workflows-test-data/MergeSingleSampleMinimacVcfs/205805200061_R04C01.vcf.gz", 
+                                        "gs://palantir-workflows-test-data/MergeSingleSampleMinimacVcfs/205805210020_R04C01.vcf.gz", 
+                                        "gs://palantir-workflows-test-data/MergeSingleSampleMinimacVcfs/205828420014_R04C01.vcf.gz", 
+                                        "gs://palantir-workflows-test-data/MergeSingleSampleMinimacVcfs/205848720035_R04C01.vcf.gz", 
+                                        "gs://palantir-workflows-test-data/MergeSingleSampleMinimacVcfs/205931030058_R04C01.vcf.gz", 
+                                        "gs://palantir-workflows-test-data/MergeSingleSampleMinimacVcfs/205931270010_R04C01.vcf.gz", 
+                                        "gs://palantir-workflows-test-data/MergeSingleSampleMinimacVcfs/205931290101_R04C01.vcf.gz", 
+                                        "gs://palantir-workflows-test-data/MergeSingleSampleMinimacVcfs/205992790045_R04C01.vcf.gz", 
+                                        "gs://palantir-workflows-test-data/MergeSingleSampleMinimacVcfs/205992790136_R04C01.vcf.gz", 
+                                        "gs://palantir-workflows-test-data/MergeSingleSampleMinimacVcfs/206002730156_R04C01.vcf.gz"],
+    "MergeSingleSampleMinimacVcfs.n_per_batch":5,
+    "MergeSingleSampleMinimacVcfs.output_basename":"test",
+    "MergeSingleSampleMinimacVcfs.interval_list":"gs://palantir-workflows-test-data/MergeSingleSampleMinimacVcfs/hg19_non_alt_not_decoy.interval_list",
+    "MergeSingleSampleMinimacVcfs.interval_scatter_count":10
+}
