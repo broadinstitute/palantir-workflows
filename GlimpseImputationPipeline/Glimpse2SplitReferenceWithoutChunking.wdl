@@ -36,7 +36,7 @@ workflow Glimpse2SplitReference {
         String contig_region = contig_regions[i_contig]
         String contig_name_in_reference_panel = contig_names_in_reference_panel[i_contig]
         String contig_name_in_genetic_maps = contig_names_in_genetic_maps[i_contig]
-        File reference_chunks = contig_reference_chunks[i_contig]
+        File i_reference_chunks = contig_reference_chunks[i_contig]
 
         String reference_filename = reference_panel_prefix + contig_name_in_reference_panel + reference_panel_suffix
         String genetic_map_filename = genetic_map_path_prefix + contig_name_in_genetic_maps + genetic_map_path_suffix
@@ -48,7 +48,7 @@ workflow Glimpse2SplitReference {
                 contig = contig_region,
                 i_contig = i_contig,
                 genetic_map = genetic_map_filename,
-                reference_chunks = reference_chunks,
+                reference_chunks = i_reference_chunks,
                 seed = seed,
                 keep_monomorphic_ref_sites = keep_monomorphic_ref_sites,
                 preemptible = preemptible,
@@ -57,7 +57,6 @@ workflow Glimpse2SplitReference {
     }
 
     output {
-        Array[File] chunks = GlimpseSplitReferenceTask.chunks
         Array[File] reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks)
     }
 }
