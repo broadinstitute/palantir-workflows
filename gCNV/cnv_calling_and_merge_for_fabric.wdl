@@ -64,7 +64,7 @@ workflow CNVCallingAndMergeForFabric {
             case_read_counts = SingleSampleGCNVAndFilterVCFs.read_counts,
             panel_copy_ratios = gcnv_panel_copy_ratios,
             panel_read_counts = gcnv_panel_read_counts,
-            sharded_interval_list = SingleSampleGCNVAndFilterVCFs.sharded_interval_list
+            interval_list = SingleSampleGCNVAndFilterVCFs.interval_list
 
     }
 
@@ -230,7 +230,7 @@ task GCNVVisualzation {
         File case_read_counts
         Array[File] panel_copy_ratios
         Array[File] panel_read_counts
-        Array[File] sharded_interval_list
+        File interval_list
     }
 
     String output_prefix = basename(filtered_vcf, ".filtered.genotyped-segments.vcf.gz")
@@ -363,7 +363,7 @@ task GCNVVisualzation {
        case_read_counts <- case_read_counts %>% inner_join(panel_mean_counts)
        case_read_counts <- case_read_counts %>% mutate(adjusted_counts = 2*norm_counts/panel_mean_norm_counts) %>% drop_na()
        case_read_counts <- case_read_counts %>% semi_join(cr_case)
-       intervals <- read_tsv(c("~{sep='","' sharded_interval_list}"),
+       intervals <- read_tsv("~{interval_list}"),
                              comment="@")
        case_read_counts <- case_read_counts %>% left_join(intervals)
 

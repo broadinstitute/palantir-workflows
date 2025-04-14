@@ -214,6 +214,7 @@ workflow SingleSampleGCNVAndFilterVCFs {
         Boolean qc_passed = (ExtractPoNFreqAnnotateFilterAndQC.qc_status == "PASS")
         File cnv_metrics = ExtractPoNFreqAnnotateFilterAndQC.cnv_metrics
         File denoised_copy_ratios = GermlineCNVCallerCaseModeAndPostProcess.denoised_copy_ratios
+        File interval_list = GermlineCNVCallerCaseModeAndPostProcess.interval_list
     }
 }
 
@@ -826,7 +827,7 @@ task GermlineCNVCallerCaseModeAndPostProcess {
         File calling_config_json = "~{output_dir_}/case-calls/calling_config.json"
         File denoising_config_json = "~{output_dir_}/case-calls/denoising_config.json"
         File gcnvkernel_version_json = "~{output_dir_}/case-calls/gcnvkernel_version.json"
-        File sharded_interval_list = "~{output_dir_}/case-calls/interval_list.tsv"
+        File interval_list = "~{output_dir_}/case-calls/interval_list.tsv"
 
         File genotyped_intervals_vcf = "genotyped-intervals-~{entity_id}.vcf.gz"
         File genotyped_intervals_vcf_index = "genotyped-intervals-~{entity_id}.vcf.gz.tbi"
