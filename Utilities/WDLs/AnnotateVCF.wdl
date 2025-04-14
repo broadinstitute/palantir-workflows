@@ -177,11 +177,9 @@ task AnnotateVcfRegions {
         File input_vcf_index
         Array[File] bed_files
         Array[String] bed_labels
-
-        Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
-        Int cpu = 4
-        Int memory_ram = 16
     }
+
+    Int disk_size = ceil(2 * size(input_vcf, "GB")) + 100
 
     command <<<
         set -xeuo pipefail
@@ -218,8 +216,8 @@ task AnnotateVcfRegions {
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.1"
         disks: "local-disk " + disk_size + " HDD"
-        memory: memory_ram + " GB"
-        cpu: cpu
+        memory: 16 + " GB"
+        cpu: 4
         preemptible: 3
     }
 
@@ -380,12 +378,13 @@ task AnnotateVcfWithGatk {
         set -xeuo pipefail
 
         # Convert from cram to bam if necessary
+        # Needed bcause VariantAnnotator runs about 10-20x slower with cram than bam
         if [[ $(basename ~{bam} .cram) != $(basename ~{bam}) ]]; then
-            samtools view -b -T ~{ref_fasta} ~{bam} -o input.bam
-            samtools index input.bam
+           samtools view -@ 4 -b -T ~{ref_fasta} ~{bam} -o input.bam
+           samtools index input.bam
         else
-            ln -s ~{bam} input.bam
-            ln -s ~{bam_index} input.bam.bai
+           ln -s ~{bam} input.bam
+           ln -s ~{bam_index} input.bam.bai
         fi
 
         # Update VCF sample name to match the RG sample
@@ -412,8 +411,8 @@ task AnnotateVcfWithGatk {
     runtime {
         docker: "us.gcr.io/broad-gatk/gatk:4.6.0.0"
         disks: "local-disk 400 HDD"
-        memory: "16 GB"
-        cpu: 8
+        memory: "8 GB"
+        cpu: 4
     }
 
     output {
