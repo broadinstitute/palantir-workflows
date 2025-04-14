@@ -73,7 +73,7 @@ task GlimpseSplitReferenceTask {
 
         Int? seed
         Boolean keep_monomorphic_ref_sites
-        
+
         Int mem_gb = 4
         Int cpu = 4
         Int disk_size_gb = ceil(2.2 * size(reference_panel, "GiB") + size(genetic_map, "GiB") + 100)

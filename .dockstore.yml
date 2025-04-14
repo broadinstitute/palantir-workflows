@@ -144,3 +144,6 @@ workflows:
   - name: CNVCallingAndMergeForFabric
     subclass: WDL
     primaryDescriptorPath: /gCNV/cnv_calling_and_merge_for_fabric.wdl
+  - name: Glimpse2SplitReferenceWithoutChunking
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2SplitReferenceWithoutChunking.wdl
