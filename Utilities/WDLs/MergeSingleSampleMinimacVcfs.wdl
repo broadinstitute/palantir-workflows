@@ -221,7 +221,7 @@ task MergeQCMetrics {
     }
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/python-data-slime:1.1"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.1"
         disks: "local-disk " + disk_size_gb + " HDD"
         memory: mem_gb + " GiB"
         cpu: cpu
