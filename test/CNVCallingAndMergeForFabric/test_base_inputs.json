@@ -1,7 +1,6 @@
 {
   "CNVCallingAndMergeForFabric.allosomal_contigs": [],
   "CNVCallingAndMergeForFabric.contig_ploidy_model_tar":"gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/contig-ploidy-model-subset-Mar-28-2025.tar.gz",
-  "CNVCallingAndMergeForFabric.filtered_intervals" : "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/twist_hg38_targets.preprocessed.filtered.subset_Mar_28_2025.interval_list",
   "CNVCallingAndMergeForFabric.gatk_docker": "broadinstitute/gatk:4.4.0.0",
   "CNVCallingAndMergeForFabric.gcnv_model_tar": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/blood_new-gcnv-model-shard-0.tar.gz",
   "CNVCallingAndMergeForFabric.gcnv_panel_genotyped_segments": ["gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/pon_genotyped_segments/genotyped-segments-0437196673.cram.vcf.gz",
@@ -154,7 +153,6 @@
     "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/pon_read_counts/SM30439.cram.counts.hdf5",
     "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/pon_read_counts/SM30510.cram.counts.hdf5"
   ],
-  "CNVCallingAndMergeForFabric.intervals": "gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/twist_hg38_targets.subset.interval_list",
   "CNVCallingAndMergeForFabric.maximum_number_events_per_sample": 100,
   "CNVCallingAndMergeForFabric.maximum_number_pass_events_per_sample": 10,
   "CNVCallingAndMergeForFabric.normal_bam":"gs://palantir-workflows-test-data/CNVCallingAndMergeForFabric/0437227296_subset.cram",

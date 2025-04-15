@@ -8,12 +8,11 @@ workflow CNVCallingAndMergeForFabric {
         File short_variant_vcf
 
         File contig_ploidy_model_tar
-        File filtered_intervals
         File preprocessed_intervals
         File gcnv_model_tar
-        Array[File] gcnv_panel_genotyped_segments
-        Array[File] gcnv_panel_copy_ratios
-        Array[File] gcnv_panel_read_counts
+        Array[File]+ gcnv_panel_genotyped_segments
+        Array[File]+ gcnv_panel_copy_ratios
+        Array[File]+ gcnv_panel_read_counts
 
         Float overlap_thresh = 0.5
 
@@ -35,7 +34,6 @@ workflow CNVCallingAndMergeForFabric {
             normal_bam = normal_bam,
             normal_bai = normal_bai,
             contig_ploidy_model_tar = contig_ploidy_model_tar,
-            filtered_intervals = filtered_intervals,
             preprocessed_intervals = preprocessed_intervals,
             gcnv_model_tar = gcnv_model_tar,
             pon_genotyped_segments_vcfs = gcnv_panel_genotyped_segments,
@@ -228,8 +226,8 @@ task GCNVVisualzation {
         File filtered_vcf
         File case_copy_ratios
         File case_read_counts
-        Array[File] panel_copy_ratios
-        Array[File] panel_read_counts
+        Array[File]+ panel_copy_ratios
+        Array[File]+ panel_read_counts
         File interval_list
     }
 
