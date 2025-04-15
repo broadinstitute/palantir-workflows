@@ -361,7 +361,7 @@ task GCNVVisualzation {
        case_read_counts <- case_read_counts %>% inner_join(panel_mean_counts)
        case_read_counts <- case_read_counts %>% mutate(adjusted_counts = 2*norm_counts/panel_mean_norm_counts) %>% drop_na()
        case_read_counts <- case_read_counts %>% semi_join(cr_case)
-       intervals <- read_tsv("~{interval_list}"),
+       intervals <- read_tsv("~{interval_list}",
                              comment="@")
        case_read_counts <- case_read_counts %>% left_join(intervals)
 
