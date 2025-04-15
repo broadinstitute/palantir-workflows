@@ -254,6 +254,7 @@ workflow CNVGermlineCaseWorkflow {
         Array[File] qc_status_files = PostprocessGermlineCNVCalls.qc_status_file
         Array[String] qc_status_strings = PostprocessGermlineCNVCalls.qc_status_string
         Array[File] denoised_copy_ratios = PostprocessGermlineCNVCalls.denoised_copy_ratios
+        Array[File] sharded_interval_list = GermlineCNVCallerCaseMode.sharded_interval_list
     }
 }
 

@@ -12,9 +12,8 @@ workflow SingleSampleGCNVAndFilterVCFs {
         #### required basic arguments ####
         ##################################
         File preprocessed_intervals
-        File filtered_intervals
-        String normal_bam
-        String normal_bai
+        File normal_bam
+        File normal_bai
         File contig_ploidy_model_tar
         File gcnv_model_tar
         Array[File]+ pon_genotyped_segments_vcfs
@@ -201,7 +200,7 @@ workflow SingleSampleGCNVAndFilterVCFs {
         File filtered_vcf_index = ExtractPoNFreqAnnotateFilterAndQC.filtered_vcf_index
         File filtered_vcf_md5sum = ExtractPoNFreqAnnotateFilterAndQC.filtered_vcf_md5sum
 
-        File read_counts_entity_id = CollectCounts.entity_id
+        String read_counts_entity_id = CollectCounts.entity_id
         File read_counts = CollectCounts.counts
         File contig_ploidy_calls_tar = DetermineGermlineContigPloidyCaseMode.contig_ploidy_calls_tar
         File gcnv_call_tar = GermlineCNVCallerCaseModeAndPostProcess.gcnv_call_tar
@@ -214,6 +213,7 @@ workflow SingleSampleGCNVAndFilterVCFs {
         Boolean qc_passed = (ExtractPoNFreqAnnotateFilterAndQC.qc_status == "PASS")
         File cnv_metrics = ExtractPoNFreqAnnotateFilterAndQC.cnv_metrics
         File denoised_copy_ratios = GermlineCNVCallerCaseModeAndPostProcess.denoised_copy_ratios
+        File interval_list = GermlineCNVCallerCaseModeAndPostProcess.interval_list
     }
 }
 
@@ -337,7 +337,7 @@ task ExtractPoNFreqAnnotateFilterAndQC {
     input {
         File vcf
         File vcf_idx
-        Array[File] panel_vcfs
+        Array[File]+ panel_vcfs
         File intervals
         Float overlap_thresh = 0.5
         Array[String] filter_expressions = ['(GT=="alt" | GT=="mis") & ((FMT/CN>1 & QUAL<50) | (FMT/CN==1 & QUAL<100 ) | (FMT/CN==0 & QUAL<400))','(GT=="alt" | GT=="mis") & (INFO/PANEL_COUNT>1)']
@@ -826,7 +826,7 @@ task GermlineCNVCallerCaseModeAndPostProcess {
         File calling_config_json = "~{output_dir_}/case-calls/calling_config.json"
         File denoising_config_json = "~{output_dir_}/case-calls/denoising_config.json"
         File gcnvkernel_version_json = "~{output_dir_}/case-calls/gcnvkernel_version.json"
-        File sharded_interval_list = "~{output_dir_}/case-calls/interval_list.tsv"
+        File interval_list = "~{output_dir_}/case-calls/interval_list.tsv"
 
         File genotyped_intervals_vcf = "genotyped-intervals-~{entity_id}.vcf.gz"
         File genotyped_intervals_vcf_index = "genotyped-intervals-~{entity_id}.vcf.gz.tbi"
