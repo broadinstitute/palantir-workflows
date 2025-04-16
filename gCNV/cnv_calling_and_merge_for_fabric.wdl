@@ -229,6 +229,7 @@ task GCNVVisualzation {
         Array[File]+ panel_copy_ratios
         Array[File]+ panel_read_counts
         File interval_list
+        Int mem_gb=4
     }
 
     String output_prefix = basename(filtered_vcf, ".filtered.genotyped-segments.vcf.gz")
@@ -525,7 +526,7 @@ task GCNVVisualzation {
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/r-gcnv-viz@sha256:c92a9a26cba4ab10b579776cd4dd70d5fca485d4a7216d0ab9b477662e3d9228"
         disks: "local-disk 100 HDD"
-        memory: "4 GB"
+        memory: mem_gb + " GB"
       }
 
       output {
