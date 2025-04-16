@@ -11,3 +11,9 @@ autoconf && \
 make install && \
 cd .. && \
 rm -r bcftools-1.21
+
+# Install gcloud
+# RUN curl -sSL https://sdk.cloud.google.com | bash
+
+# Make gcloud commands available
+ENV PATH=$PATH:/root/google-cloud-sdk/bin
