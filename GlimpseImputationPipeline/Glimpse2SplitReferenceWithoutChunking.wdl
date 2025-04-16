@@ -109,7 +109,7 @@ task GlimpseSplitReferenceTask {
 
             # Update AC,AN,AF before sending to GLIMPSE to avoid error if these are not up-to-date
             # Also stream directly from bucket rather than localize so only read through file once
-            gsutil cat ~{reference_panel} | bcftools +fill-tags /dev/stdin -- -t AC,AN,AF | /bin/GLIMPSE2_split_reference --threads ${NPROC} --reference /dev/stdin --map ~{genetic_map} --input-region ${IRG} --output-region ${ORG} --output ~{reference_output_dir}/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} ~{keep_monomorphic_ref_sites_string} ~{"--seed "+seed}
+            gsutil cat ~{reference_panel} | bcftools +fill-tags /dev/stdin -- -t AC,AN,AF | /bin/GLIMPSE2_split_reference --threads ${NPROC} --reference - --map ~{genetic_map} --input-region ${IRG} --output-region ${ORG} --output ~{reference_output_dir}/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} ~{keep_monomorphic_ref_sites_string} ~{"--seed "+seed}
 
             # Increase i (and make sure the exit code is zero)
             (( I_CHUNK++ )) || true
