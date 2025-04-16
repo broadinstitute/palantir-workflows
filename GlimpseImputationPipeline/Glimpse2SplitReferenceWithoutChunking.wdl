@@ -108,8 +108,8 @@ task GlimpseSplitReferenceTask {
             CHUNKINDEX=$(printf "%04d" $I_CHUNK)
 
             # Update AC,AN,AF before sending to GLIMPSE to avoid error if these are not up-to-date
-            gsutil cat ~{reference_panel} | bcftools +fill-tags /dev/stdin -o updated_ref.vcf.gz -Wtbi -- -t AC,AN,AF
-            /bin/GLIMPSE2_split_reference --threads ${NPROC} --reference updated_ref.vcf.gz --map ~{genetic_map} --input-region ${IRG} --output-region ${ORG} --output ~{reference_output_dir}/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} ~{keep_monomorphic_ref_sites_string} ~{"--seed "+seed}
+            # gcloud storage cat ~{reference_panel} | bcftools +fill-tags /dev/stdin -o updated_ref.vcf.gz -Wtbi -- -t AC,AN,AF
+            gcloud storage cat ~{reference_panel} | bcftools +fill-tags - -- -t AC,AN,AF | /bin/GLIMPSE2_split_reference --threads ${NPROC} --reference - --map ~{genetic_map} --input-region ${IRG} --output-region ${ORG} --output ~{reference_output_dir}/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} ~{keep_monomorphic_ref_sites_string} ~{"--seed "+seed}
 
             # Increase i (and make sure the exit code is zero)
             (( I_CHUNK++ )) || true
