@@ -24,6 +24,9 @@ workflow Glimpse2SplitReference {
         String genetic_map_path_prefix
         String genetic_map_path_suffix
 
+        String? output_path
+        String? output_panel_name
+
         Int? seed
         Float min_window_cm
         Boolean uniform_number_variants = false
@@ -57,9 +60,19 @@ workflow Glimpse2SplitReference {
         }
     }
 
+    if (defined(output_path)) {
+        call ExportReferencePanel {
+            input:
+                reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks),
+                output_path = select_first([output_path]),
+                output_panel_name = select_first([output_panel_name, "reference_panel"])
+        }
+    }
+
     output {
         Array[File] chunks = GlimpseSplitReferenceTask.chunks
         Array[File] reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks)
+        String? exported_reference_panel = ExportReferencePanel.exported_reference_panel
     }
 }
 
@@ -139,5 +152,46 @@ task GlimpseSplitReferenceTask {
         # have a built-in way to do that, we have to rely on the command section to do that. However, we don't have access to that bash
         # variable in the output section, so we have to use glob here and return the first (and only) result.
         File chunks = glob("chunks_contigindex_*.txt")[0]
+    }
+}
+
+task ExportReferencePanel {
+    input {
+        Array[String] reference_chunks
+        String output_path
+        String output_panel_name
+        String docker = "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
+    }
+
+    String output_path_no_trailing_slash = sub(output_path, "/$", "")
+    Int reference_chunks_count = length(reference_chunks)
+
+    command <<<
+        if [[ "~{output_path}" != gs://* ]]; then
+            echo "Error: Output path must start with gs://"
+            exit 1
+        fi
+        
+        /root/google-cloud-sdk/bin/gcloud storage cp ~{sep=" " reference_chunks} ~{output_path_no_trailing_slash}/chunks
+        /root/google-cloud-sdk/bin/gcloud storage ls ~{output_path_no_trailing_slash}/chunks > ~{output_panel_name}.txt
+
+        LINE_COUNT=$(wc -l < ~{output_panel_name}.txt)
+        if [[ "$LINE_COUNT" -ne "~{reference_chunks_count}" ]]; then
+            echo "Error: There are more binary files in ~{output_path_no_trailing_slash}/chunks/ than expected, probably the output path was not empty. Please remove all files in ~{output_path_no_trailing_slash}/chunks/ and try again."
+            exit 1
+        fi
+
+        /root/google-cloud-sdk/bin/gcloud storage cp ~{output_panel_name}.txt ~{output_path_no_trailing_slash}/
+    >>>
+
+    runtime {
+        docker: docker
+        memory: "1 GiB"
+        cpu: 1
+        preemptible: 1
+    }
+
+    output {
+        String exported_reference_panel = output_path_no_trailing_slash + "/" + output_panel_name + ".txt"
     }
 }
