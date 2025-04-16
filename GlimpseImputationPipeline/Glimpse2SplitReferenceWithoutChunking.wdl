@@ -77,7 +77,7 @@ task GlimpseSplitReferenceTask {
 
         Int mem_gb = 4
         Int cpu = 4
-        Int disk_size_gb = ceil(2.2 * size(reference_panel, "GiB") + size(genetic_map, "GiB") + 100)
+        Int disk_size_gb = ceil(3.5 * size(reference_panel, "GiB") + size(genetic_map, "GiB") + 100)
         Int preemptible = 1
         String docker
     }
@@ -108,8 +108,8 @@ task GlimpseSplitReferenceTask {
             CHUNKINDEX=$(printf "%04d" $I_CHUNK)
 
             # Update AC,AN,AF before sending to GLIMPSE to avoid error if these are not up-to-date
-            # Also stream directly from bucket rather than localize so only read through file once
-            gsutil cat ~{reference_panel} | bcftools +fill-tags /dev/stdin -- -t AC,AN,AF | /bin/GLIMPSE2_split_reference --threads ${NPROC} --reference - --map ~{genetic_map} --input-region ${IRG} --output-region ${ORG} --output ~{reference_output_dir}/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} ~{keep_monomorphic_ref_sites_string} ~{"--seed "+seed}
+            gsutil cat ~{reference_panel} | bcftools +fill-tags /dev/stdin -o updated_ref.vcf.gz -Wtbi -- -t AC,AN,AF
+            /bin/GLIMPSE2_split_reference --threads ${NPROC} --reference updated_ref.vcf.gz --map ~{genetic_map} --input-region ${IRG} --output-region ${ORG} --output ~{reference_output_dir}/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} ~{keep_monomorphic_ref_sites_string} ~{"--seed "+seed}
 
             # Increase i (and make sure the exit code is zero)
             (( I_CHUNK++ )) || true
