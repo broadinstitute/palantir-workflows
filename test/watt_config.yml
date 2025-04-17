@@ -45,3 +45,10 @@ MergeSingleSampleMinimacVcfs:
     base:
       test_inputs: "/test/MergeSingleSampleMinimacVcfs/test_inputs.json"
       expected_outputs: "/test/MergeSingleSampleMinimacVcfs/test_outputs.json"
+
+CNVControlEventsQC:
+  path: "/gCNV/CNVControlEventsQC.wdl"
+  tests:
+    base:
+      test_inputs: "/test/CNVControlEventsQC/test_inputs.json"
+      expected_outputs: "/test/CNVControlEventsQC/test_outputs.json"

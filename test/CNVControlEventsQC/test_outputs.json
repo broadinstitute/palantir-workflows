@@ -1,0 +1,9 @@
+{
+  "CNVControlEventsQC.expected_events_seen": 7.2500,
+  "CNVControlEventsQC.qc_passed": false,
+  "CNVControlEventsQC.expected_events_not_seen": 5.7500,
+  "CNVControlEventsQC.unexpected_events": "gs://palantir-workflows-test-data/CNVControlEventsQC/outputs/unexpected_events.tsv",
+  "CNVControlEventsQC.precision": 0.7128,
+  "CNVControlEventsQC.sensitivity": 0.5492,
+  "CNVControlEventsQC.unexpected_events_seen": 5.0000
+}

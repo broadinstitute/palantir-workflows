@@ -147,3 +147,6 @@ workflows:
   - name: MergeSingleSampleMinimacVcfs
     subclass: WDL
     primaryDescriptorPath: /Utilities/WDLs/MergeSingleSampleMinimacVcfs.wdl
+  - name: CNVControlEventsQC
+    subclass: WDL
+    primaryDescriptorPath: /gCNV/CNVControlEventsQC.wdl
