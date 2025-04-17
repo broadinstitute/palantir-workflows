@@ -1,0 +1,6 @@
+contig	start	end	ALT	svtype	ID	start_exon_idx	end_exon_idx
+chr1	60	90	<DUP>	DUP	left	0.0	0.0
+chr1	660	690	<DUP>	DUP	right	6.0	6.0
+chr2	100	195	<DEL>	DEL	wrong_svtype	0.0	1.0
+chr2	900	950	<DUP>	DUP	false_positive_1	8.0	9.0
+chr2	1000	2000	<DUP>	DUP	false_positive_2	9.0	9.0
