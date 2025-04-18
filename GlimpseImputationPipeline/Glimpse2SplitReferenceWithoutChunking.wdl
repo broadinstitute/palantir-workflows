@@ -109,7 +109,8 @@ task GlimpseSplitReferenceTask {
 
             # Update AC,AN,AF before sending to GLIMPSE to avoid error if these are not up-to-date
             # gcloud storage cat ~{reference_panel} | bcftools +fill-tags /dev/stdin -o updated_ref.vcf.gz -Wtbi -- -t AC,AN,AF
-            gcloud storage cat ~{reference_panel} | bcftools view -o current_chunk.vcf.gz -Wtbi --threads $NPROC -r $IRG /dev/stdin
+            export GCS_OAUTH_TOKEN=$(gcloud auth application-default)
+            bcftools view -o current_chunk.vcf.gz -Wtbi --threads $NPROC -r $IRG ~{reference_panel}
             /bin/GLIMPSE2_split_reference --threads ${NPROC} --reference current_chunk.vcf.gz --map ~{genetic_map} --input-region ${IRG} --output-region ${ORG} --output ~{reference_output_dir}/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} ~{keep_monomorphic_ref_sites_string} ~{"--seed "+seed}
 
             # Increase i (and make sure the exit code is zero)
