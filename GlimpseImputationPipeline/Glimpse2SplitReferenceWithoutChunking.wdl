@@ -127,7 +127,7 @@ task ShardVcf {
         docker: "us.gcr.io/broad-dsde-methods/updated_glimpse_docker:v1.0"
         memory: "8 GB"
         cpu: 4
-        disk: "local-disk " + disk_size + " HDD"
+        disks: "local-disk " + disk_size + " HDD"
         preemptible: 0
     }
 
@@ -160,7 +160,7 @@ task AddAlleleInfo {
         docker: "us.gcr.io/broad-dsde-methods/updated_glimpse_docker:v1.0"
         memory: "8 GB"
         cpu: 4
-        disk: "local-disk " + disk_size + " HDD"
+        disks: "local-disk " + disk_size + " HDD"
         preemptible: 0
     }
 
