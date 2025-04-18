@@ -82,6 +82,7 @@ task ShardVcf {
 
         File ref_chunks
         Int lines_per_chunk = 5
+        Int max_jobs = 10
         String contig_name
 
         Int disk_size = ceil(2.5 * size(vcf, "GiB") + 100)
@@ -116,10 +117,25 @@ task ShardVcf {
 
         # Use bcftools to split the VCF file into chunks
         I_CHUNK=0
-        while read -r interval; do
-            bcftools view -r "$interval" ~{vcf} -Oz -o "chunk_${I_CHUNK}.vcf.gz" -Wtbi --threads $(nproc)
-            (( I_CHUNK++ )) || true
+
+        # Parallelize the IO
+        MAX_JOBS=~{max_jobs}  # Limit concurrent jobs
+        job_count=0
+
+        while IFS= read -r interval; do
+            {
+                bcftools view -r "$interval" ~{vcf} -Oz -o "chunk_${I_CHUNK}.vcf.gz" -Wtbi --threads $(nproc)
+                (( I_CHUNK++ )) || true
+            } &
+
+            ((job_count++))
+            if (( job_count >= MAX_JOBS )); then
+                wait -n  # Wait for any job to finish
+                ((job_count--))
+            fi
         done < shard_intervals.txt
+
+        wait  # Wait for all jobs to finish
 
     >>>
 
