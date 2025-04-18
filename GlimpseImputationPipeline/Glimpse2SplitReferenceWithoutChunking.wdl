@@ -67,8 +67,8 @@ task GlimpseSplitReferenceTask {
     input {
         String contig
         Int i_contig
-        String reference_panel
-        String reference_panel_index
+        File reference_panel
+        File reference_panel_index
         File genetic_map
         File reference_chunks
 
