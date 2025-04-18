@@ -17,3 +17,6 @@ rm -r bcftools-1.21
 
 # Make gcloud commands available
 ENV PATH=$PATH:/root/google-cloud-sdk/bin
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y python3-pip python3-pandas
