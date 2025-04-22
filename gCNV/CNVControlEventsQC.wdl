@@ -21,7 +21,7 @@ workflow CNVControlEventsQC {
         Float precision = CNVControlEventsQCTask.precision
         Float expected_events_seen = CNVControlEventsQCTask.expected_events_seen
         Float expected_events_not_seen = CNVControlEventsQCTask.expected_events_not_seen
-        Int unexpected_events_seen = CNVControlEventsQCTask.unexpected_events_seen
+        Float unexpected_events_seen = CNVControlEventsQCTask.unexpected_events_seen
     }
 }
 
@@ -155,6 +155,6 @@ EOF
         Float precision = read_float('precision.txt')
         Float expected_events_seen = read_float('expected_events_seen.txt')
         Float expected_events_not_seen = read_float('expected_events_not_seen.txt')
-        Int unexpected_events_seen = read_int('unexpected_events_seen.txt')
+        Float unexpected_events_seen = read_float('unexpected_events_seen.txt')
     }
 }
