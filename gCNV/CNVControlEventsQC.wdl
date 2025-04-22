@@ -7,34 +7,21 @@ workflow CNVControlEventsQC {
         File eval_control_sample
         File control_sample_common_events
         File exon_intervals
-
-        Float threshold_min_sensitivity
-        Float threshold_min_precision
-        Float threshold_min_expected_events_seen
-        Float threshold_max_expected_events_not_seen
-        Int threshold_max_unexpected_events_seen
     }
 
     call CNVControlEventsQCTask {
         input: 
             eval_control_sample = eval_control_sample,
             control_sample_common_events = control_sample_common_events,
-            exon_intervals = exon_intervals,
-            threshold_max_expected_events_not_seen = threshold_max_expected_events_not_seen,
-            threshold_max_unexpected_events_seen = threshold_max_unexpected_events_seen,
-            threshold_min_expected_events_seen = threshold_min_expected_events_seen,
-            threshold_min_precision = threshold_min_precision,
-            threshold_min_sensitivity = threshold_min_sensitivity
+            exon_intervals = exon_intervals
     }
 
     output {
-        Boolean qc_passed = CNVControlEventsQCTask.qc_passed
         Float sensitivity = CNVControlEventsQCTask.sensitivity
         Float precision = CNVControlEventsQCTask.precision
         Float expected_events_seen = CNVControlEventsQCTask.expected_events_seen
         Float expected_events_not_seen = CNVControlEventsQCTask.expected_events_not_seen
         Int unexpected_events_seen = CNVControlEventsQCTask.unexpected_events_seen
-        File unexpected_events = CNVControlEventsQCTask.unexpected_events
     }
 }
 
@@ -43,12 +30,6 @@ task CNVControlEventsQCTask {
         File eval_control_sample
         File control_sample_common_events
         File exon_intervals
-
-        Float threshold_min_sensitivity
-        Float threshold_min_precision
-        Float threshold_min_expected_events_seen
-        Float threshold_max_expected_events_not_seen
-        Int threshold_max_unexpected_events_seen
     }
 
     command <<<
@@ -115,41 +96,37 @@ truth_with_eval['overlap_end']=np.minimum(truth_with_eval.event_exon_end_truth, 
 
 truth_with_eval['overlap_length']=np.maximum(truth_with_eval.overlap_end - truth_with_eval.overlap_start,0).fillna(0)
 
-truth_with_eval['truth_length']=truth_with_eval.event_exon_end_truth - truth_with_eval.event_exon_start_truth
-truth_with_eval['eval_length']=np.maximum(truth_with_eval.event_exon_end_eval - truth_with_eval.event_exon_start_eval,0).fillna(0)
-
-truth_length_dedup = truth_with_eval.drop_duplicates(subset=['event_index', 'exon_idx_truth']).truth_length.sum()
-eval_length_dedup = truth_with_eval.drop_duplicates(subset=['ID', 'exon_idx_eval']).eval_length.sum()
+total_truth_length = (truth_expanded.event_exon_end - truth_expanded.event_exon_start).sum()
+total_eval_length = (eval_df_expanded.event_exon_end - eval_df_expanded.event_exon_start).sum()
 
 # Sensitivity
-sensitivity = truth_with_eval['overlap_length'].sum()/truth_length_dedup
+sensitivity = truth_with_eval['overlap_length'].sum()/total_truth_length
 
 # Precision
-precision = truth_with_eval['overlap_length'].sum()/eval_length_dedup
+precision = truth_with_eval['overlap_length'].sum()/total_eval_length
 
 # Expected events seen
-def group_truth_events(df):
+def calculate_truth_event_overlap(df):
     overlap_length = df.overlap_length.sum()
-    truth_length_dedup = df.drop_duplicates(subset=['exon_idx_truth']).truth_length.sum()
-    return overlap_length / truth_length_dedup
+    truth_dedup = df.drop_duplicates(subset=['exon_idx_truth'])
+    truth_dedup_length = (truth_dedup.event_exon_end_truth - truth_dedup.event_exon_start_truth).sum()
+    return overlap_length / truth_dedup_length
 
-truth_events_fraction_covered = truth_with_eval.groupby(['event_index']).apply(group_truth_events)
+truth_events_fraction_covered = truth_with_eval.groupby(['event_index']).apply(calculate_truth_event_overlap)
 expected_events_seen = truth_events_fraction_covered.sum()
 
 # Expected events not seen
 expected_events_not_seen = len(truth) - expected_events_seen
 
 # Unexpected events seen
-event_ids_matching_truth = truth_with_eval.loc[truth_with_eval['_merge'] == 'both', 'ID'].unique()
-eval_only_events = eval_df[~eval_df['ID'].isin(event_ids_matching_truth)]
-unexpected_events_seen = len(eval_only_events)
+def calculate_eval_event_overlap(df):
+    overlap_length = df.overlap_length.sum()
+    eval_dedup = df.drop_duplicates(subset=['exon_idx_eval'])
+    eval_dedup_length = (eval_dedup.event_exon_end_eval - eval_dedup.event_exon_start_eval).sum()
+    return overlap_length / eval_dedup_length
 
-# QC pass
-qc_passed = ((sensitivity >= ~{threshold_min_sensitivity}) and
-    (precision >= ~{threshold_min_precision}) and
-    (expected_events_seen >= ~{threshold_min_expected_events_seen}) and 
-    (expected_events_not_seen <= ~{threshold_max_expected_events_not_seen}) and 
-    (unexpected_events_seen <= ~{threshold_max_unexpected_events_seen}))
+eval_events_fraction_covered = truth_with_eval.groupby(['ID']).apply(calculate_eval_event_overlap)
+unexpected_events_seen = len(eval_df) - eval_events_fraction_covered.sum()
 
 # Write results
 with open('precision.txt', 'w') as f:
@@ -162,9 +139,6 @@ with open('expected_events_not_seen.txt', 'w') as f:
     f.write(f'{expected_events_not_seen:.4f}\n')
 with open('unexpected_events_seen.txt', 'w') as f:
     f.write(f'{unexpected_events_seen}\n')
-eval_only_events.to_csv('unexpected_events.tsv', sep='\t', index=False)
-with open('qc_passed.txt', 'w') as f:
-    f.write(f'{qc_passed}\n')
 EOF
     >>>
 
@@ -177,12 +151,10 @@ EOF
     }
 
     output {
-        Boolean qc_passed = read_boolean('qc_passed.txt')
         Float sensitivity = read_float('sensitivity.txt')
         Float precision = read_float('precision.txt')
         Float expected_events_seen = read_float('expected_events_seen.txt')
         Float expected_events_not_seen = read_float('expected_events_not_seen.txt')
         Int unexpected_events_seen = read_int('unexpected_events_seen.txt')
-        File unexpected_events = 'unexpected_events.tsv'
     }
 }
