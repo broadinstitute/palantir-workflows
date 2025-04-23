@@ -6,10 +6,13 @@ workflow evaluate_cnv_accuracy {
         Array[File] cnv_vcfs
         Array[File] merged_vcfs
         Array[File] truth_beds
+        Array[File] curated_event_vcfs
         File sample_id_mappings
         File sample_material_mappings
         File targets_interval_list
         Int truth_ref_panel_counts
+        File  curated_events
+        File cureated_event_sample_mapping
     }
 
     call compute_accuracy {
@@ -24,9 +27,19 @@ workflow evaluate_cnv_accuracy {
             version = version
     }
 
+    call match_curated_events {
+        input:
+            curated_event_vcfs = curated_event_vcfs,
+            curated_events = curated_events,
+            curated_event_sample_mapping = cureated_event_sample_mapping,
+            targets_interval_list = targets_interval_list,
+            version = version
+    }
+
     output {
         File ppv = compute_accuracy.ppv
         File recall = compute_accuracy.recall
+        File curated_events_match = match_curated_events.curated_events_match
     }
 }
 
@@ -147,7 +160,7 @@ task compute_accuracy {
                                     "input_material_type":"input_material_type_bge","FILTER":"FILTER_bge"}, axis=1).
             groupby(['contig_bge','start_bge','svtype_bge','sample_name', 'input_material_type_bge', 'QUAL',
                 'FILTER_bge','CN','NP']).
-            agg(bge_length = pd.NamedAgg('event_exon_length',sum),
+            agg(bge_length = pd.NamedAgg('event_exon_length','sum'),
                 n_exons = pd.NamedAgg('event_exon_length','count'))
 
         )
@@ -157,8 +170,8 @@ task compute_accuracy {
                                                                 0)).
             groupby(['contig_bge','start_bge','svtype_bge','sample_name', 'input_material_type_bge', 'QUAL',
                 'FILTER_bge','CN','NP']).
-            agg(overlapping_truth_length_any=pd.NamedAgg('overlapping_bge_truth_exon_length',sum),
-                overlapping_truth_length_pass=pd.NamedAgg('overlapping_bge_truth_exon_length_pass',sum)).
+            agg(overlapping_truth_length_any=pd.NamedAgg('overlapping_bge_truth_exon_length','sum'),
+                overlapping_truth_length_pass=pd.NamedAgg('overlapping_bge_truth_exon_length_pass','sum')).
             join(bge_length_df)
         )
         bge_label_df['overlap_truth_frac_any'] = bge_label_df.overlapping_truth_length_any/bge_label_df.bge_length
@@ -174,7 +187,8 @@ task compute_accuracy {
             ppv_df['min_exon_count']=min_exon_count
         ppv_df = pd.concat(ppv_dfs)
         ppv_df['ppv']=ppv_df['TP_frac']/(ppv_df['TP_frac']+ppv_df['FP_frac'])
-        ppv_df.reset_index().to_csv("ppv_~{version}.csv", sep="\t", index=False)
+        ppv_df['version'] = "~{version}"
+        ppv_df.reset_index().to_csv("ppv_~{version}.tsv", sep="\t", index=False)
 
         df_truth_exon_expanded['event_exon_length'] = df_truth_exon_expanded['event_exon_end']-df_truth_exon_expanded['event_exon_start'] + 1
         truth_length_df = (
@@ -183,7 +197,7 @@ task compute_accuracy {
                                     "bge_sample_id":"bge_sample_id_truth"}, axis=1).
             groupby(['contig_truth','start_truth','svtype_truth','bge_sample_id_truth', 'input_material_type_truth',
                 'FILTER_truth','af']).
-            agg(truth_length = pd.NamedAgg('event_exon_length',sum),
+            agg(truth_length = pd.NamedAgg('event_exon_length','sum'),
                 n_exons = pd.NamedAgg('event_exon_length','count'))
         )
 
@@ -193,7 +207,7 @@ task compute_accuracy {
                                                                 0)).
             groupby(['contig_truth','start_truth','svtype_truth','bge_sample_id_truth', 'input_material_type_truth',
                 'FILTER_truth','af']).
-            agg(overlapping_bge_length_pass=pd.NamedAgg('overlapping_bge_truth_exon_length_pass',sum)).
+            agg(overlapping_bge_length_pass=pd.NamedAgg('overlapping_bge_truth_exon_length_pass','sum')).
             join(truth_length_df)
         )
         truth_label_df['overlap_bge_frac_pass'] = truth_label_df.overlapping_bge_length_pass/truth_label_df.truth_length
@@ -206,7 +220,8 @@ task compute_accuracy {
             recall_df['min_exon_count']=min_exon_count
         recall_df=pd.concat(recall_dfs)
         recall_df['recall']=recall_df.TP_frac/(recall_df.TP_frac + recall_df.FN_frac)
-        recall_df.reset_index().to_csv("recall_~{version}.csv", sep="\t", index=False)
+        recall_df['version'] = "~{version}"
+        recall_df.reset_index().to_csv("recall_~{version}.tsv", sep="\t", index=False)
         EOF
 
     >>>
@@ -220,8 +235,118 @@ task compute_accuracy {
     }
 
     output {
-        File ppv = "ppv_~{version}.csv"
-        File recall = "recall_~{version}.csv"
+        File ppv = "ppv_~{version}.tsv"
+        File recall = "recall_~{version}.tsv"
 
+    }
+}
+
+task match_curated_events {
+    input {
+        Array[File] curated_event_vcfs
+        File curated_events
+        File curated_event_sample_mapping
+        File targets_interval_list
+        String version
+        Int mem_gb = 8
+    }
+
+    command <<<
+
+        python << "EOF"
+        import pandas as pd
+        import numpy as np
+
+        targets = pd.read_csv("~{targets_interval_list}",
+                           sep="\t", comment="@", names = ["contig","start","end","dummy1","dummy2"])
+        targets['contig_idx'] = targets.groupby('contig').cumcount()
+        targets = targets.set_index(targets.contig + "_" + targets.contig_idx.astype(str))
+
+        curated_events = pd.read_csv("~{curated_events}",sep="\t")
+
+        def add_exon_idxs(df, exons):
+            contigs = set(df.contig)
+            for contig in contigs:
+                df.loc[df.contig==contig,"start_exon_idx"]=np.searchsorted(exons.loc[exons.contig==contig].end,
+                                                                        df.loc[df.contig==contig].start,"left")
+                df.loc[df.contig==contig,"end_exon_idx"]=np.searchsorted(exons.loc[exons.contig==contig].start,
+                                                                        df.loc[df.contig==contig].end,"right")
+
+        def get_exon_expanded_events(df, exons):
+            add_exon_idxs(df, exons)
+            df = df.loc[df.start_exon_idx != df.end_exon_idx].reset_index()
+            df_expanded = df.loc[df.index.repeat(df.end_exon_idx-df.start_exon_idx)]
+            df_expanded['exon_idx'] = df_expanded.groupby(df_expanded.index).cumcount() + df_expanded.start_exon_idx
+            df_expanded = df_expanded.set_index(df_expanded.contig + "_" + df_expanded.exon_idx.astype(int).astype(str))
+            df_expanded = df_expanded.join(exons[['start','end']], rsuffix='_exon')
+            df_expanded['event_exon_start']=np.maximum(df_expanded.start, df_expanded.start_exon)
+            df_expanded['event_exon_end']=np.minimum(df_expanded.end, df_expanded.end_exon)
+            return df_expanded
+        
+        sample_id_map = pd.read_csv("~{curated_event_sample_mapping}", sep="\t", dtype=str)
+
+        curated_events_expanded = get_exon_expanded_events(curated_events, targets)
+        curated_events_expanded = curated_events_expanded.set_index(curated_events_expanded.index + "_" + curated_events_expanded['CNV Type'] +
+                                 "_" + curated_events_expanded['Patient ID'])
+        curated_events_expanded["event_exon_length"] = (curated_events_expanded.event_exon_end - 
+                    curated_events_expanded.event_exon_start + 1).fillna(0)
+        curated_events_exon_lengths = (curated_events_expanded.groupby(['Patient ID', 'contig', 'start', 'CNV Type','Event Description']).
+                               agg(curated_event_exon_length=pd.NamedAgg("event_exon_length","sum"))
+                              )
+
+        def standardize_vcf_df(df):
+            df["svtype"] = df.ALT.str.replace("<","").str.replace(">","")
+            df = df.query("svtype in ['DEL', 'DUP']").copy()
+            df.index=list(range(len(df)))
+            df['end'] = df['INFO'].str.replace('END=','').apply(lambda x: x.split(';')[0]).astype(int) #split('=').apply(lambda x: x[1])
+            for num,f in enumerate(df.loc[0,'FORMAT'].split(':')):
+                df[f] = df['SAMPLE'].str.split(':').apply(lambda x: x[num])
+            df = df.astype({'NP':int,'CN':int,'QA':int,'QS':int})
+            return df
+
+        def read_bge_sample_to_df(vcf):
+            df = pd.read_csv(vcf, sep='\t',comment='#',compression='gzip',
+                                names=['contig','start','ID','REF','ALT','QUAL','FILTER','INFO','FORMAT','SAMPLE'])
+            df = standardize_vcf_df(df)
+            df['sample_name']=vcf.split('/')[-1].split('.')[0]
+            return df
+
+        bge_df = pd.concat([read_bge_sample_to_df(vcf) for vcf in ["~{sep='","' curated_event_vcfs}"]])
+        bge_df = bge_df.query('svtype in ["DEL","DUP"] and FILTER=="PASS"')
+        bge_df_expanded = get_exon_expanded_events(bge_df, targets)
+        bge_df_expanded = bge_df_expanded.set_index(bge_df_expanded.index + "_" + bge_df_expanded.svtype).drop('index', axis=1).reset_index()
+        bge_df_expanded = bge_df_expanded.merge(sample_id_map, left_on="sample_name", right_on="bge_id")
+        bge_df_expanded = bge_df_expanded.set_index(bge_df_expanded['index'] +"_" + bge_df_expanded["Patient ID"])
+
+        curated_events_expanded = curated_events_expanded.join(bge_df_expanded, how="left", rsuffix="_bge")
+        curated_events_expanded['overlapping_bge_start'] = np.maximum(curated_events_expanded.event_exon_start,
+                                                             curated_events_expanded.event_exon_start_bge)
+        curated_events_expanded['overlapping_bge_end'] = np.minimum(curated_events_expanded.event_exon_end,
+                                                             curated_events_expanded.event_exon_end_bge)
+        curated_events_expanded['overlapping_bge_len'] = np.maximum(0,curated_events_expanded.overlapping_bge_end -
+                                                           curated_events_expanded.overlapping_bge_start +
+                                                           1).fillna(0)
+
+        curated_events_match = (curated_events_expanded.groupby(['Patient ID', 'contig', 'start', 'CNV Type', 'Event Description']).
+                                agg({'overlapping_bge_len':'sum'})
+                                ).join(curated_events_exon_lengths)
+
+        curated_events_match['bge_overlap_frac'] = curated_events_match.overlapping_bge_len/curated_events_match.curated_event_exon_length
+        curated_events_match['version'] = "~{version}"
+        curated_events_match.to_csv("curated_events_match_~{version}.tsv", sep="\t")
+        EOF
+
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim@sha256:4c880fc4ca079f294dae4aef27c61fe58398684b2445caec5a484650f07a2616"
+        preemptible: 3
+        cpu: 2
+        disks: "local-disk 50 HDD"
+        memory: mem_gb + " GB"
+    }
+
+    output {
+        File curated_events_match = "curated_events_match_~{version}.tsv"
     }
 }
