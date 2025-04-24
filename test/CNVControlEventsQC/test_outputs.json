@@ -1,0 +1,7 @@
+{
+  "CNVControlEventsQC.expected_events_seen": 7.2500,
+  "CNVControlEventsQC.expected_events_not_seen": 5.7500,
+  "CNVControlEventsQC.precision": 0.7128,
+  "CNVControlEventsQC.sensitivity": 0.5492,
+  "CNVControlEventsQC.unexpected_events_seen": 6.1000
+}

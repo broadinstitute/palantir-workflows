@@ -1,0 +1,5 @@
+{
+  "CNVControlEventsQC.eval_control_sample": "gs://palantir-workflows-test-data/CNVControlEventsQC/inputs/eval.vcf",
+  "CNVControlEventsQC.control_sample_common_events": "gs://palantir-workflows-test-data/CNVControlEventsQC/inputs/truth.tsv",
+  "CNVControlEventsQC.exon_intervals": "gs://palantir-workflows-test-data/CNVControlEventsQC/inputs/intervals.tsv"
+}
