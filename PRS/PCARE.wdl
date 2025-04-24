@@ -113,7 +113,7 @@ task ComputeRiskValue {
         pcs = pd.read_csv("~{pcs}", sep="\t").set_index("IID")
         fam_hist = pd.read_csv("~{family_history}", sep="\t").set_index("sample_id")
 
-        full_risk = prs.join(pcs, on='#IID').join(fam_hist, on='#IID')
+        full_risk = prs.join(pcs, on='#IID', validate='one_to_one').join(fam_hist, on='#IID', validate='one_to_one')
 
         full_risk['combined_risk_score'] = (~{prs_beta}*full_risk.SCORE1_SUM + ~{fam_hist_beta}*full_risk.fam_hist + 
                                             ~{pc1_beta}*full_risk.PC1 + ~{pc2_beta}*full_risk.PC2)
