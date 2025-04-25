@@ -171,13 +171,13 @@ task ExportReferencePanel {
             exit 1
         fi
 
-        EXISTING_FILES=$(/root/google-cloud-sdk/bin/gcloud storage ls ~{output_path_no_trailing_slash}/chunks 2>&1 || true)
+        EXISTING_FILES=$(/root/google-cloud-sdk/bin/gcloud storage ls ~{output_path_no_trailing_slash}/chunks 2> /dev/null || true)
         if [[ -n "$EXISTING_FILES" ]]; then
             echo "Error: Directory ~{output_path_no_trailing_slash}/chunks is not empty. Please clear it before proceeding."
             exit 1
         fi
 
-        EXISTING_FILES=$(/root/google-cloud-sdk/bin/gcloud storage ls ~{output_path_no_trailing_slash}/~{output_panel_name}.txt 2>&1 || true)
+        EXISTING_FILES=$(/root/google-cloud-sdk/bin/gcloud storage ls ~{output_path_no_trailing_slash}/~{output_panel_name}.txt 2> /dev/null || true)
         if [[ -n "$EXISTING_FILES" ]]; then
             echo "Error: File ~{output_path_no_trailing_slash}/~{output_panel_name}.txt already exists. Please delete it before proceeding."
             exit 1
