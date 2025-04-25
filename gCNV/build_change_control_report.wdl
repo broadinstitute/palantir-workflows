@@ -38,6 +38,7 @@ task build_report {
 
     command <<<
         set -eo pipefail
+        Rscript -e "install.packages('kableExtra')"
         cat << EOF > ~{report_basename}_change_control_report.Rmd
         ---
         title: "BGE CNV Change Control"
@@ -52,25 +53,29 @@ task build_report {
         library(readr)
         library(kableExtra)
         library(tidyr)
-        knitr::opts_chunk$set(echo = FALSE)
+        library(purrr)
+        knitr::opts_chunks\$set(echo = FALSE)
         versions <- tibble(Version=c("~{sep='","' versions}"), Description=c("~{sep='","' descriptions}"))
 
-        ppv <- read_tsv(c("~{sep='","' ppv_files}")) %>% rowwise() %>% mutate(ppv_low_95=binom.test(round(TP_frac),round(TP_frac+FP_frac))$conf.int[[1]],
-            ppv_high_95=binom.test(round(TP_frac),round(TP_frac+FP_frac))$conf.int[[2]])
+        ppv_vcfs <- c("~{sep='","' ppv_files}")
+        ppv <- ppv_vcfs %>% map(read_tsv) %>% reduce(bind_rows) %>% rowwise() %>% mutate(ppv_low_95=binom.test(round(TP_frac),round(TP_frac+FP_frac))\$conf.int[[1]],
+            ppv_high_95=binom.test(round(TP_frac),round(TP_frac+FP_frac))\$conf.int[[2]])
 
-        recall <- read_tsv(c("~{sep='","' recall_files}")) %>% rowwise() %>% mutate(recall_low_95=binom.test(round(TP_frac),round(TP_frac+FN_frac))$conf.int[[1]],
-            recall_high_95=binom.test(round(TP_frac),round(TP_frac+FN_frac))$conf.int[[2]])
+        recall_vcfs <- c("~{sep='","' recall_files}")
+        recall <- recall_vcfs %>% map(read_tsv) %>% reduce(bind_rows) %>% rowwise() %>% mutate(recall_low_95=binom.test(round(TP_frac),round(TP_frac+FN_frac))\$conf.int[[1]],
+            recall_high_95=binom.test(round(TP_frac),round(TP_frac+FN_frac))\$conf.int[[2]])
 
         ppv_total_3_exons <- ppv %>% filter(min_exon_count==3) %>% group_by(svtype_bge,version) %>% summarise(TP_frac=sum(TP_frac),
                                                                     FP_frac=sum(FP_frac)) %>%
-        mutate(ppv=TP_frac/(TP_frac+FP_frac)) %>% rowwise() %>% mutate(ppv_low_95=binom.test(round(TP_frac),round(TP_frac+FP_frac))$conf.int[[1]],
-            ppv_high_95=binom.test(round(TP_frac),round(TP_frac+FP_frac))$conf.int[[2]])
+        mutate(ppv=TP_frac/(TP_frac+FP_frac)) %>% rowwise() %>% mutate(ppv_low_95=binom.test(round(TP_frac),round(TP_frac+FP_frac))\$conf.int[[1]],
+            ppv_high_95=binom.test(round(TP_frac),round(TP_frac+FP_frac))\$conf.int[[2]])
 
         recall_total_3_exons <- recall %>% filter(min_exon_count==3) %>% group_by(svtype_truth,version) %>% summarise(TP_frac=sum(TP_frac), FN_frac=sum(FN_frac)) %>%
-        mutate(recall=TP_frac/(TP_frac+FN_frac)) %>% rowwise() %>% mutate(recall_low_95=binom.test(round(TP_frac),round(TP_frac+FN_frac))$conf.int[[1]],
-            recall_high_95=binom.test(round(TP_frac),round(TP_frac+FN_frac))$conf.int[[2]])
-
-        curated_events <- read_tsv(c("~{sep='","' curated_events_match_files}")) %>% select(-overlapping_bge_len)
+        mutate(recall=TP_frac/(TP_frac+FN_frac)) %>% rowwise() %>% mutate(recall_low_95=binom.test(round(TP_frac),round(TP_frac+FN_frac))\$conf.int[[1]],
+            recall_high_95=binom.test(round(TP_frac),round(TP_frac+FN_frac))\$conf.int[[2]])
+          
+        curated_events_files <- c("~{sep='","' curated_events_match_files}")
+        curated_events <- curated_events_files %>% map(read_tsv) %>% reduce(bind_rows) %>% select(-overlapping_bge_len)
 
         found_counts <- curated_events %>% group_by(version) %>% 
         summarise(n_found = sum(bge_overlap_frac > 0.5), n=n()) %>% mutate(found_str = paste0(n_found,"/",n))
