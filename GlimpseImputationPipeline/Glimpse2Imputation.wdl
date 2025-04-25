@@ -86,12 +86,24 @@ workflow Glimpse2Imputation {
                 cpu = select_first([cpu_phase, safety_check_n_cpu, SelectResourceParameters.request_n_cpus]),
                 mem_gb = select_first([mem_gb_phase, safety_check_memory_gb, ceil(select_first([SelectResourceParameters.memory_gb, -1]) * mem_scaling_factor_phase)])
         }
+
+        if (reference_chunk == "gs://broad-dsde-methods-bge-resources-public/GlimpseImputation/ReferencePanels/1000G_HGDP_with_trio_information/chunks/cm_4/boost_1_78_0/bin/reference_panel_contigindex_0023_chunkindex_0003_chrX_15282800_22186492.bin" ||
+            reference_chunk == "gs://broad-dsde-methods-bge-resources-public/GlimpseImputation/ReferencePanels/1000G_HGDP_with_trio_information/chunks/cm_4/boost_1_78_0/bin/reference_panel_contigindex_0023_chunkindex_0007_chrX_33553101_40621325.bin")
+        {
+            call remove_duplicates {
+                input:
+                    bcf = GlimpsePhase.imputed_vcf
+            }
+        }
+
+        File chunk_imputed_vcf = select_first([remove_duplicates.bcf_nodup, GlimpsePhase.imputed_vcf])
+        File chunk_imputed_vcf_index = select_first([remove_duplicates.bcf_nodup_index, GlimpsePhase.imputed_vcf_index])
     }
 
     call GlimpseLigate {
         input:
-            imputed_chunks = GlimpsePhase.imputed_vcf,
-            imputed_chunks_indices = GlimpsePhase.imputed_vcf_index,
+            imputed_chunks = chunk_imputed_vcf,
+            imputed_chunks_indices = chunk_imputed_vcf_index,
             output_basename = output_basename,
             ref_dict = ref_dict,
             preemptible = preemptible,
@@ -121,6 +133,35 @@ workflow Glimpse2Imputation {
         File qc_metrics = CollectQCMetrics.qc_metrics
         File coverage_metrics = CombineCoverageMetrics.coverage_metrics
     }
+}
+
+task remove_duplicates {
+    input {
+        File bcf
+        String bcftools_docker = "us.gcr.io/broad-gotc-prod/imputation-bcf-vcf:1.0.7-1.10.2-0.1.16-1669908889"
+        Int memory_mb = 3000
+    }
+    Int disk_size_gb = ceil(2*size(bcf, "GiB") + 50)
+    String basename = basename(bcf,".bcf")
+
+    command <<<
+        set -euo pipefail
+        bcftools norm -d exact ~{bcf} -o ~{basename}.nodup.bcf
+        bcftools index -c ~{basename}.nodup.bcf
+    >>>
+
+    runtime {
+    docker: bcftools_docker
+    disks: "local-disk " + disk_size_gb +" HDD"
+    memory: memory_mb +" MiB"
+  }
+
+  output {
+        File bcf_nodup = "~{basename}.nodup.bcf"
+        File bcf_nodup_index = "~{basename}.nodup.bcf.csi"
+    }
+
+
 }
 
 task GlimpsePhase {
