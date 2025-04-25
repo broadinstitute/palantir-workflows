@@ -43,7 +43,9 @@ task build_report {
         ---
         title: "BGE CNV Change Control"
         date: "\`r Sys.Date()\`"
-        output: pdf_document
+        output: 
+            pdf_document:
+                keep_tex: true
         ---
 
         \`\`\`{r setup, include=FALSE}
@@ -54,7 +56,7 @@ task build_report {
         library(kableExtra)
         library(tidyr)
         library(purrr)
-        knitr::opts_chunks\$set(echo = FALSE)
+        knitr::opts_chunk\$set(echo = FALSE)
         versions <- tibble(Version=c("~{sep='","' versions}"), Description=c("~{sep='","' descriptions}"))
 
         ppv_vcfs <- c("~{sep='","' ppv_files}")
@@ -121,13 +123,13 @@ task build_report {
 
         ## PPV and Recall for 3+ Exons
         \`\`\`{r}
-        ppv_recall_3_exons <- ppv_total_3_exons %>% inner_join(recall_total_3_exons, by=c("svtype_bge"="svtype_truth","version")) %>% transmute(svtype_bge, version, ppv_str=paste0(format(ppv, digits=2)," \\scriptsize (",format(ppv_low_95, digits=2),
+        ppv_recall_3_exons <- ppv_total_3_exons %>% inner_join(recall_total_3_exons, by=c("svtype_bge"="svtype_truth","version")) %>% transmute(svtype_bge, version, ppv_str=paste0(format(ppv, digits=2)," \\\\scriptsize (",format(ppv_low_95, digits=2),
                                                                             "-",format(ppv_high_95,digits=2),")"),
-                                        recall_str=paste0(format(recall, digits=2)," \\scriptsize (",format(recall_low_95, digits=2),
+                                        recall_str=paste0(format(recall, digits=2)," \\\\scriptsize (",format(recall_low_95, digits=2),
                                                                             "-",format(recall_high_95,digits=2),")")
                 )
 
-        kable(ppv_recall_3_exons%>% mutate(version = sub("_","\\\\_",version)), format = "latex", escape=FALSE, booktabs=TRUE, col.names = c("","","ppv \\scriptsize (95\\% CI)", "recall \\scriptsize (95\\% CI)"))  %>% collapse_rows(columns = 1) %>%
+        kable(ppv_recall_3_exons%>% mutate(version = sub("_","\\\\\\\\_",version)), format = "latex", escape=FALSE, booktabs=TRUE, col.names = c("","","ppv \\\\scriptsize (95\\\\% CI)", "recall \\\\scriptsize (95\\\\% CI)"))  %>% collapse_rows(columns = 1) %>%
         kable_styling(latex_options = c("scale_down"), full_width = TRUE)
         \`\`\`
 
@@ -156,6 +158,7 @@ task build_report {
       }
 
     output {
+        File report_tex = "~{report_basename}_change_control_report.tex"
         File report = "~{report_basename}_change_control_report.pdf"
     }
 }
