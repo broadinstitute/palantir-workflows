@@ -138,7 +138,7 @@ workflow Glimpse2Imputation {
 task remove_duplicates {
     input {
         File bcf
-        String bcftools_docker = "us.gcr.io/broad-gotc-prod/imputation-bcf-vcf:1.0.7-1.10.2-0.1.16-1669908889"
+        String bcftools_docker = "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
         Int memory_mb = 3000
     }
     Int disk_size_gb = ceil(2*size(bcf, "GiB") + 50)
