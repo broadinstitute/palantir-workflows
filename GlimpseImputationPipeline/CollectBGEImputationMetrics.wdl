@@ -591,7 +591,7 @@ ancestry_dict = dict()
 for i in range(len(eval_sample_ids1)):
     ancestry_dict[eval_sample_ids1[i]] = ancestries[i]
 
-df = pd.read_csv('~{correlation_file1}', sep="\t", comment='#')
+df = pd.read_csv('~{correlation_file1}', sep="\t", comment='#', dtype={'SAMPLE': str})
 if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
     raise RuntimeError(f'~{correlation_file1} has no sites in it.')
 df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
@@ -604,7 +604,7 @@ if ~{if defined(correlation_file2) then "True" else "False"}:
     for i in range(len(eval_sample_ids2)):
         ancestry_dict[eval_sample_ids2[i]] = ancestries[i]
 
-    df = pd.read_csv('~{correlation_file2}', sep="\t", comment='#')
+    df = pd.read_csv('~{correlation_file2}', sep="\t", comment='#', dtype={'SAMPLE': str})
     if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
         raise RuntimeError(f'~{correlation_file2} has no sites in it.')
     df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
@@ -617,7 +617,7 @@ if ~{if defined(correlation_file3) then "True" else "False"}:
     for i in range(len(eval_sample_ids3)):
         ancestry_dict[eval_sample_ids3[i]] = ancestries[i]
 
-    df = pd.read_csv('~{correlation_file3}', sep="\t", comment='#')
+    df = pd.read_csv('~{correlation_file3}', sep="\t", comment='#', dtype={'SAMPLE': str})
     if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
         raise RuntimeError(f'~{correlation_file3} has no sites in it.')
     df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
@@ -630,7 +630,7 @@ if ~{if defined(correlation_file4) then "True" else "False"}:
     for i in range(len(eval_sample_ids4)):
         ancestry_dict[eval_sample_ids4[i]] = ancestries[i]
 
-    df = pd.read_csv('~{correlation_file4}', sep="\t", comment='#')
+    df = pd.read_csv('~{correlation_file4}', sep="\t", comment='#', dtype={'SAMPLE': str})
     if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
         raise RuntimeError(f'~{correlation_file4} has no sites in it.')
     df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
@@ -643,7 +643,7 @@ if ~{if defined(correlation_file5) then "True" else "False"}:
     for i in range(len(eval_sample_ids5)):
         ancestry_dict[eval_sample_ids5[i]] = ancestries[i]
 
-    df = pd.read_csv('~{correlation_file5}', sep="\t", comment='#')
+    df = pd.read_csv('~{correlation_file5}', sep="\t", comment='#', dtype={'SAMPLE': str})
     if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
         raise RuntimeError(f'~{correlation_file5} has no sites in it.')
     df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
@@ -656,7 +656,7 @@ if ~{if defined(correlation_file6) then "True" else "False"}:
     for i in range(len(eval_sample_ids6)):
         ancestry_dict[eval_sample_ids6[i]] = ancestries[i]
 
-    df = pd.read_csv('~{correlation_file6}', sep="\t", comment='#')
+    df = pd.read_csv('~{correlation_file6}', sep="\t", comment='#', dtype={'SAMPLE': str})
     if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
         raise RuntimeError(f'~{correlation_file6} has no sites in it.')
     df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
@@ -669,7 +669,7 @@ if ~{if defined(correlation_file7) then "True" else "False"}:
     for i in range(len(eval_sample_ids7)):
         ancestry_dict[eval_sample_ids7[i]] = ancestries[i]
 
-    df = pd.read_csv('~{correlation_file7}', sep="\t", comment='#')
+    df = pd.read_csv('~{correlation_file7}', sep="\t", comment='#', dtype={'SAMPLE': str})
     if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
         raise RuntimeError(f'~{correlation_file7} has no sites in it.')
     df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
@@ -682,7 +682,7 @@ if ~{if defined(correlation_file8) then "True" else "False"}:
     for i in range(len(eval_sample_ids8)):
         ancestry_dict[eval_sample_ids8[i]] = ancestries[i]
 
-    df = pd.read_csv('~{correlation_file8}', sep="\t", comment='#')
+    df = pd.read_csv('~{correlation_file8}', sep="\t", comment='#', dtype={'SAMPLE': str})
     if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
         raise RuntimeError(f'~{correlation_file8} has no sites in it.')
     df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
@@ -695,7 +695,7 @@ if ~{if defined(correlation_file9) then "True" else "False"}:
     for i in range(len(eval_sample_ids9)):
         ancestry_dict[eval_sample_ids9[i]] = ancestries[i]
 
-    df = pd.read_csv('~{correlation_file9}', sep="\t", comment='#')
+    df = pd.read_csv('~{correlation_file9}', sep="\t", comment='#', dtype={'SAMPLE': str})
     if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
         raise RuntimeError(f'~{correlation_file9} has no sites in it.')
     df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
@@ -708,7 +708,7 @@ if ~{if defined(correlation_file10) then "True" else "False"}:
     for i in range(len(eval_sample_ids10)):
         ancestry_dict[eval_sample_ids10[i]] = ancestries[i]
 
-    df = pd.read_csv('~{correlation_file10}', sep="\t", comment='#')
+    df = pd.read_csv('~{correlation_file10}', sep="\t", comment='#', dtype={'SAMPLE': str})
     if df['SNP_SITES'].sum() + df['INDEL_SITES'].sum() == 0:
         raise RuntimeError(f'~{correlation_file10} has no sites in it.')
     df['ancestry'] = df['SAMPLE'].map(ancestry_dict)
