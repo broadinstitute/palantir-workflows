@@ -160,7 +160,7 @@ task ExportReferencePanel {
         Array[String] reference_chunks
         String output_path
         String output_panel_name
-        String docker = "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
+        String docker = "us.gcr.io/broad-dsde-methods/samtools:v1.1"
     }
 
     String output_path_no_trailing_slash = sub(output_path, "/$", "")
@@ -171,21 +171,21 @@ task ExportReferencePanel {
             exit 1
         fi
 
-        EXISTING_FILES=$(/root/google-cloud-sdk/bin/gcloud storage ls ~{output_path_no_trailing_slash}/chunks 2> /dev/null || true)
+        EXISTING_FILES=$(gcloud storage ls ~{output_path_no_trailing_slash}/chunks 2> /dev/null || true)
         if [[ -n "$EXISTING_FILES" ]]; then
             echo "Error: Directory ~{output_path_no_trailing_slash}/chunks is not empty. Please clear it before proceeding."
             exit 1
         fi
 
-        EXISTING_FILES=$(/root/google-cloud-sdk/bin/gcloud storage ls ~{output_path_no_trailing_slash}/~{output_panel_name}.txt 2> /dev/null || true)
+        EXISTING_FILES=$(gcloud storage ls ~{output_path_no_trailing_slash}/~{output_panel_name}.txt 2> /dev/null || true)
         if [[ -n "$EXISTING_FILES" ]]; then
             echo "Error: File ~{output_path_no_trailing_slash}/~{output_panel_name}.txt already exists. Please delete it before proceeding."
             exit 1
         fi
         
-        /root/google-cloud-sdk/bin/gcloud storage cp ~{sep=" " reference_chunks} ~{output_path_no_trailing_slash}/chunks
-        /root/google-cloud-sdk/bin/gcloud storage ls ~{output_path_no_trailing_slash}/chunks > ~{output_panel_name}.txt
-        /root/google-cloud-sdk/bin/gcloud storage cp ~{output_panel_name}.txt ~{output_path_no_trailing_slash}/
+        gcloud storage cp ~{sep=" " reference_chunks} ~{output_path_no_trailing_slash}/chunks
+        gcloud storage ls ~{output_path_no_trailing_slash}/chunks > ~{output_panel_name}.txt
+        gcloud storage cp ~{output_panel_name}.txt ~{output_path_no_trailing_slash}/
     >>>
 
     runtime {
