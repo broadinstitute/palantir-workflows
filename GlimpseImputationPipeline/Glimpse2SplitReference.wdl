@@ -160,7 +160,7 @@ task ExportReferencePanel {
         Array[String] reference_chunks
         String output_path
         String output_panel_name
-        String docker = "us.gcr.io/broad-dsde-methods/samtools:v1.1"
+        String docker = "gcr.io/google.com/cloudsdktool/google-cloud-cli:519.0.0-stable"
     }
 
     String output_path_no_trailing_slash = sub(output_path, "/$", "")
