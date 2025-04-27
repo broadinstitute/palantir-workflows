@@ -167,19 +167,19 @@ task ExportReferencePanel {
 
     command <<<
         if [[ "~{output_path}" != gs://* ]]; then
-            echo "Error: Output path must start with gs://"
+            echo "\nError: Output path must start with gs://\n"
             exit 1
         fi
 
         EXISTING_FILES=$(gcloud storage ls ~{output_path_no_trailing_slash}/chunks 2> /dev/null || true)
         if [[ -n "$EXISTING_FILES" ]]; then
-            echo "Error: Directory ~{output_path_no_trailing_slash}/chunks is not empty. Please clear it before proceeding."
+            echo "\nError: Directory ~{output_path_no_trailing_slash}/chunks is not empty. Please clear it before proceeding.\n"
             exit 1
         fi
 
         EXISTING_FILES=$(gcloud storage ls ~{output_path_no_trailing_slash}/~{output_panel_name}.txt 2> /dev/null || true)
         if [[ -n "$EXISTING_FILES" ]]; then
-            echo "Error: File ~{output_path_no_trailing_slash}/~{output_panel_name}.txt already exists. Please delete it before proceeding."
+            echo "\nError: File ~{output_path_no_trailing_slash}/~{output_panel_name}.txt already exists. Please delete it before proceeding.\n"
             exit 1
         fi
         
