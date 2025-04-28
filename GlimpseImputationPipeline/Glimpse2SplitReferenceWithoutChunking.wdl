@@ -46,23 +46,24 @@ workflow Glimpse2SplitReference {
             contig_name = contig_name
     }
 
-    scatter (i_chunk in range(length(ShardVcf.vcf_chunks))) {
+    # Keep the three: vcf_chunk, vcf_chunk_index, ref_chunk together with a counter at end (chunk.right.right)
+    scatter (chunk in zip(zip(ShardVcf.vcf_chunks, ShardVcf.vcf_chunks_indices), zip(ShardVcf.ref_chunks, range(length(ShardVcf.ref_chunks))))) {
         if (add_allele_info) {
             call AddAlleleInfo {
                 input:
-                    vcf = ShardVcf.vcf_chunks[i_chunk],
-                    vcf_index = ShardVcf.vcf_chunks_indices[i_chunk],
-                    shard_number = i_chunk
+                    vcf = chunk.left.left,
+                    vcf_index = chunk.left.right,
+                    shard_number = chunk.right.right
             }
         }
 
         call GlimpseSplitReferenceTask {
             input:
-                reference_panel = select_first([AddAlleleInfo.updated_vcf, ShardVcf.vcf_chunks[i_chunk]]),
-                reference_panel_index = select_first([AddAlleleInfo.updated_vcf_index, ShardVcf.vcf_chunks_indices[i_chunk]]),
+                reference_panel = select_first([AddAlleleInfo.updated_vcf, chunk.left.left]),
+                reference_panel_index = select_first([AddAlleleInfo.updated_vcf_index, chunk.left.right]),
                 contig = contig_name,
                 genetic_map = genetic_map_filename,
-                reference_chunks = ShardVcf.ref_chunks[i_chunk],
+                reference_chunks = chunk.right.left,
                 seed = seed,
                 keep_monomorphic_ref_sites = keep_monomorphic_ref_sites,
                 docker = docker
