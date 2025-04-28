@@ -4,8 +4,6 @@ import "cnv_common_tasks.wdl" as CNVTasks
 
 workflow SingleSampleGCNVAndFilterVCFs {
     input {
-        Array[String]? filter_expressions #= "QUAL < 50"  # Example filter criteria
-        Array[String]? filter_names
 
         ##################################
         ##for case mode
@@ -21,7 +19,6 @@ workflow SingleSampleGCNVAndFilterVCFs {
         File ref_fasta_fai
         File ref_fasta
         String gatk_docker
-        Float overlap_thresh = 0.5
 
         ##################################
         #### optional basic arguments ####
@@ -58,6 +55,15 @@ workflow SingleSampleGCNVAndFilterVCFs {
         Int? mem_gb_for_germline_cnv_caller
         Int? cpu_for_germline_cnv_caller
         Int? disk_for_germline_cnv_caller
+
+        ##################################################################
+        #### optional arguments for ExtractPoNFreqAnnotateFilterAndQC ####
+        ##################################################################
+        Array[String]? filter_expressions #= "QUAL < 50"  # Example filter criteria
+        Array[String]? filter_names
+        Int? mem_gb_for_extract_pon_freq
+        Int? disk_for_extract_pon_freq
+        Float? overlap_thresh
 
         # optional arguments for germline CNV denoising model
         Float? gcnv_mapping_error_rate
@@ -146,6 +152,7 @@ workflow SingleSampleGCNVAndFilterVCFs {
                 gatk_docker = gatk_docker,
                 mem_gb = mem_gb_for_germline_cnv_caller,
                 cpu = cpu_for_germline_cnv_caller,
+                disk_space_gb = disk_for_germline_cnv_caller,
                 p_alt = gcnv_p_alt,
                 cnv_coherence_length = gcnv_cnv_coherence_length,
                 max_copy_number = gcnv_max_copy_number,
@@ -193,6 +200,9 @@ workflow SingleSampleGCNVAndFilterVCFs {
             max_events = maximum_number_events_per_sample,
             max_pass_events = maximum_number_pass_events_per_sample,
             sample_name = CollectCounts.entity_id
+            overlap_thresh = overlap_thresh,
+            mem_gb = mem_gb_for_extract_pon_freq,
+            disk_size_gb = disk_for_extract_pon_freq
     }
 
     output {
@@ -496,124 +506,6 @@ task ExtractPoNFreqAnnotateFilterAndQC {
         File cnv_metrics = "~{sample_name}.cnv_metrics.tsv"
     }
 
-}
-
-task AnnotateWithPoNFreq {
-    input {
-        File vcf
-        File vcf_idx
-        File annotations
-        Int mem_gb=4
-        Int disk_size_gb = 100
-    }
-
-    String output_basename = basename(vcf)
-    command <<<
-        set -euo pipefail
-        bgzip ~{annotations}
-        tabix -s1 -b2 -e2 --skip-lines 1 ~{annotations}.gz
-        echo '##INFO=<ID=PANEL_FREQ,Number=1,Type=Float,Description="Frequency in panel">' > header_lines.txt
-        echo '##INFO=<ID=PANEL_COUNT,Number=1,Type=Float,Description="Count in panel">' >> header_lines.txt
-        bcftools annotate --no-version -a ~{annotations}.gz -c CHROM,POS,PANEL_FREQ,PANEL_COUNT -h header_lines.txt -o  ~{output_basename}.vcf.gz ~{vcf}
-
-    >>>
-
-    runtime {
-            docker: "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
-            disks: "local-disk " + disk_size_gb + " HDD"
-            memory: mem_gb + " GiB"
-    }
-
-    output {
-        File output_vcf = "~{output_basename}.vcf.gz"
-    }
-}
-
-
-task FilterVCF {
-    input {
-        String samplename
-        File vcf_file
-        Array[String] filter_expressions = ['(GT=="alt" | GT=="mis") & ((FMT/CN>1 & QUAL<50) | (FMT/CN==1 & QUAL<100 ) | (FMT/CN==0 & QUAL<400))','(GT=="alt" | GT=="mis") & (INFO/PANEL_COUNT>1)']
-        String gatk_docker
-        Array[String] filter_names = ["LowQual","PanelCount"]
-    }
-
-    command <<<
-        set -euo pipefail
-        cp ~{vcf_file} tmp.vcf.gz
-        filters=('~{sep="' '" filter_expressions}')
-        filter_names=(~{sep=" " filter_names})
-
-        for i in ${!filters[@]}
-        do
-            eval bcftools filter --no-version -m + -e \'${filters[$i]}\' --soft-filter ${filter_names[$i]} -o tmp_out.vcf.gz tmp.vcf.gz
-            mv tmp_out.vcf.gz tmp.vcf.gz
-        done
-
-        mv tmp.vcf.gz ~{samplename}.filtered.genotyped-segments.vcf.gz
-
-        bcftools index -t ~{samplename}.filtered.genotyped-segments.vcf.gz
-
-        md5sum ~{samplename}.filtered.genotyped-segments.vcf.gz | awk '{ print $1 }' > ~{samplename}.filtered.genotyped-segments.vcf.gz.md5sum
-    >>>
-
-    output {
-        File filtered_vcf = samplename + ".filtered.genotyped-segments.vcf.gz"
-        File filtered_vcf_index = samplename + ".filtered.genotyped-segments.vcf.gz.tbi"
-        File filtered_vcf_md5sum = samplename + ".filtered.genotyped-segments.vcf.gz.md5sum"
-    }
-
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
-        memory: "8G"
-        cpu: 2
-    }
-}
-
-task QCFilteredVCF {
-    input {
-        File filtered_vcf
-        String samplename
-        Int max_events
-        Int max_pass_events
-    }
-
-    command <<<
-        set -euo pipefail
-
-        n_total_events=$(bcftools view --no-header -e '(GT=="ref")' ~{filtered_vcf} | wc -l)
-        n_pass_events=$(bcftools view --no-header -e '(GT=="ref") || (FILTER!~"PASS")' ~{filtered_vcf} | wc -l)
-
-        if [ $n_total_events -le ~{max_events} ]; then
-            if [ $n_pass_events -le ~{max_pass_events} ]; then
-                echo "PASS" > qc_status.txt
-            else
-                echo "EXCESSIVE_NUMBER_OF_PASS_EVENTS" > qc_status.txt
-            fi
-        else
-            echo "EXCESSIVE_NUMBER_OF_EVENTS" > qc_status.txt
-        fi
-
-        echo $n_total_events > n_total_events.txt
-        echo $n_pass_events > n_pass_events.txt
-
-        echo -e "sample\ttotal_cnv_events\tpassing_cnv_events" > ~{samplename}.cnv_metrics.tsv
-        echo -e "~{samplename}\t${n_total_events}\t${n_pass_events}" >> ~{samplename}.cnv_metrics.tsv
-    >>>
-
-    output {
-        String qc_status = read_string("qc_status.txt")
-        Int n_total_events = read_int("n_total_events.txt")
-        Int n_pass_events = read_int("n_pass_events.txt")
-        File cnv_metrics = "~{samplename}.cnv_metrics.tsv"
-    }
-
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
-        memory: "8G"
-        cpu: 2
-    }
 }
 
 task DetermineGermlineContigPloidyCaseMode {
