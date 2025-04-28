@@ -19,6 +19,13 @@ The `TrioAnalysis` workflow is designed to analyze the genetic data of a child a
 The `MakeSummaryTable` task also takes a `format_value` input for a FORMAT field from the VCF to create a CDF of mendelian violation counts from. This is optional and defaults to "GQ". The `format_agg` value sets how to combine these values across the trio and can take the values: `min` (default), `max`, `mean`, `median`, `sum`. So for example, the default behavior would be to make a cumulative distribution of counts of mendelian violations stratified by the minimum GQ value in the trio for each site. One would expect with accurate sequencing/data processing, this count should approach zero as the threshold on min GQ increases. 
 
 ## Outputs
+There are two types of variant triples of concern the `rtg mendelian` tool will flag: "mendelian violations" and "mendelian uncertainties."
+
+* **Mendelian violation: a variant triple inconsistent with standard inheritance. E.g. father: 0/0, mother: 0/1, child: 1/1.**
+* **Mendelian uncertainty: a variant triple that could be a mendelian violation, but missing some genotypes to know for sure. E.g. father: ./., mother: 0/1, child: 1/1; or father: ./., mother: 1/1, child: 1/1.**
+
+Because of this, you may get more useful counts of mendelian uncertainties using a gVCF (perhaps with a GQ threshold) than a standard VCF. These two types of variant triples are split into the following outputs.
+
 - **`File mendelian_output_vcf`**: The final VCF file after Mendelian concordance analysis and optional annotation.
 - **`File mendelian_output_vcf_index`**: Index file for the final VCF.
 - **`File? mendelian_violation_table`**: Table of Mendelian violations.
