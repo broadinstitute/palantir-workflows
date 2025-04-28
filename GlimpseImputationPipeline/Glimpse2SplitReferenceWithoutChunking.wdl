@@ -123,10 +123,11 @@ task ShardVcf {
         MAX_JOBS=~{max_jobs}  # Limit concurrent jobs
         JOB_COUNT=0
 
-        while IFS= read -r interval; do
-            (( I_CHUNK++ )) || true
+        while IFS= read -r interval || [[ -n "$interval" ]]; do
             bcftools view -r "$interval" ~{vcf} -Oz -o "chunk_${I_CHUNK}.vcf.gz" -Wtbi --threads $(nproc) &
 
+            # Move lower to start counting chunks at 0
+            (( I_CHUNK++ )) || true
             (( JOB_COUNT++ )) || true
             if (( JOB_COUNT >= MAX_JOBS )); then
                 wait -n  # Wait for any job to finish
