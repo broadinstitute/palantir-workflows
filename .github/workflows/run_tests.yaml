@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/install-cromwell
         with:
-          CROMWELL_VERSION: 88
+          CROMWELL_VERSION: 89
       - name: Womtool Validate
         run: find . -name '*.wdl' | xargs -tI {} java -jar ${WOMTOOL_JAR} validate {}
 
@@ -36,7 +36,7 @@ jobs:
           service_account: palantir-workflows-service-acc@broad-dsde-methods.iam.gserviceaccount.com
       - uses: ./.github/actions/install-cromwell
         with:
-          CROMWELL_VERSION: 88
+          CROMWELL_VERSION: 89
       - uses: ./.github/actions/install-watt
         with:
           WATT_VERSION: v1.3.0
@@ -51,6 +51,9 @@ jobs:
             configs: |
               test/watt_config.yml 
               test/simple_cromwell.conf
+              .github/workflows/run_tests.yaml
+              .github/actions/install-cromwell/action.yaml
+              .github/actions/install-watt/action.yaml
       - name: Choose tests to run
         id: choose_tests_to_run
         if: github.ref != 'refs/heads/main' && !steps.changed-files.outputs.configs_all_changed_and_modified_files && (steps.changed-files.outputs.wdl_all_changed_and_modified_files || steps.changed-files.outputs.json_all_changed_and_modified_files)
