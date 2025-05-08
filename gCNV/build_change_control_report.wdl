@@ -39,6 +39,7 @@ task build_report {
     command <<<
         set -eo pipefail
         Rscript -e "install.packages('kableExtra')"
+        tlmgr install booktabs multirow wrapfig float colortbl pdflscape tabu threeparttable threeparttablex ulem makecell xcolor bookmark environ
         cat << EOF > ~{report_basename}_change_control_report.Rmd
         ---
         title: "BGE CNV Change Control"
@@ -129,8 +130,7 @@ task build_report {
                                                                             "-",format(recall_high_95,digits=2),")")
                 )
 
-        kable(ppv_recall_3_exons%>% mutate(version = sub("_","\\\\\\\\_",version)), format = "latex", escape=FALSE, booktabs=TRUE, col.names = c("","","ppv \\\\scriptsize (95\\\\% CI)", "recall \\\\scriptsize (95\\\\% CI)"))  %>% collapse_rows(columns = 1) %>%
-        kable_styling(latex_options = c("scale_down"), full_width = TRUE)
+        kable(ppv_recall_3_exons%>% mutate(version = gsub("_","\\\\\\\\_",version)), format = "latex", escape=FALSE, booktabs=TRUE, col.names = c("","","ppv \\\\scriptsize (95\\\\% CI)", "recall \\\\scriptsize (95\\\\% CI)"))  %>% collapse_rows(columns = 1)
         \`\`\`
 
         ## Analytical Sensitivity for Previously Identified Variants in Clinical Samples

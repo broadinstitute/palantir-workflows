@@ -114,6 +114,8 @@ task compute_accuracy {
             df["svtype"] = df.ALT.str.replace("<","").str.replace(">","")
             df = df.query("svtype in ['DEL', 'DUP']").copy()
             df.index=list(range(len(df)))
+            if df.empty:
+                return df
             df['end'] = df['INFO'].str.replace('END=','').apply(lambda x: x.split(';')[0]).astype(int) #split('=').apply(lambda x: x[1])
             
             
@@ -138,7 +140,7 @@ task compute_accuracy {
         passing_events = passing_events.sort_values(list(passing_events.columns)).reset_index(drop=True)
         passing_events_merged = df_bge_merged[["contig","start","end","ID","REF","ALT"]].copy()
         passing_events_merged = passing_events_merged.sort_values(list(passing_events_merged.columns)).reset_index(drop=True)
-        if not passing_events.equals(passing_events_merged):
+        if not passing_events.eq(passing_events_merged).all().all(): #types could be different if some samples contain no passing events.  we don't care about that
             raise ValueError("The passing events in the individual VCFs do not match the passing events in the merged VCF.")
     
         df_bge = df_bge.merge(sample_material_mapping, left_on="sample_name", right_on="bge_sample_id", how="left")
@@ -155,6 +157,39 @@ task compute_accuracy {
                                                                   bge_truth_joined.overlapping_bge_truth_exon_start +1).fillna(0)
         
         df_bge_expanded['event_exon_length'] = df_bge_expanded['event_exon_end']-df_bge_expanded['event_exon_start'] + 1
+
+        def computed_overlapping_length_bge(group):
+            if len(group) == 1:
+                return pd.DataFrame({'overlapping_bge_truth_exon_length':np.maximum(0, group.overlapping_bge_truth_exon_end - group.overlapping_bge_truth_exon_start +1),
+                                    'overlapping_bge_truth_exon_length_pass':np.where(group.FILTER_truth=="PASS",
+                                                                                    np.maximum(0, group.overlapping_bge_truth_exon_end - group.overlapping_bge_truth_exon_start +1),
+                                                                                    0
+                                                                                    )
+                                    }).fillna(0)
+            starts_ends_sorted = sorted(zip(group.overlapping_bge_truth_exon_start, group.overlapping_bge_truth_exon_end, group.FILTER_truth))
+            prev_end = -1
+            prev_end_pass = -1
+            overlapping_length = 0
+            overlapping_length_pass = 0
+            for start,end, filter_truth in starts_ends_sorted:
+                if end > prev_end:
+                    if start <= prev_end:
+                        overlapping_length += end - prev_end
+                    else:
+                        overlapping_length += end - start + 1
+                    prev_end = end
+                if filter_truth == "PASS":
+                    if end > prev_end_pass:
+                        if start <= prev_end_pass:
+                            overlapping_length_pass += end - prev_end_pass
+                        else:
+                            overlapping_length_pass + end - start +1
+                        prev_end_pass = end
+                        
+            
+            return pd.DataFrame({'overlapping_bge_truth_exon_length':[overlapping_length],
+                                'overlapping_bge_truth_exon_length_pass':[overlapping_length_pass]})
+
         bge_length_df = (
             df_bge_expanded.rename({"contig":"contig_bge","start":"start_bge","svtype":"svtype_bge",
                                     "input_material_type":"input_material_type_bge","FILTER":"FILTER_bge"}, axis=1).
@@ -165,9 +200,8 @@ task compute_accuracy {
 
         )
         bge_label_df = (
-            bge_truth_joined.assign(overlapping_bge_truth_exon_length_pass = np.where(bge_truth_joined.FILTER_truth=="PASS",
-                                                                 bge_truth_joined.overlapping_bge_truth_exon_length,
-                                                                0)).
+            bge_truth_joined.query('FILTER_bge=="PASS"').groupby([bge_truth_joined.query('FILTER_bge=="PASS"').index, 'contig_bge','start_bge','svtype_bge','sample_name', 'input_material_type_bge', 'QUAL',
+        'FILTER_bge','CN','NP']).apply(computed_overlapping_length_bge).
             groupby(['contig_bge','start_bge','svtype_bge','sample_name', 'input_material_type_bge', 'QUAL',
                 'FILTER_bge','CN','NP']).
             agg(overlapping_truth_length_any=pd.NamedAgg('overlapping_bge_truth_exon_length','sum'),
@@ -297,6 +331,8 @@ task match_curated_events {
         def standardize_vcf_df(df):
             df["svtype"] = df.ALT.str.replace("<","").str.replace(">","")
             df = df.query("svtype in ['DEL', 'DUP']").copy()
+            if df.empty:
+                return df
             df.index=list(range(len(df)))
             df['end'] = df['INFO'].str.replace('END=','').apply(lambda x: x.split(';')[0]).astype(int) #split('=').apply(lambda x: x[1])
             for num,f in enumerate(df.loc[0,'FORMAT'].split(':')):
