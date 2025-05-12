@@ -42,7 +42,7 @@ workflow Glimpse2Imputation {
     }
 
     if (defined(crams)) {
-        if (length(crams) > 1) {
+        if (length(select_first([crams])) > 1) {
             call SplitIntoBatches {
                     input:
                         batch_size = calling_batch_size,
@@ -51,16 +51,16 @@ workflow Glimpse2Imputation {
                         sample_ids = sample_ids
             }
         }
-        crams_batches = select_first([SplitIntoBatches.crams_batches, [crams]])
-        cram_indices_batches = select_first([SplitIntoBatches.cram_indices_batches, [cram_indices]])
-        sample_ids_batches = select_first([SplitIntoBatches.sample_ids_batches, [sample_ids]])
+        Array[Array[String]] crams_batches = select_first([SplitIntoBatches.crams_batches, [select_first([crams])]])
+        Array[Array[String]] cram_indices_batches = select_first([SplitIntoBatches.cram_indices_batches, [select_first([cram_indices])]])
+        Array[Array[String]] sample_ids_batches = select_first([SplitIntoBatches.sample_ids_batches, [select_first([sample_ids])]])
 
         scatter(i in range(length(crams_batches))) {
             call BcftoolsCall {
                 input:
-                    crams = SplitIntoBatches.crams_batches[i],
-                    cram_indices = SplitIntoBatches.cram_indices_batches[i],
-                    sample_ids = SplitIntoBatches.sample_ids_batches[i],
+                    crams = crams_batches[i],
+                    cram_indices = cram_indices_batches[i],
+                    sample_ids = sample_ids_batches[i],
                     fasta = fasta,
                     fasta_index = fasta_index,
                     call_indels = call_indels,
@@ -71,6 +71,7 @@ workflow Glimpse2Imputation {
                     cpu = bcftools_threads,
                     mem_gb = calling_mem_gb
             }
+        }
 
         if (length(BcftoolsCall.output_vcf) > 1) {
             call BcftoolsMerge {
