@@ -4,13 +4,10 @@ workflow Glimpse2Imputation {
     input {
         # List of files, one per line
         File reference_chunks
-        File sites_tsv
-        File sites_tsv_index
         File sites_vcf
         File sites_vcf_index
 
         Int bcftools_threads
-        Boolean use_gatk
         Int calling_batch_size
         Int calling_mem_gb
 
@@ -66,8 +63,6 @@ workflow Glimpse2Imputation {
                     call_indels = call_indels,
                     sites_vcf = sites_vcf,
                     sites_vcf_index = sites_vcf_index,
-                    sites_tsv = sites_tsv,
-                    sites_tsv_index = sites_tsv_index,
                     cpu = bcftools_threads,
                     mem_gb = calling_mem_gb
             }
@@ -241,16 +236,12 @@ task BcftoolsCall {
 
         File sites_vcf
         File sites_vcf_index
-        File sites_tsv
-        File sites_tsv_index
-        File sites_tsv
-        File sites_tsv_index
         Int mem_gb = 4
         Int cpu = 2
         Int preemptible = 3
     }
 
-    Int disk_size_gb = ceil(1.5*size(crams, "GiB") + size(fasta, "GiB") + size(sites_tsv, "GiB")) + 10
+    Int disk_size_gb = ceil(1.5*size(crams, "GiB") + size(fasta, "GiB")) + 10
 
     String out_basename = "batch"
 
@@ -264,8 +255,12 @@ task BcftoolsCall {
             echo "* ${crams[$i]} ${sample_ids[$i]}" >> sample_name_mapping.txt
         done
 
+        # Make the sites tsv file for bcftools call according to docs
+        # https://samtools.github.io/bcftools/bcftools.html#common_options
+        bcftools query -f'%CHROM\t%POS\t%REF,%ALT\n' ~{sites_vcf} | bgzip -c > sites.tsv.gz && tabix -s1 -b2 -e2 sites.tsv.gz
+
         bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -G sample_name_mapping.txt -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} | \
-        bcftools call -Aim -C alleles -T ~{sites_tsv} -O u | \
+        bcftools call -Aim -C alleles -T sites.tsv.gz -O u | \
         bcftools norm -m -both -O z -o ~{out_basename}.vcf.gz
         bcftools index -t ~{out_basename}.vcf.gz
     >>>
