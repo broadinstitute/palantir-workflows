@@ -447,8 +447,16 @@ task GlimpseLigate {
 
         NPROC=$(nproc)
         echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
+
+        # Sort the imputed chunk files by the first coordinate of variants in file
+        CHUNKS_LIST="~{write_lines(imputed_chunks)}"
+        touch imputed_chunks_coords.txt
+        while IFS= read -r line; do
+            bcftools view -H $line | head -n 1 | cut -f 2 >> imputed_chunks_coords.txt
+        done < $CHUNKS_LIST
+        paste $CHUNKS_LIST imputed_chunks_coords.txt | sort -k2 -n | cut -f 1 > imputed_chunks_files_sorted.txt
         
-        /bin/GLIMPSE2_ligate --input ~{write_lines(imputed_chunks)} --output ligated.vcf.gz --threads ${NPROC}
+        /bin/GLIMPSE2_ligate --input imputed_chunks_files_sorted.txt --output ligated.vcf.gz --threads ${NPROC}
 
         # Set correct reference dictionary
         bcftools view -h --no-version ligated.vcf.gz > old_header.vcf        
