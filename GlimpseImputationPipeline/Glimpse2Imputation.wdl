@@ -453,7 +453,7 @@ task GlimpseLigate {
         touch imputed_chunks_coords.txt
 
         set +e    # Using head -n 1 makes exit code 1 and script stops
-        while IFS= read -r line; do
+        while IFS= read -r line || [ -n "$LINE" ]; do
             bcftools view -H $line | head -n 1 | cut -f 2 >> imputed_chunks_coords.txt
         done < $CHUNKS_LIST
         set -e
