@@ -37,33 +37,23 @@ workflow Glimpse2SplitReference {
     String reference_filename_index = reference_filename + reference_panel_index_suffix
     String genetic_map_filename = genetic_map_path_prefix + contig_name + genetic_map_path_suffix
 
-    call ShardVcf {
-        input:
-            vcf = reference_filename,
-            vcf_index = reference_filename_index,
-            ref_chunks = contig_reference_chunks,
-            lines_per_chunk = lines_per_chunk,
-            contig_name = contig_name
-    }
+    # Shard the VCF file into chunks and process for GLIMPSE
+    scatter (interval in read_lines(contig_reference_chunks)) {
+        call ShardVcf {
+            input:
+                vcf = reference_filename,
+                vcf_index = reference_filename_index,
+                interval=interval,
 
-    # Keep the three: vcf_chunk, vcf_chunk_index, ref_chunk together with a counter at end (chunk.right.right)
-    scatter (chunk in zip(zip(ShardVcf.vcf_chunks, ShardVcf.vcf_chunks_indices), zip(ShardVcf.ref_chunks, range(length(ShardVcf.ref_chunks))))) {
-        if (add_allele_info) {
-            call AddAlleleInfo {
-                input:
-                    vcf = chunk.left.left,
-                    vcf_index = chunk.left.right,
-                    shard_number = chunk.right.right
-            }
         }
 
         call GlimpseSplitReferenceTask {
             input:
-                reference_panel = select_first([AddAlleleInfo.updated_vcf, chunk.left.left]),
-                reference_panel_index = select_first([AddAlleleInfo.updated_vcf_index, chunk.left.right]),
+                reference_panel = ShardVcf.vcf_chunk,
+                reference_panel_index = ShardVcf.vcf_chunk_index,
                 contig = contig_name,
+                interval = interval,
                 genetic_map = genetic_map_filename,
-                reference_chunks = chunk.right.left,
                 seed = seed,
                 keep_monomorphic_ref_sites = keep_monomorphic_ref_sites,
                 docker = docker
@@ -81,62 +71,21 @@ task ShardVcf {
         File vcf
         File vcf_index
 
-        File ref_chunks
-        Int lines_per_chunk = 5
-        Int max_jobs = 10
-        String contig_name
+        String interval
+        Boolean add_allele_info = true
 
         Int disk_size = ceil(2.5 * size(vcf, "GiB") + 100)
     }
 
     command <<<
         set -xueo pipefail
-
-        python3 << CODE
-        import pandas as pd
-
-        df = pd.read_csv("~{ref_chunks}", sep="\t", header=None, names=["index", "contig", "IR", "OR", "cm", "c1", "c2", "c3"])
-        df["region"] = df["IR"].apply(lambda x: x.split(":")[1])
-        df["start"] = df["region"].apply(lambda x: int(x.split("-")[0]))
-        df["end"] = df["region"].apply(lambda x: int(x.split("-")[1]))
-
-        # Split dataframe into chunks of size lines_per_chunk
-        chunks = [df[i:i + ~{lines_per_chunk}] for i in range(0, df.shape[0], ~{lines_per_chunk})]
-
-        # Create final intervals using first start and final end values
-        final_intervals = [f'~{contig_name}:{d["start"].values[0]}-{d["end"].values[-1]}' for d in chunks]
-
-        # Write final_intervals to file
-        with open("shard_intervals.txt", "w") as f:
-            f.write("\n".join(final_intervals))
-
-        # Write each chunk to a separate file
-        for i, chunk in enumerate(chunks):
-            chunk.to_csv(f"chunk_{i}.txt", sep="\t", index=False, header=False)
-
-        CODE
 
         # Use bcftools to split the VCF file into chunks
-        I_CHUNK=0
-
-        # Parallelize the IO
-        MAX_JOBS=~{max_jobs}  # Limit concurrent jobs
-        JOB_COUNT=0
-
-        while IFS= read -r interval || [[ -n "$interval" ]]; do
-            bcftools view -r "$interval" ~{vcf} -Oz -o "chunk_${I_CHUNK}.vcf.gz" -Wtbi --threads $(nproc) &
-
-            # Move lower to start counting chunks at 0
-            (( I_CHUNK++ )) || true
-            (( JOB_COUNT++ )) || true
-            if (( JOB_COUNT >= MAX_JOBS )); then
-                wait -n  # Wait for any job to finish
-                (( JOB_COUNT-- )) || true
-            fi
-        done < shard_intervals.txt
-
-        wait  # Wait for all jobs to finish
-
+        if [[ "~{add_allele_info}" == "true" ]]; then
+            bcftools view -t ~{interval} ~{vcf} --threads $(nproc) | bcftools +fill-tags - -o "chunk.vcf.gz" -Wtbi -- -t AC,AN,AF
+        else
+            bcftools view -t ~{interval} ~{vcf} --threads $(nproc) -o "chunk.vcf.gz" -Wtbi
+        fi
     >>>
 
     runtime {
@@ -148,41 +97,8 @@ task ShardVcf {
     }
 
     output {
-        Array[File] vcf_chunks = glob("chunk_*.vcf.gz")
-        Array[File] vcf_chunks_indices = glob("chunk_*.vcf.gz.tbi")
-        Array[String] intervals = read_lines("shard_intervals.txt")
-        Array[File] ref_chunks = glob("chunk_*.txt")
-    }
-}
-
-task AddAlleleInfo {
-    input {
-        File vcf
-        File vcf_index
-
-        Int shard_number
-
-        Int disk_size = ceil(2.5 * size(vcf, "GiB") + 100)
-    }
-
-    command <<<
-        set -xueo pipefail
-
-        # Use bcftools to add allele information to the VCF file
-        bcftools +fill-tags ~{vcf} -Oz -o "updated_chunk_~{shard_number}.vcf.gz" -Wtbi -- -t AC,AN,AF
-    >>>
-
-    runtime {
-        docker: "us.gcr.io/broad-dsde-methods/updated_glimpse_docker:v1.0"
-        memory: "8 GB"
-        cpu: 4
-        disks: "local-disk " + disk_size + " HDD"
-        preemptible: 0
-    }
-
-    output {
-        File updated_vcf = "updated_chunk_~{shard_number}.vcf.gz"
-        File updated_vcf_index = "updated_chunk_~{shard_number}.vcf.gz.tbi"
+        File vcf_chunk = "chunk.vcf.gz"
+        File vcf_chunk_index = "chunk.vcf.gz.tbi"
     }
 }
 
@@ -192,7 +108,7 @@ task GlimpseSplitReferenceTask {
         File reference_panel
         File reference_panel_index
         File genetic_map
-        File reference_chunks
+        String interval
 
         Int? seed
         Boolean keep_monomorphic_ref_sites
@@ -211,35 +127,23 @@ task GlimpseSplitReferenceTask {
         NPROC=$(nproc)
         echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
 
-        # Print chunk index to variable
+        # Print contig index to variable
         CONTIGINDEX="~{contig}"
+
+        # Make chunk index from interval
+        CHUNKINDEX=$(echo "~{interval}" | tr ":" "-")
 
         mkdir -p reference_output_dir
 
-        I_CHUNK=0
-        while IFS="" read -r LINE || [ -n "$LINE" ];
-        do
-            # Extract coordinates from chunks.txt file
-            printf -v ID "%02d" $(echo $LINE | cut -d" " -f1)
-            IRG=$(echo $LINE | cut -d" " -f3)
-            ORG=$(echo $LINE | cut -d" " -f4)
-
-            # Print chunk index to variable
-            CHUNKINDEX=$(printf "%04d" $I_CHUNK)
-
-            /bin/GLIMPSE2_split_reference \
-                --threads ${NPROC} \
-                --reference ~{reference_panel} \
-                --map ~{genetic_map} \
-                --input-region ${IRG} \
-                --output-region ${ORG} \
-                --output reference_output_dir/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} \
-                ~{keep_monomorphic_ref_sites_string} \
-                ~{"--seed "+seed}
-
-            # Increase i (and make sure the exit code is zero)
-            (( I_CHUNK++ )) || true
-        done < ~{reference_chunks}
+        /bin/GLIMPSE2_split_reference \
+            --threads ${NPROC} \
+            --reference ~{reference_panel} \
+            --map ~{genetic_map} \
+            --input-region ${IRG} \
+            --output-region ${ORG} \
+            --output reference_output_dir/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} \
+            ~{keep_monomorphic_ref_sites_string} \
+            ~{"--seed " + seed}
     >>>
 
     runtime {
