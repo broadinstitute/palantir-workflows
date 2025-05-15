@@ -83,7 +83,7 @@ task Convert {
         docker: "us.gcr.io/broad-gatk/gatk:" + gatk_tag
         preemptible: select_first([preemptible, 0])
         disks: "local-disk " + disk_size + " HDD"
-        bootDiskSizeGb: "16"
+        bootDiskSizeGb: 16
         cpu: cpu
         memory: memory + " GB"
     }
