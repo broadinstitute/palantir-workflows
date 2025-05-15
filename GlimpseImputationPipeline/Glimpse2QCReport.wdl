@@ -31,6 +31,7 @@ task Glimpse2QCReport_t {
     input {
         String cohort_name
         File metrics
+        File coverage_metrics
         File ancestries
         File predicted_sex
         File info_score_qc
