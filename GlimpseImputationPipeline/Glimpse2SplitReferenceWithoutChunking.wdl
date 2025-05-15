@@ -80,11 +80,12 @@ task ShardVcf {
     command <<<
         set -xueo pipefail
 
+        INTERVAL=$(echo "~{interval}" | awk '{ print $3 }')
         # Use bcftools to split the VCF file into chunks
         if [[ "~{add_allele_info}" == "true" ]]; then
-            bcftools view -t ~{interval} ~{vcf} --threads $(nproc) | bcftools +fill-tags - -o "chunk.vcf.gz" -Wtbi -- -t AC,AN,AF
+            bcftools view -t $INTERVAL ~{vcf} --threads $(nproc) | bcftools +fill-tags - -o "chunk.vcf.gz" -Wtbi -- -t AC,AN,AF
         else
-            bcftools view -t ~{interval} ~{vcf} --threads $(nproc) -o "chunk.vcf.gz" -Wtbi
+            bcftools view -t $INTERVAL ~{vcf} --threads $(nproc) -o "chunk.vcf.gz" -Wtbi
         fi
     >>>
 
@@ -131,7 +132,8 @@ task GlimpseSplitReferenceTask {
         CONTIGINDEX="~{contig}"
 
         # Make chunk index from interval
-        CHUNKINDEX=$(echo "~{interval}" | tr ":" "-")
+        INTERVAL=$(echo "~{interval}" | awk '{ print $3 }')
+        CHUNKINDEX=$(echo "${INTERVAL}" | tr ":" "-")
 
         mkdir -p reference_output_dir
 
