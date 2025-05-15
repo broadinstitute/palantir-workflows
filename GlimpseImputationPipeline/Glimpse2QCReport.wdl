@@ -207,7 +207,7 @@ task Glimpse2QCReport_t {
 
         Rscript -e "library(rmarkdown); rmarkdown::render('~{cohort_name}_qc_report.Rmd', 'pdf_document')"
 
-    <<<
+    >>>
 
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/r-gcnv-viz@sha256:c92a9a26cba4ab10b579776cd4dd70d5fca485d4a7216d0ab9b477662e3d9228"
