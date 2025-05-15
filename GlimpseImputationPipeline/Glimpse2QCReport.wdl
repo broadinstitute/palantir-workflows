@@ -1,7 +1,30 @@
 version 1.0
 
 workflow Glimpse2QCReport {
+    input {
+        String cohort_name
+        File metrics
+        File ancestries
+        File predicted_sex
+        File info_score_qc
+        File info_mean_quantile
+        File info_score_sampling
+    }
 
+    call Glimpse2QCReport_t {
+        input:
+            cohort_name = cohort_name,
+            metrics = metrics,
+            ancestries = ancestries,
+            predicted_sex = predicted_sex,
+            info_score_qc = info_score_qc,
+            info_mean_quantile = info_mean_quantile,
+            info_score_sampling = info_score_sampling
+    }
+
+    output {
+        File qc_report = Glimpse2QCReport_t.qc_report
+    }
 }
 
 task Glimpse2QCReport_t {
