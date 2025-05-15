@@ -47,7 +47,7 @@ task Glimpse2QCReport_t {
         title: GLIMPSE Imputation QC Report
         subtitle: ~{cohort_name}
         author: "Broad Clinical Labs"
-        date: "`r Sys.Date()`"
+        date: "\`r Sys.Date()\`"
         output: pdf_document
         ---
 
@@ -69,8 +69,8 @@ task Glimpse2QCReport_t {
         ancestry_counts <- ancestries %>% group_by(ancestry) %>% count() %>% arrange(-n)
 
         coverage_metrics<-read_tsv(c("batch_1.coverage_metrics.txt","batch_0.coverage_metrics.txt"))
-        coverage_metrics_per_sample <- coverage_metrics %>% group_by(Sample) %>% summarise(mean_cov=mean(`Cov.`),
-                                                            mean_frac_sites = mean(1-`No data pct`/100))
+        coverage_metrics_per_sample <- coverage_metrics %>% group_by(Sample) %>% summarise(mean_cov=mean(\`Cov.\`),
+                                                            mean_frac_sites = mean(1-\`No data pct\`/100))
 
         info_score_count <- read_tsv("~{info_score_qc}") %>% arrange(-total_sites)
 
@@ -87,13 +87,13 @@ task Glimpse2QCReport_t {
 
 
         \`\`\`{r mean_cov, echo=FALSE, message=FALSE, warning=FALSE}
-        ggplot(coverage_metrics, aes(x=`Cov.`)) +
+        ggplot(coverage_metrics, aes(x=\`Cov.\`)) +
         geom_histogram() + theme_bw() + xlim(0,20) +
         xlab("Mean Coverage (per sample x chunk)")
         \`\`\`
 
         \`\`\`{r frac_covered, echo=FALSE, message=FALSE, warning=FALSE}
-        ggplot(coverage_metrics, aes(x=1-`No data pct`/100)) +
+        ggplot(coverage_metrics, aes(x=1-\`No data pct\`/100)) +
         geom_histogram() + theme_bw() + xlim(0,1) +
         xlab("Fraction of Sites Covered by >=1 Read (per sample x chunk)")
         \`\`\`
