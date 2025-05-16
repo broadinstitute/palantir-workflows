@@ -132,8 +132,9 @@ task GlimpseSplitReferenceTask {
         CONTIGINDEX="~{contig}"
 
         # Make chunk index from interval
-        INTERVAL=$(echo "~{interval}" | awk '{ print $3 }')
-        CHUNKINDEX=$(echo "${INTERVAL}" | tr ":" "-")
+        IN_INTERVAL=$(echo "~{interval}" | awk '{ print $3 }')
+        OUT_INTERVAL=$(echo "~{interval}" | awk '{ print $4 }')
+        CHUNKINDEX=$(echo "${IN_INTERVAL}" | tr ":" "-")
 
         mkdir -p reference_output_dir
 
@@ -141,8 +142,8 @@ task GlimpseSplitReferenceTask {
             --threads ${NPROC} \
             --reference ~{reference_panel} \
             --map ~{genetic_map} \
-            --input-region ${IRG} \
-            --output-region ${ORG} \
+            --input-region ${IN_INTERVAL} \
+            --output-region ${OUT_INTERVAL} \
             --output reference_output_dir/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} \
             ~{keep_monomorphic_ref_sites_string} \
             ~{"--seed " + seed}
