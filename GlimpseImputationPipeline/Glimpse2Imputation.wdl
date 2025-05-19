@@ -144,7 +144,6 @@ workflow Glimpse2Imputation {
             docker = docker,
             cpu = cpu_ligate,
             mem_gb = mem_gb_ligate,
-            monitoring_script = monitoring_script
     }
 
     if (length(select_all(GlimpsePhase.coverage_metrics)) > 0) {
@@ -437,29 +436,15 @@ task GlimpseLigate {
         Int preemptible = 1
         Int max_retries = 3
         String docker
-        File? monitoring_script
     }
 
     command <<<
         set -xeuo pipefail
 
-        ~{"bash " + monitoring_script + " > monitoring.log &"}
-
         NPROC=$(nproc)
         echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
-
-        # Sort the imputed chunk files by the first coordinate of variants in file
-        CHUNKS_LIST="~{write_lines(imputed_chunks)}"
-        touch imputed_chunks_coords.txt
-
-        set +e    # Using head -n 1 makes exit code 1 and script stops
-        while IFS= read -r line || [ -n "$line" ]; do
-            bcftools view -H $line | head -n 1 | cut -f 2 >> imputed_chunks_coords.txt
-        done < $CHUNKS_LIST
-        set -e
-        paste $CHUNKS_LIST imputed_chunks_coords.txt | sort -k2 -n | cut -f 1 > imputed_chunks_files_sorted.txt
         
-        /bin/GLIMPSE2_ligate --input imputed_chunks_files_sorted.txt --output ligated.vcf.gz --threads ${NPROC}
+        /bin/GLIMPSE2_ligate --input ~{write_lines(imputed_chunks)} --output ligated.vcf.gz --threads ${NPROC}
 
         # Set correct reference dictionary
         bcftools view -h --no-version ligated.vcf.gz > old_header.vcf        
@@ -483,7 +468,6 @@ task GlimpseLigate {
         File imputed_vcf = "~{output_basename}.imputed.vcf.gz"
         File imputed_vcf_index = "~{output_basename}.imputed.vcf.gz.tbi"
         File imputed_vcf_md5sum = "~{output_basename}.imputed.vcf.gz.md5sum"
-        File? monitoring = "monitoring.log"
     }
 }
 
