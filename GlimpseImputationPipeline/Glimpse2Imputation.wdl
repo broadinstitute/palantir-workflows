@@ -171,7 +171,6 @@ workflow Glimpse2Imputation {
         File? coverage_metrics = CombineCoverageMetrics.coverage_metrics
 
         Array[File?] glimpse_phase_monitoring = GlimpsePhase.monitoring
-        File? glimpse_ligate_monitoring = GlimpseLigate.monitoring
     }
 }
 
