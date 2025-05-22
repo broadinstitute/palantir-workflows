@@ -4,23 +4,25 @@ workflow Glimpse2QCReport {
     input {
         String cohort_name
         File metrics
+        Array[File] coverage_metrics
         File ancestries
         File predicted_sex
         File info_score_qc
         File info_mean_quantile
         File info_score_sampling
     }
-
     call Glimpse2QCReport_t {
         input:
             cohort_name = cohort_name,
             metrics = metrics,
+            coverage_metrics = coverage_metrics,
             ancestries = ancestries,
             predicted_sex = predicted_sex,
             info_score_qc = info_score_qc,
             info_mean_quantile = info_mean_quantile,
             info_score_sampling = info_score_sampling
     }
+
 
     output {
         File qc_report = Glimpse2QCReport_t.qc_report
@@ -31,7 +33,7 @@ task Glimpse2QCReport_t {
     input {
         String cohort_name
         File metrics
-        File coverage_metrics
+        Array[File] coverage_metrics
         File ancestries
         File predicted_sex
         File info_score_qc
@@ -69,7 +71,7 @@ task Glimpse2QCReport_t {
 
         ancestry_counts <- ancestries %>% group_by(ancestry) %>% count() %>% arrange(-n)
 
-        coverage_metrics<-read_tsv(c("batch_1.coverage_metrics.txt","batch_0.coverage_metrics.txt"))
+        coverage_metrics<-read_tsv(c("~{sep='","' coverage_metrics}"))
         coverage_metrics_per_sample <- coverage_metrics %>% group_by(Sample) %>% summarise(mean_cov=mean(\`Cov.\`),
                                                             mean_frac_sites = mean(1-\`No data pct\`/100))
 
