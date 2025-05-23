@@ -130,7 +130,7 @@ includes some minimal Python tools (pandas) for data processing.
 * Description: A docker image containing various tools used for running `rtg vcfeval` in benchmarking. These include `rtg`,
 `python`, `bedtools`, and `bcftools`.
 * Location: `"us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.1`
-* Used By: [BenchmarkVCFs](../../BenchmarkVCFs/BenchmarkVCFs.wdl)
+* Used By: [BenchmarkVCFs](../../BenchmarkVCFs/BenchmarkVCFs.wdl), [TrioAnalysis](../../BenchmarkVCFs/TrioAnalysis.wdl)
 * Usage: `rtg [COMMAND]`, etc.
 * Version Notes:
   * 1.0: Versions are `rtg` 3.12.1, `bedtools` 2.31.0, `bcftools` 1.16
