@@ -44,7 +44,7 @@ task Glimpse2QCReport_t {
 
     command <<<
         set -eo pipefail
-        tlmgr install booktabs multirow wrapfig float colortbl pdflscape tabu threeparttable threeparttablex ulem makecell xcolor bookmark 
+        
         cat << EOF > ~{cohort_name}_qc_report.Rmd
         ---
         title: GLIMPSE Imputation QC Report
@@ -235,7 +235,7 @@ task Glimpse2QCReport_t {
     >>>
 
     runtime {
-        docker: "rocker/verse:4.4"
+        docker: "us.gcr.io/broad-dsde-methods/r-markdown-pdf:0.1"
         disks: "local-disk 100 HDD"
         memory: mem_gb + " GB"
       }
