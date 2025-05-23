@@ -40,25 +40,25 @@ workflow TrioAnalysis {
                 bed_files = select_first([bed_files]),
                 bed_labels = select_first([bed_labels])
         }
+    }
 
-        call MakeSummaryTable {
-            input:
-                annotated_vcf = AnnotateVcfRegions.annotated_vcf,
-                annotated_vcf_index = AnnotateVcfRegions.annotated_vcf_index,
-                bed_labels = bed_labels
-        }
+    call MakeSummaryTable {
+        input:
+            annotated_vcf = select_first([AnnotateVcfRegions.annotated_vcf, ComputeMendelianConcordance.mendelian_output]),
+            annotated_vcf_index = select_first([AnnotateVcfRegions.annotated_vcf_index, ComputeMendelianConcordance.mendelian_output_index]),
+            bed_labels = bed_labels
     }
 
     output {
         File mendelian_output_vcf = select_first([AnnotateVcfRegions.annotated_vcf, ComputeMendelianConcordance.mendelian_output])
         File mendelian_output_vcf_index = select_first([AnnotateVcfRegions.annotated_vcf_index, ComputeMendelianConcordance.mendelian_output_index])
 
-        File? mendelian_violation_table = MakeSummaryTable.mendelian_violation_table
-        File? mendelian_uncertainty_table = MakeSummaryTable.mendelian_uncertainty_table
-        File? mendelian_violation_counts = MakeSummaryTable.mendelian_violation_counts
-        File? mendelian_uncertainty_counts = MakeSummaryTable.mendelian_uncertainty_counts
-        File? mendelian_violation_cdf = MakeSummaryTable.mendelian_violation_cdf
-        File? mendelian_uncertainty_cdf = MakeSummaryTable.mendelian_uncertainty_cdf
+        File mendelian_violation_table = MakeSummaryTable.mendelian_violation_table
+        File mendelian_uncertainty_table = MakeSummaryTable.mendelian_uncertainty_table
+        File mendelian_violation_counts = MakeSummaryTable.mendelian_violation_counts
+        File mendelian_uncertainty_counts = MakeSummaryTable.mendelian_uncertainty_counts
+        File mendelian_violation_cdf = MakeSummaryTable.mendelian_violation_cdf
+        File mendelian_uncertainty_cdf = MakeSummaryTable.mendelian_uncertainty_cdf
     }
 
 }
@@ -87,35 +87,20 @@ task ComputeMendelianConcordance {
     command <<<
         set -xueo pipefail
 
-
-        # Normalize MAs and left align INDELs
-        # Needed to do first to avoid https://github.com/samtools/bcftools/issues/2247
-        bcftools norm -m +any ~{child_vcf} -f ~{ref_fasta} -o child.vcf.gz -W tbi
-        bcftools norm -m +any ~{father_vcf} -f ~{ref_fasta} -o father.vcf.gz -W tbi
-        bcftools norm -m +any ~{mother_vcf} -f ~{ref_fasta} -o mother.vcf.gz -W tbi
-
         # Merge into trio
-        bcftools merge -m all -o trio-merge.vcf.gz child.vcf.gz father.vcf.gz mother.vcf.gz
+        bcftools merge -m all -o trio-merge.vcf.gz ~{child_vcf} ~{father_vcf} ~{mother_vcf}
 
         # Re-normalized/left align (sometimes collapsing in merge can shift things)
         bcftools norm -m +any -o trio-norm.vcf.gz -f ~{ref_fasta} trio-merge.vcf.gz
 
         # Add pedigree info to header for rtg
-        CHILD_NAME=$(bcftools query -l child.vcf.gz)
-        FATHER_NAME=$(bcftools query -l father.vcf.gz)
-        MOTHER_NAME=$(bcftools query -l mother.vcf.gz)
+        CHILD_NAME=$(bcftools query -l ~{child_vcf})
+        FATHER_NAME=$(bcftools query -l ~{father_vcf})
+        MOTHER_NAME=$(bcftools query -l ~{mother_vcf})
 
-        bcftools view -h trio-norm.vcf.gz | head -n -1 > header.txt
-        bcftools view -h trio-norm.vcf.gz | tail -n 1 > header_end.txt
-
-        echo "##PEDIGREE=<Child=${CHILD_NAME}, Father=${FATHER_NAME}, Mother=${MOTHER_NAME}>" >> header.txt
-        echo "##SAMPLE=<ID=${CHILD_NAME},Sex=~{sex_of_child}>" >> header.txt
-
-        cat header.txt header_end.txt > full_header.txt
-        bcftools reheader -h full_header.txt trio-norm.vcf.gz -o trio.vcf.gz
-
-        # Index the reheadered file
-        bcftools index -t trio.vcf.gz
+        echo "##PEDIGREE=<Child=${CHILD_NAME}, Father=${FATHER_NAME}, Mother=${MOTHER_NAME}>" > add_header.txt
+        echo "##SAMPLE=<ID=${CHILD_NAME},Sex=~{sex_of_child}>" >> add_header.txt
+        bcftools annotate -h add_header.txt trio-norm.vcf.gz -o trio.vcf.gz -Wtbi
 
         # Make rtg reference
         rtg format -o rtg_ref ~{ref_fasta}
@@ -229,17 +214,18 @@ task MakeSummaryTable {
         import numpy as np
 
         intervals = ["~{sep="\", \"" bed_labels}"]
-        df = pd.read_csv("mendelian_table.tsv", sep="\t")
+        df = pd.read_csv("mendelian_table.tsv", sep="\t", na_values=["."])
 
         # Fill in missing values with default
-        df[[c for c in df.columns if '_~{format_value}' in c]] = df[[c for c in df.columns if '_~{format_value}' in c]].replace('.', ~{default_format_value}).astype(int)
-        df[intervals] = df[intervals].replace('.', 0).astype(int)
+        format_cols = [c for c in df.columns if '_~{format_value}' in c]
+        df[format_cols] = df[format_cols].fillna(~{default_format_value})
+        df[intervals] = df[intervals].fillna(0)
 
-        mv_df = df[df['MCV'] != '.']
-        mcu_df = df[df['MCU'] != '.']
+        mv_df = df[~df['MCV'].isna()]
+        mcu_df = df[~df['MCU'].isna()]
 
-        mv_counts_df = mv_df.groupby(intervals).size().reset_index(name='MCV')
-        mcu_counts_df = mcu_df.groupby(intervals).size().reset_index(name='MCU')
+        mv_counts_df = mv_df.value_counts(intervals).reset_index(name='MCV')
+        mcu_counts_df = mcu_df.value_counts(intervals).reset_index(name='MCU')
 
         def make_cdf(df):
             df['Agg_~{format_value}'] = df.apply(lambda row: np.~{format_agg}([row['Child_~{format_value}'], row['Father_~{format_value}'], row['Mother_~{format_value}']]), axis=1)
@@ -248,19 +234,15 @@ task MakeSummaryTable {
             agg_counts['~{format_agg}_~{format_value}_cdf'] = agg_counts['count'].cumsum()
             return agg_counts
 
-        mv_cdf = pd.DataFrame()
-        new_cdf = make_cdf(mv_df)
-        new_cdf['Interval'] = 'Whole Genome'
-        mv_cdf = pd.concat([mv_cdf, new_cdf])
+        mv_cdf = make_cdf(mv_df)
+        mv_cdf['Interval'] = 'Whole Genome'
         for i in intervals:
             new_cdf = make_cdf(mv_df[mv_df[i] == 1])
             new_cdf['Interval'] = i
             mv_cdf = pd.concat([mv_cdf, new_cdf])
 
-        mcu_cdf = pd.DataFrame()
-        new_cdf = make_cdf(mcu_df)
-        new_cdf['Interval'] = 'Whole Genome'
-        mcu_cdf = pd.concat([mcu_cdf, new_cdf])
+        mcu_cdf = make_cdf(mcu_df)
+        mcu_cdf['Interval'] = 'Whole Genome'
         for i in intervals:
             new_cdf = make_cdf(mcu_df[mcu_df[i] == 1])
             new_cdf['Interval'] = i

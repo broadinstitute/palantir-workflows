@@ -16,7 +16,7 @@ The `TrioAnalysis` workflow is designed to analyze the genetic data of a child a
 - **`Array[File]? bed_files`**: Optional array of BED files for annotation.
 - **`Array[String]? bed_labels`**: Optional array of labels corresponding to the BED files.
 
-The `MakeSummaryTable` task also takes a `format_value` input for a FORMAT field from the VCF to create a CDF of mendelian violation counts from. This is optional and defaults to "GQ". The `format_agg` value sets how to combine these values across the trio and can take the values: `min` (default), `max`, `mean`, `median`, `sum`. So for example, the default behavior would be to make a cumulative distribution of counts of mendelian violations stratified by the minimum GQ value in the trio for each site. One would expect with accurate sequencing/data processing, this count should approach zero as the threshold on min GQ increases. 
+The `MakeSummaryTable` task also takes a `format_value` input for a FORMAT field from the VCF to create a CDF of mendelian violation counts from. This is optional and defaults to "GQ". The `format_agg` value sets how to combine these values across the trio and can take the values: `min` (default), `max`, `mean`, `median`, `sum`. So for example, the default behavior would be to make a cumulative distribution of counts of mendelian violations stratified by the minimum GQ value in the trio for each site. One would expect with accurate sequencing/data processing, this count should approach the de novo rate as the threshold on min GQ increases. 
 
 ## Outputs
 There are two types of variant triples of concern the `rtg mendelian` tool will flag: "mendelian violations" and "mendelian uncertainties."
