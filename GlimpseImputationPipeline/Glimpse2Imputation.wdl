@@ -273,7 +273,7 @@ task BcftoolsCall {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
+        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.1"
         disks: "local-disk " + disk_size_gb + " HDD"
         memory: mem_gb + " GiB"
         cpu: cpu
