@@ -231,6 +231,8 @@ task BcftoolsCall {
         Array[String] sample_ids
 
         File sites_vcf
+        File? sites_table
+
         Int mem_gb = 4
         Int cpu = 2
         Int preemptible = 3
@@ -250,12 +252,19 @@ task BcftoolsCall {
             echo "* ${crams[$i]} ${sample_ids[$i]}" >> sample_name_mapping.txt
         done
 
-        # Make the sites tsv file for bcftools call according to docs
-        # https://samtools.github.io/bcftools/bcftools.html#common_options
-        bcftools query -f'%CHROM\t%POS\t%REF,%ALT\n' ~{sites_vcf} | bgzip -c > sites.tsv.gz && tabix -s1 -b2 -e2 sites.tsv.gz
+        # Make sites table if not provided
+        if [ -z ~{sites_table} ]; then
+            # Make the sites tsv file for bcftools call according to docs
+            # https://samtools.github.io/bcftools/bcftools.html#common_options
+            bcftools query -f'%CHROM\t%POS\t%REF,%ALT\n' ~{sites_vcf} | bgzip -c > sites.tsv.gz && tabix -s1 -b2 -e2 sites.tsv.gz
 
-        # Add index for sites VCF
-        bcftools index -t -f ~{sites_vcf}
+            # Add index for sites VCF
+            bcftools index -t -f ~{sites_vcf}
+        else
+            mv ~{sites_table} sites.tsv.gz
+            tabix -s1 -b2 -e2 sites.tsv.gz
+        fi
+
 
         bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -G sample_name_mapping.txt -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} | \
         bcftools call -Aim -C alleles -T sites.tsv.gz -O u | \
