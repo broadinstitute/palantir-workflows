@@ -243,7 +243,7 @@ task BcftoolsCall {
     String out_basename = "batch"
 
     command <<<
-        set -euo pipefail
+        set -xeuo pipefail
 
         crams=(~{sep=' ' crams})
         sample_ids=(~{sep=' ' sample_ids})
