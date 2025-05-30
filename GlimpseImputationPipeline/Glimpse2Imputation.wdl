@@ -265,9 +265,9 @@ task BcftoolsCall {
         # Add index for sites VCF
         bcftools index -t -f ~{sites_vcf}
 
-        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -G sample_name_mapping.txt -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} | \
-        bcftools call -Aim -C alleles -T sites.tsv.gz -O u | \
-        bcftools norm -m -both -O z -o ~{out_basename}.vcf.gz
+        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -G sample_name_mapping.txt -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -O u ~{sep=" " crams} \
+        | bcftools call -Aim -C alleles -T sites.tsv.gz -O u \
+        | bcftools norm -m -both -O z -o ~{out_basename}.vcf.gz
         bcftools index -t ~{out_basename}.vcf.gz
     >>>
 
