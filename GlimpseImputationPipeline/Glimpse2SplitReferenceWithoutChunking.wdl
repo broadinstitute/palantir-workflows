@@ -85,7 +85,7 @@ task ShardVcf {
         INTERVAL=$(echo "~{interval}" | awk '{ print $3 }')
         # Use bcftools to split the VCF file into chunks
         if [[ "~{add_allele_info}" == "true" ]]; then
-            bcftools view -r $INTERVAL ~{vcf} --threads $(nproc) | bcftools norm -m -any - | bcftools +fill-tags - -o "chunk.vcf.gz" -Wtbi -- -t AC,AN,AF
+            bcftools view -r $INTERVAL ~{vcf} --threads $(nproc) -Ou | bcftools norm -Ou -m -any - | bcftools +fill-tags - -o "chunk.vcf.gz" -Wtbi -- -t AC,AN,AF
         else
             bcftools view -r $INTERVAL ~{vcf} --threads $(nproc) -o "chunk.vcf.gz" -Wtbi
         fi
