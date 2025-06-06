@@ -256,16 +256,13 @@ task BcftoolsCall {
         if [ -z ~{sites_table} ]; then
             # Make the sites tsv file for bcftools call according to docs
             # https://samtools.github.io/bcftools/bcftools.html#common_options
-            bcftools query -f'%CHROM\t%POS\t%REF,%ALT\n' sites.norm.vcf.gz | bgzip -c > sites.tsv.gz && tabix -s1 -b2 -e2 sites.tsv.gz
+            bcftools query -f'%CHROM\t%POS\t%REF,%ALT\n' ~{sites_vcf} | bgzip -c > sites.tsv.gz && tabix -s1 -b2 -e2 sites.tsv.gz
         else
             mv ~{sites_table} sites.tsv.gz
             tabix -s1 -b2 -e2 sites.tsv.gz
         fi
 
-        # Add index for sites VCF
-        # bcftools index -t -f sites.norm.vcf.gz
-
-        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -G sample_name_mapping.txt -E -a 'FORMAT/DP,FORMAT/AD' -T sites.norm.vcf.gz -Ou ~{sep=" " crams} \
+        bcftools mpileup -f ~{fasta} ~{if !call_indels then "-I" else ""} -G sample_name_mapping.txt -E -a 'FORMAT/DP,FORMAT/AD' -T ~{sites_vcf} -Ou ~{sep=" " crams} \
         | bcftools call -Aim -C alleles -T sites.tsv.gz -Ou - \
         | bcftools norm -m -both -Oz -o ~{out_basename}.vcf.gz -
         bcftools index -t ~{out_basename}.vcf.gz
