@@ -253,6 +253,7 @@ task BcftoolsCall {
         done
 
         # Test splitting MAs in sites vcf
+        bcftools index -t -f ~{sites_vcf}
         bcftools norm -m -any ~{sites_vcf} -Oz -o sites.norm.vcf.gz -Wtbi
 
         # Make sites table if not provided
