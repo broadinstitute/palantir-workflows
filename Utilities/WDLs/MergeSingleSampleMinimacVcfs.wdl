@@ -3,7 +3,7 @@ version 1.0
 #
 workflow MergeSingleSampleMinimacVcfs {
     input {
-        Array[File] vcfs
+        File vcfs_fofn
         Int n_per_batch
         String output_basename
 
@@ -13,6 +13,7 @@ workflow MergeSingleSampleMinimacVcfs {
 
     Float n_per_batch_float = n_per_batch
     Int n_batches = ceil(length(vcfs)/n_per_batch_float)
+    Array[File] vcfs = read_lines(vcfs_fofn)
 
     scatter (i_batch in range(n_batches)) {
         scatter (i in range(length(vcfs))) {
