@@ -15,9 +15,11 @@ workflow Glimpse2SplitReference {
         # reference_panel_prefix = "gs://bucket/to/panel/reference_panel_"
         # reference_panel_suffix = "_merged.bcf"
         # reference_panel_index_suffix = ".csi"
-        String reference_panel_prefix
-        String reference_panel_suffix
-        String reference_panel_index_suffix
+        # String reference_panel_prefix
+        # String reference_panel_suffix
+        # String reference_panel_index_suffix
+        String reference_filename
+        String reference_filename_index
 
         # Same format as reference_panel_pre-/suffix
         String genetic_map_path_prefix
@@ -33,8 +35,8 @@ workflow Glimpse2SplitReference {
         String docker = "us.gcr.io/broad-dsde-methods/updated_glimpse_docker:v1.0"
     }
 
-    String reference_filename = reference_panel_prefix + contig_name + reference_panel_suffix
-    String reference_filename_index = reference_filename + reference_panel_index_suffix
+    # String reference_filename = reference_panel_prefix + contig_name + reference_panel_suffix
+    # String reference_filename_index = reference_filename + reference_panel_index_suffix
     String genetic_map_filename = genetic_map_path_prefix + contig_name + genetic_map_path_suffix
 
     # Shard the VCF file into chunks and process for GLIMPSE
