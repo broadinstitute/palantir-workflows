@@ -239,7 +239,7 @@ task BcftoolsCall {
         Int preemptible = 3
     }
 
-    Int disk_size_gb = ceil(1.5*size(crams, "GiB") + size(fasta, "GiB")) + 10
+    Int disk_size_gb = ceil(1.5*size(crams, "GiB") + size(fasta, "GiB") + size(sites_table, "GiB")) + 10
 
     String out_basename = "batch"
 
