@@ -141,6 +141,9 @@ workflows:
   - name: QcSVs
     subclass: WDL
     primaryDescriptorPath: /BenchmarkSVs/QcSVs.wdl
+  - name: CleanSVs
+    subclass: WDL
+    primaryDescriptorPath: /BenchmarkSVs/CleanSVs.wdl
   - name: CNVCallingAndMergeForFabric
     subclass: WDL
     primaryDescriptorPath: /gCNV/cnv_calling_and_merge_for_fabric.wdl
