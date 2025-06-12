@@ -4,6 +4,10 @@ workflow CollectBGEImputationMetrics {
     input {
         Array[String] ancestries
 
+        Array[String] chromosomes = ["chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10",
+                                     "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18",
+                                     "chr19", "chr20", "chr21", "chr22"]
+
         Array[String] sample_ids
         File eval_vcf
         Array[String] truth_sample_ids
@@ -11,7 +15,6 @@ workflow CollectBGEImputationMetrics {
         String configuration_label
         File annotation_vcf
         Map[String, String] ancestry_to_af_annotation_map
-        String? intervals
 
         String output_basename = "cohort"
         Int? n_calibration_bins
@@ -19,14 +22,38 @@ workflow CollectBGEImputationMetrics {
         Int preemptible = 1
     }
 
-    call PearsonCorrelationByAF as PearsonByAF {
+    scatter(chr in chromosomes) {
+        call PearsonCorrelationByAF as PearsonByAF_chr {
+            input:
+                evalVcf = eval_vcf,
+                af_resource = annotation_vcf,
+                ancestries = ancestries,
+                ancestry_to_af_annotation_map = ancestry_to_af_annotation_map,
+                truthVcf = truth_vcf,
+                intervals = chr,
+                output_basename = output_basename + "_" + chr,
+                eval_sample_ids = sample_ids,
+                truth_sample_ids = truth_sample_ids,
+                n_calibration_bins = n_calibration_bins,
+                preemptible = preemptible
+        }
+
+        call AddConstantColumn as AddConstantColumn_chr {
+            input:
+                input_tsv = PearsonByAF_chr.correlations,
+                constant_value = chr,
+                column_name = "CHROMOSOME",
+                output_filename = output_basename + "_" + chr + "_correlations"
+        }
+    }
+
+    call PearsonCorrelationByAF as PearsonByAF_WholeGenome {
         input:
             evalVcf = eval_vcf,
             af_resource = annotation_vcf,
             ancestries = ancestries,
             ancestry_to_af_annotation_map = ancestry_to_af_annotation_map,
             truthVcf = truth_vcf,
-            intervals = intervals,
             output_basename = output_basename,
             eval_sample_ids = sample_ids,
             truth_sample_ids = truth_sample_ids,
@@ -34,11 +61,34 @@ workflow CollectBGEImputationMetrics {
             preemptible = preemptible
     }
 
+    call AddConstantColumn as AddConstantColumn_whole_genome {
+        input:
+            input_tsv = PearsonByAF_WholeGenome.correlations,
+            constant_value = "WholeGenome",
+            column_name = "CHROMOSOME",
+            output_filename = output_basename + "_whole_genome_correlations"
+    }
+
+    call ConcatenateTsvs {
+        input:
+            input_tsvs = flatten([AddConstantColumn_chr.output_file, [AddConstantColumn_whole_genome.output_file]]),
+            output_filename = output_basename + "_correlations",
+            preemptible = preemptible
+    }
+
+
     output {
-        File correlations = PearsonByAF.correlations
-        File accuracy = PearsonByAF.accuracy
-        File accuracy_af = PearsonByAF.accuracy_af
-        File gp_calibration = PearsonByAF.gp_calibration
+        File combineed_correlations = ConcatenateTsvs.output_file
+
+        Array[File] correlations_chr = PearsonByAF_chr.correlations
+        Array[File] accuracy_chr = PearsonByAF_chr.accuracy
+        Array[File] accuracy_af_chr = PearsonByAF_chr.accuracy_af
+        Array[File] gp_calibration_chr = PearsonByAF_chr.gp_calibration
+
+        File correlations = PearsonByAF_WholeGenome.correlations
+        File accuracy = PearsonByAF_WholeGenome.accuracy
+        File accuracy_af = PearsonByAF_WholeGenome.accuracy_af
+        File gp_calibration = PearsonByAF_WholeGenome.gp_calibration
     }
 }
 
@@ -133,5 +183,89 @@ task PearsonCorrelationByAF {
         File accuracy = "~{output_basename}.accuracy.tsv"
         File accuracy_af = "~{output_basename}.accuracy_af.tsv"
         File gp_calibration = "~{output_basename}.gp_calibration.tsv"
+    }
+}
+
+task AddConstantColumn {
+    input {
+        File input_tsv
+        String constant_value
+        String column_name
+        String output_filename = "output"
+
+        Int disk_size = ceil(2 * size(input_tsv, "GiB") + 10)
+        Int mem_gb = 2
+        Int preemptible = 3
+    }
+
+    String output_tsv = output_filename + ".tsv"
+
+    command <<<
+        set -xeuo pipefail
+
+        python <<CODE
+        import pandas as pd
+
+        # Read the TSV file
+        df = pd.read_csv("~{input_tsv}", sep='\t', comment='#')
+
+        # Add the new column with the constant value
+        df["~{column_name}"] = "~{constant_value}"
+
+        # Write the result to a new TSV file
+        df.to_csv("~{output_tsv}", sep='\t', index=False)
+        CODE
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:v1.0"
+        memory: mem_gb + " GB"
+        cpu: 1
+        disks: "local-disk " + disk_size + " HDD"
+        preemptible: preemptible
+    }
+
+    output {
+        File output_file = output_tsv
+    }
+}
+
+task ConcatenateTsvs {
+    input {
+        Array[File] input_tsvs
+        String output_filename = "concatenated"
+
+        Int disk_size = ceil(2 * size(input_tsvs, "GiB") + 10)
+        Int mem_gb = 2
+        Int preemptible = 3
+    }
+
+    String output_tsv = output_filename + ".tsv"
+
+    command <<<
+        set -xeuo pipefail
+
+        python <<CODE
+        import pandas as pd
+
+        # Create and concatenate dataframes in one step with a list comprehension
+        input_files = ['~{sep="','" input_tsvs}']
+        combined_df = pd.concat([pd.read_csv(file, sep='\t', comment='#') for file in input_files])
+
+        # Write the concatenated dataframe to a new TSV file
+        combined_df.to_csv("~{output_tsv}", sep='\t', index=False)
+        CODE
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:v1.0"
+        memory: mem_gb + " GB"
+        cpu: 1
+        disks: "local-disk " + disk_size + " HDD"
+        preemptible: preemptible
+    }
+
+    output {
+        File output_file = output_tsv
     }
 }
