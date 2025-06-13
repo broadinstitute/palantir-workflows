@@ -193,7 +193,7 @@ task AddConstantColumn {
         String column_name
         String output_filename = "output"
 
-        Int disk_size = ceil(2 * size(input_tsv, "GiB") + 10)
+        Int disk_size = ceil(2 * size(input_tsv, "GB") + 10)
         Int mem_gb = 2
         Int preemptible = 3
     }
@@ -235,7 +235,7 @@ task ConcatenateTsvs {
         Array[File] input_tsvs
         String output_filename = "concatenated"
 
-        Int disk_size = ceil(2 * size(input_tsvs, "GiB") + 10)
+        Int disk_size = ceil(2 * size(input_tsvs, "GB") + 10)
         Int mem_gb = 2
         Int preemptible = 3
     }
