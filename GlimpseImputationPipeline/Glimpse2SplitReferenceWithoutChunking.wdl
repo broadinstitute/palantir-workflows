@@ -100,7 +100,7 @@ task BuildMemoryMap {
         import json
 
         # Get inputs
-        memory_override_file = ~{write_json(select_first([memory_override_map]))}
+        memory_override_file = "~{write_json(select_first([memory_override_map]))}"
         with open(memory_override_file, "r") as f:
             memory_override = json.load(f)
         default_memory = ~{default_memory_gb}
