@@ -31,6 +31,9 @@ workflow Glimpse2SplitReference {
         Int lines_per_chunk = 5
         Boolean add_allele_info = true
 
+        Int glimpse_default_memory_gb = 4
+        Map[String, String]? glimpse_split_reference_memory_override
+
         # New docker same as old but with bcftools v1.21 instead of v1.16
         String docker = "us.gcr.io/broad-dsde-methods/updated_glimpse_docker:v1.0"
     }
@@ -40,12 +43,24 @@ workflow Glimpse2SplitReference {
     String genetic_map_filename = genetic_map_path_prefix + contig_name + genetic_map_path_suffix
 
     # Shard the VCF file into chunks and process for GLIMPSE
-    scatter (interval in read_lines(contig_reference_chunks)) {
+    Array[String] contig_reference_chunks_lines = read_lines(contig_reference_chunks)
+
+    call BuildMemoryMap as GlimpseMemoryMap {
+        input:
+            memory_override_map = glimpse_split_reference_memory_override,
+            default_memory_gb = glimpse_default_memory_gb,
+            num_shards = length(contig_reference_chunks_lines)
+    }
+
+    scatter (i in range(length(contig_reference_chunks_lines))) {
+        String interval = contig_reference_chunks_lines[i]
+        String glimpse_memory_value = GlimpseMemoryMap.memory_values[i]
+
         call ShardVcf {
             input:
                 vcf = reference_filename,
                 vcf_index = reference_filename_index,
-                interval=interval,
+                interval = interval,
 
         }
 
@@ -58,13 +73,69 @@ workflow Glimpse2SplitReference {
                 genetic_map = genetic_map_filename,
                 seed = seed,
                 keep_monomorphic_ref_sites = keep_monomorphic_ref_sites,
-                docker = docker
+                docker = docker,
+                mem_gb = glimpse_memory_value
         }
     }
 
 
     output {
         Array[File] reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks)
+    }
+}
+
+task BuildMemoryMap {
+    input {
+        Map[String, String] memory_override_map = {"empty": "empty"} # Default to empty map if not provided
+        Int default_memory_gb
+        Int num_shards
+
+        # Runtime parameters
+        Int disk_size = 10
+        Int preemptible = 3
+    }
+
+    command <<<
+        python <<CODE
+        import json
+
+        # Get inputs
+        memory_override_file = ~{write_json(select_first([memory_override_map]))}
+        with open(memory_override_file, "r") as f:
+            memory_override = json.load(f)
+        default_memory = ~{default_memory_gb}
+        num_shards = ~{num_shards}
+
+        # Create memory map
+        memory_map = {}
+        for i in range(num_shards):
+            if str(i) in memory_override:
+                memory_map[str(i)] = memory_override[str(i)]
+            else:
+                memory_map[str(i)] = str(default_memory)
+
+        # Write the memory map to output file
+        # with open("memory_map.json", "w") as f:
+        #     json.dump(memory_map, f)
+
+        # Write array of memory values to output file
+        memory_values = list(memory_map.values())
+        with open('memory_values.txt', 'w') as f:
+            f.writelines('\n'.join(memory_values))
+
+        CODE
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
+        memory: "2 GiB"
+        cpu: 1
+        disks: "local-disk " + disk_size + " HDD"
+        preemptible: preemptible
+    }
+
+    output {
+        Array[String] memory_values = read_lines("memory_values.txt")
     }
 }
 
@@ -116,7 +187,7 @@ task GlimpseSplitReferenceTask {
         Int? seed
         Boolean keep_monomorphic_ref_sites
 
-        Int mem_gb = 4
+        String mem_gb = 4
         Int cpu = 4
         Int disk_size_gb = ceil(2.2 * size(reference_panel, "GiB") + size(genetic_map, "GiB") + 100)
         String docker
