@@ -193,7 +193,7 @@ task AddConstantColumn {
         String column_name
         String output_filename = "output"
 
-        # Int disk_size = ceil(2 * size(input_tsv, "GB") + 10)
+        Int disk_size = ceil(2 * size(input_tsv, "GB") + 10)
         Int mem_gb = 2
         Int preemptible = 3
     }
@@ -218,10 +218,10 @@ task AddConstantColumn {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:v1.0"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim"
         memory: mem_gb + " GB"
         cpu: 1
-        disks: "local-disk " + 30 + " HDD"
+        disks: "local-disk " + disk_size + " HDD"
         preemptible: preemptible
     }
 
@@ -235,7 +235,7 @@ task ConcatenateTsvs {
         Array[File] input_tsvs
         String output_filename = "concatenated"
 
-        # Int disk_size = ceil(2 * size(input_tsvs, "GB") + 10)
+        Int disk_size = ceil(2 * size(input_tsvs, "GB") + 10)
         Int mem_gb = 2
         Int preemptible = 3
     }
@@ -258,10 +258,10 @@ task ConcatenateTsvs {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:v1.0"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim"
         memory: mem_gb + " GB"
         cpu: 1
-        disks: "local-disk " + 30 + " HDD"
+        disks: "local-disk " + disk_size + " HDD"
         preemptible: preemptible
     }
 
