@@ -480,6 +480,7 @@ task reannotate_from_dosages {
         memory: mem_gb + " GiB"
         cpu: cpu
         preemptible: preemptible
+        maxRetries: 3
     }
 
     output {
