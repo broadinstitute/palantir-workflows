@@ -24,6 +24,9 @@ workflow Glimpse2SplitReference {
         String genetic_map_path_prefix
         String genetic_map_path_suffix
 
+        String? output_path
+        String? output_panel_name
+
         Int? seed
         Float min_window_cm
         Boolean uniform_number_variants = false
@@ -57,9 +60,19 @@ workflow Glimpse2SplitReference {
         }
     }
 
+    if (defined(output_path)) {
+        call ExportReferencePanel {
+            input:
+                reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks),
+                output_path = select_first([output_path]),
+                output_panel_name = select_first([output_panel_name, "reference_panel"])
+        }
+    }
+
     output {
         Array[File] chunks = GlimpseSplitReferenceTask.chunks
         Array[File] reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks)
+        String? exported_reference_panel = ExportReferencePanel.exported_reference_panel
     }
 }
 
@@ -139,5 +152,50 @@ task GlimpseSplitReferenceTask {
         # have a built-in way to do that, we have to rely on the command section to do that. However, we don't have access to that bash
         # variable in the output section, so we have to use glob here and return the first (and only) result.
         File chunks = glob("chunks_contigindex_*.txt")[0]
+    }
+}
+
+task ExportReferencePanel {
+    input {
+        Array[String] reference_chunks
+        String output_path
+        String output_panel_name
+        String docker = "gcr.io/google.com/cloudsdktool/google-cloud-cli:519.0.0-stable"
+    }
+
+    String output_path_no_trailing_slash = sub(output_path, "/$", "")
+
+    command <<<
+        if [[ "~{output_path}" != gs://* ]]; then
+            echo "\nError: Output path must start with gs://\n"
+            exit 1
+        fi
+
+        EXISTING_FILES=$(gcloud storage ls ~{output_path_no_trailing_slash}/chunks 2> /dev/null || true)
+        if [[ -n "$EXISTING_FILES" ]]; then
+            echo "\nError: Directory ~{output_path_no_trailing_slash}/chunks is not empty. Please clear it before proceeding.\n"
+            exit 1
+        fi
+
+        EXISTING_FILES=$(gcloud storage ls ~{output_path_no_trailing_slash}/~{output_panel_name}.txt 2> /dev/null || true)
+        if [[ -n "$EXISTING_FILES" ]]; then
+            echo "\nError: File ~{output_path_no_trailing_slash}/~{output_panel_name}.txt already exists. Please delete it before proceeding.\n"
+            exit 1
+        fi
+        
+        gcloud storage cp ~{sep=" " reference_chunks} ~{output_path_no_trailing_slash}/chunks
+        gcloud storage ls ~{output_path_no_trailing_slash}/chunks > ~{output_panel_name}.txt
+        gcloud storage cp ~{output_panel_name}.txt ~{output_path_no_trailing_slash}/
+    >>>
+
+    runtime {
+        docker: docker
+        memory: "1 GiB"
+        cpu: 1
+        preemptible: 1
+    }
+
+    output {
+        String exported_reference_panel = output_path_no_trailing_slash + "/" + output_panel_name + ".txt"
     }
 }
