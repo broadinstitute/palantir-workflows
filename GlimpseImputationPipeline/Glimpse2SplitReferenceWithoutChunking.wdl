@@ -31,7 +31,9 @@ workflow Glimpse2SplitReference {
         Int lines_per_chunk = 5
         Boolean add_allele_info = true
 
+        Int shard_default_memory_gb = 8
         Int glimpse_default_memory_gb = 4
+        Map[String, String]? shard_vcf_memory_override
         Map[String, String]? glimpse_split_reference_memory_override
 
         # New docker same as old but with bcftools v1.21 instead of v1.16
@@ -45,6 +47,13 @@ workflow Glimpse2SplitReference {
     # Shard the VCF file into chunks and process for GLIMPSE
     Array[String] contig_reference_chunks_lines = read_lines(contig_reference_chunks)
 
+    call BuildMemoryMap as ShardVcfMemoryMap {
+        input:
+            memory_override_map = shard_vcf_memory_override,
+            default_memory_gb = shard_default_memory_gb,
+            num_shards = length(contig_reference_chunks_lines)
+    }
+
     call BuildMemoryMap as GlimpseMemoryMap {
         input:
             memory_override_map = glimpse_split_reference_memory_override,
@@ -54,6 +63,7 @@ workflow Glimpse2SplitReference {
 
     scatter (i in range(length(contig_reference_chunks_lines))) {
         String interval = contig_reference_chunks_lines[i]
+        String shard_memory_value = ShardVcfMemoryMap.memory_values[i]
         String glimpse_memory_value = GlimpseMemoryMap.memory_values[i]
 
         call ShardVcf {
@@ -61,7 +71,7 @@ workflow Glimpse2SplitReference {
                 vcf = reference_filename,
                 vcf_index = reference_filename_index,
                 interval = interval,
-
+                mem_gb = shard_memory_value
         }
 
         call GlimpseSplitReferenceTask {
@@ -147,6 +157,7 @@ task ShardVcf {
         String interval
         Boolean add_allele_info = true
 
+        Int mem_gb = 8
         Int disk_size = ceil(2.5 * size(vcf, "GiB") + 100)
     }
 
@@ -164,7 +175,7 @@ task ShardVcf {
 
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/updated_glimpse_docker:v1.0"
-        memory: "8 GB"
+        memory: mem_gb + " GB"
         cpu: 4
         disks: "local-disk " + disk_size + " HDD"
         preemptible: 0
