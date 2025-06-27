@@ -239,7 +239,7 @@ task GlimpseSplitReferenceTask {
         memory: mem_gb + " GiB"
         cpu: cpu
         preemptible: 0
-        maxRetries: 3
+        maxRetries: 0
     }
 
     output {
