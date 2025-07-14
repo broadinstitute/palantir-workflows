@@ -121,7 +121,7 @@ task ComputeMemoryPerShard {
         df = pd.read_csv('~{reference_chunks_memory}', sep='\t', header=None, names=['chunk', 'base_gb', 'slope_per_sample_gb'])
         df['mem_gb'] = df['base_gb'] + df['slope_per_sample_gb'] * ~{n_samples}
         df['mem_gb'] = df['mem_gb'].apply(lambda x: min(256, int(np.ceil(x))))  # cap at 256 GB
-        df.to_csv('memory_per_chunk.tsv', sep='\t', index=False, header=None)
+        df['mem_gb'].to_csv('memory_per_chunk.tsv', sep='\t', index=False, header=None)
         EOF
     >>>
 
