@@ -4,6 +4,7 @@ workflow Glimpse2Imputation {
     input {
         # List of files, one per line
         File reference_chunks
+        File reference_chunks_memory    # File with baseline GB and slope per sample for memory calculation, for each chunk
 
         File? input_vcf
         File? input_vcf_index
@@ -29,46 +30,28 @@ workflow Glimpse2Imputation {
         Int mem_gb_ligate = 4
         Int? cpu_phase
         Int? mem_gb_phase
-        Float mem_scaling_factor_phase = 1.0
+        Float extra_mem_scaling_phase = 0.0
     }
 
-    scatter (reference_chunk in read_lines(reference_chunks)) {
-        if (!defined(cpu_phase) || !defined(mem_gb_phase)) {
-            call GetNumberOfSitesInChunk {
-                input:
-                    reference_chunk = reference_chunk,
-                    docker = docker_extract_num_sites_from_reference_chunk
-            }
-
-            Int n_rare = GetNumberOfSitesInChunk.n_rare
-            Int n_common = GetNumberOfSitesInChunk.n_common
-
-            if (defined(input_vcf)) {
-                call CountSamples {
-                    input:
-                        vcf = select_first([input_vcf])
-                }
-            }
-
-            Int n_samples = select_first([CountSamples.nSamples, length(select_first([crams]))])
-        
-            call SelectResourceParameters {
-                input:
-                    n_rare = n_rare,
-                    n_common = n_common,
-                    n_samples = n_samples
-            }
-
-            if (ceil(SelectResourceParameters.memory_gb * mem_scaling_factor_phase) > 256 || SelectResourceParameters.request_n_cpus > 32) {
-                # force failure if we're accidently going to request too much resources and spend too much money
-                Int safety_check_memory_gb = -1
-                Int safety_check_n_cpu = -1
-            }
+    if (defined(input_vcf)) {
+        call CountSamples {
+            input:
+                vcf = select_first([input_vcf])
         }
+    }
 
+    Int n_samples = select_first([CountSamples.nSamples, length(select_first([crams]))])
+
+    call ComputeMemoryPerShard {
+        input:
+            reference_chunks_memory = reference_chunks_memory,
+            n_samples = n_samples
+    }
+
+    scatter (reference_chunk in zip(read_lines(reference_chunks), ComputeMemoryPerShard.mem_gb_per_chunk)) {
         call GlimpsePhase {
             input:
-                reference_chunk = reference_chunk,
+                reference_chunk = reference_chunk.left,
                 input_vcf = input_vcf,
                 input_vcf_index = input_vcf_index,
                 impute_reference_only_variants = impute_reference_only_variants,
@@ -83,8 +66,8 @@ workflow Glimpse2Imputation {
                 fasta_index = fasta_index,
                 preemptible = preemptible,
                 docker = docker,
-                cpu = select_first([cpu_phase, safety_check_n_cpu, SelectResourceParameters.request_n_cpus]),
-                mem_gb = select_first([mem_gb_phase, safety_check_memory_gb, ceil(select_first([SelectResourceParameters.memory_gb, -1]) * mem_scaling_factor_phase)])
+                cpu = select_first([cpu_phase, 1]),
+                mem_gb = select_first([reference_chunk.right, mem_gb_phase])
         }
     }
 
@@ -120,6 +103,35 @@ workflow Glimpse2Imputation {
         
         File qc_metrics = CollectQCMetrics.qc_metrics
         File coverage_metrics = CombineCoverageMetrics.coverage_metrics
+    }
+}
+
+task ComputeMemoryPerShard {
+    input {
+        File reference_chunks_memory
+        Int n_samples
+    }
+
+    command <<<
+        python3 << EOF
+        import pandas as pd
+        import numpy as np
+
+
+        df = pd.read_csv('~{reference_chunks_memory}', sep='\t', header=None, names=['chunk', 'base_gb', 'slope_per_sample_gb'])
+        df['mem_gb'] = df['base_gb'] + df['slope_per_sample_gb'] * ~{n_samples}
+        df['mem_gb'] = df['mem_gb'].apply(lambda x: min(256, int(np.ceil(x))))  # cap at 256 GB
+        df.to_csv('memory_per_chunk.tsv', sep='\t', index=False, header=None)
+        EOF
+    >>>
+
+    runtime {
+        docker : "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
+    }
+
+    output {
+#        File memory_per_chunk = "memory_per_chunk.tsv"
+        Array[Int] mem_gb_per_chunk = read_lines("memory_per_chunk.tsv")
     }
 }
 
