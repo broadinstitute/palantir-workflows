@@ -31,6 +31,8 @@ workflow Glimpse2SplitReference {
         Int lines_per_chunk = 5
         Boolean add_allele_info = true
 
+        Int? ac_cutoff
+
         Int shard_default_memory_gb = 8
         Int glimpse_default_memory_gb = 4
         Map[String, String]? shard_vcf_memory_override
@@ -74,10 +76,19 @@ workflow Glimpse2SplitReference {
                 mem_gb = shard_memory_value
         }
 
+        # Apply allele count cutoff if specified
+        if (defined(ac_cutoff)) {
+            call ApplyACCutoff {
+                input:
+                    vcf = ShardVcf.vcf_chunk,
+                    ac_cutoff = select_first([ac_cutoff]),
+            }
+        }
+
         call GlimpseSplitReferenceTask {
             input:
-                reference_panel = ShardVcf.vcf_chunk,
-                reference_panel_index = ShardVcf.vcf_chunk_index,
+                reference_panel = select_first([ApplyACCutoff.filtered_vcf, ShardVcf.vcf_chunk]),
+                reference_panel_index = select_first([ApplyACCutoff.filtered_vcf_index, ShardVcf.vcf_chunk_index]),
                 contig = contig_name,
                 interval = interval,
                 genetic_map = genetic_map_filename,
@@ -184,6 +195,35 @@ task ShardVcf {
     output {
         File vcf_chunk = "chunk.vcf.gz"
         File vcf_chunk_index = "chunk.vcf.gz.tbi"
+    }
+}
+
+task ApplyACCutoff {
+    input {
+        File vcf
+        Int ac_cutoff
+
+        Int mem_gb = 4
+        Int disk_size_gb = ceil(2.5 * size(vcf, "GiB") + 100)
+    }
+
+    command <<<
+        set -xueo pipefail
+
+        bcftools view -i "AC>=~{ac_cutoff}" ~{vcf} --threads $(nproc) -o "filtered.vcf.gz" -Wtbi
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/updated_glimpse_docker:v1.0"
+        memory: mem_gb + " GB"
+        cpu: 4
+        disks: "local-disk " + disk_size_gb + " HDD"
+        preemptible: 0
+    }
+
+    output {
+        File filtered_vcf = "filtered.vcf.gz"
+        File filtered_vcf_index = "filtered.vcf.gz.tbi"
     }
 }
 
