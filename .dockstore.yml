@@ -153,3 +153,6 @@ workflows:
   - name: CNVControlEventsQC
     subclass: WDL
     primaryDescriptorPath: /gCNV/CNVControlEventsQC.wdl
+  - name: TAPS
+    subclass: WDL
+    primaryDescriptorPath: /Methylation/TAPS.wdl
