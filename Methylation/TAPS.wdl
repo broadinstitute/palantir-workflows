@@ -10,7 +10,6 @@ task Cutadapt {
         Int? num_cores = 8
         Int? memory_gb = 32
         Int? disk_size_gb = ceil(3 * (size(fastq1, "GiB") + size(fastq2, "GiB")) + 50)
-        String? docker = "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 
     String prefix1 = basename(fastq1, ".fastq.gz")
@@ -38,7 +37,7 @@ task Cutadapt {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
-        docker: docker
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 }
 
@@ -51,7 +50,6 @@ task BwaMem {
         Int? num_threads = 16
         Int? memory_gb = 32
         Int? disk_size_gb = ceil(3 * (size(fastq1, "GiB") + size(fastq2, "GiB")) + size(reference, "GiB") + 50)
-        String? docker = "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 
     String prefix = basename(fastq1, ".trimmed.fastq.gz")
@@ -73,7 +71,7 @@ task BwaMem {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
-        docker: docker
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 }
 
@@ -83,7 +81,6 @@ task SortBam {
         Int? cpu = 2
         Int? memory_gb = 32
         Int? disk_size_gb = ceil(3 * size(bam, "GiB") + 50)
-        String? docker = "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 
     String prefix = basename(bam, ".trimmed.bam")
@@ -104,7 +101,7 @@ task SortBam {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
-        docker: docker
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 }
 
@@ -115,7 +112,6 @@ task MarkDuplicates {
         Int? memory_gb = 32
         Int? memory_gb_jvm = 28
         Int? disk_size_gb = ceil(3 * size(bam, "GiB") + 50)
-        String? docker = "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 
     String prefix = basename(bam, ".trimmed.sorted.bam")
@@ -139,7 +135,7 @@ task MarkDuplicates {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
-        docker: docker
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 }
 
@@ -149,7 +145,6 @@ task RemDupsAndIndex {
         Int? cpu = 2
         Int? memory_gb = 16
         Int? disk_size_gb = ceil(3 * size(bam, "GiB") + 50)
-        String? docker = "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 
     String prefix = basename(bam, ".trimmed.sorted.marked.bam")
@@ -176,7 +171,7 @@ task RemDupsAndIndex {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
-        docker: docker
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 }
 
@@ -189,7 +184,6 @@ task RastairMbias {
         Int? num_threads = 8
         Int? memory_gb = 32
         Int? disk_size_gb = ceil(3 * size(bam, "GiB") + size(reference, "GiB") + 100)
-        String? docker = "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 
     String prefix = basename(bam, ".trimmed.sorted.marked.deduped.bam")
@@ -211,7 +205,7 @@ task RastairMbias {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
-        docker: docker
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 }
 
@@ -223,7 +217,6 @@ task RastairCall {
         Int? cpu = 4
         Int? memory_gb = 32
         Int? disk_size_gb = ceil(3 * size(bam, "GiB") + size(reference, "GiB") + 100)
-        String? docker = "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 
     command <<<
@@ -245,7 +238,7 @@ task RastairCall {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
-        docker: docker
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/taps@sha256:bbaa4049b71c592eea9ee4634f7b3ac6a3c21529db6ccd853c90fb70db5e7ca7"
     }
 }
 
