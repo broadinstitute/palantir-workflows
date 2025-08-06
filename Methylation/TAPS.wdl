@@ -37,7 +37,7 @@ task Cutadapt {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{diskSize_gb} HDD"
+        disks: "local-disk ~{disk_size_gb} HDD"
         docker: docker
     }
 }
