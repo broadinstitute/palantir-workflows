@@ -48,7 +48,7 @@ task BwaMem {
         File reference
         File bwa_idx_amb
         File bwa_idx_ann
-        File bwa_idx_bwa
+        File bwa_idx_bwt
         File bwa_idx_pac
         File bwa_idx_sa
         Int? cpu = 4
