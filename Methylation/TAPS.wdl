@@ -6,8 +6,8 @@ task Cutadapt {
         File fastq2
         String adapter1 = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC"
         String adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
-        Int? cpu = 2
-        Int? num_cores = 8
+        Int? cpu = 4
+        Int? num_cores = 16
         Int? memory_gb = 32
         Int? disk_size_gb = ceil(3 * (size(fastq1, "GiB") + size(fastq2, "GiB")) + 50)
     }
@@ -46,10 +46,15 @@ task BwaMem {
         File fastq1
         File fastq2
         File reference
+        File bwa_idx_amb
+        File bwa_idx_ann
+        File bwa_idx_bwa
+        File bwa_idx_pac
+        File bwa_idx_sa
         Int? cpu = 4
         Int? num_threads = 16
         Int? memory_gb = 32
-        Int? disk_size_gb = ceil(3 * (size(fastq1, "GiB") + size(fastq2, "GiB")) + size(reference, "GiB") + 50)
+        Int? disk_size_gb = ceil(3 * (size(fastq1, "GiB") + size(fastq2, "GiB")) + size(reference, "GiB") + 100)
     }
 
     String prefix = basename(fastq1, ".trimmed.fastq.gz")
