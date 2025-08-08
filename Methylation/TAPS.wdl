@@ -252,6 +252,11 @@ workflow TAPS {
         File fastq1
         File fastq2
         File reference
+        File bwa_idx_amb
+        File bwa_idx_ann
+        File bwa_idx_bwt
+        File bwa_idx_pac
+        File bwa_idx_sa
         String adapter1 = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC"
         String adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
     }
@@ -268,7 +273,12 @@ workflow TAPS {
         input:
             fastq1 = Cutadapt.trimmed_fastq1,
             fastq2 = Cutadapt.trimmed_fastq2,
-            reference = reference
+            reference = reference,
+            bwa_idx_amb = bwa_idx_amb,
+            bwa_idx_ann = bwa_idx_ann,
+            bwa_idx_bwt = bwa_idx_bwt,
+            bwa_idx_pac = bwa_idx_pac,
+            bwa_idx_sa = bwa_idx_sa
     }
 
     call SortBam {
