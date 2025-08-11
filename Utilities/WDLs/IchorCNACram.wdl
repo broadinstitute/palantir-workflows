@@ -55,22 +55,25 @@ task read_counter {
     }
 
     command <<<
-        ln -vs ${bam_index} ${sample_id}.bam.bai
-        ln -vs ${bam_file} ${sample_id}.bam
+        ln -vs ~{bam_index} ~{sample_id}.bam.bai
+        ln -vs ~{bam_file} ~{sample_id}.bam
 
-        /HMMcopy/bin/readCounter ${sample_id}.bam -c ${chrs} -w ${bin_size}  \
-        -q ${min_qual} > ${sample_id}.bin${bin_size}.wig
+        /HMMcopy/bin/readCounter \
+        ~{sample_id}.bam \
+        -c ~{chrs} \
+        -w ~{bin_size} \
+        -q ~{min_qual} > ~{sample_id}.bin~{bin_size}.wig
     >>>
 
     runtime {
         cpu: cpu
-        memory: "${mem_gb}GB"
-        disks: "local-disk ${disk_size_gb} HDD"
+        memory: mem_gb + " GB"
+        disks: "local-disk " + disk_size_gb + " HDD"
         docker: "us.gcr.io/tag-team-160914/bloodbiopsy-hmmcopy:0.0.1"
     }
 
     output {
-        File wig_file = "${sample_id}.bin${bin_size}.wig"
+        File wig_file = "~{sample_id}.bin~{bin_size}.wig"
     }
 }
 
@@ -117,75 +120,75 @@ task ichor_cna_task {
     }
 
     command <<<
-        Rscript /runIchorCNA.R --id ${sample_id} \
+        Rscript /runIchorCNA.R \
+        --id ~{sample_id} \
         --outDir ./ --libdir /ichorCNA \
-        --WIG ${wig_file} \
-        --gcWig  ${input_gc_wig} \
-        --mapWig ${input_map_wig} \
-        --normalPanel ${default="None" normal_panel} \
-        --ploidy "${ploidy}" \
-        --normal "${normal}" \
-        ${"--coverage " + mean_depth} \
-        --maxCN ${max_cn} \
-        --includeHOMD ${include_homd} \
-        --chrs "${chrs}" \
-        --chrTrain "${chr_train}" \
-        --chrNormalize "${chr_normalize}" \
-        --genomeStyle "${genome_style}" \
-        --genomeBuild "${genome_build}" \
-        --estimateNormal ${estimate_normal} \
-        --estimatePloidy ${estimate_ploidy}  \
-        --estimateScPrevalence ${estimate_clonality} \
-        --scStates "${sc_states}" \
-        --centromere ${centromere} \
-        ${"--exons.bed " + exons} \
-        --txnE ${txn_e} \
-        --txnStrength ${txn_strength} \
-        --minSegmentBins ${min_segment_bins} \
-        --minMapScore ${min_map_score} \
-        --lambdaScaleHyperParam ${lambda_scale_hyper_param} \
-        --fracReadsInChrYForMale ${frac_reads_chrY_male} \
-        --maxFracGenomeSubclone ${max_frac_genome_subclone} \
-        --altFracThreshold ${alt_frac_threshold} \
-        --maxFracCNASubclone ${max_frac_cna_subclone} \
-        --rmCentromereFlankLength ${rm_centromere_flank_length} \
-        --plotFileType ${plot_file_type} \
-        --plotYLim "${plot_ylim}"
+        --WIG ~{wig_file} \
+        --gcWig  ~{input_gc_wig} \
+        --mapWig ~{input_map_wig} \
+        --normalPanel ~{default="None" normal_panel} \
+        --ploidy "~{ploidy}" \
+        --normal "~{normal}" \
+        ~{"--coverage " + mean_depth} \
+        --maxCN ~{max_cn} \
+        --includeHOMD ~{include_homd} \
+        --chrs "~{chrs}" \
+        --chrTrain "~{chr_train}" \
+        --chrNormalize "~{chr_normalize}" \
+        --genomeStyle "~{genome_style}" \
+        --genomeBuild "~{genome_build}" \
+        --estimateNormal ~{estimate_normal} \
+        --estimatePloidy ~{estimate_ploidy}  \
+        --estimateScPrevalence ~{estimate_clonality} \
+        --scStates "~{sc_states}" \
+        --centromere ~{centromere} \
+        ~{"--exons.bed " + exons} \
+        --txnE ~{txn_e} \
+        --txnStrength ~{txn_strength} \
+        --minSegmentBins ~{min_segment_bins} \
+        --minMapScore ~{min_map_score} \
+        --lambdaScaleHyperParam ~{lambda_scale_hyper_param} \
+        --fracReadsInChrYForMale ~{frac_reads_chrY_male} \
+        --maxFracGenomeSubclone ~{max_frac_genome_subclone} \
+        --altFracThreshold ~{alt_frac_threshold} \
+        --maxFracCNASubclone ~{max_frac_cna_subclone} \
+        --rmCentromereFlankLength ~{rm_centromere_flank_length} \
+        --plotFileType ~{plot_file_type} \
+        --plotYLim "~{plot_ylim}"
 
         # Zip optimal solutions
-        mkdir ${sample_id}.optimalSolution
-        cp ${sample_id}/${sample_id}_genomeWide.pdf ${sample_id}.cna.seg ${sample_id}.seg.txt ${sample_id}.seg ${sample_id}.optimalSolution/
-        zip -r ${sample_id}.optimalSolution.zip ${sample_id}.optimalSolution
+        mkdir ~{sample_id}.optimalSolution
+        cp ~{sample_id}/~{sample_id}_genomeWide.pdf ~{sample_id}.cna.seg ~{sample_id}.seg.txt ~{sample_id}.seg ~{sample_id}.optimalSolution/
+        zip -r ~{sample_id}.optimalSolution.zip ~{sample_id}.optimalSolution
 
         # Generate list of out solutions
-        Rscript /gatherOutSolutions.R --id ${sample_id} --rdata ${sample_id}.RData
+        Rscript /gatherOutSolutions.R --id ~{sample_id} --rdata ~{sample_id}.RData
     >>>
 
     runtime {
         cpu: cpu
-        memory: "${mem_gb}GB"
-        disks: "local-disk ${disk_size_gb} HDD"
+        memory: mem_gb + " GB"
+        disks: "local-disk " + disk_size_gb + " HDD"
         docker: "us.gcr.io/tag-team-160914/bloodbiopsy-ichorcna:0.2.1"
     }
 
     output {
-        File corr_depth = "${sample_id}.correctedDepth.txt"
-        File params = "${sample_id}.params.txt"
-        File cna = "${sample_id}.cna.seg"
-        File seg_txt = "${sample_id}.seg.txt"
-        File seg = "${sample_id}.seg"
-        File rdata = "${sample_id}.RData"
+        File corr_depth = "~{sample_id}.correctedDepth.txt"
+        File params = "~{sample_id}.params.txt"
+        File cna = "~{sample_id}.cna.seg"
+        File seg_txt = "~{sample_id}.seg.txt"
+        File seg = "~{sample_id}.seg"
+        File rdata = "~{sample_id}.RData"
 
-        File all_genomewide_plots = "${sample_id}/${sample_id}_genomeWide_all_sols.pdf"
-        File bias = "${sample_id}/${sample_id}_bias.pdf"
-        File tpdf = "${sample_id}/${sample_id}_tpdf.pdf"
-        File correct = "${sample_id}/${sample_id}_correct.pdf"
-        Array[File] per_chromosome_plots = glob("${sample_id}/${sample_id}_CNA*")
+        File all_genomewide_plots = "~{sample_id}/~{sample_id}_genomeWide_all_sols.pdf"
+        File bias = "~{sample_id}/~{sample_id}_bias.pdf"
+        File tpdf = "~{sample_id}/~{sample_id}_tpdf.pdf"
+        File correct = "~{sample_id}/~{sample_id}_correct.pdf"
+        Array[File] per_chromosome_plots = glob("~{sample_id}/~{sample_id}_CNA*")
 
-        File optimal_solution = "${sample_id}.optimalSolution.zip"
-        File out_solutions = "${sample_id}.outSolutions.zip"
+        File optimal_solution = "~{sample_id}.optimalSolution.zip"
+        File out_solutions = "~{sample_id}.outSolutions.zip"
     }
-
 }
 
 task extract_ichor_params {
@@ -200,19 +203,25 @@ task extract_ichor_params {
     }
 
     command <<<
-        cut -f1,2 ${params} | grep -v ^$ | tr "\t" " " > params_table.txt
-        python<<CODE
-        solutions = open('${params}').readlines()
+        cut -f1,2 ~{params} | grep -v ^$ | tr "\t" " " > params_table.txt
+
+        python << CODE
+
+        solutions = open('~{params}').readlines()
         sols = [x.rstrip("\n").split("\t") for x in solutions if x.startswith("n0.")]
         log_lik=0
+
         for sol in sols:
-        if int(float(sol[6]))>log_lik and float(sol[4])<${max_frac_genome_subclone} and float(sol[5])<${max_frac_cna_subclone}:
-        log_lik=int(float(sol[6]))
+            if int(float(sol[6]))>log_lik and float(sol[4])<~{max_frac_genome_subclone} and float(sol[5])<~{max_frac_cna_subclone}:
+                log_lik=int(float(sol[6]))
+
         params = open("params_table.txt","r").readlines()
         params = [x.rstrip("\n").split(": ") for x in params if ":" in x]
         param_dict = dict()
+
         for a,b in params:
-        param_dict[a] = b
+            param_dict[a] = b
+
         p=open("tumor_fraction","w"); p.write(param_dict["Tumor Fraction"])
         p=open("ploidy","w"); p.write(param_dict["Ploidy"])
         p=open("subclone_fraction","w"); p.write(param_dict["Subclone Fraction"])
@@ -221,13 +230,14 @@ task extract_ichor_params {
         p=open("gc-map_correction_mad","w"); p.write(param_dict["GC-Map correction MAD"])
         p=open("top_solution_log_likelihood","w"); p.write(str(log_lik))
         p.close()
+
         CODE
     >>>
 
     runtime {
         cpu: cpu
-        memory: "${mem_gb}GB"
-        disks: "local-disk ${disk_size_gb} HDD"
+        memory: mem_gb + " GB"
+        disks: "local-disk " + disk_size_gb + " HDD"
         docker: "python:3"
     }
 
@@ -254,22 +264,22 @@ task bundle_per_chromosome_plots {
 
     command <<<
         set -e
-        CHROM_PLOTS=`ls ${sep=" " chrom_plots} | sort -V`
+        CHROM_PLOTS=`ls ~{sep=" " chrom_plots} | sort -V`
 
         gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite \
-        -sOutputFile="${sample_id}_OptimalSolutionPerChrom.pdf" \
+        -sOutputFile="~{sample_id}_OptimalSolutionPerChrom.pdf" \
         $CHROM_PLOTS
     >>>
 
     runtime {
         cpu: cpu
-        memory: "${mem_gb}GB"
-        disks: "local-disk ${disk_size_gb} HDD"
+        memory: mem_gb + " GB"
+        disks: "local-disk " + disk_size_gb + " HDD"
         docker: "us.gcr.io/tag-team-160914/tag-tools:1.0.0"
     }
 
     output {
-        File output_plot = "${sample_id}_OptimalSolutionPerChrom.pdf"
+        File output_plot = "~{sample_id}_OptimalSolutionPerChrom.pdf"
     }
 }
 
