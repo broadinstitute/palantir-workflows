@@ -51,10 +51,10 @@ task BwaMem {
         File bwa_idx_bwt
         File bwa_idx_pac
         File bwa_idx_sa
-        Int? cpu = 4
-        Int? num_threads = 16
-        Int? memory_gb = 32
-        Int? disk_size_gb = ceil(3 * (size(fastq1, "GiB") + size(fastq2, "GiB")) + size(reference, "GiB") + 100)
+        Int? cpu = 8
+        Int? num_threads = 32
+        Int? memory_gb = 64
+        Int? disk_size_gb = ceil(3 * (size(fastq1, "GiB") + size(fastq2, "GiB")) + size(reference, "GiB") + 128)
     }
 
     String prefix = basename(fastq1, ".trimmed.fastq.gz")
