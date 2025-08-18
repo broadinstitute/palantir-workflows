@@ -82,63 +82,84 @@ def read_truth(truth_path):
     truth = truth.reset_index(names='event_index')
     return truth
 
+def write_output(output_dict):
+    with open('precision.txt', 'w') as f:
+        f.write(f'{output_dict["precision"]:.4f}\n')
+    with open('sensitivity.txt', 'w') as f:
+        f.write(f'{output_dict["sensitivity"]:.4f}\n')
+    with open('expected_events_seen.txt', 'w') as f:
+        f.write(f'{output_dict["expected_events_seen"]:.4f}\n')
+    with open('expected_events_not_seen.txt', 'w') as f:
+        f.write(f'{output_dict["expected_events_not_seen"]:.4f}\n')
+    with open('unexpected_events_seen.txt', 'w') as f:
+        f.write(f'{output_dict["unexpected_events_seen"]}\n')
+
 intervals = read_intervals_to_df('~{exon_intervals}')
 truth = read_truth('~{control_sample_common_events}')
 eval_df = read_vcf_to_df('~{eval_control_sample}')
-eval_df_expanded = get_exon_expanded_events(eval_df, intervals)
 
-truth_expanded = get_exon_expanded_events(truth, intervals)
+if len(eval_df) == 0:
+    print('No passing events found in eval VCF.')
+    output_dict = {
+        'precision': 0,
+        'sensitivity': 0,
+        'expected_events_seen': 0,
+        'expected_events_not_seen': len(truth),
+        'unexpected_events_seen': 0
+    }
+    write_output(output_dict)
+else:
+    eval_df_expanded = get_exon_expanded_events(eval_df, intervals)
 
-truth_with_eval = truth_expanded.merge(eval_df_expanded, how="outer", suffixes=("_truth", "_eval"), indicator=True, left_index=True, right_index=True)
+    truth_expanded = get_exon_expanded_events(truth, intervals)
 
-truth_with_eval['overlap_start']=np.maximum(truth_with_eval.event_exon_start_truth, truth_with_eval.event_exon_start_eval)
-truth_with_eval['overlap_end']=np.minimum(truth_with_eval.event_exon_end_truth, truth_with_eval.event_exon_end_eval)
+    truth_with_eval = truth_expanded.merge(eval_df_expanded, how="outer", suffixes=("_truth", "_eval"), indicator=True, left_index=True, right_index=True)
 
-truth_with_eval['overlap_length']=np.maximum(truth_with_eval.overlap_end - truth_with_eval.overlap_start,0).fillna(0)
+    truth_with_eval['overlap_start']=np.maximum(truth_with_eval.event_exon_start_truth, truth_with_eval.event_exon_start_eval)
+    truth_with_eval['overlap_end']=np.minimum(truth_with_eval.event_exon_end_truth, truth_with_eval.event_exon_end_eval)
 
-total_truth_length = (truth_expanded.event_exon_end - truth_expanded.event_exon_start).sum()
-total_eval_length = (eval_df_expanded.event_exon_end - eval_df_expanded.event_exon_start).sum()
+    truth_with_eval['overlap_length']=np.maximum(truth_with_eval.overlap_end - truth_with_eval.overlap_start,0).fillna(0)
 
-# Sensitivity
-sensitivity = truth_with_eval['overlap_length'].sum()/total_truth_length
+    total_truth_length = (truth_expanded.event_exon_end - truth_expanded.event_exon_start).sum()
+    total_eval_length = (eval_df_expanded.event_exon_end - eval_df_expanded.event_exon_start).sum()
 
-# Precision
-precision = truth_with_eval['overlap_length'].sum()/total_eval_length
+    # Sensitivity
+    sensitivity = truth_with_eval['overlap_length'].sum()/total_truth_length
 
-# Expected events seen
-def calculate_truth_event_overlap(df):
-    overlap_length = df.overlap_length.sum()
-    truth_dedup = df.drop_duplicates(subset=['exon_idx_truth'])
-    truth_dedup_length = (truth_dedup.event_exon_end_truth - truth_dedup.event_exon_start_truth).sum()
-    return overlap_length / truth_dedup_length
+    # Precision
+    precision = truth_with_eval['overlap_length'].sum()/total_eval_length
 
-truth_events_fraction_covered = truth_with_eval.groupby(['event_index']).apply(calculate_truth_event_overlap)
-expected_events_seen = truth_events_fraction_covered.sum()
+    # Expected events seen
+    def calculate_truth_event_overlap(df):
+        overlap_length = df.overlap_length.sum()
+        truth_dedup = df.drop_duplicates(subset=['exon_idx_truth'])
+        truth_dedup_length = (truth_dedup.event_exon_end_truth - truth_dedup.event_exon_start_truth).sum()
+        return overlap_length / truth_dedup_length
 
-# Expected events not seen
-expected_events_not_seen = len(truth) - expected_events_seen
+    truth_events_fraction_covered = truth_with_eval.groupby(['event_index']).apply(calculate_truth_event_overlap)
+    expected_events_seen = truth_events_fraction_covered.sum()
 
-# Unexpected events seen
-def calculate_eval_event_overlap(df):
-    overlap_length = df.overlap_length.sum()
-    eval_dedup = df.drop_duplicates(subset=['exon_idx_eval'])
-    eval_dedup_length = (eval_dedup.event_exon_end_eval - eval_dedup.event_exon_start_eval).sum()
-    return overlap_length / eval_dedup_length
+    # Expected events not seen
+    expected_events_not_seen = len(truth) - expected_events_seen
 
-eval_events_fraction_covered = truth_with_eval.groupby(['ID']).apply(calculate_eval_event_overlap)
-unexpected_events_seen = len(eval_df) - eval_events_fraction_covered.sum()
+    # Unexpected events seen
+    def calculate_eval_event_overlap(df):
+        overlap_length = df.overlap_length.sum()
+        eval_dedup = df.drop_duplicates(subset=['exon_idx_eval'])
+        eval_dedup_length = (eval_dedup.event_exon_end_eval - eval_dedup.event_exon_start_eval).sum()
+        return overlap_length / eval_dedup_length
 
-# Write results
-with open('precision.txt', 'w') as f:
-    f.write(f'{precision:.4f}\n')
-with open('sensitivity.txt', 'w') as f:
-    f.write(f'{sensitivity:.4f}\n')
-with open('expected_events_seen.txt', 'w') as f:
-    f.write(f'{expected_events_seen:.4f}\n')
-with open('expected_events_not_seen.txt', 'w') as f:
-    f.write(f'{expected_events_not_seen:.4f}\n')
-with open('unexpected_events_seen.txt', 'w') as f:
-    f.write(f'{unexpected_events_seen}\n')
+    eval_events_fraction_covered = truth_with_eval.groupby(['ID']).apply(calculate_eval_event_overlap)
+    unexpected_events_seen = len(eval_df) - eval_events_fraction_covered.sum()
+
+    output_dict = {
+        'precision': precision,
+        'sensitivity': sensitivity,
+        'expected_events_seen': expected_events_seen,
+        'expected_events_not_seen': expected_events_not_seen,
+        'unexpected_events_seen': unexpected_events_seen
+    }
+    write_output(output_dict)
 EOF
     >>>
 
