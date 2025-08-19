@@ -183,7 +183,7 @@ task compute_accuracy {
                         if start <= prev_end_pass:
                             overlapping_length_pass += end - prev_end_pass
                         else:
-                            overlapping_length_pass + end - start +1
+                            overlapping_length_pass += end - start +1
                         prev_end_pass = end
                         
             
