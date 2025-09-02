@@ -4,23 +4,35 @@ workflow Glimpse2QCReport {
     input {
         String cohort_name
         File metrics
-        Array[File] coverage_metrics
-        File ancestries
+        File vcf
+        File vcf_index
+        File pca_loadings
+        File onnx_model
+        File coverage_metrics
         File predicted_sex
-        File info_score_qc
-        File info_mean_quantile
-        File info_score_sampling
     }
+
+    call EstimateAncestry {
+        input:
+            vcf = vcf,
+            vcf_index = vcf_index,
+            pca_loadings = pca_loadings,
+            onnx_model = onnx_model
+    }
+
+    call ExtractInfoScores {
+        input:
+            vcf = vcf
+    }
+
     call Glimpse2QCReport_t {
         input:
             cohort_name = cohort_name,
             metrics = metrics,
             coverage_metrics = coverage_metrics,
-            ancestries = ancestries,
+            ancestries = EstimateAncestry.ancestries,
             predicted_sex = predicted_sex,
-            info_score_qc = info_score_qc,
-            info_mean_quantile = info_mean_quantile,
-            info_score_sampling = info_score_sampling
+            info_scores = ExtractInfoScores.info_scores
     }
 
 
@@ -29,16 +41,129 @@ workflow Glimpse2QCReport {
     }
 }
 
+task ExtractInfoScores {
+    input {
+        File vcf
+        Int disk_size_gb=100
+        Int mem_gb=4
+        Int cpu=1
+    }
+
+    String basename = basename(vcf, ".vcf.gz")
+
+    command <<<
+        set -euo pipefail
+        echo "RAF\tINFO" | gzip > ~{basename}_info_scores.tsv.gz
+        bcftools query -f '%RAF\t%INFO/INFO\n' ~{vcf} | gzip >> ~{basename}_info_scores.tsv.gz
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/bcftools:1.21"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        disks: "local-disk " + disk_size_gb + " HDD"
+      }
+
+    output {
+        File info_scores = "~{basename}_info_scores.tsv.gz"   
+    }
+}
+
+task EstimateAncestry {
+    input {
+        File vcf
+        File vcf_index
+        File pca_loadings
+        File onnx_model
+        Int mem_gb=32
+        Int cpu=8
+        Int n_splits=8
+        Int disk_size_gb=100
+    }
+
+    String basename = basename(vcf, ".vcf.gz")
+
+    command <<<
+        set -euo pipefail
+
+        # split bed into appropriate number of chunks
+        awk -v OFS='\t' 'NR > 1 {print $1, $2-1, $2}' ~{pca_loadings} > loadings.bed
+        n_line=$(wc -l < loadings.bed)
+        line_per_split=$((n_line/~{n_splits}))
+        split -d -l $line_per_split loadings.bed loadings_chunk_
+
+        for f in loadings_chunk_*
+        do 
+            mv "$f" "$f".bed
+            printf "contig\tpos\tref\talt\t%s\n" "$(bcftools query -l ~{vcf} | head -c -1 | tr "\n" "\t")" | gzip > dosages_"$f".tsv.gz
+            bcftools +dosage -R "$f".bed ~{vcf} -- -t GT | tail -n +2 | gzip >> dosages_"$f".tsv.gz &
+        done
+
+        wait
+
+        cat << EOF > predict_ancestry.py
+        import pandas as pd
+        import numpy as np
+        import onnx
+        import onnxruntime as ort
+        import glob
+
+        loadings = pd.read_csv('~{pca_loadings}', sep='\t')
+        dosage_chunk_paths = glob.glob('dosages_loadings_chunk_*.tsv.gz')
+        pcs = np.zeros((1,1))
+        for path in dosage_chunk_paths:
+            dosages = pd.read_csv(path, sep='\t')
+            dosages = dosages.merge(loadings, on = ["contig","pos","ref","alt"], how="inner")
+            pc_cols = [c for c in dosages.columns if c.startswith("pc") and c != "pca_af"]
+            dosage_cols = [c for c in dosages.columns if c not in ['contig','pos','ref','alt','pca_af'] + pc_cols]
+            pca_af_np = dosages['pca_af'].to_numpy().reshape(-1,1)
+            n_var = loadings.shape[0]
+            dosages_np = (dosages[dosage_cols].to_numpy() - 2*pca_af_np)/np.sqrt(n_var*2*pca_af_np*(1-pca_af_np))
+            loadings_np = dosages[pc_cols].to_numpy()
+            pcs = pcs + np.matmul(dosages_np.transpose(), loadings_np)
+        
+        ancestry_df = pd.DataFrame(pcs)
+        ancestry_df.columns = pc_cols
+        ancestry_df['sample'] = dosage_cols
+        ancestry_df = ancestry_df[['sample'] + pc_cols].copy()
+
+        with open('~{onnx_model}', 'rb') as f_onnx:
+            onnx_model = onnx.load(f_onnx)
+        
+        sess = ort.InferenceSession(onnx_model.SerializeToString(), providers=["CPUExecutionProvider"])
+        input_name = sess.get_inputs()[0].name
+        label_name = sess.get_outputs()[0].name
+        prob_name = sess.get_outputs()[1].name
+
+        ancestry, _ = sess.run([label_name,prob_name], {input_name:pcs.astype(np.float32)})
+        ancestry_df['ancestry'] = ancestry
+
+        ancestry_df.to_csv('~{basename}_ancestry.tsv', index=False, sep='\t')
+        EOF
+
+        python3 predict_ancestry.py
+    >>>
+
+    runtime {
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/bcftools-onnx"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        disks: "local-disk " + disk_size_gb + " HDD"
+      }
+
+    output {
+        File ancestries = "~{basename}_ancestry.tsv"   
+    }
+}
+
 task Glimpse2QCReport_t {
     input {
         String cohort_name
         File metrics
-        Array[File] coverage_metrics
+        File coverage_metrics
         File ancestries
         File predicted_sex
-        File info_score_qc
-        File info_mean_quantile
-        File info_score_sampling
+        File info_scores
         Int mem_gb=4
     }
 
@@ -71,15 +196,29 @@ task Glimpse2QCReport_t {
 
         ancestry_counts <- ancestries %>% group_by(ancestry) %>% count() %>% arrange(-n)
 
-        coverage_metrics<-read_tsv(c("~{sep='","' coverage_metrics}"))
+        coverage_metrics<-read_tsv(c("~{coverage_metrics}"))
         coverage_metrics_per_sample <- coverage_metrics %>% group_by(Sample) %>% summarise(mean_cov=mean(\`Cov.\`),
                                                             mean_frac_sites = mean(1-\`No data pct\`/100))
 
-        info_score_count <- read_tsv("~{info_score_qc}") %>% arrange(-total_sites)
+        info_scores <- read_tsv("~{info_scores}")
+        info_scores <- info_scores %>% mutate(raf_bin = 10**(ceiling((log10(RAF)- -4)/(4/10))*(4/10)+-4))
 
-        info_mean_quantile <- read_tsv("~{info_mean_quantile}")
+        info_mean_quantile <- info_scores %>% group_by(raf_bin) %>% summarise(q5 = quantile(INFO,0.05),
+                                              q95 = quantile(INFO, 0.95),
+                                              mean = mean(INFO))
 
-        info_sample <- read_tsv("~{info_score_sampling}")
+        info_score_count <- bind_rows(info_scores %>% summarise(n=n(),
+                         n_gt_0_6 = sum(INFO>0.6),
+                         n_gt_0_8 = sum(INFO>0.8)) %>% mutate(raf_thresh = "all"),
+                info_scores %>% filter(RAF>0.01) %>% summarise(n=n(),
+                                                  n_gt_0_6 = sum(INFO>0.6),
+                                                  n_gt_0_8 = sum(INFO>0.8)) %>%
+                                mutate(raf_thresh = "raf > 1%"),
+                info_scores %>% filter(RAF>0.001) %>% summarise(n=n(),
+                                                     n_gt_0_6 = sum(INFO>0.6),
+                                                     n_gt_0_8 = sum(INFO>0.8)) %>%
+                                mutate(raf_thresh = "raf > 0.1%")   
+            ) %>% relocate(raf_thresh)
 
         \`\`\`
         # Site QC
@@ -129,10 +268,10 @@ task Glimpse2QCReport_t {
         Below we show the relationship between reference panel allele frequency and INFO score.  The line and shaded regions represent the mean and 5%-95% quantiles for various reference panel allele frequency bins.  The points are a random sampling of 10,000 sites.
 
         \`\`\`{r info_score_plot, echo=FALSE, message=FALSE, warning=FALSE}
-        ggplot(info_sample, aes(x=RAF,y=INFO)) +
+        ggplot(info_scores %>% sample_n(10000), aes(x=RAF,y=INFO)) +
         geom_point(alpha=0.2) +
-        geom_line(data=info_mean_quantile, aes(x=raf, y=mean), color='red') +
-        geom_ribbon(data=info_mean_quantile, aes(x=raf, y=mean, ymin=fifth_pctile, ymax=ninety_fifth_pctile), fill='red', alpha=0.3) +
+        geom_line(data=info_mean_quantile, aes(x=raf_bin, y=mean), color='red') +
+        geom_ribbon(data=info_mean_quantile, aes(x=raf_bin, y=mean, ymin=q5, ymax=q95), fill='red', alpha=0.3) +
         scale_x_log10() + theme_bw() + xlab("Reference Panel Allele Frequency")
         \`\`\`
 
