@@ -58,7 +58,7 @@ task ExtractInfoScores {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/bcftools:1.21"
+        docker: "us.gcr.io/broad-dsde-methods/bcftools:1.4"
         memory: mem_gb + " GiB"
         cpu: cpu
         disks: "local-disk " + disk_size_gb + " HDD"
@@ -145,7 +145,7 @@ task EstimateAncestry {
     >>>
 
     runtime {
-        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/bcftools-onnx"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/bcftools-onnx:0.1"
         memory: mem_gb + " GiB"
         cpu: cpu
         disks: "local-disk " + disk_size_gb + " HDD"
