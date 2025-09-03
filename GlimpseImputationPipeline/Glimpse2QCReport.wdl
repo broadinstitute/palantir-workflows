@@ -43,18 +43,17 @@ workflow Glimpse2QCReport {
 
 task ExtractInfoScores {
     input {
+        String cohort_name
         File vcf
         Int disk_size_gb=100
         Int mem_gb=4
         Int cpu=1
     }
 
-    String basename = basename(vcf, ".vcf.gz")
-
     command <<<
         set -euo pipefail
-        echo "RAF\tINFO" | gzip > ~{basename}_info_scores.tsv.gz
-        bcftools query -f '%RAF\t%INFO/INFO\n' ~{vcf} | gzip >> ~{basename}_info_scores.tsv.gz
+        echo "RAF\tINFO" | gzip > ~{cohort_name}_info_scores.tsv.gz
+        bcftools query -f '%RAF\t%INFO/INFO\n' ~{vcf} | gzip >> ~{cohort_name}_info_scores.tsv.gz
     >>>
 
     runtime {
@@ -65,7 +64,7 @@ task ExtractInfoScores {
       }
 
     output {
-        File info_scores = "~{basename}_info_scores.tsv.gz"   
+        File info_scores = "~{cohort_name}_info_scores.tsv.gz"   
     }
 }
 
@@ -73,6 +72,7 @@ task EstimateAncestry {
     input {
         File vcf
         File vcf_index
+        String cohort_name
         File pca_loadings
         File onnx_model
         Int mem_gb=32
@@ -80,8 +80,6 @@ task EstimateAncestry {
         Int n_splits=8
         Int disk_size_gb=100
     }
-
-    String basename = basename(vcf, ".vcf.gz")
 
     command <<<
         set -euo pipefail
@@ -138,7 +136,7 @@ task EstimateAncestry {
         ancestry, _ = sess.run([label_name,prob_name], {input_name:pcs.astype(np.float32)})
         ancestry_df['ancestry'] = ancestry
 
-        ancestry_df.to_csv('~{basename}_ancestry.tsv', index=False, sep='\t')
+        ancestry_df.to_csv('~{cohort_name}_ancestry.tsv', index=False, sep='\t')
         EOF
 
         python3 predict_ancestry.py
@@ -152,7 +150,7 @@ task EstimateAncestry {
       }
 
     output {
-        File ancestries = "~{basename}_ancestry.tsv"   
+        File ancestries = "~{cohort_name}_ancestry.tsv"   
     }
 }
 
@@ -189,10 +187,10 @@ task Glimpse2QCReport_t {
 
         \`\`\`{r load data, include=FALSE,echo=FALSE, message=FALSE, warning=FALSE}
         qc_metrics = read_tsv("~{metrics}")
-        ancestries = read_csv("~{ancestries}")
+        ancestries = read_tsv("~{ancestries}")
         predicted_sex = read_tsv("~{predicted_sex}")
 
-        qc_metrics = qc_metrics %>% inner_join(ancestries, by=c("sample"="s")) %>% inner_join(predicted_sex, by=c("sample"="sample_id"))
+        qc_metrics = qc_metrics %>% inner_join(ancestries, by=c("sample_id"="sample")) %>% inner_join(predicted_sex)
 
         ancestry_counts <- ancestries %>% group_by(ancestry) %>% count() %>% arrange(-n)
 
