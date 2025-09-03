@@ -218,7 +218,7 @@ task Glimpse2QCReport_t {
                                                      n_gt_0_6 = sum(INFO>0.6),
                                                      n_gt_0_8 = sum(INFO>0.8)) %>%
                                 mutate(raf_thresh = "raf > 0.1%")   
-            ) %>% relocate(raf_thresh)
+            ) %>% relocate(raf_thresh) %>% mutate(frac_gt_0_6=n_gt_0_6/n, frac_gt_0_8=n_gt_0_8/n)
 
         \`\`\`
         # Site QC
@@ -281,7 +281,7 @@ task Glimpse2QCReport_t {
         As part of sample QC, genetic ancestry was estimated for all samples, in order to confirm that any stratification of QC metrics are expected based on genetic ancestry.  Genetic ancestry was estimated  by PCA using resources provided by [gnomad](https://gnomad.broadinstitute.org/downloads#v3-ancestry-classification).  Note that these ancestry estimates are used solely for QC, and are not intended to be used for any other purpose.
 
         \`\`\`{r pca, echo=FALSE, message=FALSE, warning=FALSE}
-        ggplot(ancestries, aes(x=PC1, y=PC2)) +
+        ggplot(ancestries, aes(x=pc1, y=pc2)) +
         geom_point(aes(color=ancestry)) + theme_bw()
         \`\`\`
 
