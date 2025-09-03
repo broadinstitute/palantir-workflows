@@ -39,7 +39,6 @@ workflow Glimpse2QCReport {
 
 
     output {
-        #File qc_report = Glimpse2QCReport_t.qc_report
         File qc_rmd = Glimpse2QCReport_t.qc_rmd
     }
 }
@@ -381,7 +380,6 @@ task Glimpse2QCReport_t {
       }
 
     output {
-        #File qc_report = "~{cohort_name}_qc_report.pdf"
         File qc_rmd = "~{cohort_name}_qc_report.Rmd"
     }
 }
