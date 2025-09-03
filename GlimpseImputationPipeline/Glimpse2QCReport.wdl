@@ -58,7 +58,7 @@ task ExtractInfoScores {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/bcftools:1.4"
+        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.4"
         memory: mem_gb + " GiB"
         cpu: cpu
         disks: "local-disk " + disk_size_gb + " HDD"
