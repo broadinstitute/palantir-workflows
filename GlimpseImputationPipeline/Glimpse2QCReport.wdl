@@ -369,7 +369,7 @@ task Glimpse2QCReport_t {
 
         EOF
 
-        Rscript -e "library(rmarkdown); rmarkdown::render('~{cohort_name}_qc_report.Rmd', 'pdf_document')"
+        #Rscript -e "library(rmarkdown); rmarkdown::render('~{cohort_name}_qc_report.Rmd', 'pdf_document')"
 
     >>>
 
@@ -380,6 +380,7 @@ task Glimpse2QCReport_t {
       }
 
     output {
-        File qc_report = "~{cohort_name}_qc_report.pdf"
+        #File qc_report = "~{cohort_name}_qc_report.pdf"
+        File qc_rmd = "~{cohort_name}_qc_report.Rmd"
     }
 }
