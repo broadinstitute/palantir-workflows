@@ -16,13 +16,15 @@ workflow Glimpse2QCReport {
         input:
             vcf = vcf,
             vcf_index = vcf_index,
+            cohort_name = cohort_name,
             pca_loadings = pca_loadings,
             onnx_model = onnx_model
     }
 
     call ExtractInfoScores {
         input:
-            vcf = vcf
+            vcf = vcf,
+            cohort_name = cohort_name
     }
 
     call Glimpse2QCReport_t {
