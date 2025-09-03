@@ -54,7 +54,7 @@ task ExtractInfoScores {
 
     command <<<
         set -euo pipefail
-        echo "RAF\tINFO" | gzip > ~{cohort_name}_info_scores.tsv.gz
+        printf "RAF\tINFO\n" | gzip > ~{cohort_name}_info_scores.tsv.gz
         bcftools query -f '%RAF\t%INFO/INFO\n' ~{vcf} | gzip >> ~{cohort_name}_info_scores.tsv.gz
     >>>
 
@@ -196,7 +196,7 @@ task Glimpse2QCReport_t {
 
         ancestry_counts <- ancestries %>% group_by(ancestry) %>% count() %>% arrange(-n)
 
-        coverage_metrics<-read_tsv(c("~{coverage_metrics}"))
+        coverage_metrics<-read_tsv("~{coverage_metrics}")
         coverage_metrics_per_sample <- coverage_metrics %>% group_by(Sample) %>% summarise(mean_cov=mean(\`Cov.\`),
                                                             mean_frac_sites = mean(1-\`No data pct\`/100))
 
