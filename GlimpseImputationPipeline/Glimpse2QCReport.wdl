@@ -39,7 +39,7 @@ workflow Glimpse2QCReport {
 
 
     output {
-        File qc_rmd = Glimpse2QCReport_t.qc_rmd
+        File qc_rmd = Glimpse2QCReport_t.qc_report
     }
 }
 
@@ -164,7 +164,7 @@ task Glimpse2QCReport_t {
         File ancestries
         File predicted_sex
         File info_scores
-        Int mem_gb=4
+        Int mem_gb=16
     }
 
     command <<<
@@ -369,7 +369,7 @@ task Glimpse2QCReport_t {
 
         EOF
 
-        #Rscript -e "library(rmarkdown); rmarkdown::render('~{cohort_name}_qc_report.Rmd', 'pdf_document')"
+        Rscript -e "library(rmarkdown); rmarkdown::render('~{cohort_name}_qc_report.Rmd', 'pdf_document')"
 
     >>>
 
@@ -380,6 +380,6 @@ task Glimpse2QCReport_t {
       }
 
     output {
-        File qc_rmd = "~{cohort_name}_qc_report.Rmd"
+        File qc_report = "~{cohort_name}_qc_report.pdf"
     }
 }
