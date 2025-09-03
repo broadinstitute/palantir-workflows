@@ -192,7 +192,7 @@ task Glimpse2QCReport_t {
         ancestries = read_csv("~{ancestries}")
         predicted_sex = read_tsv("~{predicted_sex}")
 
-        qc_metrics = qc_metrics %>% inner_join(ancestries, by=c("sample_id"="s")) %>% inner_join(predicted_sex)
+        qc_metrics = qc_metrics %>% inner_join(ancestries, by=c("sample"="s")) %>% inner_join(predicted_sex, by=c("sample"="sample_id"))
 
         ancestry_counts <- ancestries %>% group_by(ancestry) %>% count() %>% arrange(-n)
 
