@@ -197,6 +197,7 @@ task Glimpse2QCReport_t {
         ancestry_counts <- ancestries %>% group_by(ancestry) %>% count() %>% arrange(-n)
 
         coverage_metrics<-read_tsv("~{coverage_metrics}")
+        n_cov_chunks <- coverage_metrics %>% select(Chunk) %>% unique() %>% count()
         coverage_metrics_per_sample <- coverage_metrics %>% group_by(Sample) %>% summarise(mean_cov=mean(\`Cov.\`),
                                                             mean_frac_sites = mean(1-\`No data pct\`/100))
 
@@ -210,20 +211,20 @@ task Glimpse2QCReport_t {
         info_score_count <- bind_rows(info_scores %>% summarise(n=n(),
                          n_gt_0_6 = sum(INFO>0.6),
                          n_gt_0_8 = sum(INFO>0.8)) %>% mutate(raf_thresh = "all"),
-                info_scores %>% filter(RAF>0.01) %>% summarise(n=n(),
+                info_scores %>% filter(RAF>0.001) %>% summarise(n=n(),
                                                   n_gt_0_6 = sum(INFO>0.6),
                                                   n_gt_0_8 = sum(INFO>0.8)) %>%
-                                mutate(raf_thresh = "raf > 1%"),
-                info_scores %>% filter(RAF>0.001) %>% summarise(n=n(),
+                                mutate(raf_thresh = "raf > 0.1%"),
+                info_scores %>% filter(RAF>0.01) %>% summarise(n=n(),
                                                      n_gt_0_6 = sum(INFO>0.6),
                                                      n_gt_0_8 = sum(INFO>0.8)) %>%
-                                mutate(raf_thresh = "raf > 0.1%")   
+                                mutate(raf_thresh = "raf > 1%")   
             ) %>% relocate(raf_thresh) %>% mutate(frac_gt_0_6=n_gt_0_6/n, frac_gt_0_8=n_gt_0_8/n)
 
         \`\`\`
         # Site QC
         ## Site Coverage QC
-        During GLIMPSE imputation, the genome is split into 837 chunks, with the majority of the algorithm being applied to each chunk separately.  All the chunks are then ligated back together at the end of the process.  For each chunk, the mean coverage of sites being genotyped is calculated for each sample, along with the fractions of sites covered by at least one read.
+        During GLIMPSE imputation, the genome is split into `r n_cov_chunks` chunks, with the majority of the algorithm being applied to each chunk separately.  All the chunks are then ligated back together at the end of the process.  For each chunk, the mean coverage of sites being genotyped is calculated for each sample, along with the fractions of sites covered by at least one read.
 
         In the histograms below, we show the distributions of mean coverage and fractions of sites covered over all chunk/sample combinations.
 
