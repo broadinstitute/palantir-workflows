@@ -39,7 +39,8 @@ workflow Glimpse2QCReport {
 
 
     output {
-        File qc_report = Glimpse2QCReport_t.qc_report
+        #File qc_report = Glimpse2QCReport_t.qc_report
+        File qc_rmd = Glimpse2QCReport_t.qc_rmd
     }
 }
 
