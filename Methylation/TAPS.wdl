@@ -4,8 +4,8 @@ task Cutadapt {
     input {
         File fastq1
         File fastq2
-        String adapter1 = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC"
-        String adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
+        #String adapter1 = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC"
+        #String adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
         Int? cpu = 4
         Int? num_cores = 16
         Int? memory_gb = 32
@@ -18,8 +18,8 @@ task Cutadapt {
     command <<<
         cutadapt \
         --cores=~{num_cores} \
-        -a ~{adapter1} \
-        -A ~{adapter2} \
+        -u 5 \
+        -U 5 \
         -o ~{prefix1}.trimmed.fastq.gz \
         -p ~{prefix2}.trimmed.fastq.gz \
         ~{fastq1} \
@@ -51,6 +51,9 @@ task BwaMem {
         File bwa_idx_bwt
         File bwa_idx_pac
         File bwa_idx_sa
+        String read_group_id
+        String read_group_sample
+        String platform
         Int? cpu = 8
         Int? num_threads = 32
         Int? memory_gb = 64
@@ -62,6 +65,7 @@ task BwaMem {
     command <<<
         bwa mem \
         -t ~{num_threads} \
+        -R '@RG\tID:~{read_group_id}\tPL:~{platform}\tSM:~{read_group_sample}' \
         ~{reference} \
         ~{fastq1} \
         ~{fastq2} \
@@ -257,16 +261,17 @@ workflow TAPS {
         File bwa_idx_bwt
         File bwa_idx_pac
         File bwa_idx_sa
-        String adapter1 = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC"
-        String adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
+        String read_group_id
+        String read_group_sample
+        String platform = "ILLUMINA"
+        #String adapter1 = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC"
+        #String adapter2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
     }
 
     call Cutadapt {
         input:
             fastq1 = fastq1,
             fastq2 = fastq2,
-            adapter1 = adapter1,
-            adapter2 = adapter2
     }
 
     call BwaMem {
@@ -278,7 +283,10 @@ workflow TAPS {
             bwa_idx_ann = bwa_idx_ann,
             bwa_idx_bwt = bwa_idx_bwt,
             bwa_idx_pac = bwa_idx_pac,
-            bwa_idx_sa = bwa_idx_sa
+            bwa_idx_sa = bwa_idx_sa,
+            read_group_id = read_group_id,
+            read_group_sample = read_group_sample,
+            platform = platform
     }
 
     call SortBam {
