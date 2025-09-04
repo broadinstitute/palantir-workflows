@@ -175,7 +175,6 @@ task Glimpse2QCReport_t {
         title: GLIMPSE Imputation QC Report
         subtitle: ~{cohort_name}
         author: "Broad Clinical Labs"
-        date: "\`r Sys.Date()\`"
         output: pdf_document
         ---
 
