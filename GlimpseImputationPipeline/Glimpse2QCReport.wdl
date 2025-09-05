@@ -187,6 +187,7 @@ task Glimpse2QCReport_t {
         \`\`\`
 
         \`\`\`{r load data, include=FALSE,echo=FALSE, message=FALSE, warning=FALSE}
+        set.seed(42) # for reproducibility of sampling
         qc_metrics = read_tsv("~{metrics}")
         ancestries = read_tsv("~{ancestries}")
         predicted_sex = read_tsv("~{predicted_sex}")
