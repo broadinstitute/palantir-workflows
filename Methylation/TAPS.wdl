@@ -201,8 +201,7 @@ task RastairMbias {
         rastair mbias \
         --threads ~{num_threads} \
         --fasta-file ~{reference} \
-        ~{bam} >
-        ~{prefix}.trimmed.sorted.marked.deduped.rastair.mbias.txt
+        ~{bam} > ~{prefix}.trimmed.sorted.marked.deduped.rastair.mbias.txt
 
     >>>
 
@@ -235,8 +234,7 @@ task RastairCall {
         --min-baseq 30 \
         --min-mapq 20 \
         --fasta-file ~{reference} \
-        ~{bam} \
-        >> rastair_output.mods
+        ~{bam} >> rastair_output.mods
     >>>
 
     output {
