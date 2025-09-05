@@ -173,7 +173,7 @@ task RemDupsAndIndex {
 
     output {
         File deduped_bam = "~{prefix}.trimmed.sorted.marked.deduped.bam"
-        File deduped_bam_index = "~{prefix}.trimmed.sorted.marked.deduped.bai"
+        File deduped_bam_index = "~{prefix}.trimmed.sorted.marked.deduped.bam.bai"
     }
 
     runtime {
