@@ -189,6 +189,7 @@ task RastairMbias {
         File bam
         File bam_index
         File reference
+        File reference_index
         Int? cpu = 4
         Int? num_threads = 8
         Int? memory_gb = 32
@@ -222,6 +223,7 @@ task RastairCall {
         File bam
         File bam_index
         File reference
+        File reference_index
         Int? cpu = 4
         Int? memory_gb = 32
         Int? disk_size_gb = ceil(3 * size(bam, "GiB") + size(reference, "GiB") + 100)
@@ -254,6 +256,7 @@ workflow TAPS {
         File fastq1
         File fastq2
         File reference
+        File reference_index
         File bwa_idx_amb
         File bwa_idx_ann
         File bwa_idx_bwt
@@ -306,14 +309,16 @@ workflow TAPS {
         input:
             bam = RemDupsAndIndex.deduped_bam,
             bam_index = RemDupsAndIndex.deduped_bam_index,
-            reference = reference
+            reference = reference,
+            reference_index = reference_index
     }
 
     call RastairCall {
         input:
             bam = RemDupsAndIndex.deduped_bam,
             bam_index = RemDupsAndIndex.deduped_bam_index,
-            reference = reference
+            reference = reference,
+            reference_index = reference_index
     }
 
     output {
