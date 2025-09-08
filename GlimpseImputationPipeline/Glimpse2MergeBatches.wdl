@@ -123,7 +123,7 @@ workflow Glimpse2MergeBatches {
         Int? final_sample_count = CountSamplesFinal.num_samples
 
         File merged_qc_metrics = select_first([MergeQCMetrics.merged_qc_metrics, qc_metrics[0]])
-        File merged_coverage_metrics = select_first([MergeCoverageMetrics.merged_coverage_metrics, coverage_metrics[0]]
+        File merged_coverage_metrics = select_first([MergeCoverageMetrics.merged_coverage_metrics, coverage_metrics[0]])
     }
 }
 
