@@ -465,8 +465,8 @@ task MergeQCMetrics {
         python3 <<EOF
         import pandas as pd
         qc_metrics = ['~{sep="', '" qc_metrics}']
-        merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t') for qc_metric in qc_metrics])
-        merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t')
+        merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t', dtype={'sample_id':str}) for qc_metric in qc_metrics])
+        merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t', index=False)
         EOF
     >>>
 
@@ -502,13 +502,18 @@ task MergeCoverageMetrics {
         python3 <<EOF
         import pandas as pd
         coverage_metrics = ['~{sep="', '" coverage_metrics}']
-        merged_coverage_metrics = pd.concat([pd.read_csv(coverage_metric, sep='\t') for coverage_metric in coverage_metrics])
-        merged_coverage_metrics.to_csv('~{output_basename}.coverage_metrics.tsv', sep='\t')
+        merged_coverage_metrics_array = [pd.read_csv(coverage_metric, sep='\t', dtype={"Sample":str}) for coverage_metric in coverage_metrics]
+        id_offset = 0
+        for cov_metric in merged_coverage_metrics_array:
+            cov_metric.ID += id_offset
+            id_offset = cov_metric.ID.max() + 1
+        merged_coverage_metrics = pd.concat(merged_coverage_metrics_array).sort_values('Chunk')
+        merged_coverage_metrics.to_csv('~{output_basename}.coverage_metrics.txt', sep='\t', index=False)
         EOF
     >>>
 
     output {
-        File merged_coverage_metrics = "~{output_basename}.coverage_metrics.tsv"
+        File merged_coverage_metrics = "~{output_basename}.coverage_metrics.txt"
     }
 
     runtime {

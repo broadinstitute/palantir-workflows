@@ -188,15 +188,15 @@ task Glimpse2QCReport_t {
 
         \`\`\`{r load data, include=FALSE,echo=FALSE, message=FALSE, warning=FALSE}
         set.seed(42) # for reproducibility of sampling
-        qc_metrics = read_tsv("~{metrics}")
-        ancestries = read_tsv("~{ancestries}")
-        predicted_sex = read_tsv("~{predicted_sex}")
+        qc_metrics = read_tsv("~{metrics}", col_types = cols(sample_id=col_character()))
+        ancestries = read_tsv("~{ancestries}", col_types = cols(sample=col_character()))
+        predicted_sex = read_tsv("~{predicted_sex}", col_types = cols(sample_id=col_character()))
 
         qc_metrics = qc_metrics %>% inner_join(ancestries, by=c("sample_id"="sample")) %>% inner_join(predicted_sex)
 
         ancestry_counts <- ancestries %>% group_by(ancestry) %>% count() %>% arrange(-n)
 
-        coverage_metrics<-read_tsv("~{coverage_metrics}")
+        coverage_metrics<-read_tsv("~{coverage_metrics}", , col_types = cols(Sample=col_character()))
         n_cov_chunks <- coverage_metrics %>% select(Chunk) %>% unique() %>% count()
         coverage_metrics_per_sample <- coverage_metrics %>% group_by(Sample) %>% summarise(mean_cov=mean(\`Cov.\`),
                                                             mean_frac_sites = mean(1-\`No data pct\`/100))
