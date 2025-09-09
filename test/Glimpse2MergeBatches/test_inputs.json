@@ -1,19 +1,19 @@
 {
-    "Glimpe2MergeBatches.imputed_vcfs": [ 
+    "Glimpse2MergeBatches.imputed_vcfs": [
         "gs://palantir-workflows-test-data/Glimpse2Imputation/test.imputed.vcf.gz", 
         "gs://palantir-workflows-test-data/Glimpse2Imputation/test.imputed_2.vcf.gz" 
         ],
-    "Glimpe2MergeBatches.imputed_vcf_indices": [ 
+    "Glimpse2MergeBatches.imputed_vcf_indices": [
         "gs://palantir-workflows-test-data/Glimpse2Imputation/test.imputed.vcf.gz.tbi", 
         "gs://palantir-workflows-test-data/Glimpse2Imputation/test.imputed_2.vcf.gz.tbi" 
         ],
-    "Glimpe2MergeBatches.qc_metrics": [
+    "Glimpse2MergeBatches.qc_metrics": [
         "gs://palantir-workflows-test-data/Glimpse2Imputation/test.qc_metrics.20241004.tsv",
         "gs://palantir-workflows-test-data/Glimpse2Imputation/test.qc_metrics.20241004_2.tsv"
     ],
-    "Glimpe2MergeBatches.coverage_metrics": [
+    "Glimpse2MergeBatches.coverage_metrics": [
         "gs://palantir-workflows-test-data/Glimpse2Imputation/test.coverage_metrics.txt",
         "gs://palantir-workflows-test-data/Glimpse2Imputation/test.coverage_metrics_2.txt"
     ],
-    "Glimpe2MergeBatches.output_basename": "test_merge"
+    "Glimpse2MergeBatches.output_basename": "test_merge"
 }
