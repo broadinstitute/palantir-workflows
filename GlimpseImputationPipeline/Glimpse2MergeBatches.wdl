@@ -449,7 +449,7 @@ EOF
 task MergeQCMetrics {
     input {
         Array[File] qc_metrics
-        String docker = "us.gcr.io/broad-dsde-methods/python-data-slim-pysam:v1.0"
+        String docker = "us.gcr.io/broad-dsde-methods/python-data-slim:1.1"
         String output_basename
 
         Int disk_size_gb = ceil(2.2 * size(qc_metrics, "GiB") + 50)
@@ -486,7 +486,7 @@ task MergeQCMetrics {
 task MergeCoverageMetrics {
     input {
         Array[File] coverage_metrics
-        String docker = "us.gcr.io/broad-dsde-methods/python-data-slim-pysam:v1.0"
+        String docker = "us.gcr.io/broad-dsde-methods/python-data-slim:1.1"
         String output_basename
 
         Int disk_size_gb = ceil(2.2 * size(coverage_metrics, "GiB") + 50)
