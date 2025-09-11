@@ -4,7 +4,6 @@ import argparse
 from io import StringIO
 import firecloud.api as fapi
 from google.cloud import storage
-import json
 from datetime import datetime
 import pytz
 
