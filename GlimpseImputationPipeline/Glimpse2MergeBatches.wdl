@@ -510,7 +510,7 @@ task MergeCoverageMetrics {
         for cov_metric in merged_coverage_metrics_array:
             cov_metric.ID += id_offset
             id_offset = cov_metric.ID.max() + 1
-        merged_coverage_metrics = pd.concat(merged_coverage_metrics_array).sort_values('Chunk')
+        merged_coverage_metrics = pd.concat(merged_coverage_metrics_array).sort_values(['Chunk','ID'])
         merged_coverage_metrics.to_csv('~{output_basename}.coverage_metrics.txt', sep='\t', index=False)
         EOF
     >>>
