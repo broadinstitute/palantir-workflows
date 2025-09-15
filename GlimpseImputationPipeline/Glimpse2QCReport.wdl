@@ -224,7 +224,7 @@ task Glimpse2QCReport_t {
         \`\`\`
         # Site QC
         ## Site Coverage QC
-        During GLIMPSE imputation, the genome is split into `r n_cov_chunks` chunks, with the majority of the algorithm being applied to each chunk separately.  All the chunks are then ligated back together at the end of the process.  For each chunk, the mean coverage of sites being genotyped is calculated for each sample, along with the fractions of sites covered by at least one read.
+        During GLIMPSE imputation, the genome is split into \`r n_cov_chunks\` chunks, with the majority of the algorithm being applied to each chunk separately.  All the chunks are then ligated back together at the end of the process.  For each chunk, the mean coverage of sites being genotyped is calculated for each sample, along with the fractions of sites covered by at least one read.
 
         In the histograms below, we show the distributions of mean coverage and fractions of sites covered over all chunk/sample combinations.
 
