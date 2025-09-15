@@ -12,6 +12,6 @@ runs:
       shell: bash
     - name: install requirements
       run: |
-        apt-get install poppler-utils
+        sudo apt-get install poppler-utils
         pip install -r ~/watt/requirements.txt
       shell: bash
