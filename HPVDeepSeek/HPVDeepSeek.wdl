@@ -396,7 +396,7 @@ task CallMolecularConsensusReads {
     String prefix = basename(umi_grouped_bam, ".bam")
 
     command <<<
-        fgbioCallMolecularConsensusReads \
+        fgbio CallMolecularConsensusReads \
         --input ~{umi_grouped_bam} \
         --output ~{prefix}.umi_consensus.unmapped.bam \
         --error-rate-post-umi 40 \
