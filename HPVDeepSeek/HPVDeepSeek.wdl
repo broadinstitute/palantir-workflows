@@ -1,5 +1,11 @@
 version 1.0
 
+# TODO: Add reference and bam indices + auxiliary files wherever required
+# TODO: Add ability to start from either a pair of FASTQs or an unmapped BAM
+# TODO: For GATK and fgbio, stick to consistent command-line argument convention after picking one
+# TODO (optional): Add FASTQC or similar quality control tool at the beginning of the pipeline
+# TODO: Decide on input/output/intermediary file naming convensions based on the proposed structure of Sample Names
+
 # Extract the UMI sequence from the first 3 bases of each read, skip the next 3 bases, append a 'T',
 # and add the resulting UMI to the RX tag and read name in the output BAM.
 #
@@ -18,7 +24,7 @@ task ExtractUMIs {
         String read_structure = "3M3S+T"
         String append_umi_to_qname = "true"
         Int? cpu = 2
-        Int? num_cores =4
+        Int? num_cores = 4
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(input_ubam, "GiB")) + 50)
     }
@@ -50,9 +56,9 @@ task ExtractUMIs {
 task UmiExtractedBamToFastq {
     input {
         File umi_extracted_bam
-        Int? cpu = 1
-        Int? num_cores = 2
-        Int? memory_gb = 8
+        Int? cpu = 2
+        Int? num_cores = 4
+        Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(umi_extracted_bam, "GiB")) + 50)
     }
 
@@ -66,8 +72,8 @@ task UmiExtractedBamToFastq {
     >>>
 
     output {
-        File umi_extracted_fq1 = "~{prefix}_R1.fastq"
-        File umi_extracted_fq2 = "~{prefix}_R2.fastq"
+        File umi_extracted_fastq1 = "~{prefix}_R1.fastq"
+        File umi_extracted_fastq2 = "~{prefix}_R2.fastq"
     }
 
     runtime {
@@ -90,20 +96,20 @@ task UmiExtractedBamToFastq {
 # -c: Trim adapters even if only one end matches.
 task TrimAndFilter {
     input {
-        File fq1
-        File fq2
+        File fastq1
+        File fastq2
         Int? cpu = 2
         Int? num_cores = 4
-        Int? memory_gb = 8
-        Int? disk_size_gb = ceil((2.5 * size(fq1, "GiB")) + 100)
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((2.5 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + 50)
     }
 
-    String prefix = basename(fq1, ".umi_extracted_R1.fastq")
+    String prefix = basename(fastq1, ".umi_extracted_R1.fastq")
 
     command <<<
         fastp \
-        -i ~{fq1} \
-        -I ~{fq2} \
+        -i ~{fastq1} \
+        -I ~{fastq2} \
         -o ~{prefix}.trimmed_R1.fastq \
         -O ~{prefix}.trimmed_R2.fastq \
         -g \
@@ -118,8 +124,8 @@ task TrimAndFilter {
     >>>
 
     output {
-        File fq1_trimmed = "~{prefix}.trimmed_R1.fastq"
-        File fq2_trimmed = "~{prefix}.trimmed_R2.fastq"
+        File fastq1_trimmed = "~{prefix}.trimmed_R1.fastq"
+        File fastq2_trimmed = "~{prefix}.trimmed_R2.fastq"
         File fastp_report_html = "~{prefix}.fastp_report.html"
         File fastp_report_json = "~{prefix}.fastp_report.json"
     }
@@ -157,10 +163,10 @@ task BwaMem {
         String read_group_id
         String read_group_sample
         String platform
-        Int? cpu = 8
+        Int? cpu = 16
         Int? num_threads = 32
         Int? memory_gb = 64
-        Int? disk_size_gb = ceil(3 * (size(fastq1, "GiB") + size(fastq2, "GiB")) + size(reference, "GiB") + 128)
+        Int? disk_size_gb = ceil((3 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + size(reference, "GiB") + 100)
     }
 
     String prefix = basename(fastq1, ".trimmed_R1.fastq")
@@ -194,8 +200,8 @@ task SortAndIndexBam {
     input {
         File bam
         Int? cpu = 2
-        Int? memory_gb = 32
-        Int? disk_size_gb = ceil(3 * size(bam, "GiB") + 50)
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
     }
 
     String prefix = basename(bam, ".bam")
@@ -228,8 +234,8 @@ task GATKSortBam {
     input {
         File bam
         Int? cpu = 2
-        Int? memory_gb = 32
-        Int? disk_size_gb = ceil(3 * size(bam, "GiB") + 50)
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
     }
 
     String prefix = basename(bam, ".bam")
@@ -270,7 +276,7 @@ task MergeBAMsAndGroupUMIs {
         Int? cpu = 2
         Int? num_cores = 4
         Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2 * size(aligned_bam, "GiB")) + 100)
+        Int? disk_size_gb = ceil((2.5 * size(aligned_bam, "GiB") + size(unmapped_umi_extracted_bam, "GiB")) + 100)
     }
 
     String prefix = basename(aligned_bam, ".bam")
@@ -335,7 +341,7 @@ task MergeConsensus {
         Int? cpu = 2
         Int? num_cores = 4
         Int? memory_gb = 16
-        Int? disk_size_gb = ceil((3 * size(consensus_aligned_bam, "GiB")) + 100)
+        Int? disk_size_gb = ceil((2.5 * size(consensus_aligned_bam, "GiB") + size(consensus_unmapped_bam, "GiB")) + 100)
     }
 
     String prefix = basename(consensus_aligned_bam, ".bam")
@@ -384,7 +390,7 @@ task CallMolecularConsensusReads {
         Int? cpu = 2
         Int? num_cores = 4
         Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2 * size(umi_grouped_bam, "GiB")) + 100)
+        Int? disk_size_gb = ceil((2.5 * size(umi_grouped_bam, "GiB")) + 100)
     }
 
     String prefix = basename(umi_grouped_bam, ".bam")
@@ -421,7 +427,7 @@ task ConsensusBamToFastq {
         Int? cpu = 2
         Int? num_cores = 4
         Int? memory_gb = 16
-        Int? disk_size_gb = ceil((3 * size(umi_consensus_unmapped_bam, "GiB")) + 50)
+        Int? disk_size_gb = ceil((2.5 * size(umi_consensus_unmapped_bam, "GiB")) + 50)
     }
 
     String prefix = basename(umi_consensus_unmapped_bam, ".bam")
@@ -453,7 +459,7 @@ task SamtoolsCoverage {
         File bam
         Int? cpu = 2
         Int? memory_gb = 16
-        Int? disk_size_gb = ceil(2 * size(bam, "GiB") + 50)
+        Int? disk_size_gb = ceil((2 * size(bam, "GiB")) + 50)
     }
 
     String prefix = basename(bam, ".bam")
@@ -486,9 +492,9 @@ task GenotypeSNPsHuman {
         File bam
         File human_snp_targets_bed
         File reference
-        Int? cpu = 4
-        Int? memory_gb = 32
-        Int? disk_size_gb = ceil(2.5 * size(bam, "GiB") + 50)
+        Int? cpu = 2
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((2.5 * size(bam, "GiB")) + 50)
     }
 
     String prefix = basename(bam, ".bam")
@@ -542,14 +548,14 @@ workflow HPVDeepSeek {
 
     call TrimAndFilter {
         input:
-            fq1 = UmiExtractedBamToFastq.umi_extracted_fq1,
-            fq2 = UmiExtractedBamToFastq.umi_extracted_fq2
+            fastq1 = UmiExtractedBamToFastq.umi_extracted_fastq1,
+            fastq2 = UmiExtractedBamToFastq.umi_extracted_fastq2
     }
 
     call BwaMem {
         input:
-            fastq1 = TrimAndFilter.fq1_trimmed,
-            fastq2 = TrimAndFilter.fq2_trimmed,
+            fastq1 = TrimAndFilter.fastq1_trimmed,
+            fastq2 = TrimAndFilter.fastq2_trimmed,
             reference = reference,
             bwa_idx_amb = bwa_idx_amb,
             bwa_idx_ann = bwa_idx_ann,
