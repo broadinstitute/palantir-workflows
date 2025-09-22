@@ -1,10 +1,89 @@
 version 1.0
 
 # TODO: Add reference and bam indices + auxiliary files wherever required
-# TODO: Add ability to start from either a pair of FASTQs or an unmapped BAM
 # TODO: For GATK and fgbio, stick to consistent command-line argument convention after picking one
 # TODO (optional): Add FASTQC or similar quality control tool at the beginning of the pipeline
 # TODO: Decide on input/output/intermediary file naming convensions based on the proposed structure of Sample Names
+
+task VerifyPipelineInputs {
+    input {
+        File? bam
+        File? r1_fastq
+        File? r2_fastq
+
+        Int? cpu = 1
+        Int? memory_mb = 2000
+        Int? disk_size_gb = ceil(size(bam, "GiB") + size(r1_fastq,"GiB") + size(r2_fastq, "GiB")) + 10
+    }
+
+    command <<<
+        set -e
+        python3 <<CODE
+
+        fastq_flag = 0
+        bam = "~{bam}"
+        r1_fastq = "~{r1_fastq}"
+        r2_fastq = "~{r2_fastq}"
+
+        if bam and not r1_fastq and not r2_fastq:
+            pass
+        elif r1_fastq and r2_fastq and not bam:
+            fastq_flag += 1
+        else:
+            raise ValueError("Invalid Input. Input must be either ubam or a pair of fastqs")
+
+        with open("output.txt", "w") as f:
+            if fastq_flag == 1:
+                f.write("true")
+            # Remaining case is that only bam is defined
+            else:
+                f.write("false")
+        CODE
+    >>>
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_mb} MiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us.gcr.io/broad-dsp-gcr-public/base/python:3.9-debian"
+    }
+
+    output {
+        Boolean fastq_run = read_boolean("output.txt")
+    }
+}
+
+task FastqToUbam {
+    input {
+        File r1_fastq
+        File r2_fastq
+        Int? cpu = 2
+        Int? num_cores = 4
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((2.5 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
+    }
+
+    String prefix = basename(r1_fastq, ".fastq")
+
+    command <<<
+        gatk FastqToSam \
+        -F1 ~{r1_fastq} \
+        -F2 ~{r2_fastq} \
+        -O ~{prefix}.unmapped.bam \
+        -SM SAMPLE
+    >>>
+
+    output {
+        File ubam = "~{prefix}.unmapped.bam"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:09c959859e132b1f18384e4f0d4a18196742c4dc1431a94b9bef51b38096d8b5"
+    }
+}
 
 # Extract the UMI sequence from the first 3 bases of each read, skip the next 3 bases, append a 'T',
 # and add the resulting UMI to the RX tag and read name in the output BAM.
@@ -520,9 +599,9 @@ task GenotypeSNPsHuman {
 
 workflow HPVDeepSeek {
     input {
-        File input_ubam
-        #File fastq1
-        #File fastq2
+        File? ubam
+        File? fastq1
+        File? fastq2
         File human_snp_targets_bed
         File reference
         File reference_index
@@ -536,9 +615,26 @@ workflow HPVDeepSeek {
         String platform = "ILLUMINA"
     }
 
+    call VerifyPipelineInputs {
+        input:
+            bam = ubam,
+            r1_fastq = fastq1,
+            r2_fastq = fastq2
+    }
+
+    if(VerifyPipelineInputs.fastq_run) {
+        call FastqToUbam {
+            input:
+                r1_fastq = fastq1,
+                r2_fastq = fastq2
+        }
+    }
+
+    File ubam_to_use = select_first([ubam, FastqToUbam.ubam])
+
     call ExtractUMIs {
          input:
-            input_ubam = input_ubam
+            input_ubam = ubam_to_use
     }
 
     call UmiExtractedBamToFastq {
