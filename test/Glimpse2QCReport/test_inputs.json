@@ -1,0 +1,10 @@
+{
+    "Glimpse2QCReport.cohort_name":"test_cohort",
+    "Glimpse2QCReport.metrics":"gs://palantir-workflows-test-data/Glimpse2Imputation/test_cohort.qc_metrics.tsv",
+    "Glimpse2QCReport.coverage_metrics":"gs://palantir-workflows-test-data/Glimpse2Imputation/test_cohort.coverage_metrics.txt",
+    "Glimpse2QCReport.predicted_sex":"gs://palantir-workflows-test-data/Glimpse2Imputation/test_cohort.predicted_sex.tsv",
+    "Glimpse2QCReport.vcf":"gs://palantir-workflows-test-data/Glimpse2Imputation/test_cohort.imputed.vcf.gz",
+    "Glimpse2QCReport.vcf_index":"gs://palantir-workflows-test-data/Glimpse2Imputation/test_cohort.imputed.vcf.gz.tbi",
+    "Glimpse2QCReport.pca_loadings":"gs://broad-gp-hydrogen-glimpse2qcreport-resources/gnomad_pc_loadings_reformatted.tsv",
+    "Glimpse2QCReport.onnx_model":"gs://broad-gp-hydrogen-glimpse2qcreport-resources/gnomad.v3.1.RF_fit.onnx"
+}

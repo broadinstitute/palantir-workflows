@@ -32,6 +32,20 @@ Glimpse2Imputation:
       test_inputs: "/test/Glimpse2Imputation/test_inputs.json"
       expected_outputs: "/test/Glimpse2Imputation/test_outputs.json"
 
+Glimpse2QCReport:
+  path: "/GlimpseImputationPipeline/Glimpse2QCReport.wdl"
+  tests:
+    base:
+      test_inputs: "/test/Glimpse2QCReport/test_inputs.json"
+      expected_outputs: "/test/Glimpse2QCReport/test_outputs.json"
+
+Glimpse2MergeBatches:
+  path: "/GlimpseImputationPipeline/Glimpse2MergeBatches.wdl"
+  tests:
+    base:
+      test_inputs: "/test/Glimpse2MergeBatches/test_inputs.json"
+      expected_outputs: "/test/Glimpse2MergeBatches/test_outputs.json"
+
 CNVCallingAndMergeForFabric:
   path: "/gCNV/cnv_calling_and_merge_for_fabric.wdl"
   tests:

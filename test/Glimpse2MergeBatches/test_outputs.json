@@ -1,0 +1,11 @@
+{
+    "Glimpse2MergeBatches.merged_imputed_vcf": {
+        "file": "gs://palantir-workflows-test-data/Glimpse2Imputation/test_merge.vcf.gz",
+        "line_skip_regex": "Date="
+    },
+    "Glimpse2MergeBatches.merged_imputed_vcf_index": null,
+    "Glimpse2MergeBatches.initial_site_count": 193631,
+    "Glimpse2MergeBatches.final_sample_count": 4,
+    "Glimpse2MergeBatches.merged_qc_metrics": "gs://palantir-workflows-test-data/Glimpse2Imputation/test_merge.qc_metrics.tsv",
+    "Glimpse2MergeBatches.merged_coverage_metrics": "gs://palantir-workflows-test-data/Glimpse2Imputation/test_merge.coverage_metrics.txt"
+}

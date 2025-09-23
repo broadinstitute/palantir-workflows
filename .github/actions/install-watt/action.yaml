@@ -8,8 +8,10 @@ runs:
   using: "composite"
   steps:
     - name: Clone WATT
-      run: git clone -b ${{ inputs.WATT_VERSION }} --depth 1 https://github.com/rickymagner/watt.git ~/watt
+      run: git clone -b ${{ inputs.WATT_VERSION }} --depth 1 https://github.com/broadinstitute/watt.git ~/watt
       shell: bash
     - name: install requirements
-      run: pip install -r ~/watt/requirements.txt
+      run: |
+        sudo apt-get install poppler-utils
+        pip install -r ~/watt/requirements.txt
       shell: bash

@@ -6,6 +6,7 @@ workflow Glimpse2MergeBatches {
         Array[File] imputed_vcf_indices
 
         Array[File] qc_metrics
+        Array[File] coverage_metrics
 
         String output_basename
 
@@ -104,7 +105,12 @@ workflow Glimpse2MergeBatches {
         call MergeQCMetrics {
             input:
                 qc_metrics = qc_metrics,
-                docker_merge = docker_merge,
+                output_basename = output_basename
+        }
+
+        call MergeCoverageMetrics {
+            input:
+                coverage_metrics = coverage_metrics,
                 output_basename = output_basename
         }
         
@@ -117,6 +123,7 @@ workflow Glimpse2MergeBatches {
         Int? final_sample_count = CountSamplesFinal.num_samples
 
         File merged_qc_metrics = select_first([MergeQCMetrics.merged_qc_metrics, qc_metrics[0]])
+        File merged_coverage_metrics = select_first([MergeCoverageMetrics.merged_coverage_metrics, coverage_metrics[0]])
     }
 }
 
@@ -442,7 +449,7 @@ EOF
 task MergeQCMetrics {
     input {
         Array[File] qc_metrics
-        String docker_merge
+        String docker = "us.gcr.io/broad-dsde-methods/python-data-slim:1.1"
         String output_basename
 
         Int disk_size_gb = ceil(2.2 * size(qc_metrics, "GiB") + 50)
@@ -458,8 +465,8 @@ task MergeQCMetrics {
         python3 <<EOF
         import pandas as pd
         qc_metrics = ['~{sep="', '" qc_metrics}']
-        merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t') for qc_metric in qc_metrics])
-        merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t')
+        merged_qc_metrics = pd.concat([pd.read_csv(qc_metric, sep='\t', dtype=str) for qc_metric in qc_metrics])
+        merged_qc_metrics.to_csv('~{output_basename}.qc_metrics.tsv', sep='\t', index=False)
         EOF
     >>>
 
@@ -468,7 +475,52 @@ task MergeQCMetrics {
     }
 
     runtime {
-        docker: docker_merge
+        docker: docker
+        disks: "local-disk " + disk_size_gb + " HDD"
+        memory: mem_gb + " GiB"
+        cpu: cpu
+        preemptible: preemptible
+    }
+}
+
+task MergeCoverageMetrics {
+    input {
+        Array[File] coverage_metrics
+        String docker = "us.gcr.io/broad-dsde-methods/python-data-slim:1.1"
+        String output_basename
+
+        Int disk_size_gb = ceil(2.2 * size(coverage_metrics, "GiB") + 50)
+        Int mem_gb = 4
+        Int cpu = 2
+        Int preemptible = 1
+    }
+
+    command <<<
+        set -xeuo pipefail
+        
+
+        python3 <<EOF
+        import pandas as pd
+        from collections import defaultdict
+        coverage_metrics = ['~{sep="', '" coverage_metrics}']
+        all_types = defaultdict(lambda: str)
+        all_types.update({"Chunk":int, "ID":int})
+        merged_coverage_metrics_array = [pd.read_csv(coverage_metric, sep='\t', dtype=all_types) for coverage_metric in coverage_metrics]
+        id_offset = 0
+        for cov_metric in merged_coverage_metrics_array:
+            cov_metric.ID += id_offset
+            id_offset = cov_metric.ID.max() + 1
+        merged_coverage_metrics = pd.concat(merged_coverage_metrics_array).sort_values(['Chunk','ID'])
+        merged_coverage_metrics.to_csv('~{output_basename}.coverage_metrics.txt', sep='\t', index=False)
+        EOF
+    >>>
+
+    output {
+        File merged_coverage_metrics = "~{output_basename}.coverage_metrics.txt"
+    }
+
+    runtime {
+        docker: docker
         disks: "local-disk " + disk_size_gb + " HDD"
         memory: mem_gb + " GiB"
         cpu: cpu
