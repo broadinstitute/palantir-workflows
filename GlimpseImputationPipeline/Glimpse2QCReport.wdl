@@ -196,7 +196,7 @@ task Glimpse2QCReport_t {
 
         ancestry_counts <- ancestries %>% group_by(ancestry) %>% count() %>% arrange(-n)
 
-        coverage_metrics<-read_tsv("~{coverage_metrics}", , col_types = cols(Sample=col_character()))
+        coverage_metrics<-read_tsv("~{coverage_metrics}", col_types = cols(Sample=col_character()))
         n_cov_chunks <- coverage_metrics %>% select(Chunk) %>% unique() %>% count()
         coverage_metrics_per_sample <- coverage_metrics %>% group_by(Sample) %>% summarise(mean_cov=mean(\`Cov.\`),
                                                             mean_frac_sites = mean(1-\`No data pct\`/100))

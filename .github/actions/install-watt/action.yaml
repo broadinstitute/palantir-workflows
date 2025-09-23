@@ -8,7 +8,7 @@ runs:
   using: "composite"
   steps:
     - name: Clone WATT
-      run: git clone -b ${{ inputs.WATT_VERSION }} --depth 1 https://github.com/kachulis/watt.git ~/watt
+      run: git clone -b ${{ inputs.WATT_VERSION }} --depth 1 https://github.com/broadinstitute/watt.git ~/watt
       shell: bash
     - name: install requirements
       run: |

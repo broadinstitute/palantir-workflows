@@ -6,6 +6,8 @@ import firecloud.api as fapi
 from google.cloud import storage
 from datetime import datetime
 import pytz
+import tempfile
+import base64
 
 def get_workspace_bucket(namespace, name):
     """Get the bucket for a workspace"""
@@ -25,16 +27,17 @@ def copy_files_to_delivery_workspace(source_cohort, storage_client, target_bucke
     if not imputed_vcf_path:
         raise RuntimeError("Error: imputed_vcf not found in source cohort attributes")
     imputed_vcf_blob = storage_client.bucket(imputed_vcf_path.split('/')[2]).get_blob(imputed_vcf_path.split('/',3)[3])
-    imputed_vcf_md5 = imputed_vcf_blob.md5_hash
+    imputed_vcf_md5_bytes = base64.b64decode(imputed_vcf_blob.md5_hash)
+    imputed_vcf_md5 = imputed_vcf_md5_bytes.hex()
     md5_file_name = f'{imputed_vcf_path.split("/")[-1]}.md5'
-    with open(md5_file_name, 'w') as md5_file:
-        md5_file.write(imputed_vcf_md5)
-    # Upload the md5 file
-    target_blob_name = f'{target_base_path}{md5_file_name}'
-    target_blob = target_bucket.blob(target_blob_name)
-    target_blob.upload_from_filename(md5_file_name)
-    delivered_files['imputed_vcf_md5'] = f'gs://{target_bucket_name}/{target_blob_name}'
-    print(f"Copied imputed_vcf_md5 to {delivered_files['imputed_vcf_md5']}")
+    with tempfile.NamedTemporaryFile('w') as temp_md5_file:
+        temp_md5_file.write(imputed_vcf_md5)
+        # Upload the md5 file
+        target_blob_name = f'{target_base_path}{md5_file_name}'
+        target_blob = target_bucket.blob(target_blob_name)
+        target_blob.upload_from_filename(temp_md5_file.name)
+        delivered_files['imputed_vcf_md5'] = f'gs://{target_bucket_name}/{target_blob_name}'
+        print(f"Copied imputed_vcf_md5 to {delivered_files['imputed_vcf_md5']}")
     
     outputs_to_deliver = ['qc_report', 'imputed_vcf', 'imputed_vcf_index', 'coverage_metrics', 'qc_metrics']
     
@@ -65,7 +68,7 @@ def create_or_update_glimpse_table(namespace, workspace, delivered_files, source
         table_io.write(f'{source_cohort["name"]}\t' + '\t'.join(delivered_files.values()) + '\n')
         response = fapi.upload_entities_tsv(namespace, workspace, table_io, model='flexible')
         if not response.ok:
-            raise RuntimeError(f'ERROR adding cohort {source_cohort['name']} to {table_name} table in {namespace}/{workspace}: {response.text}')
+            raise RuntimeError(f"ERROR adding cohort {source_cohort['name']} to {table_name} table in {namespace}/{workspace}: {response.text}")
     
     print(f"Added cohort {source_cohort['name']} to {table_name} table in {namespace}/{workspace}")
 
