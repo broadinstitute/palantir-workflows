@@ -658,7 +658,7 @@ workflow HPVDeepSeek {
                 r1_fastq = select_first([r1_fastq]),
                 r2_fastq = select_first([r2_fastq])
         }
-        
+
         call FastqToUbam {
             input:
                 r1_fastq = select_first([r1_fastq]),
@@ -787,7 +787,7 @@ workflow HPVDeepSeek {
         File coverage = SamtoolsCoverage.coverage
         File fastp_report_html = TrimAndFilter.fastp_report_html
         File fastp_report_json = TrimAndFilter.fastp_report_json
-        File r1_fastqc_html = FastQC.r1_fastqc_html
-        File r2_fastqc_html = FastQC.r2_fastqc_html
+        File? r1_fastqc_html = FastQC.r1_fastqc_html
+        File? r2_fastqc_html = FastQC.r2_fastqc_html
     }
 }
