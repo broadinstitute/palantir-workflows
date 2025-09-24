@@ -755,8 +755,8 @@ workflow HPVDeepSeek {
 
     call MergeConsensus {
          input:
-            consensus_aligned_bam = GATKSortBamConsensusAligned.bam,
-            consensus_unmapped_bam = GATKSortBamConsensusUnmapped.bam,
+            consensus_aligned_bam = GATKSortBamConsensusAligned.sorted_bam,
+            consensus_unmapped_bam = GATKSortBamConsensusUnmapped.sorted_bam,
             reference = reference
     }
 
