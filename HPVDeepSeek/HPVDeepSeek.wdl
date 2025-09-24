@@ -762,7 +762,7 @@ workflow HPVDeepSeek {
 
     call SortAndIndexBam as SortAndIndexFinalBam {
         input:
-            bam = MergeConsensus.deduped.bam
+            bam = MergeConsensus.deduped_bam
     }
 
     call SamtoolsCoverage {
