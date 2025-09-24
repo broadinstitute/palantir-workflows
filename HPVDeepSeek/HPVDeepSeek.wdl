@@ -4,45 +4,6 @@ version 1.0
 # TODO: For GATK and fgbio, stick to consistent command-line argument convention after picking one
 # TODO: Decide on input/output/intermediary file naming convensions based on the proposed structure of Sample Names
 
-task FastQC {
-    input {
-        File r1_fastq
-        File r2_fastq
-        Int? cpu = 2
-        Int? num_threads = 4
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
-    }
-
-    String r1_fastq_name = sub(sub(basename(r1_fastq), "\\.fastq.gz$", ""), "\\.fq.gz$", "")
-    String r2_fastq_name = sub(sub(basename(r2_fastq), "\\.fastq.gz$", ""), "\\.fq.gz$", "")
-
-    command <<<
-        fastqc ~{r1_fastq} ~{r2_fastq} \
-        --threads ~{num_threads} \
-        --outdir .
-
-        unzip -p ~{r1_fastq_name}_fastqc.zip ~{r1_fastq_name}_fastqc/fastqc_data.txt | gzip > ~{r1_fastq_name}.fastqc_data.txt.gz
-        unzip -p ~{r2_fastq_name}_fastqc.zip ~{r2_fastq_name}_fastqc/fastqc_data.txt | gzip > ~{r2_fastq_name}.fastqc_data.txt.gz
-    >>>
-
-    output {
-        File r1_fastqc_html = "~{r1_fastq_name}_fastqc.html"
-        File r1_fastqc_zip =  "~{r1_fastq_name}_fastqc.zip"
-        File r1_fastqc_data = "~{r1_fastq_name}.fastqc_data.txt.gz"
-        File r2_fastqc_html = "~{r2_fastq_name}_fastqc.html"
-        File r2_fastqc_zip =  "~{r2_fastq_name}_fastqc.zip"
-        File r2_fastqc_data = "~{r2_fastq_name}.fastqc_data.txt.gz"
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
-        docker: "gcr.io/broad-cga-francois-gtex/gtex_rnaseq:V10"
-    }
-}
-
 task VerifyPipelineInputs {
     input {
         File? bam
@@ -88,6 +49,45 @@ task VerifyPipelineInputs {
 
     output {
         Boolean fastq_run = read_boolean("output.txt")
+    }
+}
+
+task FastQC {
+    input {
+        File r1_fastq
+        File r2_fastq
+        Int? cpu = 2
+        Int? num_threads = 4
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((2 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
+    }
+
+    String r1_fastq_name = sub(sub(basename(r1_fastq), "\\.fastq.gz$", ""), "\\.fq.gz$", "")
+    String r2_fastq_name = sub(sub(basename(r2_fastq), "\\.fastq.gz$", ""), "\\.fq.gz$", "")
+
+    command <<<
+        fastqc ~{r1_fastq} ~{r2_fastq} \
+        --threads ~{num_threads} \
+        --outdir .
+
+        unzip -p ~{r1_fastq_name}_fastqc.zip ~{r1_fastq_name}_fastqc/fastqc_data.txt | gzip > ~{r1_fastq_name}.fastqc_data.txt.gz
+        unzip -p ~{r2_fastq_name}_fastqc.zip ~{r2_fastq_name}_fastqc/fastqc_data.txt | gzip > ~{r2_fastq_name}.fastqc_data.txt.gz
+    >>>
+
+    output {
+        File r1_fastqc_html = "~{r1_fastq_name}_fastqc.html"
+        File r1_fastqc_zip =  "~{r1_fastq_name}_fastqc.zip"
+        File r1_fastqc_data = "~{r1_fastq_name}.fastqc_data.txt.gz"
+        File r2_fastqc_html = "~{r2_fastq_name}_fastqc.html"
+        File r2_fastqc_zip =  "~{r2_fastq_name}_fastqc.zip"
+        File r2_fastqc_data = "~{r2_fastq_name}.fastqc_data.txt.gz"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "gcr.io/broad-cga-francois-gtex/gtex_rnaseq:V10"
     }
 }
 
@@ -630,8 +630,8 @@ task GenotypeSNPsHuman {
 workflow HPVDeepSeek {
     input {
         File? ubam
-        File? fastq1
-        File? fastq2
+        File? r1_fastq
+        File? r2_fastq
         File human_snp_targets_bed
         File reference
         File reference_index
@@ -645,24 +645,24 @@ workflow HPVDeepSeek {
         String platform = "ILLUMINA"
     }
 
-    call FastQC {
-        input:
-            r1_fastq = fastq1,
-            r2_fastq = fastq2
-    }
-
     call VerifyPipelineInputs {
         input:
             bam = ubam,
-            r1_fastq = fastq1,
-            r2_fastq = fastq2
+            r1_fastq = r1_fastq,
+            r2_fastq = r2_fastq
     }
 
     if(VerifyPipelineInputs.fastq_run) {
+        call FastQC {
+            input:
+                r1_fastq = select_first([r1_fastq]),
+                r2_fastq = select_first([r2_fastq])
+        }
+        
         call FastqToUbam {
             input:
-                r1_fastq = fastq1,
-                r2_fastq = fastq2
+                r1_fastq = select_first([r1_fastq]),
+                r2_fastq = select_first([r2_fastq])
         }
     }
 
