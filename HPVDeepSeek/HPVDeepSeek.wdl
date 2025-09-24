@@ -2,8 +2,46 @@ version 1.0
 
 # TODO: Add reference and bam indices + auxiliary files wherever required
 # TODO: For GATK and fgbio, stick to consistent command-line argument convention after picking one
-# TODO (optional): Add FASTQC or similar quality control tool at the beginning of the pipeline
 # TODO: Decide on input/output/intermediary file naming convensions based on the proposed structure of Sample Names
+
+task FastQC {
+    input {
+        File r1_fastq
+        File r2_fastq
+        Int? cpu = 2
+        Int? num_threads = 4
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((2 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
+    }
+
+    String r1_fastq_name = sub(sub(basename(r1_fastq), "\\.fastq.gz$", ""), "\\.fq.gz$", "")
+    String r2_fastq_name = sub(sub(basename(r2_fastq), "\\.fastq.gz$", ""), "\\.fq.gz$", "")
+
+    command <<<
+        fastqc ~{r1_fastq} ~{r2_fastq} \
+        --threads ~{num_threads} \
+        --outdir .
+
+        unzip -p ~{r1_fastq_name}_fastqc.zip ~{r1_fastq_name}_fastqc/fastqc_data.txt | gzip > ~{r1_fastq_name}.fastqc_data.txt.gz
+        unzip -p ~{r2_fastq_name}_fastqc.zip ~{r2_fastq_name}_fastqc/fastqc_data.txt | gzip > ~{r2_fastq_name}.fastqc_data.txt.gz
+    >>>
+
+    output {
+        File r1_fastqc_html = "~{r1_fastq_name}_fastqc.html"
+        File r1_fastqc_zip =  "~{r1_fastq_name}_fastqc.zip"
+        File r1_fastqc_data = "~{r1_fastq_name}.fastqc_data.txt.gz"
+        File r2_fastqc_html = "~{r2_fastq_name}_fastqc.html"
+        File r2_fastqc_zip =  "~{r2_fastq_name}_fastqc.zip"
+        File r2_fastqc_data = "~{r2_fastq_name}.fastqc_data.txt.gz"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "gcr.io/broad-cga-francois-gtex/gtex_rnaseq:V10"
+    }
+}
 
 task VerifyPipelineInputs {
     input {
@@ -58,7 +96,6 @@ task FastqToUbam {
         File r1_fastq
         File r2_fastq
         Int? cpu = 2
-        Int? num_cores = 4
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
     }
@@ -103,7 +140,6 @@ task ExtractUMIs {
         String read_structure = "3M3S+T"
         String append_umi_to_qname = "true"
         Int? cpu = 2
-        Int? num_cores = 4
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(input_ubam, "GiB")) + 50)
     }
@@ -136,7 +172,6 @@ task UmiExtractedBamToFastq {
     input {
         File umi_extracted_bam
         Int? cpu = 2
-        Int? num_cores = 4
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(umi_extracted_bam, "GiB")) + 50)
     }
@@ -178,7 +213,6 @@ task TrimAndFilter {
         File fastq1
         File fastq2
         Int? cpu = 2
-        Int? num_cores = 4
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + 50)
     }
@@ -353,7 +387,6 @@ task MergeBAMsAndGroupUMIs {
         File unmapped_umi_extracted_bam
         File reference
         Int? cpu = 2
-        Int? num_cores = 4
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(aligned_bam, "GiB") + size(unmapped_umi_extracted_bam, "GiB")) + 100)
     }
@@ -418,7 +451,6 @@ task MergeConsensus {
         File consensus_unmapped_bam
         File reference
         Int? cpu = 2
-        Int? num_cores = 4
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(consensus_aligned_bam, "GiB") + size(consensus_unmapped_bam, "GiB")) + 100)
     }
@@ -467,7 +499,6 @@ task CallMolecularConsensusReads {
     input {
         File umi_grouped_bam
         Int? cpu = 2
-        Int? num_cores = 4
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(umi_grouped_bam, "GiB")) + 100)
     }
@@ -504,7 +535,6 @@ task ConsensusBamToFastq {
     input {
         File umi_consensus_unmapped_bam
         Int? cpu = 2
-        Int? num_cores = 4
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(umi_consensus_unmapped_bam, "GiB")) + 50)
     }
@@ -613,6 +643,12 @@ workflow HPVDeepSeek {
         String read_group_id
         String read_group_sample
         String platform = "ILLUMINA"
+    }
+
+    call FastQC {
+        input:
+            r1_fastq = fastq1,
+            r2_fastq = fastq2
     }
 
     call VerifyPipelineInputs {
@@ -751,5 +787,7 @@ workflow HPVDeepSeek {
         File coverage = SamtoolsCoverage.coverage
         File fastp_report_html = TrimAndFilter.fastp_report_html
         File fastp_report_json = TrimAndFilter.fastq_report_json
+        File r1_fastqc_html = FastQC.r1_fastqc_html
+        File r2_fastqc_html = FastQC.r2_fastqc_html
     }
 }
