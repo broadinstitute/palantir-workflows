@@ -153,3 +153,6 @@ workflows:
   - name: CNVControlEventsQC
     subclass: WDL
     primaryDescriptorPath: /gCNV/CNVControlEventsQC.wdl
+  - name: HPVDeepSeek
+    subclass: WDL
+    primaryDescriptorPath: /HPVDeepSeek/HPVDeepSeek.wdl
