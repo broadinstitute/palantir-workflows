@@ -11,8 +11,8 @@ task VerifyPipelineInputs {
         File? r2_fastq
 
         Int? cpu = 1
-        Int? memory_mb = 2000
-        Int? disk_size_gb = ceil(size(bam, "GiB") + size(r1_fastq,"GiB") + size(r2_fastq, "GiB")) + 10
+        Int? memory_gb = 8
+        Int? disk_size_gb = ceil(size(bam, "GiB") + size(r1_fastq,"GiB") + size(r2_fastq, "GiB")) + 32
     }
 
     command <<<
@@ -42,7 +42,7 @@ task VerifyPipelineInputs {
 
     runtime {
         cpu: cpu
-        memory: "~{memory_mb} MiB"
+        memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
         docker: "us.gcr.io/broad-dsp-gcr-public/base/python:3.9-debian"
     }
@@ -100,7 +100,7 @@ task FastqToUbam {
         Int? disk_size_gb = ceil((2.5 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
     }
 
-    String prefix = basename(r1_fastq, ".fastq")
+    String prefix = basename(r1_fastq, ".fastq.gz")
 
     command <<<
         gatk FastqToSam \
