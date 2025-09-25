@@ -386,6 +386,8 @@ task MergeBAMsAndGroupUMIs {
         File aligned_bam
         File unmapped_umi_extracted_bam
         File reference
+        File reference_fai
+        File reference_dict
         Int? cpu = 2
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(aligned_bam, "GiB") + size(unmapped_umi_extracted_bam, "GiB")) + 100)
@@ -450,6 +452,8 @@ task MergeConsensus {
         File consensus_aligned_bam
         File consensus_unmapped_bam
         File reference
+        File reference_fai
+        File reference_dict
         Int? cpu = 2
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(consensus_aligned_bam, "GiB") + size(consensus_unmapped_bam, "GiB")) + 100)
@@ -634,7 +638,8 @@ workflow HPVDeepSeek {
         File? r2_fastq
         File human_snp_targets_bed
         File reference
-        File reference_index
+        File reference_fai
+        File reference_dict
         File bwa_idx_amb
         File bwa_idx_ann
         File bwa_idx_bwt
@@ -708,7 +713,9 @@ workflow HPVDeepSeek {
          input:
             aligned_bam = SortAndIndexBam.sorted_bam,
             unmapped_umi_extracted_bam = ExtractUMIs.umi_extracted_bam,
-            reference = reference
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict
     }
 
     call CallMolecularConsensusReads {
@@ -757,7 +764,9 @@ workflow HPVDeepSeek {
          input:
             consensus_aligned_bam = GATKSortBamConsensusAligned.sorted_bam,
             consensus_unmapped_bam = GATKSortBamConsensusUnmapped.sorted_bam,
-            reference = reference
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict
     }
 
     call SortAndIndexBam as SortAndIndexFinalBam {
