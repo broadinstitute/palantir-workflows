@@ -277,12 +277,12 @@ task BwaMem {
         String read_group_sample
         String platform
         Int? cpu = 16
-        Int? num_threads = 32
+        Int? num_threads = 16
         Int? memory_gb = 64
         Int? disk_size_gb = ceil((3 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + size(reference, "GiB") + 100)
     }
 
-    String prefix = basename(fastq1, ".trimmed_R1.fastq")
+    String prefix = basename(fastq1, ".unmapped.trimmed_R1.fastq")
 
     command <<<
         bwa mem \
@@ -293,7 +293,7 @@ task BwaMem {
         ~{reference} \
         ~{fastq1} \
         ~{fastq2} \
-        | samtools view --threads ~{num_threads} -o ~{prefix}.trimmed.bam -
+        | samtools view --threads ~{num_threads} -o ~{prefix}.bam -
     >>>
 
     output {
