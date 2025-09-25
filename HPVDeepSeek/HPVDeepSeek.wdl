@@ -118,7 +118,7 @@ task FastqToUbam {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
-        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:09c959859e132b1f18384e4f0d4a18196742c4dc1431a94b9bef51b38096d8b5"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
 
