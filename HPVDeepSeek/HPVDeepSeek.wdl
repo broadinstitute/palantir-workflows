@@ -323,7 +323,7 @@ task SortAndIndexBam {
         samtools sort \
         -o ~{prefix}.sorted.bam \
         -O bam \
-        -T $~{prefix}.bam.temp \
+        -T ~{prefix}.bam.temp \
         ~{bam}
 
         samtools index ~{prefix}.sorted.bam
