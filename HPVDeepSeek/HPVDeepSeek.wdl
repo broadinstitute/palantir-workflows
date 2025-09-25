@@ -150,8 +150,8 @@ task ExtractUMIs {
         fgbio ExtractUmisFromBam \
         -i ~{input_ubam} \
         -o ~{prefix}.umi_extracted.bam \
-        --read-group-tag ~{read_group_tag} \
         -r ~{read_structure} ~{read_structure} \
+        -t ~{read_group_tag} \
         -a ~{append_umi_to_qname}
     >>>
 
