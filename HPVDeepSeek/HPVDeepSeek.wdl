@@ -603,6 +603,7 @@ task SamtoolsCoverage {
 task GenotypeSNPsHuman {
     input {
         File bam
+        File bai
         File human_snp_targets_bed
         File reference
         Int? cpu = 2
@@ -613,8 +614,8 @@ task GenotypeSNPsHuman {
     String prefix = basename(bam, ".bam")
 
     command <<<
-        bcftools mpileup -f ~{reference} -R ~{human_snp_targets_bed} ~{bam} 2> ~{prefix}.mpileup.log | \
-        bcftools call -mv -Ov -o ~{prefix}.vcf 2> ~{prefix}.call.log
+        bcftools mpileup -f ~{reference} -R ~{human_snp_targets_bed} ~{bam} 2> ~{prefix}.mpileup.log \
+        | bcftools call -mv -Ov -o ~{prefix}.vcf 2> ~{prefix}.call.log
     >>>
 
     output {
@@ -782,6 +783,7 @@ workflow HPVDeepSeek {
     call GenotypeSNPsHuman {
         input:
             bam = SortAndIndexFinalBam.sorted_bam,
+            bai = SortAndIndexFinalBam.sorted_bam_index,
             human_snp_targets_bed = human_snp_targets_bed,
             reference = reference
     }
