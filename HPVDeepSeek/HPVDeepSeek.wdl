@@ -1,5 +1,5 @@
 version 1.0
-    
+
 task VerifyPipelineInputs {
     input {
         File? bam
@@ -535,9 +535,9 @@ task ConsensusBamToFastq {
 
     command <<<
         gatk SamToFastq \
-        INPUT ~{umi_consensus_unmapped_bam} \
-        FASTQ ~{output_basename}_R1.consensus.fastq \
-        SECOND_END_FASTQ ~{output_basename}_R2.consensus.fastq
+        --INPUT ~{umi_consensus_unmapped_bam} \
+        --FASTQ ~{output_basename}_R1.consensus.fastq \
+        --SECOND_END_FASTQ ~{output_basename}_R2.consensus.fastq
     >>>
 
     output {
