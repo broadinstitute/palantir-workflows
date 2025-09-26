@@ -80,7 +80,7 @@ def record_delivery(source_namespace, source_workspace, cohort_name, target_name
     
     with StringIO() as table_io:
         table_io.write('entity:delivery_id\tsource_cohort\ttarget_namespace\ttarget_workspace\tdelivery_date\t' + '\t'.join(delivered_files.keys()) + '\n')
-        table_io.write(f'{delivery_id}\t{cohort_name}\t{target_namespace}\t{target_workspace}\t{now.strftime('%Y_%m_%d_%H:%M:%SZ')}\t' + '\t'.join(delivered_files.values()) + '\n')
+        table_io.write(f'{delivery_id}\t{cohort_name}\t{target_namespace}\t{target_workspace}\t{now.strftime("%Y_%m_%d_%H:%M:%SZ")}\t' + '\t'.join(delivered_files.values()) + '\n')
         response = fapi.upload_entities_tsv(source_namespace, source_workspace, table_io, model='flexible')
         if not response.ok:
             raise RuntimeError(f'ERROR recording delivery f{delivery_id}: {response.text}')
