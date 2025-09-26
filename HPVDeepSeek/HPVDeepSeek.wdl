@@ -1,9 +1,5 @@
 version 1.0
-
-# TODO: Add reference and bam indices + auxiliary files wherever required
-# TODO: For GATK and fgbio, stick to consistent command-line argument convention after picking one
-# TODO: Decide on input/output/intermediary file naming convensions based on the proposed structure of Sample Names
-
+    
 task VerifyPipelineInputs {
     input {
         File? bam
@@ -95,23 +91,23 @@ task FastqToUbam {
     input {
         File r1_fastq
         File r2_fastq
+        String output_basename
+        String read_group_sample
         Int? cpu = 2
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
     }
 
-    String prefix = basename(r1_fastq, ".fastq.gz")
-
     command <<<
         gatk FastqToSam \
-        -F1 ~{r1_fastq} \
-        -F2 ~{r2_fastq} \
-        -O ~{prefix}.unmapped.bam \
-        -SM SAMPLE
+        --FASTQ ~{r1_fastq} \
+        --FASTQ2 ~{r2_fastq} \
+        --OUTPUT ~{output_basename}.unmapped.bam \
+        --SAMPLE_NAME ~{read_group_sample}
     >>>
 
     output {
-        File ubam = "~{prefix}.unmapped.bam"
+        File ubam = "~{output_basename}.unmapped.bam"
     }
 
     runtime {
@@ -125,17 +121,18 @@ task FastqToUbam {
 # Extract the UMI sequence from the first 3 bases of each read, skip the next 3 bases, append a 'T',
 # and add the resulting UMI to the RX tag and read name in the output BAM.
 #
-# --read-group-tag RX: Tells fgbio to place the extracted UMI into the RX tag of each read.
-# -r 3M3S+T 3M3S+T: Specifies the regular expressions used to extract the UMI from each read sequence:
+# --molecular-index-rags RX: Tells fgbio to place the extracted UMI into the RX tag of each read.
+# --read-structure 3M3S+T 3M3S+T: Specifies the regular expressions used to extract the UMI from each read sequence:
 # 3M3S+T means:
 # 3M: Match the first 3 bases (UMI).
 # 3S: Skip (soft clip) the next 3 bases.
 # +T: Append this to the UMI (the sequence of "T").
 # This regex is applied to both R1 and R2 (paired-end reads).
-# -a true: Indicates that the UMI should be appended to the read name (QNAME) in addition to the RX tag.
+# --annotate-read-names true: Indicates that the UMI should be appended to the read name (QNAME) in addition to the RX tag.
 task ExtractUMIs {
     input {
         File input_ubam
+        String output_basename
         String read_group_tag = "RX"
         String read_structure = "3M3S+T"
         String append_umi_to_qname = "true"
@@ -144,19 +141,17 @@ task ExtractUMIs {
         Int? disk_size_gb = ceil((2.5 * size(input_ubam, "GiB")) + 50)
     }
 
-    String prefix = basename(input_ubam, ".bam")
-
     command <<<
         fgbio ExtractUmisFromBam \
-        -i ~{input_ubam} \
-        -o ~{prefix}.umi_extracted.bam \
-        -r ~{read_structure} ~{read_structure} \
-        -t ~{read_group_tag} \
-        -a ~{append_umi_to_qname}
+        --input ~{input_ubam} \
+        --output ~{output_basename}.umi_extracted.unmapped.bam \
+        --read-structure ~{read_structure} ~{read_structure} \
+        --molecular-index-tags ~{read_group_tag} \
+        --annotate-read-names ~{append_umi_to_qname}
     >>>
 
     output {
-        File umi_extracted_bam = "~{prefix}.umi_extracted.bam"
+        File umi_extracted_bam = "~{output_basename}.umi_extracted.unmapped.bam"
     }
 
     runtime {
@@ -171,23 +166,22 @@ task ExtractUMIs {
 task UmiExtractedBamToFastq {
     input {
         File umi_extracted_bam
+        String output_basename
         Int? cpu = 2
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(umi_extracted_bam, "GiB")) + 50)
     }
 
-    String prefix = basename(umi_extracted_bam, ".bam")
-
     command <<<
         gatk SamToFastq \
         --INPUT ~{umi_extracted_bam} \
-        --FASTQ ~{prefix}_R1.fastq \
-        --SECOND_END_FASTQ ~{prefix}_R2.fastq
+        --FASTQ ~{output_basename}_R1.fastq \
+        --SECOND_END_FASTQ ~{output_basename}_R2.fastq
     >>>
 
     output {
-        File umi_extracted_fastq1 = "~{prefix}_R1.fastq"
-        File umi_extracted_fastq2 = "~{prefix}_R2.fastq"
+        File umi_extracted_fastq1 = "~{output_basename}_R1.fastq"
+        File umi_extracted_fastq2 = "~{output_basename}_R2.fastq"
     }
 
     runtime {
@@ -212,19 +206,18 @@ task TrimAndFilter {
     input {
         File fastq1
         File fastq2
+        String output_basename
         Int? cpu = 2
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + 50)
     }
 
-    String prefix = basename(fastq1, ".umi_extracted_R1.fastq")
-
     command <<<
         fastp \
         -i ~{fastq1} \
         -I ~{fastq2} \
-        -o ~{prefix}.trimmed_R1.fastq \
-        -O ~{prefix}.trimmed_R2.fastq \
+        -o ~{output_basename}_R1.trimmed.fastq \
+        -O ~{output_basename}_R2.trimmed.fastq \
         -g \
         -W 5 \
         -q 20 \
@@ -232,15 +225,15 @@ task TrimAndFilter {
         -3 \
         -l 75 \
         -c \
-        -h ~{prefix}.fastp_report.html \
-        -j ~{prefix}.fastp_report.json
+        -h ~{output_basename}.fastp_report.html \
+        -j ~{output_basename}.fastp_report.json
     >>>
 
     output {
-        File fastq1_trimmed = "~{prefix}.trimmed_R1.fastq"
-        File fastq2_trimmed = "~{prefix}.trimmed_R2.fastq"
-        File fastp_report_html = "~{prefix}.fastp_report.html"
-        File fastp_report_json = "~{prefix}.fastp_report.json"
+        File fastq1_trimmed = "~{output_basename}_R1.trimmed.fastq"
+        File fastq2_trimmed = "~{output_basename}_R2.trimmed.fastq"
+        File fastp_report_html = "~{output_basename}.fastp_report.html"
+        File fastp_report_json = "~{output_basename}.fastp_report.json"
     }
 
     runtime {
@@ -265,6 +258,7 @@ task TrimAndFilter {
 # -M: Marks shorter split hits as secondary (needed for compatibility with Picard and GATK).
 task BwaMem {
     input {
+        String output_basename
         File fastq1
         File fastq2
         File reference
@@ -282,8 +276,6 @@ task BwaMem {
         Int? disk_size_gb = ceil((3 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + size(reference, "GiB") + 100)
     }
 
-    String prefix = basename(fastq1, ".unmapped.trimmed_R1.fastq")
-
     command <<<
         bwa mem \
         -t ~{num_threads} \
@@ -293,11 +285,11 @@ task BwaMem {
         ~{reference} \
         ~{fastq1} \
         ~{fastq2} \
-        | samtools view --threads ~{num_threads} -o ~{prefix}.bam -
+        | samtools view --threads ~{num_threads} -o ~{output_basename}.bam -
     >>>
 
     output {
-        File bam = "~{prefix}.bam"
+        File bam = "~{output_basename}.bam"
     }
 
     runtime {
@@ -355,9 +347,9 @@ task GATKSortBam {
 
     command <<<
         gatk SortSam \
-        -I ~{bam} \
-        -O ~{prefix}.sorted.bam \
-        -SO queryname
+        --INPUT ~{bam} \
+        --OUTPUT ~{prefix}.sorted.bam \
+        --SORT_ORDER queryname
     >>>
 
     output {
@@ -383,6 +375,7 @@ task GATKSortBam {
 #-f ...umi_group_data.txt: Outputs grouping statistics and metadata for each molecular family.
 task MergeBAMsAndGroupUMIs {
     input {
+        String output_basename
         File aligned_bam
         File unmapped_umi_extracted_bam
         File reference
@@ -393,8 +386,6 @@ task MergeBAMsAndGroupUMIs {
         Int? disk_size_gb = ceil((2.5 * size(aligned_bam, "GiB") + size(unmapped_umi_extracted_bam, "GiB")) + 100)
     }
 
-    String prefix = basename(aligned_bam, ".bam")
-
     command <<<
         gatk MergeBamAlignment \
         --ATTRIBUTES_TO_RETAIN X0 \
@@ -402,7 +393,7 @@ task MergeBAMsAndGroupUMIs {
         --ATTRIBUTES_TO_REMOVE MD \
         --ALIGNED_BAM ~{aligned_bam} \
         --UNMAPPED_BAM ~{unmapped_umi_extracted_bam} \
-        --OUTPUT ~{prefix}.umi_extracted.aligned.merged.bam \
+        --OUTPUT ~{output_basename}.merged.bam \
         --REFERENCE_SEQUENCE ~{reference} \
         --SORT_ORDER queryname \
         --ALIGNED_READS_ONLY true \
@@ -412,17 +403,17 @@ task MergeBAMsAndGroupUMIs {
         --CLIP_OVERLAPPING_READS false
 
         fgbio GroupReadsByUmi \
-        --input=~{prefix}.umi_extracted.aligned.merged.bam \
-        --output=~{prefix}.umi_grouped.bam \
-        --strategy=adjacency \
-        --edits=1 \
-        -t RX \
-        -f ~{prefix}.umi_group_data.txt
+        --input ~{output_basename}.merged.bam \
+        --output ~{output_basename}.umi_grouped.bam \
+        --strategy adjacency \
+        --edits 1 \
+        --raw-tag RX \
+        --family-size-histogram ~{output_basename}.umi_group_data.txt
     >>>
 
     output {
-        File umi_grouped_bam = "~{prefix}.umi_grouped.bam"
-        File umi_group_data = "~{prefix}.umi_group_data.txt"
+        File umi_grouped_bam = "~{output_basename}.umi_grouped.bam"
+        File umi_group_data = "~{output_basename}.umi_group_data.txt"
     }
 
     runtime {
@@ -449,6 +440,7 @@ task MergeBAMsAndGroupUMIs {
 # --CLIP_OVERLAPPING_READS false
 task MergeConsensus {
     input {
+        String output_basename
         File consensus_aligned_bam
         File consensus_unmapped_bam
         File reference
@@ -459,13 +451,11 @@ task MergeConsensus {
         Int? disk_size_gb = ceil((2.5 * size(consensus_aligned_bam, "GiB") + size(consensus_unmapped_bam, "GiB")) + 100)
     }
 
-    String prefix = basename(consensus_aligned_bam, ".bam")
-
     command <<<
         gatk MergeBamAlignment \
         --ALIGNED_BAM ~{consensus_aligned_bam} \
         --UNMAPPED_BAM ~{consensus_unmapped_bam} \
-        --OUTPUT ~{prefix}.deduped.bam \
+        --OUTPUT ~{output_basename}.deduped.bam \
         --REFERENCE_SEQUENCE ~{reference} \
         --SORT_ORDER coordinate \
         --ATTRIBUTES_TO_RETAIN X0 \
@@ -478,7 +468,7 @@ task MergeConsensus {
     >>>
 
     output {
-        File deduped_bam = "~{prefix}.deduped.bam"
+        File deduped_bam = "~{output_basename}.deduped.bam"
     }
 
     runtime {
@@ -501,29 +491,28 @@ task MergeConsensus {
 # --read-name-prefix='consensus': Prefix for read names in output BAM.
 task CallMolecularConsensusReads {
     input {
+        String output_basename
         File umi_grouped_bam
         Int? cpu = 2
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(umi_grouped_bam, "GiB")) + 100)
     }
 
-    String prefix = basename(umi_grouped_bam, ".bam")
-
     command <<<
         fgbio CallMolecularConsensusReads \
         --input ~{umi_grouped_bam} \
-        --output ~{prefix}.umi_consensus.unmapped.bam \
+        --output ~{output_basename}.umi_consensus.unmapped.bam \
         --error-rate-post-umi 40 \
         --error-rate-pre-umi 45 \
         --output-per-base-tags false \
         --min-reads 1 \
         --max-reads 50 \
         --min-input-base-quality 20 \
-        --read-name-prefix='consensus'
+        --read-name-prefix 'consensus'
     >>>
 
     output {
-        File umi_consensus_unmapped_bam = "~{prefix}.umi_consensus.unmapped.bam"
+        File umi_consensus_unmapped_bam = "~{output_basename}.umi_consensus.unmapped.bam"
     }
 
     runtime {
@@ -537,24 +526,23 @@ task CallMolecularConsensusReads {
 # Convert consensus BAM to FASTQ:
 task ConsensusBamToFastq {
     input {
+        String output_basename
         File umi_consensus_unmapped_bam
         Int? cpu = 2
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(umi_consensus_unmapped_bam, "GiB")) + 50)
     }
 
-    String prefix = basename(umi_consensus_unmapped_bam, ".bam")
-
     command <<<
         gatk SamToFastq \
-        INPUT=~{umi_consensus_unmapped_bam} \
-        FASTQ=~{prefix}.consensus_unmapped_R1.fastq \
-        SECOND_END_FASTQ=~{prefix}.consensus_unmapped_R2.fastq
+        INPUT ~{umi_consensus_unmapped_bam} \
+        FASTQ ~{output_basename}_R1.consensus.fastq \
+        SECOND_END_FASTQ ~{output_basename}_R2.consensus.fastq
     >>>
 
     output {
-        File consensus_unmapped_fastq1 = "~{prefix}.consensus_unmapped_R1.fastq"
-        File consensus_unmapped_fastq2 = "~{prefix}.consensus_unmapped_R2.fastq"
+        File consensus_unmapped_fastq1 = "~{output_basename}_R1.consensus.fastq"
+        File consensus_unmapped_fastq2 = "~{output_basename}_R2.consensus.fastq"
     }
 
     runtime {
@@ -569,20 +557,19 @@ task ConsensusBamToFastq {
 # samtools coverage deduped_sorted.bam | awk '{if(NR==1){printf "%s\t%s\t%s\n",$1,$4,$6} else {printf "%s\t%s\t%s\n",$1,$4,$6}}' > sample.coverage.txt
 task SamtoolsCoverage {
     input {
+        String output_basename
         File bam
         Int? cpu = 2
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2 * size(bam, "GiB")) + 50)
     }
 
-    String prefix = basename(bam, ".bam")
-
     command <<<
-        samtools coverage ~{bam} | awk '{if(NR==1){printf "%s\t%s\t%s\n",$1,$4,$6} else {printf "%s\t%s\t%s\n",$1,$4,$6}}' > ~{prefix}.coverage.txt
+        samtools coverage ~{bam} | awk '{if(NR==1){printf "%s\t%s\t%s\n",$1,$4,$6} else {printf "%s\t%s\t%s\n",$1,$4,$6}}' > ~{output_basename}.coverage.txt
     >>>
 
     output {
-        File coverage = "~{prefix}.coverage.txt"
+        File coverage = "~{output_basename}.coverage.txt"
     }
 
     runtime {
@@ -602,6 +589,7 @@ task SamtoolsCoverage {
 # Human SNP Genotyping
 task GenotypeSNPsHuman {
     input {
+        String output_basename
         File bam
         File bai
         File human_snp_targets_bed
@@ -611,17 +599,15 @@ task GenotypeSNPsHuman {
         Int? disk_size_gb = ceil((2.5 * size(bam, "GiB")) + 50)
     }
 
-    String prefix = basename(bam, ".bam")
-
     command <<<
-        bcftools mpileup -f ~{reference} -R ~{human_snp_targets_bed} ~{bam} 2> ~{prefix}.mpileup.log \
-        | bcftools call -mv -Ov -o ~{prefix}.vcf 2> ~{prefix}.call.log
+        bcftools mpileup -f ~{reference} -R ~{human_snp_targets_bed} ~{bam} 2> ~{output_basename}.mpileup.log \
+        | bcftools call -mv -Ov -o ~{output_basename}.vcf 2> ~{output_basename}.call.log
     >>>
 
     output {
-        File vcf = "~{prefix}.vcf"
-        File mpileup_log = "~{prefix}.mpileup.log"
-        File call_log = "~{prefix}.call.log"
+        File vcf = "~{output_basename}.vcf"
+        File mpileup_log = "~{output_basename}.mpileup.log"
+        File call_log = "~{output_basename}.call.log"
     }
 
     runtime {
@@ -634,6 +620,7 @@ task GenotypeSNPsHuman {
 
 workflow HPVDeepSeek {
     input {
+        String output_basename
         File? ubam
         File? r1_fastq
         File? r2_fastq
@@ -668,7 +655,9 @@ workflow HPVDeepSeek {
         call FastqToUbam {
             input:
                 r1_fastq = select_first([r1_fastq]),
-                r2_fastq = select_first([r2_fastq])
+                r2_fastq = select_first([r2_fastq]),
+                output_basename = output_basename,
+                read_group_sample = read_group_sample
         }
     }
 
@@ -676,18 +665,21 @@ workflow HPVDeepSeek {
 
     call ExtractUMIs {
          input:
-            input_ubam = ubam_to_use
+            input_ubam = ubam_to_use,
+            output_basename = output_basename
     }
 
     call UmiExtractedBamToFastq {
         input:
-            umi_extracted_bam = ExtractUMIs.umi_extracted_bam
+            umi_extracted_bam = ExtractUMIs.umi_extracted_bam,
+            output_basename = output_basename
     }
 
     call TrimAndFilter {
         input:
             fastq1 = UmiExtractedBamToFastq.umi_extracted_fastq1,
-            fastq2 = UmiExtractedBamToFastq.umi_extracted_fastq2
+            fastq2 = UmiExtractedBamToFastq.umi_extracted_fastq2,
+            output_basename = output_basename
     }
 
     call BwaMem {
@@ -702,7 +694,8 @@ workflow HPVDeepSeek {
             bwa_idx_sa = bwa_idx_sa,
             read_group_id = read_group_id,
             read_group_sample = read_group_sample,
-            platform = platform
+            platform = platform,
+            output_basename = output_basename
     }
 
     call SortAndIndexBam {
@@ -716,17 +709,20 @@ workflow HPVDeepSeek {
             unmapped_umi_extracted_bam = ExtractUMIs.umi_extracted_bam,
             reference = reference,
             reference_fai = reference_fai,
-            reference_dict = reference_dict
+            reference_dict = reference_dict,
+            output_basename = output_basename
     }
 
     call CallMolecularConsensusReads {
         input:
-            umi_grouped_bam = MergeBAMsAndGroupUMIs.umi_grouped_bam
+            umi_grouped_bam = MergeBAMsAndGroupUMIs.umi_grouped_bam,
+            output_basename = output_basename
     }
 
     call ConsensusBamToFastq {
         input:
-            umi_consensus_unmapped_bam = CallMolecularConsensusReads.umi_consensus_unmapped_bam
+            umi_consensus_unmapped_bam = CallMolecularConsensusReads.umi_consensus_unmapped_bam,
+            output_basename = output_basename
     }
 
     # Align consensus reads to the reference genome:
@@ -748,7 +744,8 @@ workflow HPVDeepSeek {
             bwa_idx_sa = bwa_idx_sa,
             read_group_id = read_group_id,
             read_group_sample = read_group_sample,
-            platform = platform
+            platform = platform,
+            output_basename = output_basename
     }
 
     call GATKSortBam as GATKSortBamConsensusAligned {
@@ -767,7 +764,8 @@ workflow HPVDeepSeek {
             consensus_unmapped_bam = GATKSortBamConsensusUnmapped.sorted_bam,
             reference = reference,
             reference_fai = reference_fai,
-            reference_dict = reference_dict
+            reference_dict = reference_dict,
+            output_basename = output_basename
     }
 
     call SortAndIndexBam as SortAndIndexFinalBam {
@@ -777,7 +775,8 @@ workflow HPVDeepSeek {
 
     call SamtoolsCoverage {
          input:
-            bam = SortAndIndexFinalBam.sorted_bam
+            bam = SortAndIndexFinalBam.sorted_bam,
+            output_basename = output_basename
     }
 
     call GenotypeSNPsHuman {
@@ -785,7 +784,8 @@ workflow HPVDeepSeek {
             bam = SortAndIndexFinalBam.sorted_bam,
             bai = SortAndIndexFinalBam.sorted_bam_index,
             human_snp_targets_bed = human_snp_targets_bed,
-            reference = reference
+            reference = reference,
+            output_basename = output_basename
     }
 
     output {
