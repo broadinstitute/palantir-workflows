@@ -58,8 +58,8 @@ task FastQC {
         Int? disk_size_gb = ceil((2 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
     }
 
-    String r1_fastq_name = sub(sub(basename(r1_fastq), "\\.fastq.gz$", ""), "\\.fq.gz$", "")
-    String r2_fastq_name = sub(sub(basename(r2_fastq), "\\.fastq.gz$", ""), "\\.fq.gz$", "")
+    String r1_fastq_name = sub(sub(sub(sub(basename(r1_fastq), "\\.fastq.gz$", ""), "\\.fq.gz$", ""), "\\.fastq$", ""), "\\.fq$", "")
+    String r2_fastq_name = sub(sub(sub(sub(basename(r2_fastq), "\\.fastq.gz$", ""), "\\.fq.gz$", ""), "\\.fastq$", ""), "\\.fq$", "")
 
     command <<<
         fastqc ~{r1_fastq} ~{r2_fastq} \
@@ -646,7 +646,7 @@ workflow HPVDeepSeek {
     }
 
     if(VerifyPipelineInputs.fastq_run) {
-        call FastQC {
+        call FastQC as PreTrimmedFastQC {
             input:
                 r1_fastq = select_first([r1_fastq]),
                 r2_fastq = select_first([r2_fastq])
@@ -682,7 +682,13 @@ workflow HPVDeepSeek {
             output_basename = output_basename
     }
 
-    call BwaMem {
+    call FastQC as PostTrimmedFastQC {
+        input:
+            r1_fastq = TrimAndFilter.fastq1_trimmed,
+            r2_fastq = TrimAndFilter.fastq2_trimmed
+    }
+
+    call BwaMem as AlignReads {
         input:
             fastq1 = TrimAndFilter.fastq1_trimmed,
             fastq2 = TrimAndFilter.fastq2_trimmed,
@@ -700,7 +706,7 @@ workflow HPVDeepSeek {
 
     call SortAndIndexBam {
          input:
-            bam = BwaMem.bam
+            bam = AlignReads.bam
     }
 
     call MergeBAMsAndGroupUMIs {
@@ -732,7 +738,8 @@ workflow HPVDeepSeek {
     # reference.fasta \
     # consensus_unmapped_R1.fastq consensus_unmapped_R2.fastq | \
     # samtools view -bh - > consensus_mapped_unsorted.bam
-    call BwaMem as BwaMemRound2{
+    String consensus_basename = output_basename + ".consensus"
+    call BwaMem as AlignConsensusReads {
         input:
             fastq1 = ConsensusBamToFastq.consensus_unmapped_fastq1,
             fastq2 = ConsensusBamToFastq.consensus_unmapped_fastq2,
@@ -745,12 +752,12 @@ workflow HPVDeepSeek {
             read_group_id = read_group_id,
             read_group_sample = read_group_sample,
             platform = platform,
-            output_basename = output_basename
+            output_basename = consensus_basename
     }
 
     call GATKSortBam as GATKSortBamConsensusAligned {
         input:
-            bam = BwaMemRound2.bam
+            bam = AlignConsensusReads.bam
     }
 
     call GATKSortBam as GATKSortBamConsensusUnmapped{
@@ -793,12 +800,12 @@ workflow HPVDeepSeek {
         File final_bam_index = SortAndIndexFinalBam.sorted_bam_index
         File umi_group_data = MergeBAMsAndGroupUMIs.umi_group_data
         File vcf = GenotypeSNPsHuman.vcf
-        File mpileup_log = GenotypeSNPsHuman.mpileup_log
-        File call_log = GenotypeSNPsHuman.call_log
         File coverage = SamtoolsCoverage.coverage
         File fastp_report_html = TrimAndFilter.fastp_report_html
         File fastp_report_json = TrimAndFilter.fastp_report_json
-        File? r1_fastqc_html = FastQC.r1_fastqc_html
-        File? r2_fastqc_html = FastQC.r2_fastqc_html
+        File? pre_trimmed_r1_fastqc_html = PreTrimmedFastQC.r1_fastqc_html
+        File? pre_trimmed_r2_fastqc_html = PreTrimmedFastQC.r2_fastqc_html
+        File? post_trimmed_r1_fastqc_html_post = PostTrimmedFastQC.r1_fastqc_html
+        File? post_trimmed_r2_fastqc_html_ = PostTrimmedFastQC.r2_fastqc_html
     }
 }
