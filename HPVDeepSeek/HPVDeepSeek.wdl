@@ -580,11 +580,66 @@ task SamtoolsCoverage {
     }
 }
 
-# TODO: The document doesn't have an implementation for the classification flowchart below. Add it ourselves
 # HPV+ Classification
 # Sample is considered HPV+ if both thresholds are met:
 # Read count ≥ 10
 # Percentage of HPV genome covered by read alignment ≥ 10%
+task DetermineHPVStatus {
+    input {
+        File coverage
+
+        Int? cpu = 1
+        Int? memory_gb = 8
+        Int? disk_size_gb = 32
+    }
+
+    command <<<
+        set -e
+        python3 <<CODE
+
+        coverage_dict = {}
+        with open(~{coverage}, 'r') as infile:
+            header = infile.readline()
+            for line in infile:
+                line = line.rstrip()
+                columns = line.split('\t')
+                if columns[0].startswith("HPV"):
+                    coverage_dict[columns[0]] = (int(columns[1]), float(columns[2]))
+
+        coverage_sorted = sorted(coverage_dict.items(), key = lambda item: item[1], reverse = True)
+        max_elem = coverage_sorted[0]
+
+        with open("top_hpv_contig.txt", 'w') as f:
+            f.write(max_elem[0])
+
+        with open("top_hpv_num_reads.txt", 'w') as f:
+            f.write(str(max_elem[1][0]))
+
+        with open("top_hpv_coverage.txt", 'w') as f:
+            f.write(str(max_elem[1][1]))
+
+        with open("is_hpv_positive.txt", 'w') as f:
+            if max_elem[1][0] >= 10 and max_elem[1][1] >= 10.0:
+                f.write("true")
+            else:
+                f.write("false")
+        CODE
+    >>>
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us.gcr.io/broad-dsp-gcr-public/base/python:3.9-debian"
+    }
+
+    output {
+        String top_hpv_contig = read_string("top_hpv_contig.txt")
+        Int top_hpv_num_reads = read_int("top_hpv_num_reads.txt")
+        Float top_hpv_coverage = read_float("top_hpv_coverage.txt")
+        Boolean is_hpv_positive = read_boolean("is_hpv_positive.txt")
+    }
+}
 
 # Human SNP Genotyping
 task GenotypeSNPsHuman {
@@ -786,6 +841,11 @@ workflow HPVDeepSeek {
             output_basename = output_basename
     }
 
+    call DetermineHPVStatus {
+        input:
+            coverage = SamtoolsCoverage.coverage
+    }
+
     call GenotypeSNPsHuman {
         input:
             bam = SortAndIndexFinalBam.sorted_bam,
@@ -801,6 +861,10 @@ workflow HPVDeepSeek {
         File umi_group_data = MergeBAMsAndGroupUMIs.umi_group_data
         File vcf = GenotypeSNPsHuman.vcf
         File coverage = SamtoolsCoverage.coverage
+        String top_hpv_contig = DetermineHPVStatus.top_hpv_contig
+        Int top_hpv_num_reads = DetermineHPVStatus.top_hpv_num_reads
+        Float top_hpv_coverage = DetermineHPVStatus.top_hpv_coverage
+        Boolean is_hpv_positive = DetermineHPVStatus.is_hpv_positive
         File fastp_report_html = TrimAndFilter.fastp_report_html
         File fastp_report_json = TrimAndFilter.fastp_report_json
         File? pre_trimmed_r1_fastqc_html = PreTrimmedFastQC.r1_fastqc_html
