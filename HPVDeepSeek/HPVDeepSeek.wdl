@@ -598,7 +598,7 @@ task DetermineHPVStatus {
         python3 <<CODE
 
         coverage_dict = {}
-        with open(~{coverage}, 'r') as infile:
+        with open("~{coverage}", 'r') as infile:
             header = infile.readline()
             for line in infile:
                 line = line.rstrip()
