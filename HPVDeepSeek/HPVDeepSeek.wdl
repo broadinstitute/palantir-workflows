@@ -121,7 +121,7 @@ task FastqToUbam {
 # Extract the UMI sequence from the first 3 bases of each read, skip the next 3 bases, append a 'T',
 # and add the resulting UMI to the RX tag and read name in the output BAM.
 #
-# --molecular-index-rags RX: Tells fgbio to place the extracted UMI into the RX tag of each read.
+# --molecular-index-tags RX: Tells fgbio to place the extracted UMI into the RX tag of each read.
 # --read-structure 3M3S+T 3M3S+T: Specifies the regular expressions used to extract the UMI from each read sequence:
 # 3M3S+T means:
 # 3M: Match the first 3 bases (UMI).
@@ -553,8 +553,7 @@ task ConsensusBamToFastq {
     }
 }
 
-# Reads and Coverage Calculation and results generation
-# samtools coverage deduped_sorted.bam | awk '{if(NR==1){printf "%s\t%s\t%s\n",$1,$4,$6} else {printf "%s\t%s\t%s\n",$1,$4,$6}}' > sample.coverage.txt
+# Reads and Coverage Calculation, and results generation
 task SamtoolsCoverage {
     input {
         String output_basename
