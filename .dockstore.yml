@@ -156,3 +156,6 @@ workflows:
   - name: Glimpse2QCReport
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2QCReport.wdl
+  - name: FragmentEndMotifs
+    subclass: WDL
+    primaryDescriptorPath: /Utilities/WDLs/FragmentEndMotifs.wdl
