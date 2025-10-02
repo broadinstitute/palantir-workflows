@@ -1,5 +1,45 @@
 version 1.0
 
+task CramToBam {
+    input {
+        String sample_id
+        File cram
+        File reference_fasta
+        File reference_fai
+        File reference_dict
+
+        Int? cpu = 4
+        Int? mem_gb = 32
+        Int? disk_size_gb = ceil((6 * size(cram, "GiB")) + size(reference_fasta, "GiB") + 32)
+    }
+
+    command <<<
+        set -e
+        set -o pipefail
+
+        ln -vs ~{reference_fasta} reference.fasta
+        ln -vs ~{reference_fai} reference.fasta.fai
+        ln -vs ~{reference_dict} reference.dict
+
+        samtools view -h -T reference.fasta ~{cram} |
+        samtools view -b -o ~{sample_id}.bam -
+        samtools index -b ~{sample_id}.bam
+        mv ~{sample_id}.bam.bai ~{sample_id}.bai
+    >>>
+
+    output {
+        File output_bam = "~{sample_id}.bam"
+        File output_bam_index = "~{sample_id}.bai"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: mem_gb + " GB"
+        disks: "local-disk " + disk_size_gb + " HDD"
+        docker: "broadinstitute/genomes-in-the-cloud:2.3.1-1504795437"
+    }
+}
+
 task ExtractFragmentEndMotifs {
     input {
         String sample_id
@@ -54,19 +94,29 @@ task ExtractFragmentEndMotifs {
 workflow FragmentEndMotifs {
     input {
         String sample_id
-        File bam
-        File bam_index
+        File cram
+        File cram_index
         File ref_fasta
         File ref_fasta_index
+        File ref_fasta_dict
         Int kmer_length
         Int min_qual = 20
+    }
+
+    call CramToBam {
+        input:
+            sample_id = sample_id,
+            cram = cram,
+            reference_fasta = ref_fasta,
+            reference_fai = ref_fasta_index,
+            reference_dict = ref_fasta_dict
     }
 
     call ExtractFragmentEndMotifs {
         input:
             sample_id = sample_id,
-            bam = bam,
-            bam_index = bam_index,
+            bam = CramToBam.output_bam,
+            bam_index = CramToBam.output_bam_index,
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
             min_qual = min_qual,
