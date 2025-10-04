@@ -5,7 +5,7 @@ task cram_to_bam {
         File reference_fasta
         File reference_fai
         File reference_dict
-        File cram_file
+        File cram
         String sample_id
 
         Int? cpu = 4
@@ -21,7 +21,7 @@ task cram_to_bam {
         ln -vs ~{reference_fai} reference.fasta.fai
         ln -vs ~{reference_dict} reference.dict
 
-        samtools view -h -T reference.fasta ~{cram_file} |
+        samtools view -h -T reference.fasta ~{cram} |
         samtools view -b -o ~{sample_id}.bam -
         samtools index -b ~{sample_id}.bam
         mv ~{sample_id}.bam.bai ~{sample_id}.bai
@@ -285,8 +285,9 @@ task bundle_per_chromosome_plots {
 
 workflow ichor_cna_cram {
     input {
-        File cram_file
-        File cram_index
+        File? cram
+        File? bam
+        File? bai
         File reference_fasta
         File reference_fai
         File reference_dict
@@ -306,19 +307,21 @@ workflow ichor_cna_cram {
         Float max_frac_genome_subclone
     }
 
-    call cram_to_bam {
-        input:
-            reference_fasta = reference_fasta,
-            reference_fai = reference_fai,
-            reference_dict = reference_dict,
-            cram_file = cram_file,
-            sample_id = sample_id
+    if(defined(cram)) {
+        call cram_to_bam {
+            input:
+                reference_fasta = reference_fasta,
+                reference_fai = reference_fai,
+                reference_dict = reference_dict,
+                cram = select_first([cram]),
+                sample_id = sample_id
+        }
     }
 
     call read_counter {
         input:
-            bam_file = cram_to_bam.output_bam,
-            bam_index = cram_to_bam.output_bam_index,
+            bam_file = select_first([bam, cram_to_bam.output_bam]),
+            bam_index = select_first(bai, cram_to_bam.output_bam_index]),
             sample_id = sample_id,
             bin_size = bin_size,
             chrs = chr_counter
