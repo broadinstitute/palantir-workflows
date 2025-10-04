@@ -44,7 +44,7 @@ task ExtractFragmentEndMotifs {
     input {
         String sample_id
         File bam
-        File bam_index
+        File bai
         File ref_fasta
         File ref_fasta_index
         Int kmer_length
@@ -62,10 +62,10 @@ task ExtractFragmentEndMotifs {
         mkdir /processing_dir
 
         tumorbamname=$(basename ~{bam})
-        tumorbainame=$(basename ~{bam_index})
+        tumorbainame=$(basename ~{bai})
 
         ln -s ~{bam} /processing_dir/$tumorbamname
-        ln -s ~{bam_index} /processing_dir/$tumorbamname.bai
+        ln -s ~{bai} /processing_dir/$tumorbamname.bai
 
         python /deepTools_fragment_motif.py \
         --bam_file /processing_dir/$tumorbamname \
@@ -94,8 +94,9 @@ task ExtractFragmentEndMotifs {
 workflow FragmentEndMotifs {
     input {
         String sample_id
-        File cram
-        File cram_index
+        File? cram
+        File? bam
+        File? bai
         File ref_fasta
         File ref_fasta_index
         File ref_fasta_dict
@@ -103,20 +104,22 @@ workflow FragmentEndMotifs {
         Int min_qual = 20
     }
 
-    call CramToBam {
-        input:
-            sample_id = sample_id,
-            cram = cram,
-            reference_fasta = ref_fasta,
-            reference_fai = ref_fasta_index,
-            reference_dict = ref_fasta_dict
+    if(defined(cram)) {
+        call CramToBam {
+            input:
+                sample_id = sample_id,
+                cram = cram,
+                reference_fasta = ref_fasta,
+                reference_fai = ref_fasta_index,
+                reference_dict = ref_fasta_dict
+        }
     }
 
     call ExtractFragmentEndMotifs {
         input:
             sample_id = sample_id,
-            bam = CramToBam.output_bam,
-            bam_index = CramToBam.output_bam_index,
+            bam = select_first([bam, CramToBam.output_bam]),
+            bai = select_first([bai, CramToBam.output_bam_index]),
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
             min_qual = min_qual,
