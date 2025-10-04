@@ -108,7 +108,7 @@ workflow FragmentEndMotifs {
         call CramToBam {
             input:
                 sample_id = sample_id,
-                cram = cram,
+                cram = select_first([cram]),
                 reference_fasta = ref_fasta,
                 reference_fai = ref_fasta_index,
                 reference_dict = ref_fasta_dict
