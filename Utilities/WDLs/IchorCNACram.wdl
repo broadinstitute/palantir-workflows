@@ -321,7 +321,7 @@ workflow ichor_cna_cram {
     call read_counter {
         input:
             bam_file = select_first([bam, cram_to_bam.output_bam]),
-            bam_index = select_first(bai, cram_to_bam.output_bam_index]),
+            bam_index = select_first([bai, cram_to_bam.output_bam_index]),
             sample_id = sample_id,
             bin_size = bin_size,
             chrs = chr_counter
