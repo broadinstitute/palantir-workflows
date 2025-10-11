@@ -672,6 +672,178 @@ task GenotypeSNPsHuman {
     }
 }
 
+task CollectAlignmentSummaryMetrics {
+    input {
+        File bam
+        File bai
+        File reference
+        File reference_fai
+        File reference_dict
+        Int? cpu = 2
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+    }
+
+    String prefix = basename(bam, ".sorted.bam")
+
+    command <<<
+        gatk CollectAlignmentSummaryMetrics \
+        --METRIC_ACCUMULATION_LEVEL ALL_READS \
+        --INPUT ~{bam} \
+        --OUTPUT ~{prefix}.alignment_summary_metrics.txt \
+        --REFERENCE_SEQUENCE ~{reference} \
+        --VALIDATION_STRINGENCY LENIENT
+    >>>
+
+    output {
+        File alignment_summary_metrics = "~{prefix}.alignment_summary_metrics.txt"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
+    }
+}
+
+task Flagstat {
+    input {
+        File bam
+        Int? cpu = 2
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+    }
+
+    String prefix = basename(bam, ".sorted.bam")
+
+    command <<<
+        samtools flagstat ~{bam} > ~{prefix}.flagstat.txt
+    >>>
+
+    output {
+        File flagstat = "~{prefix}.flagstat.txt"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
+    }
+}
+
+task CollectInsertSizeMetrics {
+    input {
+        File bam
+        File bai
+        Int? cpu = 2
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+    }
+
+    String prefix = basename(bam, ".sorted.bam")
+
+    command <<<
+        gatk CollectInsertSizeMetrics \
+        --INPUT ~{bam} \
+        --OUTPUT ~{prefix}.insert_size_metrics.txt \
+        --Histogram_FILE ~{prefix}.insert_size_plot.pdf \
+        --VALIDATION_STRINGENCY LENIENT
+    >>>
+
+    output {
+        File insert_size_metrics = "~{prefix}.insert_size_metrics.txt"
+        File insert_size_plot = "~{prefix}.insert_size_plot.pdf"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
+    }
+}
+
+task CountOnTargetReads {
+    input {
+        File bam
+        File bai
+        File reference
+        File reference_fai
+        File reference_dict
+        File capture_targets_bed
+        Int? cpu = 2
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+    }
+
+    String prefix = basename(bam, ".sorted.bam")
+
+    command <<<
+        gatk CountReads \
+        --reference ~{reference} \
+        --input ~{bam} \
+        --intervals ~{capture_targets_bed} \
+        --read-filter MappedReadFilter \
+        --read-filter NotSecondaryAlignmentReadFilter > ~{prefix}.ontarget_reads.txt
+    >>>
+
+    output {
+        File ontarget_reads = "~{prefix}.ontarget_reads.txt"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
+    }
+}
+
+task CollectHybridSelectionMetrics {
+    input {
+        File bam
+        File bai
+        File reference
+        File reference_fai
+        File reference_dict
+        File bait_interval_list
+        String bait_set_name
+        Int? cpu = 2
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+    }
+
+    String prefix = basename(bam, ".sorted.bam")
+
+    command <<<
+        gatk CollectHsMetrics \
+        --BAIT_INTERVALS ~{bait_interval_list} \
+        --BAIT_SET_NAME ~{bait_set_name} \
+        --TARGET_INTERVALS ~{bait_interval_list} \
+        --INPUT ~{bam} \
+        --OUTPUT ~{prefix}.hs_metrics.txt \
+        --METRIC_ACCUMULATION_LEVEL ALL_READS \
+        --REFERENCE_SEQUENCE ~{reference} \
+        --COVERAGE_CAP 100000 \
+        --PER_BASE_COVERAGE ~{prefix}.per_base_coverage.txt \
+        --VALIDATION_STRINGENCY LENIENT
+    >>>
+
+    output {
+        File hs_metrics = "~{prefix}.hs_metrics.txt"
+        File per_base_coverage = "~{prefix}.per_base_coverage.txt"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
+    }
+}
+
 workflow HPVDeepSeek {
     input {
         String output_basename
@@ -687,6 +859,9 @@ workflow HPVDeepSeek {
         File bwa_idx_bwt
         File bwa_idx_pac
         File bwa_idx_sa
+        File capture_targets_bed
+        File bait_interval_list
+        String bait_set_name
         String read_group_id
         String read_group_sample
         String platform = "ILLUMINA"
@@ -763,6 +938,47 @@ workflow HPVDeepSeek {
             bam = AlignReads.bam
     }
 
+    call CollectAlignmentSummaryMetrics as PreConsensusAlignmentSummaryMetrics {
+        input:
+            bam = SortAndIndexBam.sorted_bam,
+            bai = SortAndIndexBam.sorted_bam_index,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict
+    }
+
+    call Flagstat as PreConsensusFlagstat {
+        input:
+            bam = SortAndIndexBam.sorted_bam
+    }
+
+    call CollectInsertSizeMetrics as PreConsensusInsertSizeMetrics {
+        input:
+            bam = SortAndIndexBam.sorted_bam,
+            bai = SortAndIndexBam.sorted_bam_index
+    }
+
+    call CountOnTargetReads as PreConsensusCountOnTargetReads {
+        input:
+            bam = SortAndIndexBam.sorted_bam,
+            bai = SortAndIndexBam.sorted_bam_index,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict,
+            capture_targets_bed = capture_targets_bed
+    }
+
+    call CollectHybridSelectionMetrics as PreConsensusHybridSelectionMetrics {
+        input:
+            bam = SortAndIndexBam.sorted_bam,
+            bai = SortAndIndexBam.sorted_bam_index,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict,
+            bait_interval_list = bait_interval_list,
+            bait_set_name = bait_set_name
+    }
+
     call MergeBAMsAndGroupUMIs {
          input:
             aligned_bam = SortAndIndexBam.sorted_bam,
@@ -834,6 +1050,47 @@ workflow HPVDeepSeek {
             bam = MergeConsensus.deduped_bam
     }
 
+    call CollectAlignmentSummaryMetrics as PostConsensusAlignmentSummaryMetrics {
+        input:
+            bam = SortAndIndexFinalBam.sorted_bam,
+            bai = SortAndIndexFinalBam.sorted_bam_index,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict
+    }
+
+    call Flagstat as PostConsensusFlagstat {
+        input:
+            bam = SortAndIndexFinalBam.sorted_bam
+    }
+
+    call CollectInsertSizeMetrics as PostConsensusInsertSizeMetrics {
+        input:
+            bam = SortAndIndexFinalBam.sorted_bam,
+            bai = SortAndIndexFinalBam.sorted_bam_index
+    }
+
+    call CountOnTargetReads as PostConsensusCountOnTargetReads {
+        input:
+            bam = SortAndIndexFinalBam.sorted_bam,
+            bai = SortAndIndexFinalBam.sorted_bam_index,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict,
+            capture_targets_bed = capture_targets_bed
+    }
+
+    call CollectHybridSelectionMetrics as PostConsensusHybridSelectionMetrics {
+        input:
+            bam = SortAndIndexFinalBam.sorted_bam,
+            bai = SortAndIndexFinalBam.sorted_bam_index,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict,
+            bait_interval_list = bait_interval_list,
+            bait_set_name = bait_set_name
+    }
+
     call SamtoolsCoverage {
          input:
             bam = SortAndIndexFinalBam.sorted_bam,
@@ -870,5 +1127,19 @@ workflow HPVDeepSeek {
         File? pre_trimmed_r2_fastqc_html = PreTrimmedFastQC.r2_fastqc_html
         File? post_trimmed_r1_fastqc_html_post = PostTrimmedFastQC.r1_fastqc_html
         File? post_trimmed_r2_fastqc_html_ = PostTrimmedFastQC.r2_fastqc_html
+        File pre_consensus_alignment_summary_metrics = PreConsensusAlignmentSummaryMetrics.alignment_summary_metrics
+        File pre_consensus_flagstat = PreConsensusFlagstat.flagstat
+        File pre_consensus_insert_size_metrics = PreConsensusInsertSizeMetrics.insert_size_metrics
+        File pre_consensus_insert_size_plot = PreConsensusInsertSizeMetrics.insert_size_plot
+        File pre_consensus_ontarget_reads = PreConsensusCountOnTargetReads.ontarget_reads
+        File pre_consensus_hs_metrics = PreConsensusHybridSelectionMetrics.hs_metrics
+        File pre_consensus_per_base_coverage = PreConsensusHybridSelectionMetrics.per_base_coverage
+        File post_consensus_alignment_summary_metrics = PostConsensusAlignmentSummaryMetrics.alignment_summary_metrics
+        File post_consensus_flagstat = PostConsensusFlagstat.flagstat
+        File post_consensus_insert_size_metrics = PostConsensusInsertSizeMetrics.insert_size_metrics
+        File post_consensus_insert_size_plot = PostConsensusInsertSizeMetrics.insert_size_plot
+        File post_consensus_ontarget_reads = PostConsensusCountOnTargetReads.ontarget_reads
+        File post_consensus_hs_metrics = PostConsensusHybridSelectionMetrics.hs_metrics
+        File post_consensus_per_base_coverage = PostConsensusHybridSelectionMetrics.per_base_coverage
     }
 }
