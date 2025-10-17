@@ -52,10 +52,13 @@ task FastQC {
     input {
         File r1_fastq
         File r2_fastq
+        Int? fastqc_thread_memory = 4096
         Int? cpu = 2
-        Int? num_threads = 4
+        Int? num_threads = 2
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
+        Int? min_ssd_size_gb = 512
+        Boolean? use_ssd = true
     }
 
     String r1_fastq_name = sub(sub(sub(sub(basename(r1_fastq), "\\.fastq.gz$", ""), "\\.fq.gz$", ""), "\\.fastq$", ""), "\\.fq$", "")
@@ -64,6 +67,7 @@ task FastQC {
     command <<<
         fastqc ~{r1_fastq} ~{r2_fastq} \
         --threads ~{num_threads} \
+        --memory ~{fastqc_thread_memory} \
         --outdir .
 
         unzip -p ~{r1_fastq_name}_fastqc.zip ~{r1_fastq_name}_fastqc/fastqc_data.txt | gzip > ~{r1_fastq_name}.fastqc_data.txt.gz
@@ -82,7 +86,7 @@ task FastQC {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
+        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
         docker: "gcr.io/broad-cga-francois-gtex/gtex_rnaseq:V10"
     }
 }
@@ -93,9 +97,11 @@ task FastqToUbam {
         File r2_fastq
         String output_basename
         String read_group_sample
-        Int? cpu = 2
+        Int? cpu = 1
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
+        Int? min_ssd_size_gb = 512
+        Boolean? use_ssd = true
     }
 
     command <<<
@@ -113,7 +119,7 @@ task FastqToUbam {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
+        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -136,9 +142,11 @@ task ExtractUMIs {
         String read_group_tag = "RX"
         String read_structure = "3M3S+T"
         String append_umi_to_qname = "true"
-        Int? cpu = 2
+        Int? cpu = 1
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(input_ubam, "GiB")) + 50)
+        Int? min_ssd_size_gb = 512
+        Boolean? use_ssd = true
     }
 
     command <<<
@@ -157,7 +165,7 @@ task ExtractUMIs {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
+        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -167,9 +175,11 @@ task UmiExtractedBamToFastq {
     input {
         File umi_extracted_bam
         String output_basename
-        Int? cpu = 2
+        Int? cpu = 1
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(umi_extracted_bam, "GiB")) + 50)
+        Int? min_ssd_size_gb = 512
+        Boolean? use_ssd = true
     }
 
     command <<<
@@ -187,7 +197,7 @@ task UmiExtractedBamToFastq {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
+        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -207,9 +217,11 @@ task TrimAndFilter {
         File fastq1
         File fastq2
         String output_basename
-        Int? cpu = 2
+        Int? cpu = 3
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + 50)
+        Int? min_ssd_size_gb = 512
+        Boolean? use_ssd = true
     }
 
     command <<<
@@ -239,7 +251,7 @@ task TrimAndFilter {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
+        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -270,10 +282,12 @@ task BwaMem {
         String read_group_id
         String read_group_sample
         String platform
-        Int? cpu = 16
-        Int? num_threads = 16
+        Int? cpu = 32
+        Int? num_threads = 32
         Int? memory_gb = 64
         Int? disk_size_gb = ceil((3 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + size(reference, "GiB") + 100)
+        Int? min_ssd_size_gb = 512
+        Boolean? use_ssd = true
     }
 
     command <<<
@@ -295,7 +309,7 @@ task BwaMem {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
+        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -304,9 +318,13 @@ task BwaMem {
 task SortAndIndexBam {
     input {
         File bam
-        Int? cpu = 2
+        String? samtools_thread_memory = "1024M"
+        Int? cpu = 7
+        Int? num_threads = 7
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+        Int? min_ssd_size_gb = 512
+        Boolean? use_ssd = true
     }
 
     String prefix = basename(bam, ".bam")
@@ -316,6 +334,8 @@ task SortAndIndexBam {
         -o ~{prefix}.sorted.bam \
         -O bam \
         -T ~{prefix}.bam.temp \
+        -@ ~{num_threads} \
+        -m ~{samtools_thread_memory} \
         ~{bam}
 
         samtools index ~{prefix}.sorted.bam
@@ -329,7 +349,7 @@ task SortAndIndexBam {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
+        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -338,9 +358,11 @@ task SortAndIndexBam {
 task GATKSortBam {
     input {
         File bam
-        Int? cpu = 2
+        Int? cpu = 1
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+        Int? min_ssd_size_gb = 512
+        Boolean? use_ssd = true
     }
 
     String prefix = basename(bam, ".bam")
@@ -360,6 +382,7 @@ task GATKSortBam {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
+        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -381,9 +404,11 @@ task MergeBAMsAndGroupUMIs {
         File reference
         File reference_fai
         File reference_dict
-        Int? cpu = 2
+        Int? cpu = 1
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(aligned_bam, "GiB") + size(unmapped_umi_extracted_bam, "GiB")) + 100)
+        Int? min_ssd_size_gb = 512
+        Boolean? use_ssd = true
     }
 
     command <<<
@@ -419,7 +444,7 @@ task MergeBAMsAndGroupUMIs {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
+        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -446,9 +471,11 @@ task MergeConsensus {
         File reference
         File reference_fai
         File reference_dict
-        Int? cpu = 2
+        Int? cpu = 1
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(consensus_aligned_bam, "GiB") + size(consensus_unmapped_bam, "GiB")) + 100)
+        Int? min_ssd_size_gb = 512
+        Boolean? use_ssd = true
     }
 
     command <<<
@@ -474,7 +501,7 @@ task MergeConsensus {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
+        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -493,7 +520,7 @@ task CallMolecularConsensusReads {
     input {
         String output_basename
         File umi_grouped_bam
-        Int? cpu = 2
+        Int? cpu = 1
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(umi_grouped_bam, "GiB")) + 100)
     }
