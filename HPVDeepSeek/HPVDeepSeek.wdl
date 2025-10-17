@@ -86,7 +86,7 @@ task FastQC {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
         docker: "gcr.io/broad-cga-francois-gtex/gtex_rnaseq:V10"
     }
 }
@@ -119,7 +119,7 @@ task FastqToUbam {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -165,7 +165,7 @@ task ExtractUMIs {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -197,7 +197,7 @@ task UmiExtractedBamToFastq {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -251,7 +251,7 @@ task TrimAndFilter {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -309,7 +309,7 @@ task BwaMem {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -349,7 +349,7 @@ task SortAndIndexBam {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -382,7 +382,7 @@ task GATKSortBam {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
-        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -444,7 +444,7 @@ task MergeBAMsAndGroupUMIs {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -501,7 +501,7 @@ task MergeConsensus {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk " + if use_ssd then "~{min_ssd_size_gb}" else "~{disk_size_gb}" + if use_ssd then " SSD" else " HDD"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
