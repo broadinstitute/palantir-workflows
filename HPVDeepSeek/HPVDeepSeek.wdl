@@ -58,7 +58,7 @@ task FastQC {
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
         Int? min_ssd_size_gb = 512
-        Boolean? use_ssd = true
+        Boolean use_ssd = true
     }
 
     String r1_fastq_name = sub(sub(sub(sub(basename(r1_fastq), "\\.fastq.gz$", ""), "\\.fq.gz$", ""), "\\.fastq$", ""), "\\.fq$", "")
@@ -101,7 +101,7 @@ task FastqToUbam {
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
         Int? min_ssd_size_gb = 512
-        Boolean? use_ssd = true
+        Boolean use_ssd = true
     }
 
     command <<<
@@ -146,7 +146,7 @@ task ExtractUMIs {
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(input_ubam, "GiB")) + 50)
         Int? min_ssd_size_gb = 512
-        Boolean? use_ssd = true
+        Boolean use_ssd = true
     }
 
     command <<<
@@ -179,7 +179,7 @@ task UmiExtractedBamToFastq {
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(umi_extracted_bam, "GiB")) + 50)
         Int? min_ssd_size_gb = 512
-        Boolean? use_ssd = true
+        Boolean use_ssd = true
     }
 
     command <<<
@@ -221,7 +221,7 @@ task TrimAndFilter {
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + 50)
         Int? min_ssd_size_gb = 512
-        Boolean? use_ssd = true
+        Boolean use_ssd = true
     }
 
     command <<<
@@ -287,7 +287,7 @@ task BwaMem {
         Int? memory_gb = 64
         Int? disk_size_gb = ceil((3 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + size(reference, "GiB") + 100)
         Int? min_ssd_size_gb = 512
-        Boolean? use_ssd = true
+        Boolean use_ssd = true
     }
 
     command <<<
@@ -324,7 +324,7 @@ task SortAndIndexBam {
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
         Int? min_ssd_size_gb = 512
-        Boolean? use_ssd = true
+        Boolean use_ssd = true
     }
 
     String prefix = basename(bam, ".bam")
@@ -362,7 +362,7 @@ task GATKSortBam {
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
         Int? min_ssd_size_gb = 512
-        Boolean? use_ssd = true
+        Boolean use_ssd = true
     }
 
     String prefix = basename(bam, ".bam")
@@ -408,7 +408,7 @@ task MergeBAMsAndGroupUMIs {
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(aligned_bam, "GiB") + size(unmapped_umi_extracted_bam, "GiB")) + 100)
         Int? min_ssd_size_gb = 512
-        Boolean? use_ssd = true
+        Boolean use_ssd = true
     }
 
     command <<<
@@ -475,7 +475,7 @@ task MergeConsensus {
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(consensus_aligned_bam, "GiB") + size(consensus_unmapped_bam, "GiB")) + 100)
         Int? min_ssd_size_gb = 512
-        Boolean? use_ssd = true
+        Boolean use_ssd = true
     }
 
     command <<<
