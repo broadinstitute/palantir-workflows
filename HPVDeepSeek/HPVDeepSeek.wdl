@@ -282,6 +282,7 @@ task BwaMem {
         String read_group_id
         String read_group_sample
         String platform
+        Boolean soft_clip_supplementary_alignments = false
         Int? cpu = 32
         Int? num_threads = 32
         Int? memory_gb = 64
@@ -290,11 +291,14 @@ task BwaMem {
         Boolean use_ssd = true
     }
 
+    String supplementary_alignment_clipping_option = if soft_clip_supplementary_alignments then "-Y" else ""
+
     command <<<
         bwa mem \
         -t ~{num_threads} \
         -K 100000000 \
         -R '@RG\tID:~{read_group_id}\tDS:KAPA_TE\tPL:~{platform}\tLB:lib1\tSM:~{read_group_sample}\tPU:unit1' \
+        ~{supplementary_alignment_clipping_option} \
         -M \
         ~{reference} \
         ~{fastq1} \
@@ -1065,6 +1069,7 @@ workflow HPVDeepSeek {
             read_group_id = read_group_id,
             read_group_sample = read_group_sample,
             platform = platform,
+            soft_clip_supplementary_alignments = true,
             output_basename = consensus_basename
     }
 
