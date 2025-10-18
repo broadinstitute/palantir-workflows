@@ -388,7 +388,8 @@ task GATKSortBam {
 }
 
 # 1. Merge BWA-aligned reads with original UMI-tagged reads to produce a BAM file that has alignment info + UMI tags, necessary for UMI-aware deduplication.
-# 2. Group together reads that share the same UMI sequence (or a similar one within a defined edit distance) and originate from the same genomic location—used for UMI-aware deduplication.
+# 2. Filter reads with MAPQ < 1 and reads not mapped in proper pair
+# 3. Group together reads that share the same UMI sequence (or a similar one within a defined edit distance) and originate from the same genomic location—used for UMI-aware deduplication.
 # fgbio:
 #--input: Input BAM file containing reads aligned to the reference with UMI tags (RX) and filtered.
 #--output: Output BAM where each read is tagged with a group ID (MI tag) indicating its molecular family.
@@ -427,8 +428,10 @@ task MergeBAMsAndGroupUMIs {
         --ALIGNER_PROPER_PAIR_FLAGS true \
         --CLIP_OVERLAPPING_READS false
 
+        samtools view -f 2 -q 1 -bh ~{output_basename}.merged.bam > ~{output_basename}.merged.filtered.bam
+
         fgbio GroupReadsByUmi \
-        --input ~{output_basename}.merged.bam \
+        --input ~{output_basename}.merged.filtered.bam \
         --output ~{output_basename}.umi_grouped.bam \
         --strategy adjacency \
         --edits 1 \
@@ -649,6 +652,18 @@ task DetermineHPVStatus {
                 f.write("true")
             else:
                 f.write("false")
+
+        with open("secondary_hpv_types.txt", 'w') as f:
+            output_string = ""
+            for i in range(1, len(coverage_sorted)):
+                elem = coverage_sorted[i]
+                if elem[1][0] >= 10 and elem[1][1] >= 10.0:
+                    output_string = output_string + str(elem[0]) + ":" + str(elem[1][0]) + ":" + str(elem[1][1]) + ","
+
+            if len(output_string) > 0:
+                output_string = output_string[:-1]
+            f.write(output_string)
+
         CODE
     >>>
 
@@ -664,6 +679,7 @@ task DetermineHPVStatus {
         Int top_hpv_num_reads = read_int("top_hpv_num_reads.txt")
         Float top_hpv_coverage = read_float("top_hpv_coverage.txt")
         Boolean is_hpv_positive = read_boolean("is_hpv_positive.txt")
+        String secondary_hpv_types = read_string("secondary_hpv_types.txt")
     }
 }
 
@@ -1148,6 +1164,7 @@ workflow HPVDeepSeek {
         Int top_hpv_num_reads = DetermineHPVStatus.top_hpv_num_reads
         Float top_hpv_coverage = DetermineHPVStatus.top_hpv_coverage
         Boolean is_hpv_positive = DetermineHPVStatus.is_hpv_positive
+        String secondary_hpv_types = DetermineHPVStatus.secondary_hpv_types
         File fastp_report_html = TrimAndFilter.fastp_report_html
         File fastp_report_json = TrimAndFilter.fastp_report_json
         File? pre_trimmed_r1_fastqc_html = PreTrimmedFastQC.r1_fastqc_html
