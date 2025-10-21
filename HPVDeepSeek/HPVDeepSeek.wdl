@@ -719,6 +719,36 @@ task GenotypeSNPsHuman {
     }
 }
 
+task DetectHPVIntegrationBreakpoints {
+    input {
+        String output_basename
+        File bam
+        File bai
+        Int? cpu = 1
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((2.5 * size(bam, "GiB")) + 50)
+    }
+
+    command <<<
+        python breakpoint_detector-v3.7.py ~{output_basename} ~{bam} .
+    >>>
+
+    output {
+        File analysis_log = "~{output_basename}_analysis_log.txt"
+        File breakpoints = "~{output_basename}_breakpoints.txt"
+        File detailed_integration_summary = "~{output_basename}_detailed_integration_summary.txt"
+        File integration_breakpoints = "~{output_basename}_integration_breakpoints.txt"
+        File integration_summary = "~{output_basename}_integration_summary.txt"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/breakpoint_detector@sha256:6795ccbcfa825c39cdd5a11ddac89673c445ef73266fcd7a7b0fb0f7f0001550"
+    }
+}
+
 task CollectAlignmentSummaryMetrics {
     input {
         File bam
@@ -1159,6 +1189,13 @@ workflow HPVDeepSeek {
             output_basename = output_basename
     }
 
+    call DetectHPVIntegrationBreakpoints {
+        input:
+            bam = SortAndIndexFinalBam.sorted_bam,
+            bai = SortAndIndexFinalBam.sorted_bam_index,
+            output_basename = output_basename
+    }
+
     output {
         File final_bam = SortAndIndexFinalBam.sorted_bam
         File final_bam_index = SortAndIndexFinalBam.sorted_bam_index
@@ -1190,5 +1227,10 @@ workflow HPVDeepSeek {
         File post_consensus_ontarget_reads = PostConsensusCountOnTargetReads.ontarget_reads
         File post_consensus_hs_metrics = PostConsensusHybridSelectionMetrics.hs_metrics
         File post_consensus_per_base_coverage = PostConsensusHybridSelectionMetrics.per_base_coverage
+        File analysis_log = DetectHPVIntegrationBreakpoints.analysis_log
+        File breakpoints = DetectHPVIntegrationBreakpoints.breakpoints
+        File detailed_integration_summary = DetectHPVIntegrationBreakpoints.detailed_integration_summary
+        File integration_breakpoints = DetectHPVIntegrationBreakpoints.integration_breakpoints
+        File integration_summary = DetectHPVIntegrationBreakpoints.integration_summary
     }
 }
