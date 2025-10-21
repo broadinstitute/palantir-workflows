@@ -620,7 +620,6 @@ task SamtoolsCoverage {
 task DetermineHPVStatus {
     input {
         File coverage
-
         Int? cpu = 1
         Int? memory_gb = 8
         Int? disk_size_gb = 32
@@ -746,6 +745,64 @@ task DetectHPVIntegrationBreakpoints {
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/breakpoint_detector@sha256:6795ccbcfa825c39cdd5a11ddac89673c445ef73266fcd7a7b0fb0f7f0001550"
+    }
+}
+
+# Steps:
+# 1. Check HPV16_Ref coverage
+# 2. Make MSA & phyml tree
+# 3. Extract nearest neighbor via Toytree and write to both global and sample CSVs
+# 4. Draw tree with Toytree
+#TREE_TXT=~{output_basename}_phyml_tree.txt
+task Sublineages {
+    input {
+        String output_basename
+        File bam
+        File bai
+        File reference
+        File hpv16_sublineages
+        String calls_file = "sublineage_calls-v2.csv"
+        Int read_threshold = 10
+        Int? cpu = 1
+        Int? memory_gb = 32
+        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+    }
+
+    command <<<
+        echo "run_id,library_id,closest_sublineage,patristic_distance" > ~{calls_file}
+
+        READS=$(samtools view -c ~{bam} HPV16_Ref || echo 0)
+        if [ "$READS" -lt ~{read_threshold} ]; then
+            LINE="~{output_basename},~{output_basename},HPV16_negative,NA"
+            echo "$LINE" >> ~{calls_file}
+            echo "Only $READS reads (<~{read_threshold}); marking HPV16_negative."
+        fi
+
+        bcftools mpileup --max-depth 8000 -Ou -f ~{reference} -r HPV16_Ref ~{bam} | \
+        bcftools call -Ou -mv | \
+        bcftools norm -f ~{reference} -Oz -o ~{output_basename}.vcf.gz
+        tabix ~{output_basename}.vcf.gz
+        samtools faidx ~{reference} HPV16_Ref | \
+        bcftools consensus ~{output_basename}.vcf.gz -o ~{output_basename}.consensus.fasta
+
+        cat ~{output_basename}.consensus.fasta ~{hpv16_sublineages} > ~{output_basename}.combo.fasta
+        muscle -threads 1 -align ~{output_basename}.combo.fasta -output ~{output_basename}.combo.afa
+
+        seqret -osformat2 phylip -sequence ~{output_basename}.combo.afa -outseq ~{output_basename}.combo.phy
+
+        phyml -i ~{output_basename}.combo.phy
+
+        ls -lha
+    >>>
+
+    output {
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hpv_sublineage@sha256:10f9ff9e349c440dd616b3b94f9e6928b0d4e822c78cabbe8aacfaf08e804e5f"
     }
 }
 
@@ -931,6 +988,7 @@ workflow HPVDeepSeek {
         File reference
         File reference_fai
         File reference_dict
+        File hpv16_sublineages
         File bwa_idx_amb
         File bwa_idx_ann
         File bwa_idx_bwt
@@ -1193,6 +1251,15 @@ workflow HPVDeepSeek {
         input:
             bam = SortAndIndexFinalBam.sorted_bam,
             bai = SortAndIndexFinalBam.sorted_bam_index,
+            output_basename = output_basename
+    }
+
+    call Sublineages {
+        input:
+            bam = SortAndIndexFinalBam.sorted_bam,
+            bai = SortAndIndexFinalBam.sorted_bam_index,
+            reference = reference,
+            hpv16_sublineages = hpv16_sublineages,
             output_basename = output_basename
     }
 
