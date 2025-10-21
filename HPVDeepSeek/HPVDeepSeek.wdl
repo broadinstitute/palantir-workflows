@@ -730,6 +730,9 @@ task DetectHPVIntegrationBreakpoints {
     }
 
     command <<<
+        ls -lha
+        pwd
+        ls -lha /
         python breakpoint_detector-v3.7.py ~{output_basename} ~{bam} .
     >>>
 
