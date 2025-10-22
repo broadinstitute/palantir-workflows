@@ -840,7 +840,7 @@ task SublineagesDrawTree {
     >>>
 
     output {
-        File calls_file_output = "~{output_basename}.sublineage_call.csv"
+        File sublineage_call = "~{output_basename}.sublineage_call.csv"
         File phy_tree_img = "~{output_basename}.combo.phy_phyml_tree.pdf"
     }
 
