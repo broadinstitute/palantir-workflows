@@ -849,6 +849,41 @@ task SublineagesDrawTree {
     }
 }
 
+task HPVHighRiskSNPs {
+    input {
+        String output_basename
+        File bam
+        File bai
+        File high_risk_snps_hpv
+        File reference
+        String genotype = "HPV16_Ref"
+        Int? cpu = 2
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((2.5 * size(bam, "GiB")) + 50)
+    }
+
+    command <<<
+        bcftools mpileup -Ou --fasta-ref ~{reference} --max-depth 800000 --regions ~{genotype} --annotate FORMAT/AD,INFO/AD,FORMAT/AD,FORMAT/ADF ~{bam} \
+        | bcftools call -Ou -mv -o ~{output_basename}.vcf.gz
+
+        echo -e "CHROM\tPOS\tREF\tALT\tQUAL\tDP\tINFO/AC\tINFO/AD\tAF" | cat - <(bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL\t%DP\t%INFO/AC\t%INFO/AD\n' ~{output_basename}.vcf.gz \
+        | awk -F'\t' '{split($8,AD,","); if (AD[1]+AD[2] == 0) AF=0; else AF=AD[2]/(AD[1]+AD[2]); print $0 "\t" AF }') > ~{output_basename}.variants.txt
+
+        awk -F'\t' 'FNR==NR{a[$1]=$1;next} {if($2 in a) {b[FILENAME]=$2}} END{for(i in b) {print i"\t"b[i]}}' ~{high_risk_snps_hpv} ~{output_basename}.variants.txt > ~{output_basename}.hr_snps_found.txt
+    >>>
+
+    output {
+        File high_risk_snps_found = "~{output_basename}.hr_snps_found.txt"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.4"
+    }
+}
+
 task CollectAlignmentSummaryMetrics {
     input {
         File bam
@@ -1028,6 +1063,7 @@ workflow HPVDeepSeek {
         File? r1_fastq
         File? r2_fastq
         File human_snp_targets_bed
+        File high_risk_snps_hpv
         File reference
         File reference_fai
         File reference_dict
@@ -1313,6 +1349,15 @@ workflow HPVDeepSeek {
             output_basename = output_basename
     }
 
+    call HPVHighRiskSNPs {
+         input:
+            bam = SortAndIndexFinalBam.sorted_bam,
+            bai = SortAndIndexFinalBam.sorted_bam_index,
+            high_risk_snps_hpv = high_risk_snps_hpv,
+            reference = reference,
+            output_basename = output_basename
+    }
+
     output {
         File final_bam = SortAndIndexFinalBam.sorted_bam
         File final_bam_index = SortAndIndexFinalBam.sorted_bam_index
@@ -1355,5 +1400,6 @@ workflow HPVDeepSeek {
         File phy_tree = Sublineages.phy_tree
         File phy_tree_img = SublineagesDrawTree.phy_tree_img
         File sublineage_call = SublineagesDrawTree.sublineage_call
+        File high_risk_snps_found = HPVHighRiskSNPs.high_risk_snps_found
     }
 }
