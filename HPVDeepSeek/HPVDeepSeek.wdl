@@ -786,8 +786,6 @@ task Sublineages {
         seqret -osformat2 phylip -sequence ~{output_basename}.combo.afa -outseq ~{output_basename}.combo.phy
 
         phyml -i ~{output_basename}.combo.phy
-
-        ls -lha
     >>>
 
     output {
@@ -806,8 +804,8 @@ task Sublineages {
     }
 }
 
-# 3. Extract nearest neighbor via Toytree and write to sample CSV
-# 4. Draw tree with Toytree
+# Extract nearest neighbor via Toytree and write to sample CSV
+# Draw tree with Toytree
 task SublineagesDrawTree {
     input {
         String output_basename
@@ -828,20 +826,19 @@ task SublineagesDrawTree {
         df = t.distance.get_tip_distance_matrix(df = True)
         d = df.loc["HPV16_Ref"].drop("HPV16_Ref")
 
-        with open("~{calls_file}", 'a') as f:
+        with open("~{output_basename}.sublineage_call.csv", 'w') as f:
+            f.write("run_id,library_id,closest_sublineage,patristic_distance\n")
             f.write("~{output_basename}" + "," + "~{output_basename}" + "," + str(d.idxmin()) + "," + "{:.8f}".format(d.min()))
 
         canvas = toytree.tree("~{phy_tree}").draw(node_labels = False)[0]
         toyplot.pdf.render(canvas, "~{output_basename}.combo.phy_phyml_tree.pdf")
 
         CODE
-
-        ls -lha
     >>>
 
     output {
-        File sublineage_call = "~{output_basename}.sublineage_call.csv"
         File phy_tree_img = "~{output_basename}.combo.phy_phyml_tree.pdf"
+        File sublineage_call = "~{output_basename}.sublineage_call.csv"
     }
 
     runtime {
