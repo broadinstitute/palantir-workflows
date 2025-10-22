@@ -748,12 +748,8 @@ task DetectHPVIntegrationBreakpoints {
     }
 }
 
-# Steps:
-# 1. Check HPV16_Ref coverage
-# 2. Make MSA & phyml tree
-# 3. Extract nearest neighbor via Toytree and write to both global and sample CSVs
-# 4. Draw tree with Toytree
-#TREE_TXT=~{output_basename}_phyml_tree.txt
+# Check HPV16_Ref coverage
+# Make MSA & phyml tree
 task Sublineages {
     input {
         String output_basename
@@ -761,20 +757,19 @@ task Sublineages {
         File bai
         File reference
         File hpv16_sublineages
-        String calls_file = "sublineage_calls-v2.csv"
         Int read_threshold = 10
-        Int? cpu = 1
+        Int? cpu = 4
         Int? memory_gb = 32
         Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
     }
 
     command <<<
-        echo "run_id,library_id,closest_sublineage,patristic_distance" > ~{calls_file}
+        echo "run_id,library_id,closest_sublineage,patristic_distance" > ~{output_basename}.sublineage_call.csv
 
         READS=$(samtools view -c ~{bam} HPV16_Ref || echo 0)
         if [ "$READS" -lt ~{read_threshold} ]; then
             LINE="~{output_basename},~{output_basename},HPV16_negative,NA"
-            echo "$LINE" >> ~{calls_file}
+            echo "$LINE" >> ~{output_basename}.sublineage_call.csv
             echo "Only $READS reads (<~{read_threshold}); marking HPV16_negative."
         fi
 
@@ -786,7 +781,7 @@ task Sublineages {
         bcftools consensus ~{output_basename}.vcf.gz -o ~{output_basename}.consensus.fasta
 
         cat ~{output_basename}.consensus.fasta ~{hpv16_sublineages} > ~{output_basename}.combo.fasta
-        muscle -threads 1 -align ~{output_basename}.combo.fasta -output ~{output_basename}.combo.afa
+        muscle -threads $(nproc) -align ~{output_basename}.combo.fasta -output ~{output_basename}.combo.afa
 
         seqret -osformat2 phylip -sequence ~{output_basename}.combo.afa -outseq ~{output_basename}.combo.phy
 
@@ -796,6 +791,11 @@ task Sublineages {
     >>>
 
     output {
+        File afa = "~{output_basename}.combo.afa"
+        File phy = "~{output_basename}.combo.phy"
+        File phy_stats = "~{output_basename}.combo.phy_phyml_stats.txt"
+        File phy_tree = "~{output_basename}.combo.phy_phyml_tree.txt"
+        File sublineage_call = "~{output_basename}.sublineage_call.csv"
     }
 
     runtime {
@@ -803,6 +803,52 @@ task Sublineages {
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hpv_sublineage@sha256:10f9ff9e349c440dd616b3b94f9e6928b0d4e822c78cabbe8aacfaf08e804e5f"
+    }
+}
+
+# 3. Extract nearest neighbor via Toytree and write to sample CSV
+# 4. Draw tree with Toytree
+task SublineagesDrawTree {
+    input {
+        String output_basename
+        File phy_tree
+        File calls_file
+        Int? cpu = 1
+        Int? memory_gb = 32
+        Int? disk_size_gb = 64
+    }
+
+    command <<<
+        python <<CODE
+
+        import toytree
+        import toyplot.pdf
+
+        t = toytree.tree("~{phy_tree}")
+        df = t.distance.get_tip_distance_matrix(df = True)
+        d = df.loc["HPV16_Ref"].drop("HPV16_Ref")
+
+        with open("~{calls_file}", 'a') as f:
+            f.write("~{output_basename}" + "," + "~{output_basename}" + "," + str(d.idxmin()) + "," + "{:.8f}".format(d.min()))
+
+        canvas = toytree.tree("~{phy_tree}").draw(node_labels = False)[0]
+        toyplot.pdf.render(canvas, "~{output_basename}.combo.phy_phyml_tree.pdf")
+
+        CODE
+
+        ls -lha
+    >>>
+
+    output {
+        File calls_file_output = "~{output_basename}.sublineage_call.csv"
+        File phy_tree_img = "~{output_basename}.combo.phy_phyml_tree.pdf"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hpv_toytree@sha256:9b056932890befab08c7c96e4cec884f205ceca1c7aac819d66204ea96854b7f"
     }
 }
 
@@ -1263,6 +1309,13 @@ workflow HPVDeepSeek {
             output_basename = output_basename
     }
 
+    call SublineagesDrawTree {
+        input:
+            phy_tree = Sublineages.phy_tree,
+            calls_file = Sublineages.sublineage_call,
+            output_basename = output_basename
+    }
+
     output {
         File final_bam = SortAndIndexFinalBam.sorted_bam
         File final_bam_index = SortAndIndexFinalBam.sorted_bam_index
@@ -1299,5 +1352,11 @@ workflow HPVDeepSeek {
         File detailed_integration_summary = DetectHPVIntegrationBreakpoints.detailed_integration_summary
         File integration_breakpoints = DetectHPVIntegrationBreakpoints.integration_breakpoints
         File integration_summary = DetectHPVIntegrationBreakpoints.integration_summary
+        File afa = Sublineages.afa
+        File phy = Sublineages.phy
+        File phy_stats = Sublineages.phy_stats
+        File phy_tree = Sublineages.phy_tree
+        File phy_tree_img = SublineagesDrawTree.phy_tree_img
+        File sublineage_call = SublineagesDrawTree.sublineage_call
     }
 }
