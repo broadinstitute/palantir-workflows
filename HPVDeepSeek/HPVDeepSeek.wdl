@@ -838,7 +838,7 @@ task SublineagesDrawTree {
 
             canvas = toytree.tree("~{phylogenetic_tree}").draw(node_labels = False)[0]
             toyplot.pdf.render(canvas, "~{output_basename}.combo.phy_phyml_tree.pdf")
-            CODE
+        CODE
         else
             touch ~{output_basename}.combo.phy_phyml_tree.pdf
             cat ~{sublineage_call_in} > ~{output_basename}.sublineage_call.csv
