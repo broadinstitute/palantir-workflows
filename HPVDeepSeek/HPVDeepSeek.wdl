@@ -822,7 +822,7 @@ task SublineagesDrawTree {
     }
 
     command <<<
-        if [ ! -s "~{phylogenetic_tree}" ]; then
+        if [ -s "~{phylogenetic_tree}" ]; then
             python <<CODE
 
             import toytree
