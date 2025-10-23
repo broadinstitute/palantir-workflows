@@ -822,23 +822,26 @@ task SublineagesDrawTree {
     }
 
     command <<<
-        if [ -s "~{phylogenetic_tree}" ]; then
-            python <<CODE
-            import toytree
-            import toyplot.pdf
-            t = toytree.tree("~{phylogenetic_tree}")
-            df = t.distance.get_tip_distance_matrix(df = True)
-            d = df.loc["HPV16_Ref"].drop("HPV16_Ref")
-            with open("~{output_basename}.sublineage_call.csv", 'w') as f:
-                f.write("run_id,library_id,closest_sublineage,patristic_distance\n")
-                f.write("~{output_basename}" + "," + "~{output_basename}" + "," + str(d.idxmin()) + "," + "{:.8f}".format(d.min()))
-            canvas = toytree.tree("~{phylogenetic_tree}").draw(node_labels = False)[0]
-            toyplot.pdf.render(canvas, "~{output_basename}.combo.phy_phyml_tree.pdf")
-        CODE
-        else
-            touch ~{output_basename}.combo.phy_phyml_tree.pdf
-            cat ~{sublineage_call_in} > ~{output_basename}.sublineage_call.csv
-        fi
+if [ -s "~{phylogenetic_tree}" ]; then
+python <<CODE
+import toytree
+import toyplot.pdf
+
+t = toytree.tree("~{phylogenetic_tree}")
+df = t.distance.get_tip_distance_matrix(df = True)
+d = df.loc["HPV16_Ref"].drop("HPV16_Ref")
+
+with open("~{output_basename}.sublineage_call.csv", 'w') as f:
+    f.write("run_id,library_id,closest_sublineage,patristic_distance\n")
+    f.write("~{output_basename}" + "," + "~{output_basename}" + "," + str(d.idxmin()) + "," + "{:.8f}".format(d.min()))
+
+canvas = toytree.tree("~{phylogenetic_tree}").draw(node_labels = False)[0]
+toyplot.pdf.render(canvas, "~{output_basename}.combo.phy_phyml_tree.pdf")
+CODE
+else
+    touch ~{output_basename}.combo.phy_phyml_tree.pdf
+    cat ~{sublineage_call_in} > ~{output_basename}.sublineage_call.csv
+fi
     >>>
 
     output {
