@@ -1373,8 +1373,8 @@ workflow HPVDeepSeek {
         File fastp_report_json = TrimAndFilter.fastp_report_json
         File? pre_trimmed_r1_fastqc_html = PreTrimmedFastQC.r1_fastqc_html
         File? pre_trimmed_r2_fastqc_html = PreTrimmedFastQC.r2_fastqc_html
-        File? post_trimmed_r1_fastqc_html_post = PostTrimmedFastQC.r1_fastqc_html
-        File? post_trimmed_r2_fastqc_html_ = PostTrimmedFastQC.r2_fastqc_html
+        File? post_trimmed_r1_fastqc_html = PostTrimmedFastQC.r1_fastqc_html
+        File? post_trimmed_r2_fastqc_html = PostTrimmedFastQC.r2_fastqc_html
         File pre_consensus_alignment_summary_metrics = PreConsensusAlignmentSummaryMetrics.alignment_summary_metrics
         File pre_consensus_flagstat = PreConsensusFlagstat.flagstat
         File pre_consensus_insert_size_metrics = PreConsensusInsertSizeMetrics.insert_size_metrics
