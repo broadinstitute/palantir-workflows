@@ -846,7 +846,7 @@ task SublineagesDrawTree {
     >>>
 
     output {
-        File phylogentic_tree_visualization = "~{output_basename}.combo.phy_phyml_tree.pdf"
+        File phylogenetic_tree_visualization = "~{output_basename}.combo.phy_phyml_tree.pdf"
         File sublineage_call = "~{output_basename}.sublineage_call.csv"
     }
 
