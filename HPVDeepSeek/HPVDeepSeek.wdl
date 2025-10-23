@@ -764,35 +764,40 @@ task Sublineages {
     }
 
     command <<<
-        echo "run_id,library_id,closest_sublineage,patristic_distance" > ~{output_basename}.sublineage_call.csv
-
         READS=$(samtools view -c ~{bam} HPV16_Ref || echo 0)
+
         if [ "$READS" -lt ~{read_threshold} ]; then
             LINE="~{output_basename},~{output_basename},HPV16_negative,NA"
+            echo "run_id,library_id,closest_sublineage,patristic_distance" > ~{output_basename}.sublineage_call.csv
             echo "$LINE" >> ~{output_basename}.sublineage_call.csv
             echo "Only $READS reads (<~{read_threshold}); marking HPV16_negative."
+            touch ~{output_basename}.combo.afa ~{output_basename}.combo.phy ~{output_basename}.combo.phy_phyml_stats.txt ~{output_basename}.combo.phy_phyml_tree.txt
+        else
+            bcftools mpileup --max-depth 8000 -Ou -f ~{reference} -r HPV16_Ref ~{bam} | \
+            bcftools call -Ou -mv | \
+            bcftools norm -f ~{reference} -Oz -o ~{output_basename}.vcf.gz
+
+            tabix ~{output_basename}.vcf.gz
+
+            samtools faidx ~{reference} HPV16_Ref | \
+            bcftools consensus ~{output_basename}.vcf.gz -o ~{output_basename}.consensus.fasta
+
+            cat ~{output_basename}.consensus.fasta ~{hpv16_sublineages} > ~{output_basename}.combo.fasta
+            muscle -threads $(nproc) -align ~{output_basename}.combo.fasta -output ~{output_basename}.combo.afa
+
+            seqret -osformat2 phylip -sequence ~{output_basename}.combo.afa -outseq ~{output_basename}.combo.phy
+
+            phyml -i ~{output_basename}.combo.phy
+
+            touch ~{output_basename}.sublineage_call.csv
         fi
-
-        bcftools mpileup --max-depth 8000 -Ou -f ~{reference} -r HPV16_Ref ~{bam} | \
-        bcftools call -Ou -mv | \
-        bcftools norm -f ~{reference} -Oz -o ~{output_basename}.vcf.gz
-        tabix ~{output_basename}.vcf.gz
-        samtools faidx ~{reference} HPV16_Ref | \
-        bcftools consensus ~{output_basename}.vcf.gz -o ~{output_basename}.consensus.fasta
-
-        cat ~{output_basename}.consensus.fasta ~{hpv16_sublineages} > ~{output_basename}.combo.fasta
-        muscle -threads $(nproc) -align ~{output_basename}.combo.fasta -output ~{output_basename}.combo.afa
-
-        seqret -osformat2 phylip -sequence ~{output_basename}.combo.afa -outseq ~{output_basename}.combo.phy
-
-        phyml -i ~{output_basename}.combo.phy
     >>>
 
     output {
-        File afa = "~{output_basename}.combo.afa"
-        File phy = "~{output_basename}.combo.phy"
-        File phy_stats = "~{output_basename}.combo.phy_phyml_stats.txt"
-        File phy_tree = "~{output_basename}.combo.phy_phyml_tree.txt"
+        File multiple_sequence_alignment = "~{output_basename}.combo.afa"
+        File phylip_formatted_msa = "~{output_basename}.combo.phy"
+        File phylogenetic_tree_stats = "~{output_basename}.combo.phy_phyml_stats.txt"
+        File phylogenetic_tree = "~{output_basename}.combo.phy_phyml_tree.txt"
         File sublineage_call = "~{output_basename}.sublineage_call.csv"
     }
 
@@ -809,35 +814,39 @@ task Sublineages {
 task SublineagesDrawTree {
     input {
         String output_basename
-        File phy_tree
-        File calls_file
+        File phylogenetic_tree
+        File sublineage_call
         Int? cpu = 1
         Int? memory_gb = 32
         Int? disk_size_gb = 64
     }
 
     command <<<
-        python <<CODE
+        if [ ! -s "~{phylogenetic_tree}" ]; then
+            python <<CODE
 
-        import toytree
-        import toyplot.pdf
+            import toytree
+            import toyplot.pdf
 
-        t = toytree.tree("~{phy_tree}")
-        df = t.distance.get_tip_distance_matrix(df = True)
-        d = df.loc["HPV16_Ref"].drop("HPV16_Ref")
+            t = toytree.tree("~{phylogenetic_tree}")
+            df = t.distance.get_tip_distance_matrix(df = True)
+            d = df.loc["HPV16_Ref"].drop("HPV16_Ref")
 
-        with open("~{output_basename}.sublineage_call.csv", 'w') as f:
-            f.write("run_id,library_id,closest_sublineage,patristic_distance\n")
-            f.write("~{output_basename}" + "," + "~{output_basename}" + "," + str(d.idxmin()) + "," + "{:.8f}".format(d.min()))
+            with open("~{output_basename}.sublineage_call.csv", 'w') as f:
+                f.write("run_id,library_id,closest_sublineage,patristic_distance\n")
+                f.write("~{output_basename}" + "," + "~{output_basename}" + "," + str(d.idxmin()) + "," + "{:.8f}".format(d.min()))
 
-        canvas = toytree.tree("~{phy_tree}").draw(node_labels = False)[0]
-        toyplot.pdf.render(canvas, "~{output_basename}.combo.phy_phyml_tree.pdf")
-
-        CODE
+            canvas = toytree.tree("~{phylogenetic_tree}").draw(node_labels = False)[0]
+            toyplot.pdf.render(canvas, "~{output_basename}.combo.phy_phyml_tree.pdf")
+            CODE
+        else
+            touch ~{output_basename}.combo.phy_phyml_tree.pdf
+            cat ~{sublineage_call} > ~{output_basename}.sublineage_call.csv
+        fi
     >>>
 
     output {
-        File phy_tree_img = "~{output_basename}.combo.phy_phyml_tree.pdf"
+        File phylogentic_tree_visualization = "~{output_basename}.combo.phy_phyml_tree.pdf"
         File sublineage_call = "~{output_basename}.sublineage_call.csv"
     }
 
@@ -1344,8 +1353,8 @@ workflow HPVDeepSeek {
 
     call SublineagesDrawTree {
         input:
-            phy_tree = Sublineages.phy_tree,
-            calls_file = Sublineages.sublineage_call,
+            phylogenetic_tree = Sublineages.phylogenetic_tree,
+            sublineage_call = Sublineages.sublineage_call,
             output_basename = output_basename
     }
 
@@ -1394,11 +1403,11 @@ workflow HPVDeepSeek {
         File detailed_integration_summary = DetectHPVIntegrationBreakpoints.detailed_integration_summary
         File integration_breakpoints = DetectHPVIntegrationBreakpoints.integration_breakpoints
         File integration_summary = DetectHPVIntegrationBreakpoints.integration_summary
-        File afa = Sublineages.afa
-        File phy = Sublineages.phy
-        File phy_stats = Sublineages.phy_stats
-        File phy_tree = Sublineages.phy_tree
-        File phy_tree_img = SublineagesDrawTree.phy_tree_img
+        File multiple_sequence_alignment = Sublineages.multiple_sequence_alignment
+        File phylip_formatted_msa = Sublineages.phylip_formatted_msa
+        File phylogenetic_tree_stats = Sublineages.phylogenetic_tree_stats
+        File phylogenetic_tree = Sublineages.phylogenetic_tree
+        File phylogenetic_tree_visualization = SublineagesDrawTree.phylogenetic_tree_visualization
         File sublineage_call = SublineagesDrawTree.sublineage_call
         File high_risk_snps_found = HPVHighRiskSNPs.high_risk_snps_found
     }
