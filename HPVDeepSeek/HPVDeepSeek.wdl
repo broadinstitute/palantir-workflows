@@ -815,7 +815,7 @@ task SublineagesDrawTree {
     input {
         String output_basename
         File phylogenetic_tree
-        File sublineage_call
+        File sublineage_call_in
         Int? cpu = 1
         Int? memory_gb = 32
         Int? disk_size_gb = 64
@@ -841,7 +841,7 @@ task SublineagesDrawTree {
             CODE
         else
             touch ~{output_basename}.combo.phy_phyml_tree.pdf
-            cat ~{sublineage_call} > ~{output_basename}.sublineage_call.csv
+            cat ~{sublineage_call_in} > ~{output_basename}.sublineage_call.csv
         fi
     >>>
 
@@ -1354,7 +1354,7 @@ workflow HPVDeepSeek {
     call SublineagesDrawTree {
         input:
             phylogenetic_tree = Sublineages.phylogenetic_tree,
-            sublineage_call = Sublineages.sublineage_call,
+            sublineage_call_in = Sublineages.sublineage_call,
             output_basename = output_basename
     }
 
