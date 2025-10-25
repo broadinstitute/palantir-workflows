@@ -441,14 +441,12 @@ task MergeBAMsAndGroupUMIs {
         --edits 1 \
         --raw-tag RX \
         --family-size-histogram ~{output_basename}.umi_group_data.txt \
-        --grouping-metrics ~{output_basename}.umi_grouping_metrics.txt \
         --threads 8
     >>>
 
     output {
         File umi_grouped_bam = "~{output_basename}.umi_grouped.bam"
         File umi_group_data = "~{output_basename}.umi_group_data.txt"
-        File umi_grouping_metrics = "~{output_basename}.umi_grouping_metrics.txt"
     }
 
     runtime {
@@ -1373,7 +1371,6 @@ workflow HPVDeepSeek {
         File final_bam = SortAndIndexFinalBam.sorted_bam
         File final_bam_index = SortAndIndexFinalBam.sorted_bam_index
         File umi_group_data = MergeBAMsAndGroupUMIs.umi_group_data
-        File umi_grouping_metrics = MergeBAMsAndGroupUMIs.umi_grouping_metrics
         File vcf = GenotypeSNPsHuman.vcf
         File coverage = SamtoolsCoverage.coverage
         String top_hpv_contig = DetermineHPVStatus.top_hpv_contig
