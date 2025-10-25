@@ -409,7 +409,7 @@ task MergeBAMsAndGroupUMIs {
         File reference
         File reference_fai
         File reference_dict
-        Int? cpu = 8
+        Int? cpu = 1
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(aligned_bam, "GiB") + size(unmapped_umi_extracted_bam, "GiB")) + 100)
         Int? min_ssd_size_gb = 512
@@ -440,8 +440,7 @@ task MergeBAMsAndGroupUMIs {
         --strategy adjacency \
         --edits 1 \
         --raw-tag RX \
-        --family-size-histogram ~{output_basename}.umi_group_data.txt \
-        --threads 8
+        --family-size-histogram ~{output_basename}.umi_group_data.txt
     >>>
 
     output {
