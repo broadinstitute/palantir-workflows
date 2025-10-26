@@ -385,7 +385,6 @@ task GATKSortBam {
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
         disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
