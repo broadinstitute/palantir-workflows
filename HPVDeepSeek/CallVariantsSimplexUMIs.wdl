@@ -44,9 +44,13 @@ task Mutect2 {
         File reference
         File reference_fai
         File reference_dict
-        File intervals
+        File gnomad
+        File gnomad_idx
         File pon
         File pon_idx
+        File intervals
+        #File variants_for_contamination
+        #File variants_for_contamination_idx
 
         Int? cpu = 1
         Int? memory_gb = 16
@@ -58,10 +62,10 @@ task Mutect2 {
     command <<<
         gatk --java-options "-Xms8g -Xmx14g" \
         Mutect2 \
-        --reference ~{reference} \
         --input ~{tumor_bam} \
         --output ~{output_basename}.vcf.gz \
-        --germline-resource af-only-gnomad.vcf.gz \
+        --reference ~{reference} \
+        --germline-resource ~{gnomad} \
         --panel-of-normals ~{pon} \
         --intervals ~{intervals}
     >>>
@@ -294,13 +298,15 @@ workflow CallVariantsSimplexUMIs {
         File reference
         File reference_fai
         File reference_dict
+        File gnomad
+        File gnomad_idx
         File pon
         File pon_idx
-        String mapping_filter_python_script
-        File blastdb_nhr
-        File blastdb_nin
-        File blastdb_nsq
-        String blastn_path
+        #String mapping_filter_python_script
+        #File blastdb_nhr
+        #File blastdb_nin
+        #File blastdb_nsq
+        #String blastn_path
         File funcotator_data_source
     }
 
@@ -320,45 +326,64 @@ workflow CallVariantsSimplexUMIs {
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
-            intervals = target_intervals,
+            gnomad = gnomad,
+            gnomad_idx = gnomad_idx,
             pon = pon,
             pon_idx = pon_idx,
+            intervals = target_intervals,
             output_basename = output_basename
     }
 
-    call RunMappingFilter {
-        input:
-            vcf = Mutect2.unfiltered_vcf,
-            vcf_idx = Mutect2.unfiltered_vcf_idx,
-            reference = reference,
-            reference_fai = reference_fai,
-            reference_dict = reference_dict,
-            blastdb_nhr = blastdb_nhr,
-            blastdb_nin = blastdb_nin,
-            blastdb_nsq = blastdb_nsq,
-            blastn_path = blastn_path,
-            mapping_filter_python_script = mapping_filter_python_script,
-            output_basename = output_basename
-    }
+#    call RunMappingFilter {
+#        input:
+#            vcf = Mutect2.unfiltered_vcf,
+#            vcf_idx = Mutect2.unfiltered_vcf_idx,
+#            reference = reference,
+#            reference_fai = reference_fai,
+#            reference_dict = reference_dict,
+#            blastdb_nhr = blastdb_nhr,
+#            blastdb_nin = blastdb_nin,
+#            blastdb_nsq = blastdb_nsq,
+#            blastn_path = blastn_path,
+#            mapping_filter_python_script = mapping_filter_python_script,
+#            output_basename = output_basename
+#    }
+#
+#    call VariantFiltration {
+#        input:
+#            unfiltered_vcf = Mutect2.unfiltered_vcf,
+#            unfiltered_vcf_idx = Mutect2.unfiltered_vcf_idx,
+#            filter_vcf = RunMappingFilter.map_filtered_vcf,
+#            filter_vcf_idx = RunMappingFilter.map_filtered_vcf_idx,
+#            reference = reference,
+#            reference_fai = reference_fai,
+#            reference_dict = reference_dict,
+#            mapping_filter_name = "mapping_filter",
+#            filter_not_in_mask = true,
+#            output_basename = output_basename
+#    }
 
-    call VariantFiltration {
-        input:
-            unfiltered_vcf = Mutect2.unfiltered_vcf,
-            unfiltered_vcf_idx = Mutect2.unfiltered_vcf_idx,
-            filter_vcf = RunMappingFilter.map_filtered_vcf,
-            filter_vcf_idx = RunMappingFilter.map_filtered_vcf_idx,
-            reference = reference,
-            reference_fai = reference_fai,
-            reference_dict = reference_dict,
-            mapping_filter_name = "mapping_filter",
-            filter_not_in_mask = true,
-            output_basename = output_basename
-    }
+#    call Funcotate {
+#        input:
+#            vcf = VariantFiltration.output_vcf,
+#            vcf_idx = VariantFiltration.output_vcf_idx,
+#            reference = reference,
+#            reference_fai = reference_fai,
+#            reference_dict = reference_dict,
+#            funcotator_data_source = funcotator_data_source,
+#            reference_version = "hg38",
+#            filter_funcotations = true,
+#            use_gnomad = false,
+#            output_format = "MAF",
+#            compress = true,
+#            transcript_selection_mode = "BEST_EFFECT",
+#            output_basename = output_basename
+#    }
 
     call Funcotate {
         input:
-            vcf = VariantFiltration.output_vcf,
-            vcf_idx = VariantFiltration.output_vcf_idx,
+            vcf = Mutect2.unfiltered_vcf,
+            vcf_idx = Mutect2.unfiltered_vcf_idx,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
@@ -375,8 +400,8 @@ workflow CallVariantsSimplexUMIs {
     output {
         File unfiltered_vcf = Mutect2.unfiltered_vcf
         File unfiltered_vcf_idx = Mutect2.unfiltered_vcf_idx
-        File filtered_vcf = VariantFiltration.output_vcf
-        File filtered_vcf_idx = VariantFiltration.output_vcf_idx
+        #File filtered_vcf = VariantFiltration.output_vcf
+        #File filtered_vcf_idx = VariantFiltration.output_vcf_idx
         File funcotated_maf = Funcotate.funcotated_output_file
     }
 }
