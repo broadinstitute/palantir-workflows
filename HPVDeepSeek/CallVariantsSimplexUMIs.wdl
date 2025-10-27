@@ -373,8 +373,8 @@ workflow CallVariantsSimplexUMIs {
     }
 
     output {
-        File output_vcf = Mutect2.output_vcf
-        File output_vcf_idx = Mutect2.output_vcf_idx
+        File unfiltered_vcf = Mutect2.unfiltered_vcf
+        File unfiltered_vcf_idx = Mutect2.unfiltered_vcf_idx
         File filtered_vcf = VariantFiltration.output_vcf
         File filtered_vcf_idx = VariantFiltration.output_vcf_idx
         File funcotated_maf = Funcotate.funcotated_output_file
