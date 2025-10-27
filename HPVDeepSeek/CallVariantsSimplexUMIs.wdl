@@ -344,7 +344,7 @@ workflow CallVariantsSimplexUMIs {
     call VariantFiltration {
         input:
             unfiltered_vcf = Mutect2.unfiltered_vcf,
-            unfiltered_vcf_idx = Mutect2.filtered_vcf_idx,
+            unfiltered_vcf_idx = Mutect2.unfiltered_vcf_idx,
             filter_vcf = RunMappingFilter.map_filtered_vcf,
             filter_vcf_idx = RunMappingFilter.map_filtered_vcf_idx,
             reference = reference,
