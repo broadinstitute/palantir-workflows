@@ -93,10 +93,11 @@ task FastQC {
 
 task FastqToUbam {
     input {
+        String output_basename
         File r1_fastq
         File r2_fastq
-        String output_basename
-        String read_group_sample
+        String read_group_id
+        String read_group_sample_name
         Int? cpu = 1
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
@@ -109,7 +110,8 @@ task FastqToUbam {
         --FASTQ ~{r1_fastq} \
         --FASTQ2 ~{r2_fastq} \
         --OUTPUT ~{output_basename}.unmapped.bam \
-        --SAMPLE_NAME ~{read_group_sample}
+        --READ_GROUP_NAME ~{read_group_id} \
+        --SAMPLE_NAME ~{read_group_sample_name}
     >>>
 
     output {
@@ -137,8 +139,8 @@ task FastqToUbam {
 # --annotate-read-names true: Indicates that the UMI should be appended to the read name (QNAME) in addition to the RX tag.
 task ExtractUMIs {
     input {
-        File input_ubam
         String output_basename
+        File input_ubam
         String read_group_tag = "RX"
         String read_structure = "3M3S+T"
         String append_umi_to_qname = "true"
@@ -280,8 +282,8 @@ task BwaMem {
         File bwa_idx_pac
         File bwa_idx_sa
         String read_group_id
-        String read_group_sample
-        String platform
+        String read_group_sample_name
+        String read_group_platform
         Boolean soft_clip_supplementary_alignments = false
         Int? cpu = 32
         Int? num_threads = 32
@@ -297,7 +299,7 @@ task BwaMem {
         bwa mem \
         -t ~{num_threads} \
         -K 100000000 \
-        -R '@RG\tID:~{read_group_id}\tDS:KAPA_TE\tPL:~{platform}\tLB:lib1\tSM:~{read_group_sample}\tPU:unit1' \
+        -R '@RG\tID:~{read_group_id}\tDS:KAPA_TE\tPL:~{read_group_platform}\tLB:lib1\tSM:~{read_group_sample_name}\tPU:unit1' \
         ~{supplementary_alignment_clipping_option} \
         -M \
         ~{reference} \
@@ -526,6 +528,7 @@ task CallMolecularConsensusReads {
     input {
         String output_basename
         File umi_grouped_bam
+        String read_group_id
         Int? cpu = 1
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(umi_grouped_bam, "GiB")) + 100)
@@ -541,7 +544,8 @@ task CallMolecularConsensusReads {
         --min-reads 1 \
         --max-reads 50 \
         --min-input-base-quality 20 \
-        --read-name-prefix 'consensus'
+        --read-name-prefix 'consensus' \
+        --read-group-id ~{read_group_id}
     >>>
 
     output {
@@ -1084,8 +1088,8 @@ workflow HPVDeepSeek {
         File bait_interval_list
         String bait_set_name
         String read_group_id
-        String read_group_sample
-        String platform = "ILLUMINA"
+        String read_group_sample_name
+        String read_group_platform = "ILLUMINA"
     }
 
     call VerifyPipelineInputs {
@@ -1107,7 +1111,8 @@ workflow HPVDeepSeek {
                 r1_fastq = select_first([r1_fastq]),
                 r2_fastq = select_first([r2_fastq]),
                 output_basename = output_basename,
-                read_group_sample = read_group_sample
+                read_group_id = read_group_id,
+                read_group_sample_name = read_group_sample_name
         }
     }
 
@@ -1149,8 +1154,8 @@ workflow HPVDeepSeek {
             bwa_idx_pac = bwa_idx_pac,
             bwa_idx_sa = bwa_idx_sa,
             read_group_id = read_group_id,
-            read_group_sample = read_group_sample,
-            platform = platform,
+            read_group_sample_name = read_group_sample_name,
+            read_group_platform = read_group_platform,
             output_basename = output_basename
     }
 
@@ -1213,6 +1218,7 @@ workflow HPVDeepSeek {
     call CallMolecularConsensusReads {
         input:
             umi_grouped_bam = MergeBAMsAndGroupUMIs.umi_grouped_bam,
+            read_group_id = read_group_id,
             output_basename = output_basename
     }
 
@@ -1241,8 +1247,8 @@ workflow HPVDeepSeek {
             bwa_idx_pac = bwa_idx_pac,
             bwa_idx_sa = bwa_idx_sa,
             read_group_id = read_group_id,
-            read_group_sample = read_group_sample,
-            platform = platform,
+            read_group_sample_name = read_group_sample_name,
+            read_group_platform = read_group_platform,
             soft_clip_supplementary_alignments = true,
             output_basename = consensus_basename
     }
