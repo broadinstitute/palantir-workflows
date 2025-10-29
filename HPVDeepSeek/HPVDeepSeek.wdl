@@ -98,6 +98,10 @@ task FastqToUbam {
         File r2_fastq
         String read_group_id
         String read_group_sample_name
+        String read_group_library_name
+        String read_group_platform
+        String read_group_platform_unit
+        String read_group_description
         Int? cpu = 1
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
@@ -111,7 +115,11 @@ task FastqToUbam {
         --FASTQ2 ~{r2_fastq} \
         --OUTPUT ~{output_basename}.unmapped.bam \
         --READ_GROUP_NAME ~{read_group_id} \
-        --SAMPLE_NAME ~{read_group_sample_name}
+        --SAMPLE_NAME ~{read_group_sample_name} \
+        --LIBRARY_NAME ~{read_group_library_name} \
+        --PLATFORM ~{read_group_platform} \
+        --PLATFORM_UNIT ~{read_group_platform_unit} \
+        --DESCRIPTION ~{read_group_description}
     >>>
 
     output {
@@ -283,7 +291,10 @@ task BwaMem {
         File bwa_idx_sa
         String read_group_id
         String read_group_sample_name
+        String read_group_library_name
         String read_group_platform
+        String read_group_platform_unit
+        String read_group_description
         Boolean soft_clip_supplementary_alignments = false
         Int? cpu = 32
         Int? num_threads = 32
@@ -299,7 +310,7 @@ task BwaMem {
         bwa mem \
         -t ~{num_threads} \
         -K 100000000 \
-        -R '@RG\tID:~{read_group_id}\tDS:KAPA_TE\tPL:~{read_group_platform}\tLB:lib1\tSM:~{read_group_sample_name}\tPU:unit1' \
+        -R '@RG\tID:~{read_group_id}\tDS:~{read_group_description}\tPL:~{read_group_platform}\tLB:~{read_group_library_name}\tSM:~{read_group_sample_name}\tPU:~{read_group_platform_unit}' \
         ~{supplementary_alignment_clipping_option} \
         -M \
         ~{reference} \
@@ -1024,6 +1035,56 @@ task CountOnTargetReads {
     }
 }
 
+task CollectUMIDuplicationMetrics {
+    input {
+        String output_basename
+        File umi_group_data
+        Int? cpu = 1
+        Int? memory_gb = 8
+        Int? disk_size_gb = 32
+    }
+
+    command <<<
+        set -e
+        python3 <<CODE
+
+        umi_group_data_dict = {}
+
+        # Tab-separated list of columns: [family_size, count, fraction, fraction_gt_or_eq_family_size]
+        with open("~{umi_group_data}", 'r') as infile:
+            header = infile.readline()
+            for line in infile:
+                line = line.rstrip()
+                columns = line.split('\t')
+                umi_group_data_dict[int(columns[0])] = (int(columns[1]), float(columns[2]), float(columns[3]))
+
+        num_fragments_total = 0
+        num_fragments_unique = 0
+        for family_size, value_tuple in umi_group_data_dict.items():
+            num_fragments_total = num_fragments_total + (family_size * value_tuple[0])
+            num_fragments_unique = num_fragments_unique + value_tuple[0]
+
+        percent_duplication = 100 * (1 - (num_fragments_unique / num_fragments_total))
+
+        with open("~{output_basename}.umi_duplication_metrics.tsv", 'w') as f:
+            f.write("PERCENT_DUPLICATION" + "\t" + str(percent_duplication) + "\n")
+            f.write("ESTIMATED_LIBRARY_SIZE" + "\t" + str(num_fragments_unique))
+
+        CODE
+    >>>
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us.gcr.io/broad-dsp-gcr-public/base/python:3.9-debian"
+    }
+
+    output {
+        File umi_duplication_metrics = "~{output_basename}.umi_duplication_metrics.tsv"
+    }
+}
+
 task CollectHybridSelectionMetrics {
     input {
         File bam
@@ -1089,7 +1150,10 @@ workflow HPVDeepSeek {
         String bait_set_name
         String read_group_id
         String read_group_sample_name
+        String read_group_library_name = "LB_TEST"
         String read_group_platform = "ILLUMINA"
+        String read_group_platform_unit = "PU_TEST"
+        String read_group_description = "KAPA_TE"
     }
 
     call VerifyPipelineInputs {
@@ -1112,14 +1176,18 @@ workflow HPVDeepSeek {
                 r2_fastq = select_first([r2_fastq]),
                 output_basename = output_basename,
                 read_group_id = read_group_id,
-                read_group_sample_name = read_group_sample_name
+                read_group_sample_name = read_group_sample_name,
+                read_group_library_name = read_group_library_name,
+                read_group_platform = read_group_platform,
+                read_group_platform_unit = read_group_platform_unit,
+                read_group_description = read_group_description
         }
     }
 
     File ubam_to_use = select_first([ubam, FastqToUbam.ubam])
 
     call ExtractUMIs {
-         input:
+        input:
             input_ubam = ubam_to_use,
             output_basename = output_basename
     }
@@ -1155,7 +1223,10 @@ workflow HPVDeepSeek {
             bwa_idx_sa = bwa_idx_sa,
             read_group_id = read_group_id,
             read_group_sample_name = read_group_sample_name,
+            read_group_library_name = read_group_library_name,
             read_group_platform = read_group_platform,
+            read_group_platform_unit = read_group_platform_unit,
+            read_group_description = read_group_description,
             output_basename = output_basename
     }
 
@@ -1206,12 +1277,18 @@ workflow HPVDeepSeek {
     }
 
     call MergeBAMsAndGroupUMIs {
-         input:
+        input:
             aligned_bam = SortAndIndexBam.sorted_bam,
             unmapped_umi_extracted_bam = ExtractUMIs.umi_extracted_bam,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
+            output_basename = output_basename
+    }
+
+    call CollectUMIDuplicationMetrics {
+        input:
+            umi_group_data = MergeBAMsAndGroupUMIs.umi_group_data,
             output_basename = output_basename
     }
 
@@ -1248,7 +1325,10 @@ workflow HPVDeepSeek {
             bwa_idx_sa = bwa_idx_sa,
             read_group_id = read_group_id,
             read_group_sample_name = read_group_sample_name,
+            read_group_library_name = read_group_library_name,
             read_group_platform = read_group_platform,
+            read_group_platform_unit = read_group_platform_unit,
+            read_group_description = read_group_description,
             soft_clip_supplementary_alignments = true,
             output_basename = consensus_basename
     }
@@ -1375,6 +1455,7 @@ workflow HPVDeepSeek {
         File final_bam = SortAndIndexFinalBam.sorted_bam
         File final_bam_index = SortAndIndexFinalBam.sorted_bam_index
         File umi_group_data = MergeBAMsAndGroupUMIs.umi_group_data
+        File umi_duplication_metrics = CollectUMIDuplicationMetrics.umi_duplication_metrics
         File vcf = GenotypeSNPsHuman.vcf
         File coverage = SamtoolsCoverage.coverage
         String top_hpv_contig = DetermineHPVStatus.top_hpv_contig
