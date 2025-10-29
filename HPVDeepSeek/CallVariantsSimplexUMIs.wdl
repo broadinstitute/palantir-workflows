@@ -51,8 +51,6 @@ task Mutect2 {
         File intervals
         #File variants_for_contamination
         #File variants_for_contamination_idx
-        String read_group_id
-        String read_group_sample
 
         Int? cpu = 1
         Int? memory_gb = 16
@@ -62,12 +60,9 @@ task Mutect2 {
     }
 
     command <<<
-        gatk AddOrReplaceReadGroups --INPUT ~{tumor_bam} --OUTPUT ~{output_basename}.temp.bam --RGID ~{read_group_id} --RGLB lib1 --RGPL ILLUMINA --RGPU unit1 --RGSM ~{read_group_sample} --VALIDATION_STRINGENCY LENIENT
-        samtools index ~{output_basename}.temp.bam
-
         gatk --java-options "-Xms8g -Xmx14g" \
         Mutect2 \
-        --input ~{output_basename}.temp.bam \
+        --input ~{tumor_bam} \
         --output ~{output_basename}.vcf.gz \
         --reference ~{reference} \
         --germline-resource ~{gnomad} \
@@ -313,8 +308,6 @@ workflow CallVariantsSimplexUMIs {
         #File blastdb_nsq
         #String blastn_path
         File funcotator_data_source
-        String read_group_id
-        String read_group_sample
     }
 
     call CollectSequencingArtifactMetrics {
@@ -338,9 +331,7 @@ workflow CallVariantsSimplexUMIs {
             pon = pon,
             pon_idx = pon_idx,
             intervals = target_intervals,
-            output_basename = output_basename,
-            read_group_id = read_group_id,
-            read_group_sample = read_group_sample
+            output_basename = output_basename
     }
 
 #    call RunMappingFilter {
