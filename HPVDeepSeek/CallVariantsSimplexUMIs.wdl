@@ -49,8 +49,8 @@ task Mutect2 {
         File pon
         File pon_idx
         File intervals
-        #File variants_for_contamination
-        #File variants_for_contamination_idx
+        File variants_for_contamination
+        File variants_for_contamination_idx
 
         Int? cpu = 1
         Int? memory_gb = 16
@@ -67,7 +67,32 @@ task Mutect2 {
         --reference ~{reference} \
         --germline-resource ~{gnomad} \
         --panel-of-normals ~{pon} \
-        --intervals ~{intervals}
+        --intervals ~{intervals} \
+        --f1r2-tar-gz ~{output_basename}.f1r2.tar.gz \
+        --read-filter NotSupplementaryAlignmentReadFilter \
+        --dont-use-soft-clipped-bases true \
+        --af-of-alleles-not-in-resource 0.001 \
+        --tumor-lod-to-emit 0 \
+        --max-reads-per-alignment-start 0 \
+        --initial-tumor-lod 0 \
+        --pcr-snv-qual 70 \
+        --pcr-indel-qual 70
+
+        mutect2_exit_code=$?
+
+        set +e
+
+        gatk --java-options "-Xms8g -Xmx14g" \
+        GetPileupSummaries \
+        --input ~{tumor_bam} \
+        --output ~{output_basename}.tumor-pileups.table \
+        --reference ~{reference} \
+        --interval-set-rule INTERSECTION \
+        --intervals ~{intervals} \
+        --variant ~{variants_for_contamination} \
+        --intervals ~{variants_for_contamination}
+
+        exit $mutect2_exit_code
     >>>
 
     runtime {
@@ -81,6 +106,163 @@ task Mutect2 {
         File unfiltered_vcf = "~{output_basename}.vcf.gz"
         File unfiltered_vcf_idx = "~{output_basename}.vcf.gz.tbi"
         File stats = "~{output_basename}.vcf.gz.stats"
+        File f1r2_counts = "~{output_basename}.f1r2.tar.gz"
+        File tumor_pileups = "~{output_basename}.tumor-pileups.table"
+    }
+}
+
+task LearnReadOrientationModel {
+    input {
+        String output_basename
+        File f1r2_tar_gz
+
+        Int? cpu = 1
+        Int? memory_gb = 16
+        Int? disk_size_gb = 128
+        Int? min_ssd_size_gb = 512
+        Boolean use_ssd = true
+    }
+
+    command <<<
+        gatk --java-options "-Xms8g -Xmx14g" \
+        LearnReadOrientationModel \
+        --input ~{f1r2_tar_gz} \
+        --output ~{output_basename}.artifact-priors.tar.gz
+    >>>
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
+        docker: "us.gcr.io/broad-gatk/gatk:4.6.2.0"
+    }
+
+    output {
+        File artifact_prior_table = "~{output_basename}.artifact-priors.tar.gz"
+    }
+}
+
+task CalculateContamination {
+    input {
+        String output_basename
+        File tumor_pileups
+
+        Int? cpu = 1
+        Int? memory_gb = 16
+        Int? disk_size_gb = 128
+        Int? min_ssd_size_gb = 512
+        Boolean use_ssd = true
+    }
+
+    command <<<
+        gatk ---java-options "-Xms8g -Xmx14g" \
+        CalculateContamination \
+        --input ~{tumor_pileups} \
+        --output ~{output_basename}.contamination.table \
+        --tumor-segmentation ~{output_basename}.segments.table
+    >>>
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
+        docker: "us.gcr.io/broad-gatk/gatk:4.6.2.0"
+    }
+
+    output {
+        File contamination_table = "~{output_basename}.contamination.table"
+        File maf_segments = "~{output_basename}.segments.table"
+    }
+}
+
+task Filter {
+    input {
+        String output_basename
+        File unfiltered_vcf
+        File unfiltered_vcf_idx
+        File reference
+        File reference_fai
+        File reference_dict
+        File mutect_stats
+        File artifact_priors_tar_gz
+        File contamination_table
+        File maf_segments
+        Boolean compress = true
+
+        Int? cpu = 1
+        Int? memory_gb = 16
+        Int? disk_size_gb = 128
+        Int? min_ssd_size_gb = 512
+        Boolean use_ssd = true
+    }
+
+    command <<<
+        gatk --java-options "-Xms8g -Xmx14g" \
+        FilterMutectCalls \
+        --variant ~{unfiltered_vcf} \
+        --reference ~{reference} \
+        --output ~{output_basename}.vcf.gz \
+        --contamination-table ~{contamination_table} \
+        --tumor-segmentation ~{maf_segments} \
+        --ob-priors ~{artifact_priors_tar_gz} \
+        --stats ~{mutect_stats} \
+        --filtering-stats ~{output_basename}.filtering.stats
+    >>>
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
+        docker: "us.gcr.io/broad-gatk/gatk:4.6.2.0"
+    }
+
+    output {
+        File filtered_vcf = "~{output_basename}.vcf.gz"
+        File filtered_vcf_idx = "~{output_basename}.vcf.gz.tbi"
+        File filtering_stats = "~{output_basename}.filtering.stats"
+    }
+}
+
+task FilterAlignmentArtifacts {
+    input {
+        String output_basename
+        File bam
+        File bai
+        File input_vcf
+        File input_vcf_idx
+        File reference
+        File reference_fai
+        File reference_dict
+        File realignment_index_bundle
+        Boolean compress = true
+
+        Int? cpu = 1
+        Int? memory_gb = 16
+        Int? disk_size_gb = 128
+        Int? min_ssd_size_gb = 512
+        Boolean use_ssd = true
+    }
+
+    command <<<
+        gatk --java-options "-Xms8g -Xmx14g" \
+        FilterAlignmentArtifacts \
+        --input ~{bam} \
+        --output ~{output_basename}.vcf.gz
+        --variant ~{input_vcf} \
+        --reference ~{reference} \
+        --bwa-mem-index-image ~{realignment_index_bundle}
+    >>>
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
+        docker: "us.gcr.io/broad-gatk/gatk:4.6.2.0"
+    }
+
+    output {
+        File filtered_vcf = "~{output_basename}.vcf.gz"
+        File filtered_vcf_idx = "~{output_basename}.vcf.gz.tbi"
     }
 }
 
@@ -112,8 +294,8 @@ task RunMappingFilter {
         --reference_fasta ~{reference} \
         --blastn ~{blastn_path}
 
-        bgzip "~{output_basename}.filtered.vcf"
-        tabix "~{output_basename}.filtered.vcf.gz"
+        bgzip ~{output_basename}.filtered.vcf
+        tabix ~{output_basename}.filtered.vcf.gz
     >>>
 
     runtime {
@@ -302,6 +484,8 @@ workflow CallVariantsSimplexUMIs {
         File gnomad_idx
         File pon
         File pon_idx
+        File variants_for_contamination
+        File variants_for_contamination_idx
         #String mapping_filter_python_script
         #File blastdb_nhr
         #File blastdb_nin
@@ -331,6 +515,8 @@ workflow CallVariantsSimplexUMIs {
             pon = pon,
             pon_idx = pon_idx,
             intervals = target_intervals,
+            variants_for_contamination = variants_for_contamination,
+            variants_for_contamination_idx = variants_for_contamination_idx,
             output_basename = output_basename
     }
 
