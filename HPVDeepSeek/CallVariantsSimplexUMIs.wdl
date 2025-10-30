@@ -155,7 +155,7 @@ task CalculateContamination {
     }
 
     command <<<
-        gatk ---java-options "-Xms8g -Xmx14g" \
+        gatk --java-options "-Xms8g -Xmx14g" \
         CalculateContamination \
         --input ~{tumor_pileups} \
         --output ~{output_basename}.contamination.table \
