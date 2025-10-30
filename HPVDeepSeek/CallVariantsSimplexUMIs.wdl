@@ -105,7 +105,7 @@ task Mutect2 {
     output {
         File unfiltered_vcf = "~{output_basename}.vcf.gz"
         File unfiltered_vcf_idx = "~{output_basename}.vcf.gz.tbi"
-        File stats = "~{output_basename}.vcf.gz.stats"
+        File mutect2_stats = "~{output_basename}.vcf.gz.stats"
         File f1r2_counts = "~{output_basename}.f1r2.tar.gz"
         File tumor_pileups = "~{output_basename}.tumor-pileups.table"
     }
@@ -175,7 +175,7 @@ task CalculateContamination {
     }
 }
 
-task Filter {
+task FilterMutectCalls {
     input {
         String output_basename
         File unfiltered_vcf
@@ -183,7 +183,7 @@ task Filter {
         File reference
         File reference_fai
         File reference_dict
-        File mutect_stats
+        File mutect2_stats
         File artifact_priors_tar_gz
         File contamination_table
         File maf_segments
@@ -205,7 +205,7 @@ task Filter {
         --contamination-table ~{contamination_table} \
         --tumor-segmentation ~{maf_segments} \
         --ob-priors ~{artifact_priors_tar_gz} \
-        --stats ~{mutect_stats} \
+        --stats ~{mutect2_stats} \
         --filtering-stats ~{output_basename}.filtering.stats
     >>>
 
@@ -314,8 +314,8 @@ task RunMappingFilter {
 task VariantFiltration {
     input {
         String output_basename
-        File unfiltered_vcf
-        File unfiltered_vcf_idx
+        File mutect_filtered_vcf
+        File mutect_filtered_vcf_idx
         File filter_vcf
         File filter_vcf_idx
         File reference
@@ -336,7 +336,7 @@ task VariantFiltration {
     command <<<
         gatk VariantFiltration \
         --reference ~{reference} \
-        --variant ~{unfiltered_vcf} \
+        --variant ~{mutect_filtered_vcf} \
         --output popaf.filtered.vcf.gz \
         --filter-expression "POPAF < 3.0" \
         --filter-name germline
@@ -486,6 +486,7 @@ workflow CallVariantsSimplexUMIs {
         File pon_idx
         File variants_for_contamination
         File variants_for_contamination_idx
+        #File realignment_index_bundle
         #String mapping_filter_python_script
         #File blastdb_nhr
         #File blastdb_nin
@@ -520,10 +521,50 @@ workflow CallVariantsSimplexUMIs {
             output_basename = output_basename
     }
 
+    call LearnReadOrientationModel {
+        input:
+            f1r2_tar_gz = Mutect2.f1r2_counts,
+            output_basename = output_basename
+    }
+
+    call CalculateContamination {
+        input:
+            tumor_pileups = Mutect2.tumor_pileups,
+            output_basename = output_basename
+    }
+
+    call FilterMutectCalls {
+        input:
+            unfiltered_vcf = Mutect2.unfiltered_vcf,
+            unfiltered_vcf_idx = Mutect2.unfiltered_vcf_idx,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict,
+            mutect2_stats = Mutect2.mutect2_stats,
+            contamination_table = CalculateContamination.contamination_table,
+            maf_segments = CalculateContamination.maf_segments,
+            artifact_priors_tar_gz = LearnReadOrientationModel.artifact_prior_table,
+            output_basename = output_basename
+    }
+
+# Not sure if this filter is even needed, but the realignment index bundle can be generated with gatk BwaMemIndexImageCreator if needed
+#    call FilterAlignmentArtifacts {
+#        input:
+#            bam = tumor_bam,
+#            bai = tumor_bai,
+#            input_vcf = FilterMutectCalls.filtered_vcf,
+#            input_vcf_idx = FilterMutectCalls.filtered_vcf_idx,
+#            reference = reference,
+#            reference_fai = reference_fai,
+#            reference_dict = reference_dict,
+#            realignment_index_bundle = realignment_index_bundle,
+#            output_basename = output_basename
+#    }
+
 #    call RunMappingFilter {
 #        input:
-#            vcf = Mutect2.unfiltered_vcf,
-#            vcf_idx = Mutect2.unfiltered_vcf_idx,
+#            vcf = FilterMutectCalls.filtered_vcf,
+#            vcf_idx = FilterMutectCalls.filtered_vcf_idx,
 #            reference = reference,
 #            reference_fai = reference_fai,
 #            reference_dict = reference_dict,
@@ -534,11 +575,11 @@ workflow CallVariantsSimplexUMIs {
 #            mapping_filter_python_script = mapping_filter_python_script,
 #            output_basename = output_basename
 #    }
-#
+
 #    call VariantFiltration {
 #        input:
-#            unfiltered_vcf = Mutect2.unfiltered_vcf,
-#            unfiltered_vcf_idx = Mutect2.unfiltered_vcf_idx,
+#            mutect_filtered_vcf = FilterMutectCalls.filtered_vcf,
+#            mutect_filtered_vcf_idx = FilterMutectCalls.filtered_vcf_idx,
 #            filter_vcf = RunMappingFilter.map_filtered_vcf,
 #            filter_vcf_idx = RunMappingFilter.map_filtered_vcf_idx,
 #            reference = reference,
@@ -568,8 +609,8 @@ workflow CallVariantsSimplexUMIs {
 
     call Funcotate {
         input:
-            vcf = Mutect2.unfiltered_vcf,
-            vcf_idx = Mutect2.unfiltered_vcf_idx,
+            vcf = FilterMutectCalls.filtered_vcf,
+            vcf_idx = FilterMutectCalls.filtered_vcf_idx,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
@@ -586,6 +627,10 @@ workflow CallVariantsSimplexUMIs {
     output {
         File unfiltered_vcf = Mutect2.unfiltered_vcf
         File unfiltered_vcf_idx = Mutect2.unfiltered_vcf_idx
+        File mutect2_stats = Mutect2.mutect2_stats
+        File filtered_vcf = FilterMutectCalls.filtered_vcf
+        File filtered_vcf_idx = FilterMutectCalls.filtered_vcf_idx
+        File filtering_stats = FilterMutectCalls.filtering_stats
         #File filtered_vcf = VariantFiltration.output_vcf
         #File filtered_vcf_idx = VariantFiltration.output_vcf_idx
         File funcotated_maf = Funcotate.funcotated_output_file
