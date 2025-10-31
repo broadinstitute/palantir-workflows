@@ -92,7 +92,7 @@ task CheckFingerprints {
         Float lod_threshold
 
         String output_name = "output"
-        String gatk_tag = "4.5.0.0"
+        String gatk_tag = "4.6.0.0"
     }
 
     parameter_meta {

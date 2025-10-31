@@ -66,7 +66,7 @@ task Convert {
         File interval_list
         String interval_label
 
-        String gatk_tag = "4.4.0.0"
+        String gatk_tag = "4.6.0.0"
         Int? preemptible
         Int disk_size = ceil(4 * size(interval_list, "GB")) + 5
         Int cpu = 4
