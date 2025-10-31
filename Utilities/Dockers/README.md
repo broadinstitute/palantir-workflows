@@ -98,12 +98,11 @@ includes some minimal Python tools (pandas) for data processing.
 
 * Directory: RTG
 * Description: A docker image containing an installation of [RTG Tools](https://github.com/RealTimeGenomics/rtg-tools). In particular, this includes `vcfeval`, and all their other VCF manipulation tools. Also comes with Python (pandas) for convenient data manipulation tools.
-* Location: `us.gcr.io/broad-dsde-methods/rtg:v1.1`
+* Location: `us.gcr.io/broad-dsde-methods/rtg:v1.0`
 * Used By: [BenchmarkVCFs](../../BenchmarkVCFs/BenchmarkVCFs.wdl)
 * Usage: `rtg [COMMAND]`
 * Version Notes: 
   * 1.0: Versions are `rtg` 3.12.1
-  * 1.1: Versions are `rtg` 3.13.0
 
 ## sv_docker
 
@@ -132,12 +131,13 @@ includes some minimal Python tools (pandas) for data processing.
 * Directory: VCFEval
 * Description: A docker image containing various tools used for running `rtg vcfeval` in benchmarking. These include `rtg`,
 `python`, `bedtools`, and `bcftools`.
-* Location: `"us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.1`
+* Location: `us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.2`
 * Used By: [BenchmarkVCFs](../../BenchmarkVCFs/BenchmarkVCFs.wdl), [TrioAnalysis](../../BenchmarkVCFs/TrioAnalysis.wdl)
 * Usage: `rtg [COMMAND]`, etc.
 * Version Notes:
   * 1.0: Versions are `rtg` 3.12.1, `bedtools` 2.31.0, `bcftools` 1.16
   * 1.1: Added `htslib` 1.21 (includes `tabix` and `bgzip`); bumped `bcftools` to 1.21
+  * 1.2: Versions are `rtg` 3.13, `bedtools` 2.31.0, `bcftools` 1.22
 
 ## whatshap
 
