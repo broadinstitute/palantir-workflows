@@ -410,7 +410,7 @@ task VCFEval {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.1"
+        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.2"
         preemptible: select_first([preemptible, 0])
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         cpu: runtimeAttributes.cpu
