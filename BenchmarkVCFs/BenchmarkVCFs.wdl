@@ -410,7 +410,7 @@ task VCFEval {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.1-tmp"
+        docker: "us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.1"
         preemptible: select_first([preemptible, 0])
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         cpu: runtimeAttributes.cpu
@@ -562,7 +562,7 @@ task BCFToolsStats {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.2"
+        docker: "us.gcr.io/broad-dsde-methods/bcftools:v1.4"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         cpu: runtimeAttributes.cpu
         memory: runtimeAttributes.memory + "GB"
@@ -685,7 +685,7 @@ task CombineSummaries {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.1"
         disks: "local-disk " + runtimeAttributes.disk_size + " HDD"
         cpu: runtimeAttributes.cpu
         memory: runtimeAttributes.memory + "GB"
