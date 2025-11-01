@@ -1,7 +1,7 @@
 version 1.0
 
 import "HPVDeepSeekGenotyping.wdl" as HPVDeepSeekGenotyping
-import "HPVDeepSeekSomaticVariantCAlling.wdl" as HPVDeepSeekSomaticVariantCalling
+import "HPVDeepSeekSomaticVariantCalling.wdl" as HPVDeepSeekSomaticVariantCalling
 import "HPVDeepSeekTertiaryAnalysis.wdl" as HPVDeepSeekTertiaryAnalysis
 
 workflow HPVDeepSeek {
