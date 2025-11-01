@@ -471,7 +471,7 @@ task Funcotate {
     }
 }
 
-workflow CallVariantsSimplexUMIs {
+workflow HPVDeepSeekSomaticVariantCalling {
     input {
         String output_basename
         File tumor_bam
@@ -486,13 +486,14 @@ workflow CallVariantsSimplexUMIs {
         File pon_idx
         File variants_for_contamination
         File variants_for_contamination_idx
-        #File realignment_index_bundle
+        File realignment_index_bundle
         String mapping_filter_python_script = "/usr/filter_alt_ref_positions.py"
         File blastdb_nhr
         File blastdb_nin
         File blastdb_nsq
         String blastn_path = "/usr/blastn_2.2.30+"
         File funcotator_data_source
+        Boolean run_alignment_artifact_filter = false
     }
 
     call CollectSequencingArtifactMetrics {
@@ -547,24 +548,29 @@ workflow CallVariantsSimplexUMIs {
             output_basename = output_basename
     }
 
-# Not sure if this filter is even needed, but the realignment index bundle can be generated with gatk BwaMemIndexImageCreator if needed
-#    call FilterAlignmentArtifacts {
-#        input:
-#            bam = tumor_bam,
-#            bai = tumor_bai,
-#            input_vcf = FilterMutectCalls.filtered_vcf,
-#            input_vcf_idx = FilterMutectCalls.filtered_vcf_idx,
-#            reference = reference,
-#            reference_fai = reference_fai,
-#            reference_dict = reference_dict,
-#            realignment_index_bundle = realignment_index_bundle,
-#            output_basename = output_basename
-#    }
+    if(run_alignment_artifact_filter)
+    {
+        call FilterAlignmentArtifacts {
+            input:
+                bam = tumor_bam,
+                bai = tumor_bai,
+                input_vcf = FilterMutectCalls.filtered_vcf,
+                input_vcf_idx = FilterMutectCalls.filtered_vcf_idx,
+                reference = reference,
+                reference_fai = reference_fai,
+                reference_dict = reference_dict,
+                realignment_index_bundle = realignment_index_bundle,
+                output_basename = output_basename
+        }
+    }
+
+    File mapping_filter_input_vcf = select_first([FilterAlignmentArtifacts.filtered_vcf, FilterMutectCalls.filtered_vcf])
+    File mapping_filter_input_vcf_idx = select_first([FilterAlignmentArtifacts.filtered_vcf_idx, FilterMutectCalls.filtered_vcf_idx])
 
     call RunMappingFilter {
         input:
-            vcf = FilterMutectCalls.filtered_vcf,
-            vcf_idx = FilterMutectCalls.filtered_vcf_idx,
+            vcf = mapping_filter_input_vcf,
+            vcf_idx = mapping_filter_input_vcf,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
@@ -578,8 +584,8 @@ workflow CallVariantsSimplexUMIs {
 
     call VariantFiltration {
         input:
-            mutect_filtered_vcf = FilterMutectCalls.filtered_vcf,
-            mutect_filtered_vcf_idx = FilterMutectCalls.filtered_vcf_idx,
+            mutect_filtered_vcf = mapping_filter_input_vcf,
+            mutect_filtered_vcf_idx = mapping_filter_input_vcf_idx,
             filter_vcf = RunMappingFilter.map_filtered_vcf,
             filter_vcf_idx = RunMappingFilter.map_filtered_vcf_idx,
             reference = reference,
@@ -607,30 +613,11 @@ workflow CallVariantsSimplexUMIs {
             output_basename = output_basename
     }
 
-#    call Funcotate {
-#        input:
-#            vcf = FilterMutectCalls.filtered_vcf,
-#            vcf_idx = FilterMutectCalls.filtered_vcf_idx,
-#            reference = reference,
-#            reference_fai = reference_fai,
-#            reference_dict = reference_dict,
-#            funcotator_data_source = funcotator_data_source,
-#            reference_version = "hg38",
-#            filter_funcotations = true,
-#            use_gnomad = false,
-#            output_format = "MAF",
-#            compress = true,
-#            transcript_selection_mode = "BEST_EFFECT",
-#            output_basename = output_basename
-#    }
-
     output {
         File unfiltered_vcf = Mutect2.unfiltered_vcf
         File unfiltered_vcf_idx = Mutect2.unfiltered_vcf_idx
         File mutect2_stats = Mutect2.mutect2_stats
-        #File filtered_vcf = FilterMutectCalls.filtered_vcf
-        #File filtered_vcf_idx = FilterMutectCalls.filtered_vcf_idx
-        File filtering_stats = FilterMutectCalls.filtering_stats
+        File filter_mutect_calls_stats = FilterMutectCalls.filtering_stats
         File filtered_vcf = VariantFiltration.output_vcf
         File filtered_vcf_idx = VariantFiltration.output_vcf_idx
         File funcotated_maf = Funcotate.funcotated_output_file

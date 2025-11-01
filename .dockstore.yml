@@ -156,6 +156,6 @@ workflows:
   - name: HPVDeepSeek
     subclass: WDL
     primaryDescriptorPath: /HPVDeepSeek/HPVDeepSeek.wdl
-  - name: CallVariantsSimplexUMIs
+  - name: HPVDeepSeekSomaticVariantCalling
     subclass: WDL
-    primaryDescriptorPath: /HPVDeepSeek/CallVariantsSimplexUMIs.wdl
+    primaryDescriptorPath: /HPVDeepSeek/HPVDeepSeekSomaticVariantCalling.wdl
