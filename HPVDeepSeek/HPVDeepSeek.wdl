@@ -130,33 +130,33 @@ workflow HPVDeepSeek {
         String secondary_hpv_types = HPVDeepSeekGenotyping.secondary_hpv_types
         File fastp_report_html = HPVDeepSeekGenotyping.fastp_report_html
         File fastp_report_json = HPVDeepSeekGenotyping.fastp_report_json
-        File? pre_trimmed_r1_fastqc_html = HPVDeepSeekGenotyping.r1_fastqc_html
-        File? pre_trimmed_r2_fastqc_html = HPVDeepSeekGenotyping.r2_fastqc_html
-        File? post_trimmed_r1_fastqc_html = HPVDeepSeekGenotyping.r1_fastqc_html
-        File? post_trimmed_r2_fastqc_html = HPVDeepSeekGenotyping.r2_fastqc_html
-        File pre_consensus_alignment_summary_metrics = HPVDeepSeekGenotyping.alignment_summary_metrics
-        File pre_consensus_flagstat = HPVDeepSeekGenotyping.flagstat
-        File pre_consensus_insert_size_metrics = HPVDeepSeekGenotyping.insert_size_metrics
-        File pre_consensus_insert_size_plot = HPVDeepSeekGenotyping.insert_size_plot
-        File pre_consensus_ontarget_reads = HPVDeepSeekGenotyping.ontarget_reads
-        File pre_consensus_hs_metrics = HPVDeepSeekGenotyping.hs_metrics
-        File pre_consensus_per_base_coverage = HPVDeepSeekGenotyping.per_base_coverage
-        File post_consensus_alignment_summary_metrics = HPVDeepSeekGenotyping.alignment_summary_metrics
-        File post_consensus_flagstat = HPVDeepSeekGenotyping.flagstat
-        File post_consensus_insert_size_metrics = HPVDeepSeekGenotyping.insert_size_metrics
-        File post_consensus_insert_size_plot = HPVDeepSeekGenotyping.insert_size_plot
-        File post_consensus_ontarget_reads = HPVDeepSeekGenotyping.ontarget_reads
-        File post_consensus_hs_metrics = HPVDeepSeekGenotyping.hs_metrics
-        File post_consensus_per_base_coverage = HPVDeepSeekGenotyping.per_base_coverage
+        File? pre_trimmed_r1_fastqc_html = HPVDeepSeekGenotyping.pre_trimmed_r1_fastqc_html
+        File? pre_trimmed_r2_fastqc_html = HPVDeepSeekGenotyping.pre_trimmed_r2_fastqc_html
+        File? post_trimmed_r1_fastqc_html = HPVDeepSeekGenotyping.post_trimmed_r1_fastqc_html
+        File? post_trimmed_r2_fastqc_html = HPVDeepSeekGenotyping.post_trimmed_r2_fastqc_html
+        File pre_consensus_alignment_summary_metrics = HPVDeepSeekGenotyping.pre_consensus_alignment_summary_metrics
+        File pre_consensus_flagstat = HPVDeepSeekGenotyping.pre_consensus_flagstat
+        File pre_consensus_insert_size_metrics = HPVDeepSeekGenotyping.pre_consensus_insert_size_metrics
+        File pre_consensus_insert_size_plot = HPVDeepSeekGenotyping.pre_consensus_insert_size_plot
+        File pre_consensus_ontarget_reads = HPVDeepSeekGenotyping.pre_consensus_ontarget_reads
+        File pre_consensus_hs_metrics = HPVDeepSeekGenotyping.pre_consensus_hs_metrics
+        File pre_consensus_per_base_coverage = HPVDeepSeekGenotyping.pre_consensus_per_base_coverage
+        File post_consensus_alignment_summary_metrics = HPVDeepSeekGenotyping.post_consensus_alignment_summary_metrics
+        File post_consensus_flagstat = HPVDeepSeekGenotyping.post_consensus_flagstat
+        File post_consensus_insert_size_metrics = HPVDeepSeekGenotyping.post_consensus_insert_size_metrics
+        File post_consensus_insert_size_plot = HPVDeepSeekGenotyping.post_consensus_insert_size_plot
+        File post_consensus_ontarget_reads = HPVDeepSeekGenotyping.post_consensus_ontarget_reads
+        File post_consensus_hs_metrics = HPVDeepSeekGenotyping.post_consensus_hs_metrics
+        File post_consensus_per_base_coverage = HPVDeepSeekGenotyping.post_consensus_per_base_coverage
 
         # HPVDeepSeekSomaticVariantCalling outputs
         File unfiltered_vcf = HPVDeepSeekSomaticVariantCalling.unfiltered_vcf
         File unfiltered_vcf_idx = HPVDeepSeekSomaticVariantCalling.unfiltered_vcf_idx
         File mutect2_stats = HPVDeepSeekSomaticVariantCalling.mutect2_stats
-        File filter_mutect_calls_stats = HPVDeepSeekSomaticVariantCalling.filtering_stats
-        File filtered_vcf = HPVDeepSeekSomaticVariantCalling.output_vcf
-        File filtered_vcf_idx = HPVDeepSeekSomaticVariantCalling.output_vcf_idx
-        File funcotated_maf = HPVDeepSeekSomaticVariantCalling.funcotated_output_file
+        File filter_mutect_calls_stats = HPVDeepSeekSomaticVariantCalling.filter_mutect_calls_stats
+        File filtered_vcf = HPVDeepSeekSomaticVariantCalling.filtered_vcf
+        File filtered_vcf_idx = HPVDeepSeekSomaticVariantCalling.filtered_vcf_idx
+        File funcotated_maf = HPVDeepSeekSomaticVariantCalling.funcotated_maf
 
         # HPVDeepSeekTertiaryAnalysis outputs
         File analysis_log = HPVDeepSeekTertiaryAnalysis.analysis_log
