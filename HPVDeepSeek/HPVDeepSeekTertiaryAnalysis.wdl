@@ -49,29 +49,29 @@ task Sublineages {
         READS=$(samtools view -c ~{bam} HPV16_Ref || echo 0)
 
         if [ "$READS" -lt ~{read_threshold} ]; then
-        LINE="~{output_basename},~{output_basename},HPV16_negative,NA"
-        echo "run_id,library_id,closest_sublineage,patristic_distance" > ~{output_basename}.sublineage_call.csv
-        echo "$LINE" >> ~{output_basename}.sublineage_call.csv
-        echo "Only $READS reads (<~{read_threshold}); marking HPV16_negative."
-        touch ~{output_basename}.combo.afa ~{output_basename}.combo.phy ~{output_basename}.combo.phy_phyml_stats.txt ~{output_basename}.combo.phy_phyml_tree.txt
+            LINE="~{output_basename},~{output_basename},HPV16_negative,NA"
+            echo "run_id,library_id,closest_sublineage,patristic_distance" > ~{output_basename}.sublineage_call.csv
+            echo "$LINE" >> ~{output_basename}.sublineage_call.csv
+            echo "Only $READS reads (<~{read_threshold}); marking HPV16_negative."
+            touch ~{output_basename}.combo.afa ~{output_basename}.combo.phy ~{output_basename}.combo.phy_phyml_stats.txt ~{output_basename}.combo.phy_phyml_tree.txt
         else
-        bcftools mpileup --max-depth 8000 -Ou -f ~{reference} -r HPV16_Ref ~{bam} | \
-        bcftools call -Ou -mv | \
-        bcftools norm -f ~{reference} -Oz -o ~{output_basename}.vcf.gz
+            bcftools mpileup --max-depth 8000 -Ou -f ~{reference} -r HPV16_Ref ~{bam} | \
+            bcftools call -Ou -mv | \
+            bcftools norm -f ~{reference} -Oz -o ~{output_basename}.vcf.gz
 
-        tabix ~{output_basename}.vcf.gz
+            tabix ~{output_basename}.vcf.gz
 
-        samtools faidx ~{reference} HPV16_Ref | \
-        bcftools consensus ~{output_basename}.vcf.gz -o ~{output_basename}.consensus.fasta
+            samtools faidx ~{reference} HPV16_Ref | \
+            bcftools consensus ~{output_basename}.vcf.gz -o ~{output_basename}.consensus.fasta
 
-        cat ~{output_basename}.consensus.fasta ~{hpv16_sublineages} > ~{output_basename}.combo.fasta
-        muscle -threads $(nproc) -align ~{output_basename}.combo.fasta -output ~{output_basename}.combo.afa
+            cat ~{output_basename}.consensus.fasta ~{hpv16_sublineages} > ~{output_basename}.combo.fasta
+            muscle -threads $(nproc) -align ~{output_basename}.combo.fasta -output ~{output_basename}.combo.afa
 
-        seqret -osformat2 phylip -sequence ~{output_basename}.combo.afa -outseq ~{output_basename}.combo.phy
+            seqret -osformat2 phylip -sequence ~{output_basename}.combo.afa -outseq ~{output_basename}.combo.phy
 
-        phyml -i ~{output_basename}.combo.phy
+            phyml -i ~{output_basename}.combo.phy
 
-        touch ~{output_basename}.sublineage_call.csv
+            touch ~{output_basename}.sublineage_call.csv
         fi
     >>>
 
@@ -104,26 +104,26 @@ task SublineagesDrawTree {
     }
 
     command <<<
-        if [ -s "~{phylogenetic_tree}" ]; then
-        python <<CODE
-        import toytree
-        import toyplot.pdf
+if [ -s "~{phylogenetic_tree}" ]; then
+python <<CODE
+import toytree
+import toyplot.pdf
 
-        t = toytree.tree("~{phylogenetic_tree}")
-        df = t.distance.get_tip_distance_matrix(df = True)
-        d = df.loc["HPV16_Ref"].drop("HPV16_Ref")
+t = toytree.tree("~{phylogenetic_tree}")
+df = t.distance.get_tip_distance_matrix(df = True)
+d = df.loc["HPV16_Ref"].drop("HPV16_Ref")
 
-        with open("~{output_basename}.sublineage_call.csv", 'w') as f:
-        f.write("run_id,library_id,closest_sublineage,patristic_distance\n")
-        f.write("~{output_basename}" + "," + "~{output_basename}" + "," + str(d.idxmin()) + "," + "{:.8f}".format(d.min()))
+with open("~{output_basename}.sublineage_call.csv", 'w') as f:
+    f.write("run_id,library_id,closest_sublineage,patristic_distance\n")
+    f.write("~{output_basename}" + "," + "~{output_basename}" + "," + str(d.idxmin()) + "," + "{:.8f}".format(d.min()))
 
-        canvas = toytree.tree("~{phylogenetic_tree}").draw(node_labels = False)[0]
-        toyplot.pdf.render(canvas, "~{output_basename}.combo.phy_phyml_tree.pdf")
-        CODE
-        else
-        touch ~{output_basename}.combo.phy_phyml_tree.pdf
-        cat ~{sublineage_call_in} > ~{output_basename}.sublineage_call.csv
-        fi
+    canvas = toytree.tree("~{phylogenetic_tree}").draw(node_labels = False)[0]
+    toyplot.pdf.render(canvas, "~{output_basename}.combo.phy_phyml_tree.pdf")
+CODE
+else
+    touch ~{output_basename}.combo.phy_phyml_tree.pdf
+    cat ~{sublineage_call_in} > ~{output_basename}.sublineage_call.csv
+fi
     >>>
 
     output {

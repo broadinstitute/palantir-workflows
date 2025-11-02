@@ -21,18 +21,18 @@ task VerifyPipelineInputs {
         r2_fastq = "~{r2_fastq}"
 
         if bam and not r1_fastq and not r2_fastq:
-        pass
+            pass
         elif r1_fastq and r2_fastq and not bam:
-        fastq_flag += 1
+            fastq_flag += 1
         else:
-        raise ValueError("Invalid Input. Input must be either ubam or a pair of fastqs")
+            raise ValueError("Invalid Input. Input must be either ubam or a pair of fastqs")
 
         with open("output.txt", "w") as f:
-        if fastq_flag == 1:
-        f.write("true")
-        # Remaining case is that only bam is defined
-        else:
-        f.write("false")
+            if fastq_flag == 1:
+                f.write("true")
+            # Remaining case is that only bam is defined
+            else:
+                f.write("false")
         CODE
     >>>
 
@@ -645,42 +645,41 @@ task DetermineHPVStatus {
 
         coverage_dict = {}
         with open("~{coverage}", 'r') as infile:
-        header = infile.readline()
-        for line in infile:
-        line = line.rstrip()
-        columns = line.split('\t')
-        if columns[0].startswith("HPV"):
-        coverage_dict[columns[0]] = (int(columns[1]), float(columns[2]))
+            header = infile.readline()
+            for line in infile:
+                line = line.rstrip()
+                columns = line.split('\t')
+                if columns[0].startswith("HPV"):
+                    coverage_dict[columns[0]] = (int(columns[1]), float(columns[2]))
 
         coverage_sorted = sorted(coverage_dict.items(), key = lambda item: item[1], reverse = True)
         max_elem = coverage_sorted[0]
 
         with open("top_hpv_contig.txt", 'w') as f:
-        f.write(max_elem[0])
+            f.write(max_elem[0])
 
         with open("top_hpv_num_reads.txt", 'w') as f:
-        f.write(str(max_elem[1][0]))
+            f.write(str(max_elem[1][0]))
 
         with open("top_hpv_coverage.txt", 'w') as f:
-        f.write(str(max_elem[1][1]))
+            f.write(str(max_elem[1][1]))
 
         with open("is_hpv_positive.txt", 'w') as f:
-        if max_elem[1][0] >= 10 and max_elem[1][1] >= 10.0:
-        f.write("true")
-        else:
-        f.write("false")
+            if max_elem[1][0] >= 10 and max_elem[1][1] >= 10.0:
+                f.write("true")
+            else:
+                f.write("false")
 
         with open("secondary_hpv_types.txt", 'w') as f:
-        output_string = ""
-        for i in range(1, len(coverage_sorted)):
-        elem = coverage_sorted[i]
-        if elem[1][0] >= 10 and elem[1][1] >= 10.0:
-        output_string = output_string + str(elem[0]) + ":" + str(elem[1][0]) + ":" + str(elem[1][1]) + ","
+            output_string = ""
+            for i in range(1, len(coverage_sorted)):
+                elem = coverage_sorted[i]
+                if elem[1][0] >= 10 and elem[1][1] >= 10.0:
+                    output_string = output_string + str(elem[0]) + ":" + str(elem[1][0]) + ":" + str(elem[1][1]) + ","
 
-        if len(output_string) > 0:
-        output_string = output_string[:-1]
-        f.write(output_string)
-
+            if len(output_string) > 0:
+                output_string = output_string[:-1]
+            f.write(output_string)
         CODE
     >>>
 
@@ -878,24 +877,23 @@ task CollectUMIDuplicationMetrics {
 
         # Tab-separated list of columns: [family_size, count, fraction, fraction_gt_or_eq_family_size]
         with open("~{umi_group_data}", 'r') as infile:
-        header = infile.readline()
-        for line in infile:
-        line = line.rstrip()
-        columns = line.split('\t')
-        umi_group_data_dict[int(columns[0])] = (int(columns[1]), float(columns[2]), float(columns[3]))
+            header = infile.readline()
+            for line in infile:
+                line = line.rstrip()
+                columns = line.split('\t')
+                umi_group_data_dict[int(columns[0])] = (int(columns[1]), float(columns[2]), float(columns[3]))
 
         num_fragments_total = 0
         num_fragments_unique = 0
         for family_size, value_tuple in umi_group_data_dict.items():
-        num_fragments_total = num_fragments_total + (family_size * value_tuple[0])
-        num_fragments_unique = num_fragments_unique + value_tuple[0]
+            num_fragments_total = num_fragments_total + (family_size * value_tuple[0])
+            num_fragments_unique = num_fragments_unique + value_tuple[0]
 
         percent_duplication = 100 * (1 - (num_fragments_unique / num_fragments_total))
 
         with open("~{output_basename}.umi_duplication_metrics.tsv", 'w') as f:
-        f.write("PERCENT_DUPLICATION" + "\t" + str(percent_duplication) + "\n")
-        f.write("ESTIMATED_LIBRARY_SIZE" + "\t" + str(num_fragments_unique))
-
+            f.write("PERCENT_DUPLICATION" + "\t" + str(percent_duplication) + "\n")
+            f.write("ESTIMATED_LIBRARY_SIZE" + "\t" + str(num_fragments_unique))
         CODE
     >>>
 
