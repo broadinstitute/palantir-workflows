@@ -22,6 +22,7 @@ workflow HPVDeepSeek {
         File bwa_idx_sa
         File capture_targets_bed
         File bait_interval_list
+        File target_interval_list
         String bait_set_name
         String read_group_id
         String read_group_sample_name
@@ -69,6 +70,7 @@ workflow HPVDeepSeek {
             bwa_idx_sa = bwa_idx_sa,
             capture_targets_bed = capture_targets_bed,
             bait_interval_list = bait_interval_list,
+            target_interval_list = target_interval_list,
             bait_set_name = bait_set_name,
             read_group_id = read_group_id,
             read_group_sample_name = read_group_sample_name,

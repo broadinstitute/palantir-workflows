@@ -917,6 +917,7 @@ task CollectHybridSelectionMetrics {
         File reference_fai
         File reference_dict
         File bait_interval_list
+        File target_interval_list
         String bait_set_name
         Int? cpu = 2
         Int? memory_gb = 16
@@ -929,7 +930,7 @@ task CollectHybridSelectionMetrics {
         gatk CollectHsMetrics \
         --BAIT_INTERVALS ~{bait_interval_list} \
         --BAIT_SET_NAME ~{bait_set_name} \
-        --TARGET_INTERVALS ~{bait_interval_list} \
+        --TARGET_INTERVALS ~{target_interval_list} \
         --INPUT ~{bam} \
         --OUTPUT ~{prefix}.hs_metrics.txt \
         --METRIC_ACCUMULATION_LEVEL ALL_READS \
@@ -969,6 +970,7 @@ workflow HPVDeepSeekGenotyping {
         File bwa_idx_sa
         File capture_targets_bed
         File bait_interval_list
+        File target_interval_list
         String bait_set_name
         String read_group_id
         String read_group_sample_name
@@ -1095,6 +1097,7 @@ workflow HPVDeepSeekGenotyping {
             reference_fai = reference_fai,
             reference_dict = reference_dict,
             bait_interval_list = bait_interval_list,
+            target_interval_list = target_interval_list,
             bait_set_name = bait_set_name
     }
 
@@ -1218,6 +1221,7 @@ workflow HPVDeepSeekGenotyping {
             reference_fai = reference_fai,
             reference_dict = reference_dict,
             bait_interval_list = bait_interval_list,
+            target_interval_list = target_interval_list,
             bait_set_name = bait_set_name
     }
 
