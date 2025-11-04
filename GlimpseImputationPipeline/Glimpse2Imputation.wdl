@@ -23,7 +23,7 @@ workflow Glimpse2Imputation {
         Int? effective_population_size
         
         Int preemptible = 9
-        String docker = "us.gcr.io/broad-dsde-methods/glimpse:odelaneau_bd93ade"
+        String docker = "us.gcr.io/broad-dsde-methods/glimpse:odelaneau_f72ff67"
         String docker_extract_num_sites_from_reference_chunk = "us.gcr.io/broad-dsde-methods/glimpse_extract_num_sites_from_reference_chunks:michaelgatzen_edc7f3a"
         Int cpu_ligate = 4
         Int mem_gb_ligate = 4
@@ -161,7 +161,7 @@ task GlimpsePhase {
     command <<<
         set -euo pipefail
 
-        export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
+        export GCS_OAUTH_TOKEN=$(gcloud auth application-default print-access-token)
 
         cram_paths=( ~{sep=" " crams} )
         cram_index_paths=( ~{sep=" " cram_indices} )
