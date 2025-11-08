@@ -32,7 +32,7 @@ task NormalizeHPVCounts {
         Float cthpvdna_per_human_genome_equivalents = read_float("cthpvdna_per_human_genome_equivalents.txt")
         Float cthpvdna_count_per_ml_plasma = read_float("cthpvdna_per_ml_plasma.txt")
         Float cthpvdna_count_per_ng_cfdna = read_float("cthpvdna_per_ng_cfdna.txt")
-        Float cthpvdna_per_human_genome_equivalents_per_ml_plasma = read_float("cthpvdna_per_human_genome_equivalents_per_ml_plasma")
+        Float cthpvdna_per_human_genome_equivalents_per_ml_plasma = read_float("cthpvdna_per_human_genome_equivalents_per_ml_plasma.txt")
     }
 
     runtime {
