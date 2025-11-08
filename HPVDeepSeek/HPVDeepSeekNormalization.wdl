@@ -18,13 +18,13 @@ task NormalizeHPVCounts {
         cthpvdna_per_human_genome_equivalents=$(python -c "print(~{top_hpv_num_reads} / ($gapdh_num_reads / 2))")
         cthpvdna_per_ml_plasma=$(python -c "print(~{top_hpv_num_reads} / ~{ml_plasma})")
         cthpvdna_per_ng_cfdna=$(python -c "print(~{top_hpv_num_reads} / ~{ng_cfdna})")
-        cthpvdnd_per_human_genome_equivalents_per_ml_plasma=$(python -c "print($cthpvdna_per_human_genome_equivalents / ~{ml_plasma})")
+        cthpvdna_per_human_genome_equivalents_per_ml_plasma=$(python -c "print($cthpvdna_per_human_genome_equivalents / ~{ml_plasma})")
 
         echo $gapdh_num_reads > gapdh_num_reads.txt
         echo $cthpvdna_per_human_genome_equivalents > cthpvdna_per_human_genome_equivalents.txt
         echo $cthpvdna_per_ml_plasma > cthpvdna_per_ml_plasma.txt
         echo $cthpvdna_per_ng_cfdna > cthpvdna_per_ng_cfdna.txt
-        echo $cthpvdna_per_human_genome_equivalents_per_ml_plasma > cthpvdnd_per_human_genome_equivalents_per_ml_plasma.txt
+        echo $cthpvdna_per_human_genome_equivalents_per_ml_plasma > cthpvdna_per_human_genome_equivalents_per_ml_plasma.txt
     >>>
 
     output {
