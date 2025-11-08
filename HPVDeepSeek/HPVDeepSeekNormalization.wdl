@@ -62,4 +62,12 @@ workflow HPVDeepSeekNormalization {
             ml_plasma = ml_plasma,
             ng_cfdna = ng_cfdna
     }
+
+    output {
+        Int gapdh_num_reads = NormalizeHPVCounts.gapdh_num_reads
+        Float cthpvdna_per_human_genome_equivalents = NormalizeHPVCounts.cthpvdna_per_human_genome_equivalents
+        Float cthpvdna_count_per_ml_plasma = NormalizeHPVCounts.cthpvdna_count_per_ml_plasma
+        Float cthpvdna_count_per_ng_cfdna = NormalizeHPVCounts.cthpvdna_count_per_ng_cfdna
+        Float cthpvdna_per_human_genome_equivalents_per_ml_plasma = NormalizeHPVCounts.cthpvdna_per_human_genome_equivalents_per_ml_plasma
+    }
 }
