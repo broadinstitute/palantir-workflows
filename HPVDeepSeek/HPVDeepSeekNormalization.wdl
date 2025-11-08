@@ -14,7 +14,7 @@ task NormalizeHPVCounts {
     }
 
     command <<<
-        gapdh_num_reads=$(samtools coverage ~{bam} -r chr12:6534321-6538610 | awk '{print int($4)}')
+        gapdh_num_reads=$(samtools coverage ~{bam} -r chr12:6534321-6538610 | awk 'NR > 1 {print int($4)}')
         cthpvdna_per_human_genome_equivalents=$((~{top_hpv_num_reads} / gapdh_num_reads / 2))
         cthpvdna_per_ml_plasma=$((~{top_hpv_num_reads} / ~{ml_plasma}))
         cthpvdna_per_ng_cfdna=$((~{top_hpv_num_reads} / ~{ng_cfdna}))
