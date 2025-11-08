@@ -15,10 +15,10 @@ task NormalizeHPVCounts {
 
     command <<<
         gapdh_num_reads=$(samtools coverage ~{bam} -r chr12:6534321-6538610 | awk 'NR > 1 {print int($4)}')
-        cthpvdna_per_human_genome_equivalents=$(echo "scale=5; ~{top_hpv_num_reads} / ($gapdh_num_reads / 2)" | bc -l)
-        cthpvdna_per_ml_plasma==$(echo "scale=5; ~{top_hpv_num_reads} / ~{ml_plasma}" | bc -l)
-        cthpvdna_per_ng_cfdna==$(echo "scale=5; ~{top_hpv_num_reads} / ~{ng_cfdna}" | bc -l)
-        cthpvdnd_per_human_genome_equivalents_per_ml_plasma==$(echo "scale=5; $cthpvdna_per_human_genome_equivalents / ~{ml_plasma}" | bc -l)
+        cthpvdna_per_human_genome_equivalents=$(python -c "print(~{top_hpv_num_reads} / ($gapdh_num_reads / 2))")
+        cthpvdna_per_ml_plasma=$(python -c "print(~{top_hpv_num_reads} / ~{ml_plasma})")
+        cthpvdna_per_ng_cfdna=$(python -c "print(~{top_hpv_num_reads} / ~{ng_cfdna})")
+        cthpvdnd_per_human_genome_equivalents_per_ml_plasma=$(python -c "print($cthpvdna_per_human_genome_equivalents / ~{ml_plasma})")
 
         echo $gapdh_num_reads > gapdh_num_reads.txt
         echo $cthpvdna_per_human_genome_equivalents > cthpvdna_per_human_genome_equivalents.txt
