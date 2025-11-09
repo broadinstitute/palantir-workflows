@@ -8,9 +8,8 @@ workflow HPVDeepSeek {
     input {
         # HPVDeepSeekGenotyping inputs
         String output_basename
-        File? ubam
-        File? r1_fastq
-        File? r2_fastq
+        File r1_fastq
+        File r2_fastq
         File human_snp_targets_bed
         File reference
         File reference_fai
@@ -56,7 +55,6 @@ workflow HPVDeepSeek {
     call HPVDeepSeekGenotyping.HPVDeepSeekGenotyping {
         input:
             output_basename = output_basename,
-            ubam = ubam,
             r1_fastq = r1_fastq,
             r2_fastq = r2_fastq,
             human_snp_targets_bed = human_snp_targets_bed,
@@ -132,10 +130,10 @@ workflow HPVDeepSeek {
         String secondary_hpv_types = HPVDeepSeekGenotyping.secondary_hpv_types
         File fastp_report_html = HPVDeepSeekGenotyping.fastp_report_html
         File fastp_report_json = HPVDeepSeekGenotyping.fastp_report_json
-        File? pre_trimmed_r1_fastqc_html = HPVDeepSeekGenotyping.pre_trimmed_r1_fastqc_html
-        File? pre_trimmed_r2_fastqc_html = HPVDeepSeekGenotyping.pre_trimmed_r2_fastqc_html
-        File? post_trimmed_r1_fastqc_html = HPVDeepSeekGenotyping.post_trimmed_r1_fastqc_html
-        File? post_trimmed_r2_fastqc_html = HPVDeepSeekGenotyping.post_trimmed_r2_fastqc_html
+        File pre_trimmed_r1_fastqc_html = HPVDeepSeekGenotyping.pre_trimmed_r1_fastqc_html
+        File pre_trimmed_r2_fastqc_html = HPVDeepSeekGenotyping.pre_trimmed_r2_fastqc_html
+        File post_trimmed_r1_fastqc_html = HPVDeepSeekGenotyping.post_trimmed_r1_fastqc_html
+        File post_trimmed_r2_fastqc_html = HPVDeepSeekGenotyping.post_trimmed_r2_fastqc_html
         File pre_consensus_alignment_summary_metrics = HPVDeepSeekGenotyping.pre_consensus_alignment_summary_metrics
         File pre_consensus_flagstat = HPVDeepSeekGenotyping.pre_consensus_flagstat
         File pre_consensus_insert_size_metrics = HPVDeepSeekGenotyping.pre_consensus_insert_size_metrics

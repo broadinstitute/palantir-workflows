@@ -1,53 +1,5 @@
 version 1.0
 
-task VerifyPipelineInputs {
-    input {
-        File? bam
-        File? r1_fastq
-        File? r2_fastq
-
-        Int? cpu = 1
-        Int? memory_gb = 8
-        Int? disk_size_gb = ceil(size(bam, "GiB") + size(r1_fastq,"GiB") + size(r2_fastq, "GiB")) + 32
-    }
-
-    command <<<
-        set -e
-        python3 <<CODE
-
-        fastq_flag = 0
-        bam = "~{bam}"
-        r1_fastq = "~{r1_fastq}"
-        r2_fastq = "~{r2_fastq}"
-
-        if bam and not r1_fastq and not r2_fastq:
-            pass
-        elif r1_fastq and r2_fastq and not bam:
-            fastq_flag += 1
-        else:
-            raise ValueError("Invalid Input. Input must be either ubam or a pair of fastqs")
-
-        with open("output.txt", "w") as f:
-            if fastq_flag == 1:
-                f.write("true")
-            # Remaining case is that only bam is defined
-            else:
-                f.write("false")
-        CODE
-    >>>
-
-    runtime {
-        cpu: cpu
-        memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
-        docker: "us.gcr.io/broad-dsp-gcr-public/base/python:3.9-debian"
-    }
-
-    output {
-        Boolean fastq_run = read_boolean("output.txt")
-    }
-}
-
 task FastQC {
     input {
         File r1_fastq
@@ -956,9 +908,8 @@ task CollectHybridSelectionMetrics {
 workflow HPVDeepSeekGenotyping {
     input {
         String output_basename
-        File? ubam
-        File? r1_fastq
-        File? r2_fastq
+        File r1_fastq
+        File r2_fastq
         File human_snp_targets_bed
         File reference
         File reference_fai
@@ -980,39 +931,28 @@ workflow HPVDeepSeekGenotyping {
         String read_group_description = "KAPA_TE"
     }
 
-    call VerifyPipelineInputs {
+    call FastQC as PreTrimmedFastQC {
         input:
-            bam = ubam,
             r1_fastq = r1_fastq,
             r2_fastq = r2_fastq
     }
 
-    if(VerifyPipelineInputs.fastq_run) {
-        call FastQC as PreTrimmedFastQC {
-            input:
-                r1_fastq = select_first([r1_fastq]),
-                r2_fastq = select_first([r2_fastq])
-        }
-
-        call FastqToUbam {
-            input:
-                r1_fastq = select_first([r1_fastq]),
-                r2_fastq = select_first([r2_fastq]),
-                output_basename = output_basename,
-                read_group_id = read_group_id,
-                read_group_sample_name = read_group_sample_name,
-                read_group_library_name = read_group_library_name,
-                read_group_platform = read_group_platform,
-                read_group_platform_unit = read_group_platform_unit,
-                read_group_description = read_group_description
-        }
+    call FastqToUbam {
+        input:
+            r1_fastq = r1_fastq,
+            r2_fastq = r2_fastq,
+            output_basename = output_basename,
+            read_group_id = read_group_id,
+            read_group_sample_name = read_group_sample_name,
+            read_group_library_name = read_group_library_name,
+            read_group_platform = read_group_platform,
+            read_group_platform_unit = read_group_platform_unit,
+            read_group_description = read_group_description
     }
-
-    File ubam_to_use = select_first([ubam, FastqToUbam.ubam])
 
     call ExtractUMIs {
         input:
-            input_ubam = ubam_to_use,
+            input_ubam = FastqToUbam.ubam,
             output_basename = output_basename
     }
 
@@ -1259,10 +1199,10 @@ workflow HPVDeepSeekGenotyping {
         String secondary_hpv_types = DetermineHPVStatus.secondary_hpv_types
         File fastp_report_html = TrimAndFilter.fastp_report_html
         File fastp_report_json = TrimAndFilter.fastp_report_json
-        File? pre_trimmed_r1_fastqc_html = PreTrimmedFastQC.r1_fastqc_html
-        File? pre_trimmed_r2_fastqc_html = PreTrimmedFastQC.r2_fastqc_html
-        File? post_trimmed_r1_fastqc_html = PostTrimmedFastQC.r1_fastqc_html
-        File? post_trimmed_r2_fastqc_html = PostTrimmedFastQC.r2_fastqc_html
+        File pre_trimmed_r1_fastqc_html = PreTrimmedFastQC.r1_fastqc_html
+        File pre_trimmed_r2_fastqc_html = PreTrimmedFastQC.r2_fastqc_html
+        File post_trimmed_r1_fastqc_html = PostTrimmedFastQC.r1_fastqc_html
+        File post_trimmed_r2_fastqc_html = PostTrimmedFastQC.r2_fastqc_html
         File pre_consensus_alignment_summary_metrics = PreConsensusAlignmentSummaryMetrics.alignment_summary_metrics
         File pre_consensus_flagstat = PreConsensusFlagstat.flagstat
         File pre_consensus_insert_size_metrics = PreConsensusInsertSizeMetrics.insert_size_metrics
