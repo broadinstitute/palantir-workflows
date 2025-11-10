@@ -9,6 +9,8 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+env:
+  CROMWELL_VERSION: 91
 jobs:
   validate_wdl:
     runs-on: ubuntu-latest
@@ -16,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/install-cromwell
         with:
-          CROMWELL_VERSION: 91
+          CROMWELL_VERSION: ${{ env.CROMWELL_VERSION }}
       - name: Womtool Validate
         run: find . -name '*.wdl' | xargs -tI {} java -jar ${WOMTOOL_JAR} validate {}
 
@@ -36,7 +38,7 @@ jobs:
           service_account: palantir-workflows-service-acc@broad-dsde-methods.iam.gserviceaccount.com
       - uses: ./.github/actions/install-cromwell
         with:
-          CROMWELL_VERSION: 89
+          CROMWELL_VERSION: ${{ env.CROMWELL_VERSION }}
       - uses: ./.github/actions/install-watt
         with:
           WATT_VERSION: v1.4.0
