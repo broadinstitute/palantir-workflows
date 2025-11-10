@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/install-cromwell
         with:
-          CROMWELL_VERSION: 89
+          CROMWELL_VERSION: 91
       - name: Womtool Validate
         run: find . -name '*.wdl' | xargs -tI {} java -jar ${WOMTOOL_JAR} validate {}
 
