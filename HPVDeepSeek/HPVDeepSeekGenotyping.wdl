@@ -373,12 +373,16 @@ task MergeBAMsAndGroupUMIs {
         File reference
         File reference_fai
         File reference_dict
+        Boolean call_duplex_consensus
+
         Int? cpu = 1
         Int? memory_gb = 16
         Int? disk_size_gb = ceil((2.5 * size(aligned_bam, "GiB") + size(unmapped_umi_extracted_bam, "GiB")) + 100)
         Int? min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
+
+    String strategy = if call_duplex_consensus then "paired" else "adjacency"
 
     command <<<
         gatk MergeBamAlignment \
@@ -401,7 +405,7 @@ task MergeBAMsAndGroupUMIs {
         fgbio GroupReadsByUmi \
         --input ~{output_basename}.merged.filtered.bam \
         --output ~{output_basename}.umi_grouped.bam \
-        --strategy adjacency \
+        --strategy ~{strategy} \
         --edits 1 \
         --raw-tag RX \
         --family-size-histogram ~{output_basename}.umi_group_data.txt
@@ -1087,6 +1091,7 @@ workflow HPVDeepSeekGenotyping {
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
+            call_duplex_consensus = call_duplex_consensus,
             output_basename = output_basename
     }
 
