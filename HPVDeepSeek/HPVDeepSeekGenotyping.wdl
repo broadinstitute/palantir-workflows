@@ -523,6 +523,44 @@ task CallMolecularConsensusReads {
     }
 }
 
+task CallDuplexConsensusReads {
+    input {
+        String output_basename
+        File umi_grouped_bam
+        String read_group_id
+        Int? cpu = 1
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((2.5 * size(umi_grouped_bam, "GiB")) + 100)
+    }
+
+    command <<<
+        fgbio CallDuplexConsensusReads \
+        --input ~{umi_grouped_bam} \
+        --output ~{output_basename}.umi_consensus.unmapped.bam \
+        --error-rate-post-umi 40 \
+        --error-rate-pre-umi 45 \
+        --min-reads 1 \
+        --max-reads-per-strand 50 \
+        --min-input-base-quality 20 \
+        --read-name-prefix 'consensus' \
+        --read-group-id ~{read_group_id} \
+        --consensus-call-overlapping-bases true \
+        --stats ~{output_basename}.consensus.stats.txt
+    >>>
+
+    output {
+        File umi_consensus_unmapped_bam = "~{output_basename}.umi_consensus.unmapped.bam"
+        File consensus_stats = "~{output_basename}.consensus.stats.txt"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/fgbio@sha256:b6869a0ae243d9f1b183e4a986fbe0853df2a56a1c6d7c0fec2965b6d8a7af1d"
+    }
+}
+
 # Convert consensus BAM to FASTQ:
 task ConsensusBamToFastq {
     input {
@@ -929,6 +967,7 @@ workflow HPVDeepSeekGenotyping {
         String read_group_platform = "ILLUMINA"
         String read_group_platform_unit = "PU_TEST"
         String read_group_description = "KAPA_TE"
+        Boolean call_duplex_consensus = false
     }
 
     call FastQC as PreTrimmedFastQC {
@@ -1057,16 +1096,29 @@ workflow HPVDeepSeekGenotyping {
             output_basename = output_basename
     }
 
-    call CallMolecularConsensusReads {
-        input:
-            umi_grouped_bam = MergeBAMsAndGroupUMIs.umi_grouped_bam,
-            read_group_id = read_group_id,
-            output_basename = output_basename
+    if(!call_duplex_consensus) {
+        call CallMolecularConsensusReads {
+            input:
+                umi_grouped_bam = MergeBAMsAndGroupUMIs.umi_grouped_bam,
+                read_group_id = read_group_id,
+                output_basename = output_basename
+        }
     }
+
+    if(call_duplex_consensus) {
+        call CallDuplexConsensusReads {
+            input:
+                umi_grouped_bam = MergeBAMsAndGroupUMIs.umi_grouped_bam,
+                read_group_id = read_group_id,
+                output_basename = output_basename
+        }
+    }
+
+    File umi_consensus_unmapped_bam = select_first([CallDuplexConsensusReads.umi_consensus_unmapped_bam, CallMolecularConsensusReads.umi_consensus_unmapped_bam])
 
     call ConsensusBamToFastq {
         input:
-            umi_consensus_unmapped_bam = CallMolecularConsensusReads.umi_consensus_unmapped_bam,
+            umi_consensus_unmapped_bam = umi_consensus_unmapped_bam,
             output_basename = output_basename
     }
 
@@ -1105,7 +1157,7 @@ workflow HPVDeepSeekGenotyping {
 
     call GATKSortBam as GATKSortBamConsensusUnmapped{
         input:
-            bam = CallMolecularConsensusReads.umi_consensus_unmapped_bam
+            bam = umi_consensus_unmapped_bam
     }
 
     call MergeConsensus {
