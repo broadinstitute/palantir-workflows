@@ -947,6 +947,39 @@ task CollectHybridSelectionMetrics {
     }
 }
 
+task CollectDuplexSeqMetrics {
+    input {
+        File bam
+
+        Int? cpu = 2
+        Int? memory_gb = 16
+        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+    }
+
+    String prefix = basename(bam, ".umi_grouped.bam")
+
+    command <<<
+        fgbio CollectDuplexSeqMetrics \
+        --input ~{bam} \
+        --output ~{prefix}
+    >>>
+
+    output {
+        File family_sizes = "~{prefix}.family_sizes.txt"
+        File duplex_family_sizes = "~{prefix}.duplex_family_sizes.txt"
+        File duplex_yield_metrics = "~{prefix}.duplex_yield_metrics.txt"
+        File umi_counts = "~{prefix}.umi_counts.txt"
+        File duplex_qc = "~{prefix}.duplex_qc.pdf"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} HDD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/fgbio@sha256:b6869a0ae243d9f1b183e4a986fbe0853df2a56a1c6d7c0fec2965b6d8a7af1d"
+    }
+}
+
 workflow HPVDeepSeekGenotyping {
     input {
         String output_basename
@@ -1117,6 +1150,11 @@ workflow HPVDeepSeekGenotyping {
                 read_group_id = read_group_id,
                 output_basename = output_basename
         }
+
+        call CollectDuplexSeqMetrics {
+            input:
+                bam = MergeBAMsAndGroupUMIs.umi_grouped_bam
+        }
     }
 
     File umi_consensus_unmapped_bam = select_first([CallDuplexConsensusReads.umi_consensus_unmapped_bam, CallMolecularConsensusReads.umi_consensus_unmapped_bam])
@@ -1274,5 +1312,10 @@ workflow HPVDeepSeekGenotyping {
         File post_consensus_ontarget_reads = PostConsensusCountOnTargetReads.ontarget_reads
         File post_consensus_hs_metrics = PostConsensusHybridSelectionMetrics.hs_metrics
         File post_consensus_per_base_coverage = PostConsensusHybridSelectionMetrics.per_base_coverage
+        File? family_sizes = CollectDuplexSeqMetrics.family_sizes
+        File? duplex_family_sizes = CollectDuplexSeqMetrics.duplex_family_sizes
+        File? duplex_yield_metrics = CollectDuplexSeqMetrics.duplex_yield_metrics
+        File? umi_counts = CollectDuplexSeqMetrics.umi_counts
+        File? duplex_qc = CollectDuplexSeqMetrics.duplex_qc
     }
 }

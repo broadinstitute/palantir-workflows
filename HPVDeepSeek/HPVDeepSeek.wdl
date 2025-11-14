@@ -148,6 +148,11 @@ workflow HPVDeepSeek {
         File post_consensus_ontarget_reads = HPVDeepSeekGenotyping.post_consensus_ontarget_reads
         File post_consensus_hs_metrics = HPVDeepSeekGenotyping.post_consensus_hs_metrics
         File post_consensus_per_base_coverage = HPVDeepSeekGenotyping.post_consensus_per_base_coverage
+        File? family_sizes = HPVDeepSeekGenotyping.family_sizes
+        File? duplex_family_sizes = HPVDeepSeekGenotyping.duplex_family_sizes
+        File? duplex_yield_metrics = HPVDeepSeekGenotyping.duplex_yield_metrics
+        File? umi_counts = HPVDeepSeekGenotyping.umi_counts
+        File? duplex_qc = HPVDeepSeekGenotyping.duplex_qc
 
         # HPVDeepSeekSomaticVariantCalling outputs
         File unfiltered_vcf = HPVDeepSeekSomaticVariantCalling.unfiltered_vcf
