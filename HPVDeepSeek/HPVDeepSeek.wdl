@@ -119,6 +119,7 @@ workflow HPVDeepSeek {
         # HPVDeepSeekGenotyping outputs
         File final_bam = HPVDeepSeekGenotyping.final_bam
         File final_bam_index = HPVDeepSeekGenotyping.final_bam_index
+        File umi_grouped_bam = HPVDeepSeekGenotyping.umi_grouped_bam
         File umi_group_data = HPVDeepSeekGenotyping.umi_group_data
         File umi_duplication_metrics = HPVDeepSeekGenotyping.umi_duplication_metrics
         File vcf = HPVDeepSeekGenotyping.vcf

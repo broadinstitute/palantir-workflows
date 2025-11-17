@@ -1283,6 +1283,7 @@ workflow HPVDeepSeekGenotyping {
     output {
         File final_bam = SortAndIndexFinalBam.sorted_bam
         File final_bam_index = SortAndIndexFinalBam.sorted_bam_index
+        File umi_grouped_bam = MergeBAMsAndGroupUMIs.umi_grouped_bam
         File umi_group_data = MergeBAMsAndGroupUMIs.umi_group_data
         File umi_duplication_metrics = CollectUMIDuplicationMetrics.umi_duplication_metrics
         File vcf = GenotypeSNPsHuman.vcf
