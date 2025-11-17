@@ -2,7 +2,7 @@
 
 # This branch is using the following configuration.
 # To replicate this branch, run this script with the following arguments:
-# build_base_and_extension_docker.sh -r "https://github.com/odelaneau/GLIMPSE.git" -b master 
+# build_base_and_extension_docker.sh -r "https://github.com/odelaneau/GLIMPSE.git" -b master -t "glimpse_build_test"
 
 set -Eeuo pipefail
 
