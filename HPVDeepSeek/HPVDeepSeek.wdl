@@ -117,8 +117,8 @@ workflow HPVDeepSeek {
 
     output {
         # HPVDeepSeekGenotyping outputs
-        File raw_bam = HPVDeepSeekGenotyping.sorted_bam
-        File raw_bam_index = HPVDeepSeekGenotyping.sorted_bam_index
+        File raw_bam = HPVDeepSeekGenotyping.raw_bam
+        File raw_bam_index = HPVDeepSeekGenotyping.raw_bam_index
         File final_bam = HPVDeepSeekGenotyping.final_bam
         File final_bam_index = HPVDeepSeekGenotyping.final_bam_index
         File umi_grouped_bam = HPVDeepSeekGenotyping.umi_grouped_bam
