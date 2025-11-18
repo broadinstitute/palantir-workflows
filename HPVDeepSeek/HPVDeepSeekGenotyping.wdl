@@ -1281,6 +1281,8 @@ workflow HPVDeepSeekGenotyping {
     }
 
     output {
+        File raw_bam = SortAndIndexBam.sorted_bam
+        File raw_bam_index = SortAndIndexBam.sorted_bam_index
         File final_bam = SortAndIndexFinalBam.sorted_bam
         File final_bam_index = SortAndIndexFinalBam.sorted_bam_index
         File umi_grouped_bam = MergeBAMsAndGroupUMIs.umi_grouped_bam
