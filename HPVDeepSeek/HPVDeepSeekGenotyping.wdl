@@ -993,7 +993,7 @@ task Downsample {
         Int? disk_size_gb = 512
     }
 
-    Float downsample_probability = raw_gapdh_mtc / target_coverage
+    Float downsample_probability = target_coverage / raw_gapdh_mtc
 
     command <<<
         if [[ $(python -c "print(float(~{downsample_probability}) >= 1.0)") == "True" ]]; then
