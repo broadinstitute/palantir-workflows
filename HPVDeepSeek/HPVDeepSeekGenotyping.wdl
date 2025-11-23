@@ -980,6 +980,47 @@ task CollectDuplexSeqMetrics {
     }
 }
 
+task Downsample {
+    input {
+        File bam
+        File bai
+        Float raw_gapdh_mtc
+        Float? target_coverage = 10000.0
+        String output_basename
+
+        Int? cpu = 2
+        Int? memory_gb = 32
+        Int? disk_size_gb = 512
+    }
+
+    Float downsample_probability = raw_gapdh_mtc / target_coverage
+
+    command <<<
+        if [[ $(python -c "print(float(~{downsample_probability}) >= 1.0)") == "True" ]]; then
+            cp ~{bam} ~{output_basename}.downsampled.sorted.bam
+            cp ~{bai} ~{output_basename}.downsampled.sorted.bam.bai
+        else
+            gatk DownsampleSam \
+            --INPUT ~{bam} \
+            --OUTPUT ~{output_basename}.downsampled.sorted.bam \
+            --PROBABILITY ~{downsample_probability} \
+            --CREATE_INDEX true
+        fi
+    >>>
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} SSD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
+    }
+
+    output {
+        File downsampled_bam = "~{output_basename}.downsampled.sorted.bam"
+        File downsampled_bam_index = "~{output_basename}.downsampled.sorted.bam.bai"
+    }
+}
+
 workflow HPVDeepSeekGenotyping {
     input {
         String output_basename
@@ -1005,6 +1046,8 @@ workflow HPVDeepSeekGenotyping {
         String read_group_platform_unit = "PU_TEST"
         String read_group_description = "KAPA_TE"
         Boolean call_duplex_consensus = false
+        Boolean downsample = false
+        Float? raw_gapdh_mtc
     }
 
     call FastQC as PreTrimmedFastQC {
@@ -1075,10 +1118,23 @@ workflow HPVDeepSeekGenotyping {
             bam = AlignReads.bam
     }
 
+    if(downsample) {
+        call Downsample {
+            input:
+                bam = SortAndIndexBam.sorted_bam,
+                bai = SortAndIndexBam.sorted_bam_index,
+                raw_gapdh_mtc = raw_gapdh_mtc,
+                output_basename = output_basename
+        }
+    }
+
+    File aligned_bam = select_first([Downsample.downsampled_bam, SortAndIndexBam.sorted_bam])
+    File aligned_bam_index = select_first([Downsample.downsampled_bam_index, SortAndIndexBam.sorted_bam_index])
+
     call CollectAlignmentSummaryMetrics as PreConsensusAlignmentSummaryMetrics {
         input:
-            bam = SortAndIndexBam.sorted_bam,
-            bai = SortAndIndexBam.sorted_bam_index,
+            bam = aligned_bam,
+            bai = aligned_bam_index,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict
@@ -1086,19 +1142,19 @@ workflow HPVDeepSeekGenotyping {
 
     call Flagstat as PreConsensusFlagstat {
         input:
-            bam = SortAndIndexBam.sorted_bam
+            bam = aligned_bam
     }
 
     call CollectInsertSizeMetrics as PreConsensusInsertSizeMetrics {
         input:
-            bam = SortAndIndexBam.sorted_bam,
-            bai = SortAndIndexBam.sorted_bam_index
+            bam = aligned_bam,
+            bai = aligned_bam_index
     }
 
     call CountOnTargetReads as PreConsensusCountOnTargetReads {
         input:
-            bam = SortAndIndexBam.sorted_bam,
-            bai = SortAndIndexBam.sorted_bam_index,
+            bam = aligned_bam,
+            bai = aligned_bam_index,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
@@ -1107,8 +1163,8 @@ workflow HPVDeepSeekGenotyping {
 
     call CollectHybridSelectionMetrics as PreConsensusHybridSelectionMetrics {
         input:
-            bam = SortAndIndexBam.sorted_bam,
-            bai = SortAndIndexBam.sorted_bam_index,
+            bam = aligned_bam,
+            bai = aligned_bam_index,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
@@ -1119,7 +1175,7 @@ workflow HPVDeepSeekGenotyping {
 
     call MergeBAMsAndGroupUMIs {
         input:
-            aligned_bam = SortAndIndexBam.sorted_bam,
+            aligned_bam = aligned_bam,
             unmapped_umi_extracted_bam = ExtractUMIs.umi_extracted_bam,
             reference = reference,
             reference_fai = reference_fai,
