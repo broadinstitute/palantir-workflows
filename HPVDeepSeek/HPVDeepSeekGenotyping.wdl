@@ -984,7 +984,7 @@ task Downsample {
     input {
         File bam
         File bai
-        Float raw_gapdh_mtc
+        Float? raw_gapdh_mtc = 10000.0
         Float? target_coverage = 10000.0
         String output_basename
 
