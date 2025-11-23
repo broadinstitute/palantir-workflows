@@ -998,7 +998,7 @@ task Downsample {
     command <<<
         if [[ $(python -c "print(float(~{downsample_probability}) >= 1.0)") == "True" ]]; then
             cp ~{bam} ~{output_basename}.downsampled.sorted.bam
-            cp ~{bai} ~{output_basename}.downsampled.sorted.bam.bai
+            cp ~{bai} ~{output_basename}.downsampled.sorted.bai
         else
             gatk DownsampleSam \
             --INPUT ~{bam} \
@@ -1017,7 +1017,7 @@ task Downsample {
 
     output {
         File downsampled_bam = "~{output_basename}.downsampled.sorted.bam"
-        File downsampled_bam_index = "~{output_basename}.downsampled.sorted.bam.bai"
+        File downsampled_bam_index = "~{output_basename}.downsampled.sorted.bai"
     }
 }
 
