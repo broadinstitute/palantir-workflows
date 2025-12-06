@@ -376,6 +376,7 @@ task Funcotate {
         String output_format
         Boolean compress
         Boolean use_gnomad
+        Boolean filter_funcotations
         String? control_id
         String? case_id
         String? sequencing_center
@@ -385,7 +386,6 @@ task Funcotate {
         Array[String]? annotation_defaults
         Array[String]? annotation_overrides
         Array[String]? funcotator_excluded_fields
-        Boolean? filter_funcotations
         File? interval_list
         String? extra_args
 
@@ -402,10 +402,9 @@ task Funcotate {
     String output_vcf_idx = output_vcf +  if compress then ".tbi" else ".idx"
     String output_file = if output_format == "MAF" then output_maf else output_vcf
     String output_file_index = if output_format == "MAF" then output_maf_index else output_vcf_idx
-    String transcript_selection_arg = if defined(transcript_selection_list) then " --transcript-list " else ""
     String annotation_def_arg = if defined(annotation_defaults) then " --annotation-default " else ""
     String annotation_over_arg = if defined(annotation_overrides) then " --annotation-override " else ""
-    String filter_funcotations_args = if defined(filter_funcotations) && (filter_funcotations) then " --remove-filtered-variants " else ""
+    String filter_funcotations_str = if filter_funcotations then " --remove-filtered-variants" else ""
     String excluded_fields_args = if defined(funcotator_excluded_fields) then " --exclude-field " else ""
     String interval_list_arg = if defined(interval_list) then " -L " else ""
     String extra_args_arg = select_first([extra_args, ""])
@@ -445,11 +444,11 @@ task Funcotate {
         --annotation-default Center:~{default="Unknown" sequencing_center} \
         --annotation-default source:~{default="Unknown" sequence_source} \
         ~{"--transcript-selection-mode " + transcript_selection_mode} \
-        ~{transcript_selection_arg}~{default="" sep=" --transcript-list " transcript_selection_list} \
+        ~{"--transcript-list " + transcript_selection_list} \
         ~{annotation_def_arg}~{default="" sep=" --annotation-default " annotation_defaults} \
         ~{annotation_over_arg}~{default="" sep=" --annotation-override " annotation_overrides} \
         ~{excluded_fields_args}~{default="" sep=" --exclude-field " funcotator_excluded_fields} \
-        ~{filter_funcotations_args} \
+        ~{filter_funcotations_str} \
         --prefer-mane-transcripts \
         ~{extra_args_arg}
 

@@ -4,12 +4,13 @@ task FastQC {
     input {
         File r1_fastq
         File r2_fastq
-        Int? fastqc_thread_memory = 4096
-        Int? cpu = 2
-        Int? num_threads = 2
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
-        Int? min_ssd_size_gb = 512
+
+        Int fastqc_thread_memory = 4096
+        Int cpu = 2
+        Int num_threads = 2
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -984,8 +985,8 @@ task Downsample {
     input {
         File bam
         File bai
-        Float? raw_gapdh_mtc = 10000.0
-        Float? target_coverage = 10000.0
+        Float raw_gapdh_mtc = 10000.0
+        Float target_coverage = 10000.0
         String output_basename
 
         Int? cpu = 2
