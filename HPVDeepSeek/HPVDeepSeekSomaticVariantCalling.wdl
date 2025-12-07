@@ -8,10 +8,10 @@ task CollectSequencingArtifactMetrics {
         File reference
         File reference_fai
 
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 128)
-        Int? min_ssd_size_gb = 512
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 128)
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -52,10 +52,10 @@ task Mutect2 {
         File variants_for_contamination
         File variants_for_contamination_idx
 
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((3 * size(tumor_bam, "GiB")) + 100)
-        Int? min_ssd_size_gb = 512
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((3 * size(tumor_bam, "GiB")) + 100)
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -116,10 +116,10 @@ task LearnReadOrientationModel {
         String output_basename
         File f1r2_tar_gz
 
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = 128
-        Int? min_ssd_size_gb = 512
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = 128
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -147,10 +147,10 @@ task CalculateContamination {
         String output_basename
         File tumor_pileups
 
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = 128
-        Int? min_ssd_size_gb = 512
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = 128
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -189,10 +189,10 @@ task FilterMutectCalls {
         File maf_segments
         Boolean compress = true
 
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = 128
-        Int? min_ssd_size_gb = 512
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = 128
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -236,10 +236,10 @@ task FilterAlignmentArtifacts {
         File realignment_index_bundle
         Boolean compress = true
 
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = 128
-        Int? min_ssd_size_gb = 512
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = 128
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -280,10 +280,10 @@ task RunMappingFilter {
         String blastn_path
         String mapping_filter_python_script
 
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = 512
-        Int? min_ssd_size_gb = 512
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = 512
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -324,10 +324,10 @@ task VariantFiltration {
         String mapping_filter_name
         Boolean filter_not_in_mask
 
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = 512
-        Int? min_ssd_size_gb = 512
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = 512
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -389,10 +389,10 @@ task Funcotate {
         File? interval_list
         String? extra_args
 
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = 512
-        Int? min_ssd_size_gb = 512
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = 512
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 

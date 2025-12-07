@@ -5,9 +5,10 @@ task DetectHPVIntegrationBreakpoints {
         String output_basename
         File bam
         File bai
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2.5 * size(bam, "GiB")) + 50)
+
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * size(bam, "GiB")) + 50)
     }
 
     command <<<
@@ -40,9 +41,10 @@ task Sublineages {
         File reference
         File hpv16_sublineages
         Int read_threshold = 10
-        Int? cpu = 4
-        Int? memory_gb = 32
-        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+
+        Int cpu = 4
+        Int memory_gb = 32
+        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
     }
 
     command <<<
@@ -98,9 +100,10 @@ task SublineagesDrawTree {
         String output_basename
         File phylogenetic_tree
         File sublineage_call_in
-        Int? cpu = 1
-        Int? memory_gb = 32
-        Int? disk_size_gb = 64
+
+        Int cpu = 1
+        Int memory_gb = 32
+        Int disk_size_gb = 64
     }
 
     command <<<
@@ -147,9 +150,10 @@ task HPVHighRiskSNPs {
         File high_risk_snps_hpv
         File reference
         String genotype = "HPV16_Ref"
-        Int? cpu = 2
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2.5 * size(bam, "GiB")) + 50)
+
+        Int cpu = 2
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * size(bam, "GiB")) + 50)
     }
 
     command <<<

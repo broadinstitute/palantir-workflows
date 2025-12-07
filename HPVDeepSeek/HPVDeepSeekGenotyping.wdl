@@ -4,8 +4,8 @@ task FastQC {
     input {
         File r1_fastq
         File r2_fastq
-
         Int fastqc_thread_memory = 4096
+
         Int cpu = 2
         Int num_threads = 2
         Int memory_gb = 16
@@ -55,10 +55,11 @@ task FastqToUbam {
         String read_group_platform
         String read_group_platform_unit
         String read_group_description
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2.5 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
-        Int? min_ssd_size_gb = 512
+
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * (size(r1_fastq, "GiB") + size(r2_fastq, "GiB"))) + 50)
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -87,7 +88,7 @@ task FastqToUbam {
     }
 }
 
-# Extract the UMI sequence from the first 3 bases of each read, skip the next 3 bases, append a 'T',
+# Extract the UMI sequence from the first 3 bases of each read, skip the next 3 bases
 # and add the resulting UMI to the RX tag and read name in the output BAM.
 #
 # --molecular-index-tags RX: Tells fgbio to place the extracted UMI into the RX tag of each read.
@@ -95,7 +96,7 @@ task FastqToUbam {
 # 3M3S+T means:
 # 3M: Match the first 3 bases (UMI).
 # 3S: Skip (soft clip) the next 3 bases.
-# +T: Append this to the UMI (the sequence of "T").
+# +T: The rest of the read is the template
 # This regex is applied to both R1 and R2 (paired-end reads).
 # --annotate-read-names true: Indicates that the UMI should be appended to the read name (QNAME) in addition to the RX tag.
 task ExtractUMIs {
@@ -105,10 +106,11 @@ task ExtractUMIs {
         String read_group_tag = "RX"
         String read_structure = "3M3S+T"
         String append_umi_to_qname = "true"
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2.5 * size(input_ubam, "GiB")) + 50)
-        Int? min_ssd_size_gb = 512
+
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * size(input_ubam, "GiB")) + 50)
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -138,10 +140,11 @@ task UmiExtractedBamToFastq {
     input {
         File umi_extracted_bam
         String output_basename
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2.5 * size(umi_extracted_bam, "GiB")) + 50)
-        Int? min_ssd_size_gb = 512
+
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * size(umi_extracted_bam, "GiB")) + 50)
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -180,10 +183,11 @@ task TrimAndFilter {
         File fastq1
         File fastq2
         String output_basename
-        Int? cpu = 3
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2.5 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + 50)
-        Int? min_ssd_size_gb = 512
+
+        Int cpu = 3
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + 50)
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -249,11 +253,12 @@ task BwaMem {
         String read_group_platform_unit
         String read_group_description
         Boolean soft_clip_supplementary_alignments = false
-        Int? cpu = 32
-        Int? num_threads = 32
-        Int? memory_gb = 64
-        Int? disk_size_gb = ceil((3 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + size(reference, "GiB") + 100)
-        Int? min_ssd_size_gb = 512
+
+        Int cpu = 32
+        Int num_threads = 32
+        Int memory_gb = 64
+        Int disk_size_gb = ceil((3 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + size(reference, "GiB") + 100)
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -288,12 +293,13 @@ task BwaMem {
 task SortAndIndexBam {
     input {
         File bam
-        String? samtools_thread_memory = "1024M"
-        Int? cpu = 7
-        Int? num_threads = 7
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
-        Int? min_ssd_size_gb = 512
+        String samtools_thread_memory = "1024M"
+
+        Int cpu = 7
+        Int num_threads = 7
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -328,10 +334,11 @@ task SortAndIndexBam {
 task GATKSortBam {
     input {
         File bam
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
-        Int? min_ssd_size_gb = 512
+
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -376,10 +383,10 @@ task MergeBAMsAndGroupUMIs {
         File reference_dict
         Boolean call_duplex_consensus
 
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2.5 * size(aligned_bam, "GiB") + size(unmapped_umi_extracted_bam, "GiB")) + 100)
-        Int? min_ssd_size_gb = 512
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * size(aligned_bam, "GiB") + size(unmapped_umi_extracted_bam, "GiB")) + 100)
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -447,10 +454,11 @@ task MergeConsensus {
         File reference
         File reference_fai
         File reference_dict
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2.5 * size(consensus_aligned_bam, "GiB") + size(consensus_unmapped_bam, "GiB")) + 100)
-        Int? min_ssd_size_gb = 512
+
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * size(consensus_aligned_bam, "GiB") + size(consensus_unmapped_bam, "GiB")) + 100)
+        Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
 
@@ -497,9 +505,10 @@ task CallMolecularConsensusReads {
         String output_basename
         File umi_grouped_bam
         String read_group_id
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2.5 * size(umi_grouped_bam, "GiB")) + 100)
+
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * size(umi_grouped_bam, "GiB")) + 100)
     }
 
     command <<<
@@ -533,9 +542,10 @@ task CallDuplexConsensusReads {
         String output_basename
         File umi_grouped_bam
         String read_group_id
-        Int? cpu = 1
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2.5 * size(umi_grouped_bam, "GiB")) + 100)
+
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * size(umi_grouped_bam, "GiB")) + 100)
     }
 
     command <<<
@@ -571,9 +581,10 @@ task ConsensusBamToFastq {
     input {
         String output_basename
         File umi_consensus_unmapped_bam
-        Int? cpu = 2
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2.5 * size(umi_consensus_unmapped_bam, "GiB")) + 50)
+
+        Int cpu = 2
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * size(umi_consensus_unmapped_bam, "GiB")) + 50)
     }
 
     command <<<
@@ -601,9 +612,10 @@ task SamtoolsCoverage {
     input {
         String output_basename
         File bam
-        Int? cpu = 2
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2 * size(bam, "GiB")) + 50)
+
+        Int cpu = 2
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2 * size(bam, "GiB")) + 50)
     }
 
     command <<<
@@ -629,9 +641,10 @@ task SamtoolsCoverage {
 task DetermineHPVStatus {
     input {
         File coverage
-        Int? cpu = 1
-        Int? memory_gb = 8
-        Int? disk_size_gb = 32
+
+        Int cpu = 1
+        Int memory_gb = 8
+        Int disk_size_gb = 32
     }
 
     command <<<
@@ -702,9 +715,10 @@ task GenotypeSNPsHuman {
         File bai
         File human_snp_targets_bed
         File reference
-        Int? cpu = 2
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2.5 * size(bam, "GiB")) + 50)
+
+        Int cpu = 2
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * size(bam, "GiB")) + 50)
     }
 
     command <<<
@@ -733,9 +747,10 @@ task CollectAlignmentSummaryMetrics {
         File reference
         File reference_fai
         File reference_dict
-        Int? cpu = 2
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+
+        Int cpu = 2
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
     }
 
     String prefix = basename(bam, ".sorted.bam")
@@ -764,9 +779,10 @@ task CollectAlignmentSummaryMetrics {
 task Flagstat {
     input {
         File bam
-        Int? cpu = 2
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+
+        Int cpu = 2
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
     }
 
     String prefix = basename(bam, ".sorted.bam")
@@ -791,9 +807,10 @@ task CollectInsertSizeMetrics {
     input {
         File bam
         File bai
-        Int? cpu = 2
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+
+        Int cpu = 2
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
     }
 
     String prefix = basename(bam, ".sorted.bam")
@@ -827,9 +844,10 @@ task CountOnTargetReads {
         File reference_fai
         File reference_dict
         File capture_targets_bed
-        Int? cpu = 2
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+
+        Int cpu = 2
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
     }
 
     String prefix = basename(bam, ".sorted.bam")
@@ -859,9 +877,10 @@ task CollectUMIDuplicationMetrics {
     input {
         String output_basename
         File umi_group_data
-        Int? cpu = 1
-        Int? memory_gb = 8
-        Int? disk_size_gb = 32
+
+        Int cpu = 1
+        Int memory_gb = 8
+        Int disk_size_gb = 32
     }
 
     command <<<
@@ -914,9 +933,10 @@ task CollectHybridSelectionMetrics {
         File bait_interval_list
         File target_interval_list
         String bait_set_name
-        Int? cpu = 2
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+
+        Int cpu = 2
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
     }
 
     String prefix = basename(bam, ".sorted.bam")
@@ -952,9 +972,9 @@ task CollectDuplexSeqMetrics {
     input {
         File bam
 
-        Int? cpu = 2
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+        Int cpu = 2
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
     }
 
     String prefix = basename(bam, ".umi_grouped.bam")
@@ -989,9 +1009,9 @@ task Downsample {
         Float target_coverage = 10000.0
         String output_basename
 
-        Int? cpu = 2
-        Int? memory_gb = 32
-        Int? disk_size_gb = 512
+        Int cpu = 2
+        Int memory_gb = 32
+        Int disk_size_gb = 512
     }
 
     Float downsample_probability = target_coverage / raw_gapdh_mtc

@@ -8,9 +8,10 @@ task NormalizeHPVCounts {
         Float top_hpv_num_reads
         Float ml_plasma
         Float ng_cfdna
-        Int? cpu = 2
-        Int? memory_gb = 16
-        Int? disk_size_gb = ceil((2 * size(bam, "GiB")) + 50)
+
+        Int cpu = 2
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2 * size(bam, "GiB")) + 50)
     }
 
     command <<<
