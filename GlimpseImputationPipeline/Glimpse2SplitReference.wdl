@@ -46,11 +46,11 @@ workflow Glimpse2SplitReference {
 
         call GlimpseSplitReferenceTask {
             input:
-                reference_panel = reference_filename,
-                reference_panel_index = reference_filename + reference_panel_index_suffix,
+                reference_panel = reference_filename, #!FileCoercion
+                reference_panel_index = reference_filename + reference_panel_index_suffix, #!FileCoercion
                 contig = contig_region,
                 i_contig = i_contig,
-                genetic_map = genetic_map_filename,
+                genetic_map = genetic_map_filename, #!FileCoercion
                 seed = seed,
                 min_window_cm = min_window_cm,
                 uniform_number_variants = uniform_number_variants,
@@ -63,7 +63,7 @@ workflow Glimpse2SplitReference {
     if (defined(output_path)) {
         call ExportReferencePanel {
             input:
-                reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks),
+                reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks), #!FileCoercion
                 output_path = select_first([output_path]),
                 output_panel_name = select_first([output_panel_name, "reference_panel"])
         }
@@ -167,19 +167,19 @@ task ExportReferencePanel {
 
     command <<<
         if [[ "~{output_path}" != gs://* ]]; then
-            echo "\nError: Output path must start with gs://\n"
+            printf "\nError: Output path must start with gs://\n"
             exit 1
         fi
 
         EXISTING_FILES=$(gcloud storage ls ~{output_path_no_trailing_slash}/chunks 2> /dev/null || true)
         if [[ -n "$EXISTING_FILES" ]]; then
-            echo "\nError: Directory ~{output_path_no_trailing_slash}/chunks is not empty. Please clear it before proceeding.\n"
+            printf "\nError: Directory ~{output_path_no_trailing_slash}/chunks is not empty. Please clear it before proceeding.\n"
             exit 1
         fi
 
         EXISTING_FILES=$(gcloud storage ls ~{output_path_no_trailing_slash}/~{output_panel_name}.txt 2> /dev/null || true)
         if [[ -n "$EXISTING_FILES" ]]; then
-            echo "\nError: File ~{output_path_no_trailing_slash}/~{output_panel_name}.txt already exists. Please delete it before proceeding.\n"
+            printf "\nError: File ~{output_path_no_trailing_slash}/~{output_panel_name}.txt already exists. Please delete it before proceeding.\n"
             exit 1
         fi
         

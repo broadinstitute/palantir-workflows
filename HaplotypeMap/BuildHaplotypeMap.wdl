@@ -13,72 +13,67 @@
 #
 
 # Filter out indels and variants that weren't called in every sample
+version 1.0
 
 task vcftools {
-    String? intermediates_prefix
-    File input_vcf
-    Int? max_missing
-    
-    Int maxmissing = select_first([max_missing, 0])
-    String int_prefix = select_first([intermediates_prefix, "int"])
-    
-    command <<<
-    vcftools --vcf ${input_vcf} --max-missing-count ${maxmissing} --remove-indels --recode --recode-INFO-all --out ${int_prefix}
-    >>>
+  input {
+      String intermediates_prefix = "int"
+      File input_vcf
+      Int max_missing = 0
+  }
   
-    runtime {
+  command <<<
+  vcftools --vcf ~{input_vcf} --max-missing-count ~{max_missing} --remove-indels --recode --recode-INFO-all --out ~{intermediates_prefix}
+  >>>
+  
+  runtime {
     disks: "local-disk 1000 HDD"
     memory: "3500 MB"
     docker: "biocontainers/vcftools:v0.1.16-1-deb_cv1"
   }
 
   output {
-    File recode_vcf = "${int_prefix}.recode.vcf"
+    File recode_vcf = "~{intermediates_prefix}.recode.vcf"
   }
 }
 
 # Set missing variant IDs to chr:pos
 
 task bcftools {
-    String? intermediates_prefix
+  input {
+    String intermediates_prefix = "int"
     File input_vcf
-    
-    String int_prefix = select_first([intermediates_prefix, "int"])
-    
-    command <<<
-    bcftools annotate ${input_vcf} --set-id '%CHROM\:%POS' -o ${int_prefix}.annotated.vcf
-    >>>
+  }
   
-    runtime {
+  command <<<
+  bcftools annotate ~{input_vcf} --set-id '%CHROM\:%POS' -o ~{intermediates_prefix}.annotated.vcf
+  >>>
+  
+  runtime {
     disks: "local-disk 1000 HDD"
     memory: "3500 MB"
     docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
   }
 
   output {
-    File annotated_vcf = "${int_prefix}.annotated.vcf"
+    File annotated_vcf = "~{intermediates_prefix}.annotated.vcf"
   }
 }
 
 # Prune variants that are in high LD, as well as variants with a low MAF
 
 task plink {
-  File input_vcf
-  String? intermediates_prefix
-  String output_prefix
-  Int? prune_window
-  Int? prune_slide
-  Float? prune_cutoff
-  Float? min_maf
-  
-  String int_prefix = select_first([intermediates_prefix, "int"])
-  Float maf = select_first([min_maf, 0.4])
-  Int window = select_first([prune_window, 50])
-  Int slide = select_first([prune_slide, 5])
-  Float cutoff = select_first([prune_cutoff, 0.5])
+  input {
+    File input_vcf
+    String intermediates_prefix = "int"
+    Int prune_window = 50
+    Int prune_slide = 5
+    Float prune_cutoff = 0.5
+    Float min_maf = 0.4
+  }
 
   command <<<
-    plink1.9 --vcf ${input_vcf} --snps-only --maf ${maf} --biallelic-only --indep-pairwise ${window} ${slide} ${cutoff} --out ${int_prefix}
+    plink1.9 --vcf ~{input_vcf} --snps-only --maf ~{min_maf} --biallelic-only --indep-pairwise ~{prune_window} ~{prune_slide} ~{prune_cutoff} --out ~{intermediates_prefix}
     >>>
 
   runtime {
@@ -88,34 +83,35 @@ task plink {
   }
 
   output {
-    File prune_in = "${int_prefix}.prune.in"
+    File prune_in = "~{intermediates_prefix}.prune.in"
   }
 }
 
 # Format remaining variants into haplotype map format readable by Picard tools
 
 task reformat{
-  String output_prefix
-  File prune_in
+  input {
+    String output_prefix
+    File prune_in
     File input_vcf
-  File sequence_dict
-
+    File sequence_dict
+  }
   command <<<
 python <<CODE
 import pandas as pd
 import vcf
 
-with open("${output_prefix}" + ".hapmap.txt", 'w') as new_map:
+with open("~{output_prefix}" + ".hapmap.txt", 'w') as new_map:
   sites_set = set()
-  with open("${prune_in}") as p:
+  with open("~{prune_in}") as p:
     for line in p:
       sites_set.add(line[:-1])
-  with open("${sequence_dict}") as h:
+  with open("~{sequence_dict}") as h:
     for line in h:
       new_map.write(line)
   column_headers= "#CHROM POS ID  REF ALT INFO" + "\n"
   new_map.write(column_headers)
-  vcf_reader = vcf.Reader(open("${input_vcf}"), 'r', encoding='utf-8')
+  vcf_reader = vcf.Reader(open("~{input_vcf}"), 'r', encoding='utf-8')
   for record in vcf_reader:
     if record.ID == None:
       if str(record.CHROM) + ":" + str(record.POS) + "\n" not in sites_set:
@@ -146,23 +142,25 @@ CODE
     }
     
     output {
-    File map = "${output_prefix}.hapmap.txt"
+    File map = "~{output_prefix}.hapmap.txt"
   }
 }
 
 task make_vcf{
+  input {
     File hapmap
     File reference
     File reference_index
     File reference_dict
     File picard_jar
     String output_prefix
+  }
 
   command <<<
-    java -jar ${picard_jar} ConvertHaplotypeDatabaseToVcf \
-      OUTPUT=${output_prefix}.hapmap.vcf \
-      INPUT=${hapmap} \
-      R=${reference}
+    java -jar ~{picard_jar} ConvertHaplotypeDatabaseToVcf \
+      OUTPUT=~{output_prefix}.hapmap.vcf \
+      INPUT=~{hapmap} \
+      R=~{reference}
   >>>
   runtime {
     memory: "32 GB"
@@ -175,31 +173,34 @@ task make_vcf{
 }
 
 workflow BuildHapMap {
-  File input_vcf
-  File sequence_dict
-  File reference
-  File reference_index
-  File reference_dict
-  File picard_jar
-  String? intermediates_prefix
-  String output_prefix
-  Int? prune_window
-  Int? prune_slide
-  Float? prune_cutoff
-  Float? min_maf
-  Int? max_missing
+  input {
+    File input_vcf
+    File sequence_dict
+    File reference
+    File reference_index
+    File reference_dict
+    File picard_jar
+    String? intermediates_prefix
+    String output_prefix
+    Int? prune_window
+    Int? prune_slide
+    Float? prune_cutoff
+    Float? min_maf
+    Int? max_missing
+  }
   
   call vcftools {
     input:
       input_vcf = input_vcf,
-        intermediates_prefix = intermediates_prefix
+      intermediates_prefix = intermediates_prefix,
+      max_missing = max_missing
   
   }
   
   call bcftools {
     input:
       input_vcf = vcftools.recode_vcf,
-        intermediates_prefix = intermediates_prefix
+      intermediates_prefix = intermediates_prefix
   
   }
 
@@ -207,7 +208,6 @@ workflow BuildHapMap {
     input:
       input_vcf=bcftools.annotated_vcf,
       intermediates_prefix = intermediates_prefix,
-      output_prefix = output_prefix,
       prune_window = prune_window,
       prune_slide = prune_slide,
       prune_cutoff = prune_cutoff,

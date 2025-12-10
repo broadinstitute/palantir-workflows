@@ -45,7 +45,6 @@ workflow FunctionalEquivalence {
 
         File ref_fasta
         File ref_index
-        File haplotype_map
 
         String tool1_label
         String tool2_label
@@ -56,9 +55,7 @@ workflow FunctionalEquivalence {
         Boolean require_matching_genotypes = true
         Boolean enable_ref_overlap = false
 
-        Boolean signed_difference = false
-
-        Int? preemptible = 3
+        Int preemptible = 3
     }
 
     scatter (i in range(length(tool1_vcf))) {
@@ -88,14 +85,13 @@ workflow FunctionalEquivalence {
                 query_vcf_sample_name=paired_vcfs.left.sample_id,
                 ref_fasta=ref_fasta,
                 ref_index=ref_index,
-                haplotype_map=haplotype_map,
                 stratifier_intervals=stratifier_intervals,
                 stratifier_labels=stratifier_labels,
                 evaluation_intervals=paired_vcfs.right.confidence_intervals,
                 score_field=score_field,
                 experiment="EvalVsTruthTool1",
                 extra_column_names=["Dataset", "Replicate", "Tool"],
-                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, "tool1"],
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, "tool1"], #!StringCoercion
                 passing_only=passing_only,
                 require_matching_genotypes=require_matching_genotypes,
                 enable_ref_overlap=enable_ref_overlap,
@@ -115,14 +111,13 @@ workflow FunctionalEquivalence {
                 query_vcf_sample_name=paired_vcfs.left.sample_id,
                 ref_fasta=ref_fasta,
                 ref_index=ref_index,
-                haplotype_map=haplotype_map,
                 stratifier_intervals=stratifier_intervals,
                 stratifier_labels=stratifier_labels,
                 evaluation_intervals=paired_vcfs.right.confidence_intervals,
                 score_field=score_field,
                 experiment="EvalVsTruthTool2",
                 extra_column_names=["Dataset", "Replicate", "Tool"],
-                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, "tool2"],
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num, "tool2"], #!StringCoercion
                 passing_only=passing_only,
                 require_matching_genotypes=require_matching_genotypes,
                 enable_ref_overlap=enable_ref_overlap,
@@ -134,7 +129,7 @@ workflow FunctionalEquivalence {
 
     # Make ROC plot for each sample ID with paired ROC table outputs between the two tools
     scatter(table in plot_roc_tables) {
-        call PlotROC.PlotROC as PlotROC {
+        call PlotROC.PlotROC as PlotROCTask {
             input:
                 sample_id = table.left,
                 roc_tables = [table.right.left, table.right.right],
@@ -160,14 +155,13 @@ workflow FunctionalEquivalence {
                 query_vcf_sample_name=paired_vcfs.left.sample_id,
                 ref_fasta=ref_fasta,
                 ref_index=ref_index,
-                haplotype_map=haplotype_map,
                 evaluation_intervals=paired_vcfs.left.confidence_intervals,
                 score_field=score_field,
                 stratifier_intervals=stratifier_intervals,
                 stratifier_labels=stratifier_labels,
                 experiment="EvalInterTool",
                 extra_column_names=["Dataset", "Replicate"],
-                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num],
+                extra_column_values=[paired_vcfs.left.dataset, paired_vcfs.left.num], #!StringCoercion
                 passing_only=passing_only,
                 require_matching_genotypes=require_matching_genotypes,
                 enable_ref_overlap=enable_ref_overlap,
@@ -189,14 +183,13 @@ workflow FunctionalEquivalence {
                     query_vcf_sample_name=tool1_inputs[index.right].sample_id,
                     ref_fasta=ref_fasta,
                     ref_index=ref_index,
-                    haplotype_map=haplotype_map,
                     evaluation_intervals=tool1_inputs[index.left].confidence_intervals,
                     score_field=score_field,
                     stratifier_intervals=stratifier_intervals,
                     stratifier_labels=stratifier_labels,
                     experiment="EvalIntraTool1",
                     extra_column_names=["Dataset", "Replicate"],
-                    extra_column_values=[tool1_inputs[index.left].dataset, tool1_inputs[index.left].num],
+                    extra_column_values=[tool1_inputs[index.left].dataset, tool1_inputs[index.left].num], #!StringCoercion
                     passing_only=passing_only,
                     require_matching_genotypes=require_matching_genotypes,
                     enable_ref_overlap=enable_ref_overlap,
@@ -218,14 +211,13 @@ workflow FunctionalEquivalence {
                     query_vcf_sample_name=tool2_inputs[index.right].sample_id,
                     ref_fasta=ref_fasta,
                     ref_index=ref_index,
-                    haplotype_map=haplotype_map,
                     evaluation_intervals=tool2_inputs[index.left].confidence_intervals,
                     score_field=score_field,
                     stratifier_intervals=stratifier_intervals,
                     stratifier_labels=stratifier_labels,
                     experiment="EvalIntraTool2",
                     extra_column_names=["Dataset", "Replicate"],
-                    extra_column_values=[tool2_inputs[index.left].dataset, tool2_inputs[index.left].num],
+                    extra_column_values=[tool2_inputs[index.left].dataset, tool2_inputs[index.left].num], #!StringCoercion
                     passing_only=passing_only,
                     require_matching_genotypes=require_matching_genotypes,
                     enable_ref_overlap=enable_ref_overlap,
@@ -233,9 +225,9 @@ workflow FunctionalEquivalence {
         }
     }
 
-    Array[File] fe_eval_summaries = flatten([select_all(EvalInterTool.SimpleSummary), select_all(EvalIntraTool1.SimpleSummary), select_all(EvalIntraTool2.SimpleSummary)])
+    Array[File] fe_eval_summaries = flatten([EvalInterTool.SimpleSummary, select_all(EvalIntraTool1.SimpleSummary), select_all(EvalIntraTool2.SimpleSummary)])
 
-    call FEEvaluation.FEEvaluation {
+    call FEEvaluation.FEEvaluation as RunFEEvaluation {
         input:
             benchmark_summaries=fe_eval_summaries,
             tool1_label=tool1_label,
@@ -245,7 +237,7 @@ workflow FunctionalEquivalence {
 
     Array[File] f1_roc_tables = flatten([EvalVsTruthTool1.ROCStats, EvalVsTruthTool2.ROCStats])
 
-    call F1Evaluation.F1Evaluation as F1Evaluation {
+    call F1Evaluation.F1Evaluation as RunF1Evaluation {
         input:
             roc_tables=f1_roc_tables,
             tool1_label=tool1_label,
@@ -253,25 +245,25 @@ workflow FunctionalEquivalence {
             additional_label=additional_label
     }
 
-    Int fe_status_combined = if FEEvaluation.fe_status > F1Evaluation.fe_status then FEEvaluation.fe_status else F1Evaluation.fe_status
+    Int fe_status_combined = if RunFEEvaluation.fe_status > RunF1Evaluation.fe_status then RunFEEvaluation.fe_status else RunF1Evaluation.fe_status
 
 
     # Also combine all plots into one image
     call MergePNGs as MergeFE {
         input:
-            pngs=FEEvaluation.fe_plots,
+            pngs=RunFEEvaluation.fe_plots,
             preemptible=2
     }
 
     call MergePNGs as MergeF1 {
         input:
-            pngs=F1Evaluation.f1_plots,
+            pngs=RunF1Evaluation.f1_plots,
             preemptible=preemptible
     }
 
     call MergePNGs as MergeROC {
         input:
-            pngs = flatten(PlotROC.plots),
+            pngs = flatten(PlotROCTask.plots),
             preemptible = preemptible
     }
 
@@ -286,14 +278,14 @@ workflow FunctionalEquivalence {
 
 
     output {
-        Array[File] fe_plots = FEEvaluation.fe_plots
-        Array[File] f1_plots = F1Evaluation.f1_plots
-        Array[File] roc_plots = flatten(PlotROC.plots)
+        Array[File] fe_plots = RunFEEvaluation.fe_plots
+        Array[File] f1_plots = RunF1Evaluation.f1_plots
+        Array[File] roc_plots = flatten(PlotROCTask.plots)
         File merged_fe_plots = MergeFE.plots
         File merged_f1_plots = MergeF1.plots
         File merged_roc_plots = MergeROC.plots
-        File fe_summary = FEEvaluation.fe_summary
-        File f1_summary = F1Evaluation.f1_summary
+        File fe_summary = RunFEEvaluation.fe_summary
+        File f1_summary = RunF1Evaluation.f1_summary
         Int fe_status = fe_status_combined
         File html_report = CreateHTMLReport.report
     }

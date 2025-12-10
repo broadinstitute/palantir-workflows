@@ -21,7 +21,7 @@ jobs:
         with:
           MINIWDL_VERSION: ${{ env.MINIWDL_VERSION }}
       - name: miniwdl check
-        run: find . -name '*.wdl' | xargs -tI {} miniwdl check {}
+        run: find . -name '*.wdl' | xargs -tI {} miniwdl check --strict {}
 
   test_wdl:
     needs: validate_wdl

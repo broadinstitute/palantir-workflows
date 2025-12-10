@@ -283,6 +283,7 @@ workflow CNVGermlineCohortWorkflow {
                 gatk_docker = gatk_docker,
                 mem_gb = mem_gb_for_germline_cnv_caller,
                 cpu = cpu_for_germline_cnv_caller,
+                disk_space_gb = disk_for_germline_cnv_caller,
                 p_alt = gcnv_p_alt,
                 p_active = gcnv_p_active,
                 cnv_coherence_length = gcnv_cnv_coherence_length,
@@ -429,7 +430,6 @@ workflow CNVGermlineCohortWorkflow {
         Array[String] sample_qc_status_strings = PostprocessGermlineCNVCalls.qc_status_string
         File model_qc_status_file = CollectModelQualityMetrics.qc_status_file
         String model_qc_string = CollectModelQualityMetrics.qc_status_string
-        Array[File] denoised_copy_ratios = PostprocessGermlineCNVCalls.denoised_copy_ratios
 
         Array[File] gcnv_model_tars = GermlineCNVCallerCohortMode.gcnv_model_tar
         Array[File] calling_configs = GermlineCNVCallerCohortMode.calling_config_json

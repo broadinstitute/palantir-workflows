@@ -8,8 +8,6 @@ task FEEvaluation {
         String? additional_label
     }
 
-    String title_label = if (defined(additional_label)) then ", " + additional_label else ""
-
     command <<<
         set -xueo pipefail
 
@@ -106,7 +104,7 @@ task FEEvaluation {
             inter_conc_count = len(sub_df[sub_df['Experiment'] == 'EvalInterTool'])
 
             concordance_text = f'Concordance (# values ~{tool1_label}: {tool1_conc_count} / ~{tool2_label}: {tool2_conc_count} / inter: {inter_conc_count})'
-            title = f'Dataset: {dataset}~{title_label}\n{concordance_text}'
+            title = f'Dataset: {dataset}~{"," + additional_label}\n{concordance_text}'
             fig.suptitle(title)
             fig.tight_layout()
             fig.savefig(f'fe_plot_{dataset}.png', dpi=100)
@@ -121,7 +119,7 @@ task FEEvaluation {
 
     runtime {
         docker: "us.gcr.io/broad-dsde-methods/python-data-slim-plots:1.0"
-        preemptible: select_first([2, 0])
+        preemptible: 2
         memory: 8 + " GB"
         disks: "local-disk 20 HDD"
     }

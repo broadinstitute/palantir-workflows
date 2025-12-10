@@ -64,7 +64,7 @@ workflow MatchFingerprints {
 
     # Collect all the matched pairs detected with GATK
     scatter (matched_samples in CheckFingerprints.sample_pairs) {
-        if (length(select_first(matched_samples.right)) > 1) {
+        if (length(matched_samples.right[0]) > 1) {
             Pair[Pair[IndexedFile, IndexedFile], Array[Array[String]]] matched_pairs_and_samples = matched_samples
         }
     }
@@ -113,7 +113,7 @@ task CheckFingerprints {
         ## If inputs are VCFs then localize them
         # This avoids a Picard bug and requester-pays which hold our truth data VCFs we use often with this workflow
         # See https://github.com/broadinstitute/picard/issues/1927 for details
-        if [ $(basename -s .vcf.gz "~{indexed_input_file.main_file}") != $(basename "~{indexed_input_file.main_file}") ]; then
+        if [ "$(basename -s .vcf.gz ~{indexed_input_file.main_file})" != "$(basename ~{indexed_input_file.main_file})" ]; then
             # Case where input is VCF
             gsutil -u $(gcloud config get-value project) cp ~{indexed_input_file.main_file} first_input.vcf.gz
             gsutil -u $(gcloud config get-value project) cp ~{indexed_input_file.index_file} first_input.vcf.gz.tbi

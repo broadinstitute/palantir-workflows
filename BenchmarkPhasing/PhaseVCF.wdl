@@ -35,7 +35,6 @@ task WhatsHapPhase {
     input {
         File input_vcf
         File input_vcf_index
-        String? input_sample_name    # Required if ignore_read_groups false && multi-sample VCF
 
         File input_bam
         File input_bam_index

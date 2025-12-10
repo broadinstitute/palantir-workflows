@@ -14,7 +14,7 @@ workflow Glimpse2MergeBatches {
         String docker_count_samples = "us.gcr.io/broad-dsde-methods/bcftools:v1.3"
         String docker_merge = "us.gcr.io/broad-dsde-methods/samtools-suite:v1.1"
 
-        File interval_list = "gs://gcp-public-data--broad-references/hg38/v0/wgs_metrics_intervals.interval_list"
+        File interval_list = "gs://gcp-public-data--broad-references/hg38/v0/wgs_metrics_intervals.interval_list" #!FileCoercion
         Int scatter_count = 100
 
         Int mem_gb_merge = 16
@@ -335,7 +335,8 @@ task CountSamples { # really?
 
     command <<<
         set -xeuo pipefail
-        export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
+        GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
+        export GCS_OAUTH_TOKEN
         bcftools query -l ~{imputed_vcf} | wc -l > "num_samples.txt"
     >>>
 
