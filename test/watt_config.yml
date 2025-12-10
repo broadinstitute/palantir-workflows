@@ -66,3 +66,10 @@ CNVControlEventsQC:
     base:
       test_inputs: "/test/CNVControlEventsQC/test_inputs.json"
       expected_outputs: "/test/CNVControlEventsQC/test_outputs.json"
+
+PCARE:
+  path: "/PRS/PCARE.wdl"
+  tests:
+    base:
+      test_inputs: "/test/PCARE/test_inputs.json"
+      expected_outputs: "/test/PCARE/test_outputs.json"
