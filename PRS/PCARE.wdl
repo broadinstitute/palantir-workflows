@@ -109,9 +109,9 @@ task ComputeRiskValue {
     command <<<
         python3 << "EOF"
         import pandas as pd
-        prs = pd.read_csv("~{prs}", sep="\t")
-        pcs = pd.read_csv("~{pcs}", sep="\t").set_index("IID")
-        fam_hist = pd.read_csv("~{family_history}", sep="\t").set_index("sample_id")
+        prs = pd.read_csv("~{prs}", sep="\t", dtype={'#IID': str})
+        pcs = pd.read_csv("~{pcs}", sep="\t", dtype={'IID': str}).set_index("IID")
+        fam_hist = pd.read_csv("~{family_history}", sep="\t", dtype={'sample_id': str}).set_index("sample_id")
 
         full_risk = prs.join(pcs, on='#IID').join(fam_hist, on='#IID')
 
