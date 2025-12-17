@@ -29,6 +29,7 @@ workflow HPVDeepSeek {
         String read_group_platform = "ILLUMINA"
         String read_group_platform_unit = "PU_TEST"
         String read_group_description = "KAPA_TE"
+        String read_structure = "3M2S+T"
 
         # HPVDeepSeekSomaticVariantCalling inputs
         File target_intervals
@@ -75,7 +76,8 @@ workflow HPVDeepSeek {
             read_group_library_name = read_group_library_name,
             read_group_platform = read_group_platform,
             read_group_platform_unit = read_group_platform_unit,
-            read_group_description = read_group_description
+            read_group_description = read_group_description,
+            read_structure = read_structure
     }
 
     call HPVDeepSeekSomaticVariantCalling.HPVDeepSeekSomaticVariantCalling {

@@ -104,7 +104,7 @@ task ExtractUMIs {
         String output_basename
         File input_ubam
         String read_group_tag = "RX"
-        String read_structure = "3M3S+T"
+        String read_structure
         String append_umi_to_qname = "true"
 
         Int cpu = 1
@@ -1066,6 +1066,7 @@ workflow HPVDeepSeekGenotyping {
         String read_group_platform = "ILLUMINA"
         String read_group_platform_unit = "PU_TEST"
         String read_group_description = "KAPA_TE"
+        String read_structure
         Boolean call_duplex_consensus = false
         Boolean downsample = false
         Float? raw_gapdh_mtc
@@ -1093,6 +1094,7 @@ workflow HPVDeepSeekGenotyping {
     call ExtractUMIs {
         input:
             input_ubam = FastqToUbam.ubam,
+            read_structure = read_structure,
             output_basename = output_basename
     }
 
