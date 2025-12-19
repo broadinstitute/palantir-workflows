@@ -190,7 +190,7 @@ task Glimpse2QCReport_t {
         set.seed(42) # for reproducibility of sampling
         qc_metrics = read_tsv("~{metrics}", col_types = cols(sample_id=col_character()))
         ancestries = read_tsv("~{ancestries}", col_types = cols(sample=col_character()))
-        predicted_sex = read_tsv("~{predicted_sex}", col_types = cols(sample_id=col_character()))
+        predicted_sex = read_tsv("~{predicted_sex}", col_types = cols(sample_id=col_character(), predicted_sex=col_character()))
 
         qc_metrics = qc_metrics %>% inner_join(ancestries, by=c("sample_id"="sample")) %>% inner_join(predicted_sex)
 
