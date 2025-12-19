@@ -38,6 +38,9 @@ Glimpse2QCReport:
     base:
       test_inputs: "/test/Glimpse2QCReport/test_inputs.json"
       expected_outputs: "/test/Glimpse2QCReport/test_outputs.json"
+    only_female:
+      test_inputs: "/test/Glimpse2QCReport/test_only_f_inputs.json"
+      expected_outputs: "/test/Glimpse2QCReport/test_only_f_outputs.json"
 
 Glimpse2MergeBatches:
   path: "/GlimpseImputationPipeline/Glimpse2MergeBatches.wdl"
@@ -73,6 +76,3 @@ PCARE:
     base:
       test_inputs: "/test/PCARE/test_inputs.json"
       expected_outputs: "/test/PCARE/test_outputs.json"
-    only_female:
-      test_inputs: "/test/PCARE/test_only_f_inputs.json"
-      expected_outputs: "/test/PCARE/test_only_f_outputs.json"
