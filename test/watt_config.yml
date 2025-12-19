@@ -73,3 +73,6 @@ PCARE:
     base:
       test_inputs: "/test/PCARE/test_inputs.json"
       expected_outputs: "/test/PCARE/test_outputs.json"
+    only_female:
+      test_inputs: "/test/PCARE/test_only_f_inputs.json"
+      expected_outputs: "/test/PCARE/test_only_f_outputs.json"
