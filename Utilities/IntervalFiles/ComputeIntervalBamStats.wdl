@@ -21,9 +21,6 @@ workflow ComputeIntervalBamStats {
             input:
                 input_bam=input_bam,
                 input_bam_index=input_bam_index,
-                ref_fasta=ref_fasta,
-                ref_index=ref_index,
-                ref_dict=ref_dict,
                 interval_file=interval.right,
                 interval_name=interval.left
         }
@@ -43,7 +40,6 @@ workflow ComputeIntervalBamStats {
             input:
                 input_bam=SubsetBam.bam_subset,
                 input_bam_index=SubsetBam.bam_subset_index,
-                interval_file=interval.right,
                 interval_name=interval.left
         }
     }
@@ -73,9 +69,6 @@ task SubsetBam {
     input {
         File input_bam
         File input_bam_index
-
-        File ref_index
-        File ref_dict
 
         File interval_file
         String interval_name

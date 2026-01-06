@@ -4,7 +4,6 @@ workflow PhaseVCF {
     input {
         File input_vcf
         File input_vcf_index
-        String? input_sample_name
 
         File input_bam
         File input_bam_index
@@ -17,7 +16,6 @@ workflow PhaseVCF {
         input:
             input_vcf=input_vcf,
             input_vcf_index=input_vcf_index,
-            input_sample_name=input_sample_name,
             input_bam=input_bam,
             input_bam_index=input_bam_index,
             reference_fasta=reference_fasta,
