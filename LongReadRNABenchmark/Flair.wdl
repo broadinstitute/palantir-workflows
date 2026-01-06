@@ -13,7 +13,7 @@ task FlairTask {
         Int memoryGB = 64
         Int diskSizeGB = 500
         String docker = "brookslab/flair@sha256:994a5f6dd6bee041c8a2a82e84b77293d9bf5f3a2f172d440a72daee33474043"
-        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh" #!FileCoercion
     }
 
     String flairPrefix = "Flair_out_~{datasetName}"

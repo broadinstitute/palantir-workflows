@@ -20,7 +20,6 @@ workflow MatchFingerprints {
         File haplotype_map
 
         Boolean check_all_file_pairs = true    # Check all possible combinations of input files to fingerprint against each other
-        Boolean fail_on_mismatch = false    # If any file compared fails to find a fingerprint match, fail the workflow
         Boolean check_only_matching_sample_names = false    # Check fingerprints only against matching sample names
 
         String crosscheck_by = "FILE"    # Or: READGROUP, LIBRARY, SAMPLE
@@ -55,7 +54,6 @@ workflow MatchFingerprints {
                 indexed_input_file=pair.left,
                 indexed_second_input_file=pair.right,
                 haplotype_map=haplotype_map,
-                fail_on_mismatch=fail_on_mismatch,
                 check_only_matching_sample_names=check_only_matching_sample_names,
                 crosscheck_by=crosscheck_by,
                 lod_threshold=lod_threshold
@@ -85,7 +83,6 @@ task CheckFingerprints {
         IndexedFile indexed_second_input_file
 
         File haplotype_map
-        Boolean fail_on_mismatch
         Boolean check_only_matching_sample_names
 
         String crosscheck_by
@@ -115,8 +112,8 @@ task CheckFingerprints {
         # See https://github.com/broadinstitute/picard/issues/1927 for details
         if [ "$(basename -s .vcf.gz ~{indexed_input_file.main_file})" != "$(basename ~{indexed_input_file.main_file})" ]; then
             # Case where input is VCF
-            gsutil -u $(gcloud config get-value project) cp ~{indexed_input_file.main_file} first_input.vcf.gz
-            gsutil -u $(gcloud config get-value project) cp ~{indexed_input_file.index_file} first_input.vcf.gz.tbi
+            gsutil -u "$(gcloud config get-value project)" cp ~{indexed_input_file.main_file} first_input.vcf.gz
+            gsutil -u "$(gcloud config get-value project)" cp ~{indexed_input_file.index_file} first_input.vcf.gz.tbi
             TOOL_INPUT="first_input.vcf.gz"
             TOOL_INPUT_INDEX="first_input.vcf.gz.tbi"
         else
@@ -124,9 +121,10 @@ task CheckFingerprints {
             TOOL_INPUT="~{indexed_input_file.main_file}"
             TOOL_INPUT_INDEX="~{indexed_input_file.index_file}"
         fi
+        # shellcheck disable=SC2046
         if [ $(basename -s .vcf.gz "~{indexed_second_input_file.main_file}") != $(basename "~{indexed_second_input_file.main_file}") ]; then
-            gsutil -u $(gcloud config get-value project) cp ~{indexed_second_input_file.main_file} second_input.vcf.gz
-            gsutil -u $(gcloud config get-value project) cp ~{indexed_second_input_file.index_file} second_input.vcf.gz.tbi
+            gsutil -u "$(gcloud config get-value project)" cp ~{indexed_second_input_file.main_file} second_input.vcf.gz
+            gsutil -u "$(gcloud config get-value project)" cp ~{indexed_second_input_file.index_file} second_input.vcf.gz.tbi
             TOOL_SECOND_INPUT="second_input.vcf.gz"
             TOOL_SECOND_INPUT_INDEX="second_input.vcf.gz.tbi"
         else

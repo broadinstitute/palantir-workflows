@@ -8,13 +8,12 @@ task BambuTask {
         File referenceGenomeIndex
         File referenceAnnotation
         String datasetName
-        String dataType
         Int cpu = 16
         Int numThreads = 32
         Int memoryGB = 256
         Int diskSizeGB = 500
         String docker = "us.gcr.io/broad-dsde-methods/kockan/bambu@sha256:109fcdec65637eaca9f465808f3cc2aba3a9d2a0b1f967b4ed1c87989c3969de"
-        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh" #!FileCoercion
     }
 
     String bambuOutDir = "Bambu_out"
@@ -61,7 +60,6 @@ workflow Bambu {
         File referenceGenomeIndex
         File referenceAnnotation
         String datasetName
-        String dataType
     }
 
     call BambuTask {
@@ -71,8 +69,7 @@ workflow Bambu {
             referenceGenome = referenceGenome,
             referenceGenomeIndex = referenceGenomeIndex,
             referenceAnnotation = referenceAnnotation,
-            datasetName = datasetName,
-            dataType = dataType
+            datasetName = datasetName
     }
 
     output {

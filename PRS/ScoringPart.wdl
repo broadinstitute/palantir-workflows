@@ -3,7 +3,7 @@ version 1.0
 import "PCATasks.wdl" as PCATasks
 import "ScoringTasks.wdl" as ScoringTasks
 import "TrainAncestryAdjustmentModel.wdl" as TrainAncestryAdjustmentModel
-import "Structs.wdl"
+import "Structs.wdl" #!UnusedImport
 import "ScoreBGE/ScoreBGE.wdl" as ScoreBGE
 
 workflow ScoringImputedDataset {
@@ -11,7 +11,7 @@ workflow ScoringImputedDataset {
 	NamedWeightSet named_weight_set
 
 	File imputed_array_vcf  # imputed VCF for scoring (and optionally PCA projection): make sure the variant IDs exactly match those in the weights file
-	File imputed_array_vcf_index
+	File? imputed_array_vcf_index
 
 	# Optional files for BGE scoring
 	Boolean use_bge_scoring = false
@@ -20,7 +20,6 @@ workflow ScoringImputedDataset {
 	File? ref_dict
 
 	Int scoring_mem = 16
-	Int population_scoring_mem = scoring_mem * 4
 	Int vcf_to_plink_mem = 8
 
 	String? population_basename # for naming the output of population scoring
@@ -135,7 +134,7 @@ workflow ScoringImputedDataset {
 				exome_gvcf = select_first([bge_wes_gvcf]),
 				exome_gvcf_index = select_first([bge_wes_gvcf_index]),
 				imputed_wgs_vcf = imputed_array_vcf,
-				imputed_wgs_vcf_index = imputed_array_vcf_index,
+				imputed_wgs_vcf_index = select_first([imputed_array_vcf_index]),
 				basename = basename,
 				weights = named_weight_set.weight_set.linear_weights,
 				sample_names = [basename],
@@ -238,7 +237,7 @@ workflow ScoringImputedDataset {
 		}
 
 		if (defined(population_vcf)) {
-			call TrainAncestryAdjustmentModel.TrainAncestryAdjustmentModel {
+			call TrainAncestryAdjustmentModel.TrainAncestryAdjustmentModel { #!NameCollision
 				input:
 					named_weight_set = named_weight_set,
 					population_pcs = select_first([PerformPCA.pcs, population_pcs]),

@@ -20,8 +20,6 @@ workflow BenchmarkAndCompareVCFs {
         Array[File] base_vcf_indices
         Array[String] base_output_sample_names
 
-        Array[File] evaluation_intervals
-
         Array[File] query_vcfs
         Array[File] query_vcf_indices
         Array[String] query_output_sample_names
@@ -65,7 +63,7 @@ workflow BenchmarkAndCompareVCFs {
         }
     }
 
-    call CompareBenchmarks.CompareBenchmarks as CompareBenchmarks {
+    call CompareBenchmarks.CompareBenchmarks as CompareBenchmarks { #!NameCollision
         input:
             benchmark_summaries = Benchmark.SimpleSummary,
             sample_ids = sample_ids,

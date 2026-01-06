@@ -40,8 +40,8 @@ task AddIntervalOverlapStats {
 
             echo -e "${INTERVAL_LABEL}-count\t${INTERVAL_LABEL}-overlap" > header.txt
             # WARNING: annotate does not preserve order of input bed regions!
-            cut -f1-3 $VCF_FILE > vcf.bed
-            bedtools annotate -both -i vcf.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${INTERVAL_LABEL}-${INPUT_LABEL}-preheader.bed"
+            cut -f1-3 "$VCF_FILE" > vcf.bed
+            bedtools annotate -both -i vcf.bed -files "$INTERVAL_FILE" | bedtools sort -i - | rev | cut -f1-2 | rev > "${INTERVAL_LABEL}-${INPUT_LABEL}-preheader.bed"
             cat header.txt "${INTERVAL_LABEL}-${INPUT_LABEL}-preheader.bed" > "${INTERVAL_LABEL}-${INPUT_LABEL}-annotated.bed"
 
             # Also add in breakpoint overlap stats using POS and END values
@@ -49,8 +49,8 @@ task AddIntervalOverlapStats {
             echo -e "${INTERVAL_LABEL}-RBEND-count\t${INTERVAL_LABEL}-RBEND-overlap" > end-header.txt
             awk '{OFS="\t"; print $1, $2, $2}' vcf.bed | bedtools slop -b ~{breakpoint_padding} -i - -g ref.genome > pos.bed
             awk '{OFS="\t"; print $1, $3, $3}' vcf.bed | bedtools slop -b ~{breakpoint_padding} -i - -g ref.genome > end.bed
-            bedtools annotate -both -i pos.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${INTERVAL_LABEL}-${INPUT_LABEL}-pos-preheader.bed"
-            bedtools annotate -both -i end.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${INTERVAL_LABEL}-${INPUT_LABEL}-end-preheader.bed"
+            bedtools annotate -both -i pos.bed -files "$INTERVAL_FILE" | bedtools sort -i - | rev | cut -f1-2 | rev > "${INTERVAL_LABEL}-${INPUT_LABEL}-pos-preheader.bed"
+            bedtools annotate -both -i end.bed -files "$INTERVAL_FILE" | bedtools sort -i - | rev | cut -f1-2 | rev > "${INTERVAL_LABEL}-${INPUT_LABEL}-end-preheader.bed"
             cat pos-header.txt "${INTERVAL_LABEL}-${INPUT_LABEL}-pos-preheader.bed" > "${INTERVAL_LABEL}-${INPUT_LABEL}-pos-annotated.bed"
             cat end-header.txt "${INTERVAL_LABEL}-${INPUT_LABEL}-end-preheader.bed" > "${INTERVAL_LABEL}-${INPUT_LABEL}-end-annotated.bed"
 
@@ -69,11 +69,11 @@ task AddIntervalOverlapStats {
         do
             INTERVAL_LABEL="${INTERVAL_LABELS[$i]}"
             CURRENT_FILE="${INTERVAL_FILES[$i]}"
-            generate_interval_stats $INTERVAL_LABEL $CURRENT_FILE "~{table_label}" table_content.tsv
+            generate_interval_stats "$INTERVAL_LABEL" "$CURRENT_FILE" "~{table_label}" table_content.tsv
         done
 
         # Combine across interval beds
-        paste "~{input_table}" *-~{table_label}-full-annotated.bed > "~{output_name}.tsv"
+        paste "~{input_table}" ./*-~{table_label}-full-annotated.bed > "~{output_name}.tsv"
 
         # Correct POS0/END0 back to original VCF POS/END coordinates
         python3 << CODE

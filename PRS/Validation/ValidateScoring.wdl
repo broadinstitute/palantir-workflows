@@ -4,7 +4,7 @@ import "../ScoringPart.wdl" as Scoring
 import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/PRS/ScoringPart.wdl" as ScoringMain
 import "../TrainAncestryAdjustmentModel.wdl" as TrainModel
 import "../PCATasks.wdl" as PCATasks
-import "../Structs.wdl" as Structs
+import "../Structs.wdl" as Structs #!UnusedImport
 import "SubsetWeightSet.wdl" as SubsetWeightSet
 import "../ScoringTasks.wdl" as ScoringTasks
 

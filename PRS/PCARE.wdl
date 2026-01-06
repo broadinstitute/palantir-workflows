@@ -35,7 +35,7 @@ workflow PCARE {
         File ref_dict
     }
 
-    call ScoreBGE.ScoreBGE {
+    call ScoreBGE.ScoreBGE { #!NameCollision
         input:
             exome_gvcf = exome_gvcf,
             exome_gvcf_index = exome_gvcf_index,

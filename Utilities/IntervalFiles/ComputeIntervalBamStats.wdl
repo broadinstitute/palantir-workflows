@@ -74,7 +74,6 @@ task SubsetBam {
         File input_bam
         File input_bam_index
 
-        File ref_fasta
         File ref_index
         File ref_dict
 
@@ -172,7 +171,6 @@ task ComputeMAPQDistribution {
         File input_bam
         File input_bam_index
 
-        File interval_file
         String interval_name
 
         # Runtime

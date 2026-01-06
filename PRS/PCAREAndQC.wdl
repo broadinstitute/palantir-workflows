@@ -27,9 +27,9 @@ workflow PCAREAndQC {
         Float risk_determination_threshold_low_average = 19.69
         Float risk_determination_threshold_average_high = 20.38
 
-        Boolean? use_ref_alt_for_ids = true
-        String? chromosome_encoding = "chrMT"
-        Int? mem_gb_array_vcf_to_plink = 16
+        Boolean use_ref_alt_for_ids = true
+        String chromosome_encoding = "chrMT"
+        Int mem_gb_array_vcf_to_plink = 16
 
         File ref_dict
 
@@ -39,7 +39,7 @@ workflow PCAREAndQC {
         Float distance_threshold
     }
     
-    call PCARE.PCARE {
+    call PCARE.PCARE { #!NameCollision
         input:
             imputed_wgs_vcf = imputed_wgs_vcf,
             imputed_wgs_vcf_index = imputed_wgs_vcf_index,
@@ -64,7 +64,7 @@ workflow PCAREAndQC {
             ref_dict = ref_dict
     }
 
-    call PRSQC.PRSQC {
+    call PRSQC.PRSQC { #!NameCollision
         input:
             output_basename = basename,
             prs_full_risk = PCARE.full_risk,

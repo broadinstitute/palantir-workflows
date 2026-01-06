@@ -358,10 +358,10 @@ task cut_paste_task {
 
         fifos_to_paste=()
         md5sums=()
-        bcftools view -h --no-version ${vcfs[0]} | awk '!/^#CHROM/' > header.vcf
+        bcftools view -h --no-version "${vcfs[0]}" | awk '!/^#CHROM/' > header.vcf
         n_lines=$(wc -l header.vcf | cut -d' ' -f1)
 
-        bgzip -d ${vcfs[0]} -o fifo_0 &
+        bgzip -d "${vcfs[0]}" -o fifo_0 &
 
         tail +$((n_lines+1)) fifo_0 | tee fifo_to_paste_0 | cut -f1-5,9 | md5sum > md5sum_0 &
 
@@ -378,9 +378,9 @@ task cut_paste_task {
 
             file_name_md5sum="md5sum_$i"
             md5sums+=("$file_name_md5sum")
-            n_lines=$(bcftools view -h --no-version $vcf | wc -l | cut -d' ' -f1)
+            n_lines=$(bcftools view -h --no-version "$vcf" | wc -l | cut -d' ' -f1)
 
-            bgzip -d ${vcf} -o "$fifo_name" &
+            bgzip -d "${vcf}" -o "$fifo_name" &
             tail +$((n_lines)) "$fifo_name" | tee "$fifo_name_to_md5" | cut -f 10- > "$fifo_name_to_paste" &
             cut -f1-5,9 "$fifo_name_to_md5" | md5sum > "$file_name_md5sum" &
 
@@ -395,11 +395,11 @@ task cut_paste_task {
         cat header.vcf fifo_to_cat | bgzip -o merged.vcf.gz
 
         for md5sum_file in "${md5sums[@]}"; do
-            diff <(cat md5sum_0) <(cat $md5sum_file) >> /dev/null || (echo "Fields 1-5,9 do not match for $md5sum_file" && exit 1)
+            diff <(cat md5sum_0) <(cat "$md5sum_file") >> /dev/null || (echo "Fields 1-5,9 do not match for $md5sum_file" && exit 1)
         done
 
         for fifo in fifo_*; do
-            rm $fifo
+            rm "$fifo"
         done
 
         tabix merged.vcf.gz
@@ -502,7 +502,8 @@ task CountSamples { # really?
 
     command <<<
         set -xeuo pipefail
-        export GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
+        GCS_OAUTH_TOKEN=$(/root/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
+        export GCS_OAUTH_TOKEN
         bcftools query -l ~{imputed_vcf} | wc -l > "num_samples.txt"
     >>>
 

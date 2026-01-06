@@ -56,7 +56,7 @@ task WittyerEval {
             ~{"--configFile " + wittyer_config} \
             ~{'--includeBed ' + bedfile} \
             -o wittyer_output \
-            $SP_FLAG
+            "$SP_FLAG"
 
     >>>
 
@@ -71,7 +71,7 @@ task WittyerEval {
 
     output {
         File wittyer_stats = "wittyer_output/Wittyer.Stats.json"
-        File wittyer_config = "wittyer_output/Wittyer.ConfigFileUsed.json"
+        File wittyer_config_used = "wittyer_output/Wittyer.ConfigFileUsed.json"
         Array[File] wittyer_annotated_vcf = glob("wittyer_output/Wittyer.*.Vs.*.vcf.gz")
         Array[File] wittyer_annotated_vcf_index = glob("wittyer_output/Wittyer.*.Vs.*.vcf.gz.tbi")
     }
@@ -145,8 +145,8 @@ task AddIntervalOverlapStatsWittyer {
             echo -e "${CURRENT_LABEL}-count\t${CURRENT_LABEL}-overlap" > header.txt
             # WARNING: annotate does not preserve order of input bed regions!
             # Also: bedtools annotate complains with this input if not cut to first 3 fields
-            cut -f1-3 $VCF_FILE > vcf.bed
-            bedtools annotate -both -i vcf.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-preheader.bed"
+            cut -f1-3 "$VCF_FILE" > vcf.bed
+            bedtools annotate -both -i vcf.bed -files "$INTERVAL_FILE" | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-preheader.bed"
             cat header.txt "${CURRENT_LABEL}-${INPUT_LABEL}-preheader.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-annotated.bed"
 
             # Also add in breakpoint overlap stats using POS and END values
@@ -156,8 +156,8 @@ task AddIntervalOverlapStatsWittyer {
             head -n 10 vcf.bed
             awk '{OFS="\t"; print $1, $2, $2}' vcf.bed | bedtools slop -b ~{breakpoint_padding} -i - -g ref.genome > pos.bed
             awk '{OFS="\t"; print $1, $3, $3}' vcf.bed | bedtools slop -b ~{breakpoint_padding} -i - -g ref.genome > end.bed
-            bedtools annotate -both -i pos.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-pos-preheader.bed"
-            bedtools annotate -both -i end.bed -files $INTERVAL_FILE | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-end-preheader.bed"
+            bedtools annotate -both -i pos.bed -files "$INTERVAL_FILE" | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-pos-preheader.bed"
+            bedtools annotate -both -i end.bed -files "$INTERVAL_FILE" | bedtools sort -i - | rev | cut -f1-2 | rev > "${CURRENT_LABEL}-${INPUT_LABEL}-end-preheader.bed"
             cat pos-header.txt "${CURRENT_LABEL}-${INPUT_LABEL}-pos-preheader.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-pos-annotated.bed"
             cat end-header.txt "${CURRENT_LABEL}-${INPUT_LABEL}-end-preheader.bed" > "${CURRENT_LABEL}-${INPUT_LABEL}-end-annotated.bed"
 
@@ -172,22 +172,21 @@ task AddIntervalOverlapStatsWittyer {
         do
             CURRENT_LABEL="${INTERVAL_LABELS[$i]}"
             CURRENT_FILE="${INTERVAL_FILES[$i]}"
-            generate_interval_stats $CURRENT_LABEL $CURRENT_FILE "no-gt" no_gt.tsv
-            generate_interval_stats $CURRENT_LABEL $CURRENT_FILE "truth-table" truth_table.tsv
-            generate_interval_stats $CURRENT_LABEL $CURRENT_FILE "query-table" query_table.tsv
+            generate_interval_stats "$CURRENT_LABEL" "$CURRENT_FILE" "no-gt" no_gt.tsv
+            generate_interval_stats "$CURRENT_LABEL" "$CURRENT_FILE" "truth-table" truth_table.tsv
+            generate_interval_stats "$CURRENT_LABEL" "$CURRENT_FILE" "query-table" query_table.tsv
         done
 
         # Combine across interval beds
         echo -e "CHROM\tPOS\tEND\tSVLEN\tSVTYPE\tFILTER\tWHERE\tWIN\tTWIT\tTWHY\tQWIT\tQWHY\tExperiment" > no_gt-header.txt
         cat no_gt-header.txt no_gt.tsv > no_gt-with_header.tsv
-        paste no_gt-with_header.tsv *-no-gt-full-annotated.bed > no-gt_intervals-final.bed
+        paste no_gt-with_header.tsv ./*-no-gt-full-annotated.bed > no-gt_intervals-final.bed
 
         echo -e "CHROM\tPOS\tEND\tSVLEN\tSVTYPE\tFILTER\tWHERE\tWIN\tGT\tWIT\tWHY\tTruthSample\tQuerySample\tExperiment" > header.txt
         cat header.txt truth_table.tsv > truth_table-with_header.tsv
-        paste truth_table-with_header.tsv *-truth-table-full-annotated.bed > truth-table_intervals-final.bed
-
+        paste truth_table-with_header.tsv ./*-truth-table-full-annotated.bed > truth-table_intervals-final.bed
         cat header.txt query_table.tsv > query_table-with_header.tsv
-        paste query_table-with_header.tsv *-query-table-full-annotated.bed > query-table_intervals-final.bed
+        paste query_table-with_header.tsv ./*-query-table-full-annotated.bed > query-table_intervals-final.bed
 
         # Correct POS0/END back to original VCF POS/END coordinates
         python3 << CODE

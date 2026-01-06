@@ -246,7 +246,8 @@ task CollectCounts {
         set -eu
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk4_jar_override}
 
-        case ~{format_} in #!CommandShellCheck
+        format="~{format_}"
+        case "$format" in
             HDF5 | TSV | TSV_GZ)
                 ;;
             *)
@@ -514,10 +515,10 @@ task PostprocessGermlineCNVCalls {
         # untar models to MODEL_0, MODEL_1, etc directories and build the command line
         gcnv_model_tar_array=(~{sep=" " gcnv_model_tars})
         model_args=""
-        for index in ${!gcnv_model_tar_array[@]}; do
-            gcnv_model_tar=${gcnv_model_tar_array[$index]}
-            mkdir MODEL_$index
-            tar xzf $gcnv_model_tar -C MODEL_$index
+        for index in "${!gcnv_model_tar_array[@]}"; do
+            gcnv_model_tar="${gcnv_model_tar_array[$index]}"
+            mkdir "MODEL_$index"
+            tar xzf "$gcnv_model_tar" -C "MODEL_$index"
             model_args="$model_args --model-shard-path MODEL_$index"
         done
 
@@ -525,8 +526,8 @@ task PostprocessGermlineCNVCalls {
         tar xzf ~{contig_ploidy_calls_tar} -C contig-ploidy-calls
 
         gatk --java-options "-Xmx~{command_mem_mb}m" PostprocessGermlineCNVCalls \
-            $calls_args \
-            $model_args \
+            "$calls_args" \
+            "$model_args" \
             ~{sep=" " allosomal_contigs_args} \
             --autosomal-ref-copy-number ~{ref_copy_number_autosomal_contigs} \
             --contig-ploidy-calls contig-ploidy-calls \
@@ -540,10 +541,10 @@ task PostprocessGermlineCNVCalls {
 
         #use wc instead of grep -c so zero count isn't non-zero exit
         #use grep -P to recognize tab character
-        NUM_SEGMENTS=$(zgrep '^[^#]' ~{genotyped_segments_vcf_filename} | grep -v '0/0' | grep -v -P '\t0:1:' | grep '' | wc -l)
-        NUM_PASS_SEGMENTS=$(zgrep '^[^#]' ~{genotyped_segments_vcf_filename} | grep -v '0/0' | grep -v -P '\t0:1:' | grep 'PASS' | wc -l)
-        if [ $NUM_SEGMENTS -lt ~{maximum_number_events} ]; then
-            if [ $NUM_PASS_SEGMENTS -lt ~{maximum_number_pass_events} ]; then
+        NUM_SEGMENTS=$(zgrep '^[^#]' ~{genotyped_segments_vcf_filename} | grep -v '0/0' | grep -v -P '\t0:1:' | grep -c '')
+        NUM_PASS_SEGMENTS=$(zgrep '^[^#]' ~{genotyped_segments_vcf_filename} | grep -v '0/0' | grep -v -P '\t0:1:' | grep -c 'PASS')
+        if [ "$NUM_SEGMENTS" -lt ~{maximum_number_events} ]; then
+            if [ "$NUM_PASS_SEGMENTS" -lt ~{maximum_number_pass_events} ]; then
               echo "PASS" >> ~{qc_status_filename}
             else
               echo "EXCESSIVE_NUMBER_OF_PASS_EVENTS" >> ~{qc_status_filename}
@@ -599,11 +600,11 @@ task CollectModelQualityMetrics {
         for index in "${!gcnv_model_tar_array[@]}"; do
             gcnv_model_tar=${gcnv_model_tar_array[$index]}
             mkdir MODEL_"$index"
-            tar xzf $gcnv_model_tar -C MODEL_"$index"
+            tar xzf "$gcnv_model_tar" -C MODEL_"$index"
             ard_file=MODEL_"$index"/mu_ard_u_log__.tsv
 
             #check whether all values for ARD components are negative
-            NUM_POSITIVE_VALUES=$(awk '{ if (index($0, "@") == 0) {if ($1 > 0.0) {print $1} }}' MODEL_"$index"/mu_ard_u_log__.tsv | wc -l)
+            NUM_POSITIVE_VALUES=$(awk '{ if (index($0, "@") == 0) {if ($1 > 0.0) {print $1} }}' "$ard_file" | wc -l)
             if [ "$NUM_POSITIVE_VALUES" -eq 0 ]; then
                 qc_status="ALL_PRINCIPAL_COMPONENTS_USED"
                 break
@@ -688,7 +689,6 @@ task ScatterPloidyCallsBySample {
     }
 
     Int num_samples = length(samples)
-    String out_dir = "calls_renamed"
 
     command <<<
       set -eu
@@ -705,7 +705,7 @@ task ScatterPloidyCallsBySample {
       do
         sample_id=${sample_ids[$i]}
         padded_sample_index=$(printf "%0${num_digits}d" $i)
-        tar -czf sample_${padded_sample_index}.${sample_id}.contig_ploidy_calls.tar.gz -C calls/SAMPLE_${i} .
+        tar -czf "sample_${padded_sample_index}.${sample_id}.contig_ploidy_calls.tar.gz" -C "calls/SAMPLE_${i}" .
       done
     >>>
 

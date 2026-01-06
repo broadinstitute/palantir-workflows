@@ -1,7 +1,7 @@
 version 1.0
 import "ScoringPart.wdl" as Score
 import "CKDRiskAdjustment.wdl" as CKDRiskAdjustmentWF
-import "Structs.wdl"
+import "Structs.wdl" #!UnusedImport
 
 workflow PRSWrapper {
   input {

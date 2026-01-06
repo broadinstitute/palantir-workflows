@@ -65,8 +65,7 @@ workflow LongReadRNABenchmark {
             referenceGenome = referenceGenome,
             referenceGenomeIndex = referenceGenomeIndex,
             referenceAnnotation = referenceAnnotation,
-            datasetName = datasetName,
-            dataType = dataType
+            datasetName = datasetName
     }
 
     call FlairWorkflow.Flair as Flair {
@@ -105,8 +104,7 @@ workflow LongReadRNABenchmark {
             inputBAMIndex = inputBAMIndex,
             referenceGenome = referenceGenome,
             referenceGenomeIndex = referenceGenomeIndex,
-            referenceAnnotation = referenceAnnotation,
-            datasetName = datasetName
+            referenceAnnotation = referenceAnnotation
     }
 
     call CupcakeWorkflow.Cupcake as Cupcake {
@@ -144,10 +142,10 @@ workflow LongReadRNABenchmark {
             expressedKeptGTF = expressedKeptGTF
     }
 
-    scatter(gtf in gtfListReferenceFree) {
+    scatter(gtfRefFree in gtfListReferenceFree) {
         call IsoformDiscoveryBenchmarkTasks.ReferenceFreeAnalysis {
             input:
-                inputGTF = gtf,
+                inputGTF = gtfRefFree,
                 expressedGTF = expressedGTF
         }
     }
