@@ -19,7 +19,6 @@ workflow LongReadRNABenchmark {
         File referenceAnnotation
         File expressedGTF
         File expressedKeptGTF
-        File excludedGTF
         String datasetName
         String dataType
     }
@@ -138,7 +137,7 @@ workflow LongReadRNABenchmark {
     call IsoformDiscoveryBenchmarkTasks.GffCompareTrackDenovo {
         input:
             datasetName = datasetName,
-            toolGTFs = gtfListReduced,
+            toolGTFs = gtfListReduced, #!NonemptyCoercion
             expressedKeptGTF = expressedKeptGTF
     }
 
@@ -152,22 +151,22 @@ workflow LongReadRNABenchmark {
 
     call IsoformDiscoveryBenchmarkTasks.SummarizeAnalysis {
         input:
-            trackingFiles = GffCompareTrack.tracking,
-            toolNames = toolNamesReduced,
+            trackingFiles = GffCompareTrack.tracking, #!NonemptyCoercion
+            toolNames = toolNamesReduced, #!NonemptyCoercion
             datasetName = datasetName
     }
 
     call IsoformDiscoveryBenchmarkTasks.SummarizeReferenceFreeAnalysis {
         input:
-            inputList = ReferenceFreeAnalysis.stats,
-            toolNames = toolNamesReferenceFree,
+            inputList = ReferenceFreeAnalysis.stats, #!NonemptyCoercion
+            toolNames = toolNamesReferenceFree, #!NonemptyCoercion
             datasetName = datasetName
     }
 
     call IsoformDiscoveryBenchmarkTasks.SummarizeDenovoAnalysis {
         input:
             trackingFile = GffCompareTrackDenovo.tracking,
-            toolNames = toolNamesReduced,
+            toolNames = toolNamesReduced, #!NonemptyCoercion
             datasetName = datasetName
     }
 

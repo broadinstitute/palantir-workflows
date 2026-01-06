@@ -50,7 +50,6 @@ workflow FindSamplesAndBenchmark {
         # Fingerprint arguments
         File haplotype_map
         Boolean check_all_file_pairs = true
-        Boolean fail_on_mismatch = false
         Boolean check_only_matching_sample_names = false
         String crosscheck_by = "FILE"    # Or: READGROUP, LIBRARY, SAMPLE
         Float lod_threshold = -5

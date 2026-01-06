@@ -272,7 +272,6 @@ task GCNVVisualzation {
        \`\`\`
 
        \`\`\`{r setup, include=FALSE, message=FALSE, warning=FALSE}
-       #knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
        library(ggplot2)
        library(dplyr)
        library(readr)

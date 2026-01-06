@@ -63,7 +63,7 @@ workflow Glimpse2SplitReference {
     if (defined(output_path)) {
         call ExportReferencePanel {
             input:
-                reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks), #!FileCoercion
+                reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks), #!StringCoercion
                 output_path = select_first([output_path]),
                 output_panel_name = select_first([output_panel_name, "reference_panel"])
         }
@@ -110,11 +110,11 @@ task GlimpseSplitReferenceTask {
         CONTIGINDEX=$(printf "%04d" ~{i_contig})
 
         /bin/GLIMPSE2_chunk --input ~{reference_panel} --region ~{contig} --map ~{genetic_map} --sequential \
-            --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt \
+            --threads "${NPROC}" --output "chunks_contigindex_${CONTIGINDEX}.txt" \
             ~{"--seed "+seed} ~{"--window-cm "+min_window_cm} ~{uniform_number_variants_string}
 
-        if [ -f chunks_contigindex_${CONTIGINDEX}.txt_uniform ]; then
-            mv chunks_contigindex_${CONTIGINDEX}.txt_uniform chunks_contigindex_${CONTIGINDEX}.txt
+        if [ -f "chunks_contigindex_${CONTIGINDEX}.txt_uniform" ]; then
+            mv "chunks_contigindex_${CONTIGINDEX}.txt_uniform" "chunks_contigindex_${CONTIGINDEX}.txt"
         fi
 
         mkdir -p ~{reference_output_dir}
@@ -123,18 +123,17 @@ task GlimpseSplitReferenceTask {
         while IFS="" read -r LINE || [ -n "$LINE" ];
         do
             # Extract coordinates from chunks.txt file
-            printf -v ID "%02d" $(echo $LINE | cut -d" " -f1)
-            IRG=$(echo $LINE | cut -d" " -f3)
-            ORG=$(echo $LINE | cut -d" " -f4)
+            IRG=$(echo "$LINE" | cut -d" " -f3)
+            ORG=$(echo "$LINE" | cut -d" " -f4)
 
             # Print chunk index to variable
             CHUNKINDEX=$(printf "%04d" $I_CHUNK)
 
-            /bin/GLIMPSE2_split_reference --threads ${NPROC} --reference ~{reference_panel} --map ~{genetic_map} --input-region ${IRG} --output-region ${ORG} --output ~{reference_output_dir}/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} ~{keep_monomorphic_ref_sites_string} ~{"--seed "+seed}
+            /bin/GLIMPSE2_split_reference --threads "${NPROC}" --reference ~{reference_panel} --map ~{genetic_map} --input-region "${IRG}" --output-region "${ORG}" --output "~{reference_output_dir}/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX}" ~{keep_monomorphic_ref_sites_string} ~{"--seed "+seed}
 
             # Increase i (and make sure the exit code is zero)
             (( I_CHUNK++ )) || true
-        done < chunks_contigindex_${CONTIGINDEX}.txt
+        done < "chunks_contigindex_${CONTIGINDEX}.txt"
     >>>
 
     runtime {
