@@ -83,8 +83,7 @@ workflow AnnotateVCF {
                 truth_vcf_index=select_first([AnnotateTruthGatk.annotated_vcf_index, truth_vcf_index]),
                 truth_bed=truth_bed,
                 ref_fasta=ref_fasta,
-                ref_fasta_index=ref_fasta_index,
-                bed_labels=bed_labels
+                ref_fasta_index=ref_fasta_index
         }
 
         call AnnotateVcfRegions as AnnotateTruthRegions {
