@@ -111,7 +111,7 @@ workflow BenchmarkVCFs {
     }
 
     if (check_fingerprint) {
-        call Fingerprint.MatchFingerprints as CheckFingerprint { #!UnusedCall
+        call Fingerprint.MatchFingerprints as CheckFingerprint { 
             input:
                 input_files=[query_vcf],
                 input_indices=[query_vcf_index],
