@@ -21,7 +21,7 @@ jobs:
         with:
           MINIWDL_VERSION: ${{ env.MINIWDL_VERSION }}
       - name: miniwdl check
-        run: find . -name '*.wdl' -not -path "./PRS/Validation/ValidateScoring.wdl"| xargs -I {} bash -c 'output=$(miniwdl check --strict "{}" 2>&1); if [ $? -ne 0 ]; then echo -e "FAILED: {}\n$output"; exit 1; fi'
+        run: find . -name '*.wdl' -not -path "./PRS/Validation/ValidateScoring.wdl"| xargs -I {} bash -c 'output=$(miniwdl check --strict "{}" 2>&1); if [ $? -ne 0 ]; then echo -e "FAILED\: {}\n$output"; exit 1; fi'
 
   test_wdl:
     needs: validate_wdl

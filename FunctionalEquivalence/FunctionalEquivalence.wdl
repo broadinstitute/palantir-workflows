@@ -45,6 +45,7 @@ workflow FunctionalEquivalence {
 
         File ref_fasta
         File ref_index
+        File haplotype_map
 
         String tool1_label
         String tool2_label
@@ -95,6 +96,7 @@ workflow FunctionalEquivalence {
                 passing_only=passing_only,
                 require_matching_genotypes=require_matching_genotypes,
                 enable_ref_overlap=enable_ref_overlap,
+                haplotype_map=haplotype_map
         }
     }
 
@@ -121,6 +123,7 @@ workflow FunctionalEquivalence {
                 passing_only=passing_only,
                 require_matching_genotypes=require_matching_genotypes,
                 enable_ref_overlap=enable_ref_overlap,
+                haplotype_map=haplotype_map
         }
     }
 
