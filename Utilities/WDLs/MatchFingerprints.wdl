@@ -24,6 +24,7 @@ workflow MatchFingerprints {
 
         String crosscheck_by = "FILE"    # Or: READGROUP, LIBRARY, SAMPLE
         Float lod_threshold = -5
+        Boolean fail_on_mismatch = false    # If true, will cause workflow to fail if any mismatches found
     }
 
     # Default "extra_file" to another copy of index if nothing provided
@@ -56,7 +57,8 @@ workflow MatchFingerprints {
                 haplotype_map=haplotype_map,
                 check_only_matching_sample_names=check_only_matching_sample_names,
                 crosscheck_by=crosscheck_by,
-                lod_threshold=lod_threshold
+                lod_threshold=lod_threshold,
+                fail_on_mismatch=fail_on_mismatch,
         }
     }
 
@@ -88,6 +90,7 @@ task CheckFingerprints {
         String crosscheck_by
         Float lod_threshold
 
+        Boolean fail_on_mismatch = false    # If true, will cause task to fail if any mismatches found
         String output_name = "output"
         String gatk_tag = "4.5.0.0"
     }
@@ -145,7 +148,7 @@ task CheckFingerprints {
             -H ~{haplotype_map} \
             -O "~{output_name}.txt" \
             -LOD ~{lod_threshold} \
-            --EXIT_CODE_WHEN_MISMATCH 0 \
+            --EXIT_CODE_WHEN_MISMATCH ~{if fail_on_mismatch then 1 else 0} \
             --CROSSCHECK_MODE ~{crosscheck_mode} \
             --CROSSCHECK_BY ~{crosscheck_by}
 

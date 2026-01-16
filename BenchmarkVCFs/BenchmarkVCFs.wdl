@@ -2,6 +2,7 @@ version 1.0
 
 import "../Utilities/WDLs/IntervalList2Bed.wdl" as IntervalList2Bed
 import "../Utilities/WDLs/CreateIGVSession.wdl" as IGV
+import "../Utilities/WDLs/MatchFingerprints.wdl" as Fingerprint
 
 # Object holding configuration for runtime parameters to shorten number of optional inputs
 struct RuntimeAttributes {
@@ -60,6 +61,9 @@ workflow BenchmarkVCFs {
         Array[String] extra_column_names = []
         Array[String] extra_column_values = []
 
+        Boolean check_fingerprint = true
+        File? haplotype_map
+
         # vcfeval Arguments
         Boolean passing_only = true
         Boolean require_matching_genotypes = true
@@ -104,6 +108,18 @@ workflow BenchmarkVCFs {
 
     scatter (selection in zip(bcf_genotype_labels, bcf_genotypes)) {
         GenotypeSelector genotype_selector_list = {"bcf_genotype_label": selection.left, "bcf_genotype": selection.right}
+    }
+
+    if (check_fingerprint) {
+        call Fingerprint.MatchFingerprints as CheckFingerprint {
+            input:
+                input_files=[query_vcf],
+                input_indices=[query_vcf_index],
+                second_input_files=[base_vcf],
+                second_input_indices=[base_vcf_index],
+                haplotype_map=select_first([haplotype_map]),
+                fail_on_mismatch=true
+        }
     }
 
     call VCFEval as StandardVCFEval {
