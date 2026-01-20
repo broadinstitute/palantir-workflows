@@ -459,7 +459,7 @@ task ExtractPoNFreqAnnotateFilterAndQC {
 
         for i in "${!filters[@]}"
         do
-            eval bcftools filter --no-version -m + -e "\'${filters[$i]}\'" --soft-filter "${filter_names[$i]}" -o tmp_out.vcf.gz tmp.vcf.gz
+            eval bcftools filter --no-version -m + -e \'"${filters[$i]}"\' --soft-filter "${filter_names[$i]}" -o tmp_out.vcf.gz tmp.vcf.gz
             mv tmp_out.vcf.gz tmp.vcf.gz
         done
 
