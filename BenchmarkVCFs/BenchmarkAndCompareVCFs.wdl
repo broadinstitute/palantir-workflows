@@ -20,6 +20,8 @@ workflow BenchmarkAndCompareVCFs {
         Array[File] base_vcf_indices
         Array[String] base_output_sample_names
 
+        Array[File] evaluation_intervals
+
         Array[File] query_vcfs
         Array[File] query_vcf_indices
         Array[String] query_output_sample_names
@@ -58,7 +60,8 @@ workflow BenchmarkAndCompareVCFs {
                 score_field=score_field,
                 experiment=experiment,
                 extra_column_names=extra_column_names,
-                extra_column_values=extra_column_values
+                extra_column_values=extra_column_values,
+                evaluation_intervals=evaluation_intervals[i]
 
         }
     }

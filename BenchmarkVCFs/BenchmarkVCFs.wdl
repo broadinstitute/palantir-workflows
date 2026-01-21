@@ -270,6 +270,7 @@ task VCFEval {
         if [ -z ~{par_bed} ];
         then
             rtg format -o rtg_ref ~{reference.fasta}
+            #shellcheck disable=SC2086
             rtg vcfeval \
                 ~{false="--all-records" true="" passing_only} \
                 ~{false="--squash-ploidy" true="" require_matching_genotypes} \
@@ -281,7 +282,7 @@ task VCFEval {
                 --output-mode combine \
                 --decompose \
                 --roc-subset snp,indel \
-                "$ROC_REGIONS_FLAGS" \
+                $ROC_REGIONS_FLAGS \
                 --roc-cross-join \
                 --XXcom.rtg.vcf.eval.roc-subset-rescale true \
                 -t rtg_ref \
