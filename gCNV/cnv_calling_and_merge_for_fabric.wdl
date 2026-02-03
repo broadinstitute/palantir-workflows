@@ -62,7 +62,7 @@ workflow CNVCallingAndMergeForFabric {
             case_read_counts = SingleSampleGCNVAndFilterVCFs.read_counts,
             panel_copy_ratios = gcnv_panel_copy_ratios,
             panel_read_counts = gcnv_panel_read_counts,
-            interval_list = SingleSampleGCNVAndFilterVCFs.interval_list
+            interval_lists = [SingleSampleGCNVAndFilterVCFs.interval_list]
 
     }
 
@@ -228,7 +228,7 @@ task GCNVVisualzation {
         File case_read_counts
         Array[File]+ panel_copy_ratios
         Array[File]+ panel_read_counts
-        File interval_list
+        Array[File]+ interval_lists
         Int mem_gb=4
     }
 
@@ -362,8 +362,7 @@ task GCNVVisualzation {
        case_read_counts <- case_read_counts %>% inner_join(panel_mean_counts)
        case_read_counts <- case_read_counts %>% mutate(adjusted_counts = 2*norm_counts/panel_mean_norm_counts) %>% drop_na()
        case_read_counts <- case_read_counts %>% semi_join(cr_case)
-       intervals <- read_tsv("~{interval_list}",
-                             comment="@")
+       intervals <- c("~{sep='","' interval_lists}") %>% map(read_tsv, comment="@") %>% reduce(bind_rows)
        case_read_counts <- case_read_counts %>% left_join(intervals)
 
        \`\`\`

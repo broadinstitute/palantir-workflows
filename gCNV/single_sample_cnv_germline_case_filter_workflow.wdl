@@ -200,7 +200,6 @@ workflow SingleSampleGCNVAndFilterVCFs {
             max_events = maximum_number_events_per_sample,
             max_pass_events = maximum_number_pass_events_per_sample,
             sample_name = CollectCounts.entity_id,
-            overlap_thresh = overlap_thresh,
             mem_gb = mem_gb_for_extract_pon_freq,
             disk_size_gb = disk_for_extract_pon_freq
     }
