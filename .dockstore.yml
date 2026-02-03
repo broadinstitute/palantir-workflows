@@ -156,3 +156,6 @@ workflows:
   - name: Glimpse2QCReport
     subclass: WDL
     primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2QCReport.wdl
+  - name: CohortCNVCallingAndMergeForFabric
+    subclass: WDL
+    primaryDescriptorPath: /gCNV/cohort_cnv_calling_and_merge_for_fabric.wdl
