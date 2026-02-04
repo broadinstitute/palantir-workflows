@@ -165,6 +165,9 @@ workflow CNVGermlineCohortWorkflow {
       ##########################
       Int maximum_number_events_per_sample
       Int maximum_number_pass_events_per_sample
+
+      #optional init model
+      File? init_gcnv_model_tar
     }
 
     Array[Pair[String, String]] normal_bams_and_bais = zip(normal_bams, normal_bais)
@@ -320,7 +323,8 @@ workflow CNVGermlineCohortWorkflow {
                 caller_internal_admixing_rate = gcnv_caller_internal_admixing_rate,
                 caller_external_admixing_rate = gcnv_caller_external_admixing_rate,
                 disable_annealing = gcnv_disable_annealing,
-                preemptible_attempts = preemptible_attempts
+                preemptible_attempts = preemptible_attempts,
+                init_gcnv_model_tar = init_gcnv_model_tar
         }
     }
 
