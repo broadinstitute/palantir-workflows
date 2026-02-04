@@ -155,7 +155,9 @@ workflow CohortCNVCallingAndMergeForFabric {
       Float? overlap_thresh
 
       #optional init model
-      File? init_gcnv_model_tar
+      Array[File]? init_gcnv_model_tars
+      File? preprocessed_intervals_for_init_model
+      File? filtered_intervals_for_init_model
     }
 
     call cnv_germline_cohort.CNVGermlineCohortWorkflow {
@@ -251,7 +253,9 @@ workflow CohortCNVCallingAndMergeForFabric {
             allosomal_contigs = allosomal_contigs,
             maximum_number_events_per_sample = maximum_number_events_per_sample,
             maximum_number_pass_events_per_sample = maximum_number_pass_events_per_sample,
-            init_gcnv_model_tar = init_gcnv_model_tar
+            init_gcnv_model_tars = init_gcnv_model_tars,
+            preprocessed_intervals_for_init_model = preprocessed_intervals_for_init_model,
+            filtered_intervals_for_init_model = filtered_intervals_for_init_model
     }
 
     scatter (i in range(length(CNVGermlineCohortWorkflow.genotyped_segments_vcfs))) {

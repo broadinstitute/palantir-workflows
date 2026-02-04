@@ -167,48 +167,54 @@ workflow CNVGermlineCohortWorkflow {
       Int maximum_number_pass_events_per_sample
 
       #optional init model
-      File? init_gcnv_model_tar
+      Array[File]? init_gcnv_model_tars
+      File? preprocessed_intervals_for_init_model
+      File? filtered_intervals_for_init_model
+
     }
 
     Array[Pair[String, String]] normal_bams_and_bais = zip(normal_bams, normal_bais)
 
-    call CNVTasks.PreprocessIntervals {
-        input:
-            intervals = intervals,
-            blacklist_intervals = blacklist_intervals,
-            ref_fasta = ref_fasta,
-            ref_fasta_fai = ref_fasta_fai,
-            ref_fasta_dict = ref_fasta_dict,
-            padding = padding,
-            bin_length = bin_length,
-            gatk4_jar_override = gatk4_jar_override,
-            gatk_docker = gatk_docker,
-            preemptible_attempts = preemptible_attempts
-    }
-
-    if (select_first([do_explicit_gc_correction, true])) {
-        call CNVTasks.AnnotateIntervals {
+    if (!defined(preprocessed_intervals_for_init_model)) {
+        
+        call CNVTasks.PreprocessIntervals {
             input:
-                intervals = PreprocessIntervals.preprocessed_intervals,
+                intervals = intervals,
+                blacklist_intervals = blacklist_intervals,
                 ref_fasta = ref_fasta,
                 ref_fasta_fai = ref_fasta_fai,
                 ref_fasta_dict = ref_fasta_dict,
-                mappability_track_bed = mappability_track_bed,
-                mappability_track_bed_idx = mappability_track_bed_idx,
-                segmental_duplication_track_bed = segmental_duplication_track_bed,
-                segmental_duplication_track_bed_idx = segmental_duplication_track_bed_idx,
-                feature_query_lookahead = feature_query_lookahead,
+                padding = padding,
+                bin_length = bin_length,
                 gatk4_jar_override = gatk4_jar_override,
                 gatk_docker = gatk_docker,
-                mem_gb = mem_gb_for_annotate_intervals,
                 preemptible_attempts = preemptible_attempts
+        }
+    
+        if (select_first([do_explicit_gc_correction, true])) {
+            call CNVTasks.AnnotateIntervals {
+                input:
+                    intervals = PreprocessIntervals.preprocessed_intervals,
+                    ref_fasta = ref_fasta,
+                    ref_fasta_fai = ref_fasta_fai,
+                    ref_fasta_dict = ref_fasta_dict,
+                    mappability_track_bed = mappability_track_bed,
+                    mappability_track_bed_idx = mappability_track_bed_idx,
+                    segmental_duplication_track_bed = segmental_duplication_track_bed,
+                    segmental_duplication_track_bed_idx = segmental_duplication_track_bed_idx,
+                    feature_query_lookahead = feature_query_lookahead,
+                    gatk4_jar_override = gatk4_jar_override,
+                    gatk_docker = gatk_docker,
+                    mem_gb = mem_gb_for_annotate_intervals,
+                    preemptible_attempts = preemptible_attempts
+            }
         }
     }
 
     scatter (normal_bam_and_bai in normal_bams_and_bais) {
         call CNVTasks.CollectCounts {
             input:
-                intervals = PreprocessIntervals.preprocessed_intervals,
+                intervals = select_first([preprocessed_intervals_for_init_model, PreprocessIntervals.preprocessed_intervals]),
                 bam = normal_bam_and_bai.left,
                 bam_idx = normal_bam_and_bai.right,
                 ref_fasta = ref_fasta,
@@ -225,33 +231,36 @@ workflow CNVGermlineCohortWorkflow {
         }
     }
 
-    call CNVTasks.FilterIntervals {
-        input:
-            intervals = PreprocessIntervals.preprocessed_intervals,
-            blacklist_intervals = blacklist_intervals_for_filter_intervals,
-            annotated_intervals = AnnotateIntervals.annotated_intervals,
-            read_count_files = CollectCounts.counts,
-            minimum_gc_content = minimum_gc_content,
-            maximum_gc_content = maximum_gc_content,
-            minimum_mappability = minimum_mappability,
-            maximum_mappability = maximum_mappability,
-            minimum_segmental_duplication_content = minimum_segmental_duplication_content,
-            maximum_segmental_duplication_content = maximum_segmental_duplication_content,
-            low_count_filter_count_threshold = low_count_filter_count_threshold,
-            low_count_filter_percentage_of_samples = low_count_filter_percentage_of_samples,
-            extreme_count_filter_minimum_percentile = extreme_count_filter_minimum_percentile,
-            extreme_count_filter_maximum_percentile = extreme_count_filter_maximum_percentile,
-            extreme_count_filter_percentage_of_samples = extreme_count_filter_percentage_of_samples,
-            gatk4_jar_override = gatk4_jar_override,
-            gatk_docker = gatk_docker,
-            mem_gb = mem_gb_for_filter_intervals,
-            preemptible_attempts = preemptible_attempts
+    if (!defined(filtered_intervals_for_init_model)) {
+        
+        call CNVTasks.FilterIntervals {
+            input:
+                intervals = select_first([preprocessed_intervals_for_init_model, PreprocessIntervals.preprocessed_intervals]),
+                blacklist_intervals = blacklist_intervals_for_filter_intervals,
+                annotated_intervals = AnnotateIntervals.annotated_intervals,
+                read_count_files = CollectCounts.counts,
+                minimum_gc_content = minimum_gc_content,
+                maximum_gc_content = maximum_gc_content,
+                minimum_mappability = minimum_mappability,
+                maximum_mappability = maximum_mappability,
+                minimum_segmental_duplication_content = minimum_segmental_duplication_content,
+                maximum_segmental_duplication_content = maximum_segmental_duplication_content,
+                low_count_filter_count_threshold = low_count_filter_count_threshold,
+                low_count_filter_percentage_of_samples = low_count_filter_percentage_of_samples,
+                extreme_count_filter_minimum_percentile = extreme_count_filter_minimum_percentile,
+                extreme_count_filter_maximum_percentile = extreme_count_filter_maximum_percentile,
+                extreme_count_filter_percentage_of_samples = extreme_count_filter_percentage_of_samples,
+                gatk4_jar_override = gatk4_jar_override,
+                gatk_docker = gatk_docker,
+                mem_gb = mem_gb_for_filter_intervals,
+                preemptible_attempts = preemptible_attempts
+        }
     }
 
     call DetermineGermlineContigPloidyCohortMode {
         input:
             cohort_entity_id = cohort_entity_id,
-            intervals = FilterIntervals.filtered_intervals,
+            intervals = select_first([filtered_intervals_for_init_model, FilterIntervals.filtered_intervals]),
             read_count_files = CollectCounts.counts,
             contig_ploidy_priors = contig_ploidy_priors,
             gatk4_jar_override = gatk4_jar_override,
@@ -267,13 +276,16 @@ workflow CNVGermlineCohortWorkflow {
 
     call CNVTasks.ScatterIntervals {
         input:
-            interval_list = FilterIntervals.filtered_intervals,
+            interval_list = select_first([filtered_intervals_for_init_model, FilterIntervals.filtered_intervals]),
             num_intervals_per_scatter = num_intervals_per_scatter,
             gatk_docker = gatk_docker,
             preemptible_attempts = preemptible_attempts
     }
 
     scatter (scatter_index in range(length(ScatterIntervals.scattered_interval_lists))) {
+        if (defined(init_gcnv_model_tars)) {
+            File init_gcnv_model_tar_this_scatter = select_first([init_gcnv_model_tars])[scatter_index]
+        }
         call GermlineCNVCallerCohortMode {
             input:
                 scatter_index = scatter_index,
@@ -324,7 +336,7 @@ workflow CNVGermlineCohortWorkflow {
                 caller_external_admixing_rate = gcnv_caller_external_admixing_rate,
                 disable_annealing = gcnv_disable_annealing,
                 preemptible_attempts = preemptible_attempts,
-                init_gcnv_model_tar = init_gcnv_model_tar
+                init_gcnv_model_tars = init_gcnv_model_tar_this_scatter
         }
     }
 
@@ -405,11 +417,11 @@ workflow CNVGermlineCohortWorkflow {
 
 
     output {
-        File preprocessed_intervals = PreprocessIntervals.preprocessed_intervals
+        File preprocessed_intervals = select_first([PreprocessIntervals.preprocessed_intervals, preprocessed_intervals_for_init_model])
         Array[File] read_counts_entity_ids = CollectCounts.entity_id
         Array[File] read_counts = CollectCounts.counts
         File? annotated_intervals = AnnotateIntervals.annotated_intervals
-        File filtered_intervals = FilterIntervals.filtered_intervals
+        File filtered_intervals = select_first([filtered_intervals_for_init_model, FilterIntervals.filtered_intervals])
         File contig_ploidy_model_tar = DetermineGermlineContigPloidyCohortMode.contig_ploidy_model_tar
         File contig_ploidy_calls_tar = DetermineGermlineContigPloidyCohortMode.contig_ploidy_calls_tar
         File contig_ploidy_calls_tar_path_list = WritePloidyCalls.path_list
@@ -573,7 +585,7 @@ task GermlineCNVCallerCohortMode {
       Boolean? disable_annealing
 
       #optional init model
-      File? init_gcnv_model_tar
+      File? init_gcnv_model_tars
     }
 
     Int machine_mem_mb = select_first([mem_gb, 7]) * 1000
@@ -594,9 +606,9 @@ task GermlineCNVCallerCohortMode {
         mkdir contig-ploidy-calls
         tar xzf ~{contig_ploidy_calls_tar} -C contig-ploidy-calls
 
-        if [ -n "~{default="" init_gcnv_model_tar}" ]; then
+        if [ -n "~{default="" init_gcnv_model_tars}" ]; then
             mkdir init-gcnv-model
-            tar xzf ~{init_gcnv_model_tar} -C init-gcnv-model
+            tar xzf ~{init_gcnv_model_tars} -C init-gcnv-model
         fi
 
         gatk --java-options "-Xmx~{command_mem_mb}m"  GermlineCNVCaller \
@@ -605,7 +617,7 @@ task GermlineCNVCallerCohortMode {
             --input ~{sep=" --input " read_count_files} \
             --contig-ploidy-calls contig-ploidy-calls \
             ~{"--annotated-intervals " + annotated_intervals} \
-            ~{if defined(init_gcnv_model_tar) then "--initial-model init-gcnv-model" else ""} \
+            ~{if defined(init_gcnv_model_tars) then "--initial-model init-gcnv-model" else ""} \
             --interval-merging-rule OVERLAPPING_ONLY \
             --output ~{output_dir_} \
             --output-prefix ~{cohort_entity_id} \
