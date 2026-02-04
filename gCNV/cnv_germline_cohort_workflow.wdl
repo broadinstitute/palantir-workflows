@@ -190,26 +190,27 @@ workflow CNVGermlineCohortWorkflow {
                 gatk_docker = gatk_docker,
                 preemptible_attempts = preemptible_attempts
         }
+    }
     
-        if (select_first([do_explicit_gc_correction, true])) {
-            call CNVTasks.AnnotateIntervals {
-                input:
-                    intervals = PreprocessIntervals.preprocessed_intervals,
-                    ref_fasta = ref_fasta,
-                    ref_fasta_fai = ref_fasta_fai,
-                    ref_fasta_dict = ref_fasta_dict,
-                    mappability_track_bed = mappability_track_bed,
-                    mappability_track_bed_idx = mappability_track_bed_idx,
-                    segmental_duplication_track_bed = segmental_duplication_track_bed,
-                    segmental_duplication_track_bed_idx = segmental_duplication_track_bed_idx,
-                    feature_query_lookahead = feature_query_lookahead,
-                    gatk4_jar_override = gatk4_jar_override,
-                    gatk_docker = gatk_docker,
-                    mem_gb = mem_gb_for_annotate_intervals,
-                    preemptible_attempts = preemptible_attempts
-            }
+    if (select_first([do_explicit_gc_correction, true])) {
+        call CNVTasks.AnnotateIntervals {
+            input:
+                intervals = select_first([preprocessed_intervals_for_init_model, PreprocessIntervals.preprocessed_intervals]),
+                ref_fasta = ref_fasta,
+                ref_fasta_fai = ref_fasta_fai,
+                ref_fasta_dict = ref_fasta_dict,
+                mappability_track_bed = mappability_track_bed,
+                mappability_track_bed_idx = mappability_track_bed_idx,
+                segmental_duplication_track_bed = segmental_duplication_track_bed,
+                segmental_duplication_track_bed_idx = segmental_duplication_track_bed_idx,
+                feature_query_lookahead = feature_query_lookahead,
+                gatk4_jar_override = gatk4_jar_override,
+                gatk_docker = gatk_docker,
+                mem_gb = mem_gb_for_annotate_intervals,
+                preemptible_attempts = preemptible_attempts
         }
     }
+    
 
     scatter (normal_bam_and_bai in normal_bams_and_bais) {
         call CNVTasks.CollectCounts {
