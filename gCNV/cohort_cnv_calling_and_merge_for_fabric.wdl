@@ -153,6 +153,9 @@ workflow CohortCNVCallingAndMergeForFabric {
       Int? mem_gb_for_extract_pon_freq
       Int? disk_for_extract_pon_freq
       Float? overlap_thresh
+
+      #optional init model
+      File? init_gcnv_model_tar
     }
 
     call cnv_germline_cohort.CNVGermlineCohortWorkflow {
@@ -247,7 +250,8 @@ workflow CohortCNVCallingAndMergeForFabric {
             disk_space_gb_for_postprocess_germline_cnv_calls = disk_space_gb_for_postprocess_germline_cnv_calls,
             allosomal_contigs = allosomal_contigs,
             maximum_number_events_per_sample = maximum_number_events_per_sample,
-            maximum_number_pass_events_per_sample = maximum_number_pass_events_per_sample
+            maximum_number_pass_events_per_sample = maximum_number_pass_events_per_sample,
+            init_gcnv_model_tar = init_gcnv_model_tar
     }
 
     scatter (i in range(length(CNVGermlineCohortWorkflow.genotyped_segments_vcfs))) {

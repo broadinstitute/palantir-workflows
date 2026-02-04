@@ -567,6 +567,9 @@ task GermlineCNVCallerCohortMode {
       Float? caller_internal_admixing_rate
       Float? caller_external_admixing_rate
       Boolean? disable_annealing
+
+      #optional init model
+      File? init_gcnv_model_tar
     }
 
     Int machine_mem_mb = select_first([mem_gb, 7]) * 1000
@@ -587,12 +590,18 @@ task GermlineCNVCallerCohortMode {
         mkdir contig-ploidy-calls
         tar xzf ~{contig_ploidy_calls_tar} -C contig-ploidy-calls
 
+        if [ -n "~{default="" init_gcnv_model_tar}" ]; then
+            mkdir init-gcnv-model
+            tar xzf ~{init_gcnv_model_tar} -C init-gcnv-model
+        fi
+
         gatk --java-options "-Xmx~{command_mem_mb}m"  GermlineCNVCaller \
             --run-mode COHORT \
             -L ~{intervals} \
             --input ~{sep=" --input " read_count_files} \
             --contig-ploidy-calls contig-ploidy-calls \
             ~{"--annotated-intervals " + annotated_intervals} \
+            ~{if defined(init_gcnv_model_tar) then "--initial-model init-gcnv-model" else ""} \
             --interval-merging-rule OVERLAPPING_ONLY \
             --output ~{output_dir_} \
             --output-prefix ~{cohort_entity_id} \
