@@ -617,7 +617,7 @@ task GermlineCNVCallerCohortMode {
             --input ~{sep=" --input " read_count_files} \
             --contig-ploidy-calls contig-ploidy-calls \
             ~{"--annotated-intervals " + annotated_intervals} \
-            ~{if defined(init_gcnv_model_tars) then "--initial-model init-gcnv-model" else ""} \
+            ~{if defined(init_gcnv_model_tars) then "--model init-gcnv-model" else ""} \
             --interval-merging-rule OVERLAPPING_ONLY \
             --output ~{output_dir_} \
             --output-prefix ~{cohort_entity_id} \
