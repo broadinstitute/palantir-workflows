@@ -9,10 +9,9 @@ process GENERATE_REPORT_DATA {
     input:
     tuple val(num_input_cells), 
           path(scrna_metrics), 
-          path(data_filtered_matrix), 
           path(barcode_summary), 
-          path(sample_id),
-          path(output_basename),
+          val(sample_id),
+          val(output_basename),
           path(assignments)
     
     output:
