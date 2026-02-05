@@ -57,7 +57,7 @@ nextflow run main.nf \
   --data_dir data/sample_output \
   --dragen_file_prefix sample_123 \
   --sample_id "Sample_123" \
-  --output_basename "sample_123_processed" \
+  --output_basename "sample_123" \
   --outdir results
 ```
 
@@ -92,7 +92,7 @@ nextflow run main.nf -profile local \
   --data_dir data/sample_output \
   --dragen_file_prefix sample_123 \
   --sample_id "Sample_123" \
-  --output_basename "sample_123_processed" \
+  --output_basename "sample_123" \
   --outdir results
 
 # AWS Batch with Docker containers
@@ -101,7 +101,7 @@ nextflow run main.nf -profile awsbatch \
   --data_dir s3://bucket/sample_output \
   --dragen_file_prefix sample_123 \
   --sample_id "Sample_123" \
-  --output_basename "sample_123_processed" \
+  --output_basename "sample_123" \
   --outdir s3://bucket/results
 
 # SLURM cluster
@@ -110,7 +110,7 @@ nextflow run main.nf -profile cluster \
   --data_dir /path/to/data \
   --dragen_file_prefix sample_123 \
   --sample_id "Sample_123" \
-  --output_basename "sample_123_processed"
+  --output_basename "sample_123"
 
 # Google Cloud Platform with containers
 nextflow run main.nf -profile gcp \
@@ -118,7 +118,7 @@ nextflow run main.nf -profile gcp \
   --data_dir gs://bucket/data \
   --dragen_file_prefix sample_123 \
   --sample_id "Sample_123" \
-  --output_basename "sample_123_processed"
+  --output_basename "sample_123"
 
 # Local with Docker
 nextflow run main.nf -profile docker \
@@ -126,7 +126,7 @@ nextflow run main.nf -profile docker \
   --data_dir data/sample_output \
   --dragen_file_prefix sample_123 \
   --sample_id "Sample_123" \
-  --output_basename "sample_123_processed"
+  --output_basename "sample_123"
 ```
 
 #### Profile Details
@@ -188,21 +188,21 @@ nextflow run main.nf -profile docker \
 
 ## Output
 
-Results are organized in the output directory:
+Results are organized in the output directory under the `output_basename` subdirectory:
 
-**`${params.outdir}/crispr_adata/`:**
-- `<prefix>.crispr.h5ad` - CRISPR features in AnnData format
-- `<prefix>.extract_crispr_features.log` - Processing log
+**`${params.outdir}/${output_basename}/crispr_adata/`:**
+- `<output_basename>.crispr.h5ad` - CRISPR features in AnnData format
 
-**`${params.outdir}/ga_crispat/`:** (if guide assignment enabled)
-- `<prefix>.assignments.csv` - CRISPAT guide assignments
-- `<prefix>.guide_assignment.log` - Processing log
+**`${params.outdir}/${output_basename}/ga_crispat/`:** (if guide assignment enabled)
+- `<output_basename>.assignments.csv` - CRISPAT guide assignments
 
-**`${params.outdir}/processed/`:**
-- `<output_basename>.output.csv` - Final QC metrics and report data
-- `<output_basename>.generate_report_data.log` - Processing log
+**`${params.outdir}/${output_basename}/qc/`:**
+- `<output_basename>.qc_barcode_metrics.tsv` - Barcode rank metrics
+- `<output_basename>.qc_metrics.tsv` - Single-cell RNA QC metrics
+- `<output_basename>.qc_guide_assignment_stats.tsv` - Guide assignment statistics (if enabled)
+- `<output_basename>.qc_guide_assignment_distribution.png` - Guide assignment distribution plot (if enabled)
 
-**`${params.outdir}/pipeline_info/`:** (Nextflow reports)
+**`${params.outdir}/${output_basename}/pipeline_info/`:** (Nextflow reports)
 - `timeline.html` - Execution timeline
 - `report.html` - Resource usage report
 - `trace.txt` - Detailed execution trace
@@ -264,7 +264,7 @@ For local execution without containers:
      --data_dir data/sample_output \
      --dragen_file_prefix sample_123 \
      --sample_id "Sample_123" \
-     --output_basename "sample_123_processed" \
+     --output_basename "sample_123" \
      --outdir results
    ```
 
@@ -307,7 +307,7 @@ nextflow run main.nf -profile awsbatch \
   --data_dir s3://my-bucket/data/sample_output \
   --dragen_file_prefix sample_123 \
   --sample_id "Sample_123" \
-  --output_basename "sample_123_processed" \
+  --output_basename "sample_123" \
   --outdir s3://my-bucket/results
 ```
 
@@ -344,14 +344,14 @@ Modify `nextflow.config` to adjust:
      --data_dir data/sample_output \
      --dragen_file_prefix sample_123 \
      --sample_id "Sample_123" \
-     --output_basename "sample_123_processed" \
+     --output_basename "sample_123" \
      --outdir results
    ```
 
 3. Check outputs in the results directory:
-   - `results/crispr_adata/` - CRISPR features h5ad
-   - `results/ga_crispat/` - Guide assignments (if enabled)
-   - `results/processed/` - Final QC metrics
+   - `results/sample_123/crispr_adata/` - CRISPR features h5ad
+   - `results/sample_123/ga_crispat/` - Guide assignments (if enabled)
+   - `results/sample_123/qc/` - Final QC metrics
 
 ## CRISPR Guide Assignment
 
@@ -369,7 +369,7 @@ nextflow run main.nf -profile local \
   --data_dir data/sample_output \
   --dragen_file_prefix sample_123 \
   --sample_id "Sample_123" \
-  --output_basename "sample_123_processed" \
+  --output_basename "sample_123" \
   --run_guide_assignment false \
   --outdir results
 ```
@@ -377,7 +377,7 @@ nextflow run main.nf -profile local \
 **Output files**:
 - `crispr_adata/<output_basename>.crispr.h5ad`: Extracted CRISPR features in AnnData format
 - `ga_crispat/<output_basename>.assignments.csv`: Guide assignments from CRISPAT
-- `processed/<output_basename>.output.csv`: Final QC metrics with guide assignment data integrated
+- `qc/<output_basename>.qc_*.tsv`: Final QC metrics with guide assignment data integrated
 
 ## Resuming Failed Runs
 
@@ -388,7 +388,7 @@ nextflow run main.nf \
   --data_dir data/sample_output \
   --dragen_file_prefix sample_123 \
   --sample_id "Sample_123" \
-  --output_basename "sample_123_processed" \
+  --output_basename "sample_123" \
   -resume
 ```
 

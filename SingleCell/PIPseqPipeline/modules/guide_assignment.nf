@@ -4,7 +4,7 @@
 
 process GUIDE_ASSIGNMENT {
     tag "${crispr_h5ad.baseName}"
-    publishDir "${params.outdir}/ga_crispat", mode: 'copy'
+    publishDir "${params.outdir}/${output_basename}/ga_crispat", mode: 'copy'
     
     input:
     tuple path(crispr_h5ad),

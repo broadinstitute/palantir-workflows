@@ -4,7 +4,7 @@
 
 process EXTRACT_CRISPR_FEATURES {
     tag "${data_filtered_matrix.baseName}"
-    publishDir "${params.outdir}/crispr_adata", mode: 'copy'
+    publishDir "${params.outdir}/${output_basename}/crispr_adata", mode: 'copy'
     
     input:
     tuple path(data_filtered_matrix),
