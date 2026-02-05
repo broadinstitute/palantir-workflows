@@ -30,19 +30,19 @@ def parse_args():
         help="Path to feature barcode reference file"
     )
     parser.add_argument(
-        "--output",
+        "--output-basename",
         type=str,
         required=True,
-        help="Path to output assignments CSV file"
+        help="Base name for output assignments CSV file"
     )
     return parser.parse_args()
 
-def run_guide_assignment(crispr_adata_path, output_path):
+def run_guide_assignment(crispr_adata_path, output_basename):
     
     print('Running CRISPAT Gaussian Mixture model...')
     crispat.ga_poisson_gauss(f'{crispr_adata_path}', f'crispat_ga/poisson_gauss/')
 
-    shutil.copy(f'crispat_ga/poisson_gauss/assignments.csv', output_path)
+    shutil.copy(f'crispat_ga/poisson_gauss/assignments.csv', f'{output_basename}.assignments.csv')
     
     return None
 
@@ -54,7 +54,7 @@ def main():
         # Load 10x data
         run_guide_assignment(
             args.crispr_adata,
-            args.output
+            args.output_basename
         )
         print("\n✓ Guide assignment completed successfully")
         return 0
