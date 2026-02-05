@@ -171,13 +171,13 @@ workflow {
         GUIDE_ASSIGNMENT(guide_input_ch)
         
         // Use guide assignment output for metrics processing
-        assignments_ch = GUIDE_ASSIGNMENT.out.assignments
+        guide_assignments_ch = GUIDE_ASSIGNMENT.out.guide_assignments
         
-        GUIDE_ASSIGNMENT.out.assignments.view { "Generated guide assignments: $it" }
+        GUIDE_ASSIGNMENT.out.guide_assignments.view { "Generated guide assignments: $it" }
     } else {
         log.info "Skipping guide assignment"
-        // Create empty channel for assignments
-        assignments_ch = Channel.fromPath('NO_FILE')
+        // Create empty channel for guide assignments
+        guide_assignments_ch = Channel.fromPath('NO_FILE')
     }
     
     // Combine all inputs for report generation
@@ -186,7 +186,7 @@ workflow {
         .combine(barcode_summary_ch)
         .combine(sample_id_ch)
         .combine(output_basename_ch)
-        .combine(assignments_ch)
+        .combine(guide_assignments_ch)
     
     // Generate report data
     GENERATE_REPORT_DATA(input_ch)

@@ -11,7 +11,7 @@ process GUIDE_ASSIGNMENT {
           path(output_basename)
     
     output:
-    path "${output_basename}.assignments.csv", emit: assignments
+    path "${output_basename}.assignments.csv", emit: guide_assignments
     path "*.log", emit: logs
     
     script:

@@ -15,16 +15,22 @@ def parse_args():
         description="Extract CRISPR features from 10x-style filtered matrix"
     )
     parser.add_argument(
+        "--num-input-cells",
+        type=int,
+        required=True,
+        help="Number of input cells"
+    )
+    parser.add_argument(
         "--scrna-metrics",
         type=str,
         required=True,
-        help="Path to filtered matrix file"
+        help="Path to scRNA metrics CSV file"
     )
     parser.add_argument(
         "--barcode-summary",
         type=str,
         required=True,
-        help="Path to filtered barcodes file"
+        help="Path to barcode summary TSV file"
     )
     parser.add_argument(
         "--sample-id",
@@ -131,7 +137,7 @@ def guide_qc(guide_assignments_path, metrics_path, sample_id, output_basename):
 
     plt.tight_layout()
     
-    fig.savefig(f'{output_basename}.guide_assignment_distribution.png', dpi=300)
+    fig.savefig(f'{output_basename}.qc_guide_assignment_distribution.png', dpi=300)
 
     guide_assignment_stats = OrderedDict()
     guide_assignment_stats['sample_id'] = sample_id
@@ -166,7 +172,7 @@ def main():
         if args.guide_assignments is not None:
             guide_qc(
                 args.guide_assignments,
-                f'{args.output_basename}.metrics.tsv',
+                args.scrna_metrics,
                 args.sample_id,
                 args.output_basename
             )
