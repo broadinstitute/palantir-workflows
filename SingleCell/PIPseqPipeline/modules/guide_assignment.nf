@@ -3,22 +3,20 @@
  */
 
 process GUIDE_ASSIGNMENT {
-    tag "${sample_basename}"
-    publishDir "${params.outdir}/${sample_basename}/ga_crispat", mode: 'copy'
+    tag "guide_assignment"
+    publishDir "${params.outdir}/ga_crispat", mode: 'copy'
     
     input:
-    tuple path(crispr_h5ad),
-          val(sample_basename)
+        path(crispr_h5ad)
     
     output:
-    path "${sample_basename}.assignments.csv", emit: guide_assignments
+    path "assignments.csv", emit: guide_assignments
     
     script:
     """
     # Run the CRISPAT guide assignment script
     # The script should be in the bin/ directory and will be automatically available
     run_guide_assignment.py \\
-        --crispr-h5ad ${crispr_h5ad} \\
-        --sample-basename ${sample_basename}
+        --crispr-h5ad ${crispr_h5ad}
     """
 }

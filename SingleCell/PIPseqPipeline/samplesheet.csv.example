@@ -1,0 +1,4 @@
+data_dir,dragen_file_prefix,sample_id,sample_basename
+/path/to/data1,sample_001,Sample_001,sample_001
+/path/to/data2,sample_002,Sample_002,sample_002
+/path/to/data3,sample_003,Sample_003,sample_003

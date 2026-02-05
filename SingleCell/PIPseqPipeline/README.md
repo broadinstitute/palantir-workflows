@@ -50,36 +50,47 @@ pip install pandas scanpy anndata crispat matplotlib
 
 ### Running the Pipeline
 
-Basic usage:
 ```bash
 nextflow run main.nf \
   --num_input_cells 10000 \
-  --data_dir data/sample_output \
-  --dragen_file_prefix sample_123 \
-  --sample_id "Sample_123" \
-  --sample_basename "sample_123" \
+  --samplesheet samplesheet.csv \
   --outdir results
 ```
+
+Example samplesheet.csv:
+```csv
+data_dir,dragen_file_prefix,sample_id,sample_basename
+/path/to/data1,sample_001,Sample_001,sample_001
+/path/to/data2,sample_002,Sample_002,sample_002
+/path/to/data3,sample_003,Sample_003,sample_003
+```
+
+**Pipeline behavior:**
+- **Single sample** (samplesheet has 1 row): Runs EXTRACT_CRISPR_FEATURES then GUIDE_ASSIGNMENT
+- **Multiple samples** (samplesheet has >1 row): Runs CONCATENATE on all samples, then GUIDE_ASSIGNMENT
+- Per-sample QC reports are always generated in `outdir/<sample_basename>/qc/`
+- Guide assignments are always output to `outdir/ga_crispat/`
+- CRISPR h5ad files are output to `outdir/crispr_adata/`
 
 ### Command-Line Options
 
 **Required:**
 - `--num_input_cells`: Number of input cells (integer)
-- `--data_dir`: Directory containing all input data files (DRAGEN output)
-- `--dragen_file_prefix`: Common prefix for all DRAGEN output files
-- `--sample_id`: Sample identifier
-- `--sample_basename`: Output basename for generated files
+- `--samplesheet`: CSV file with columns: data_dir, dragen_file_prefix, sample_id, sample_basename
+- `--outdir`: Output directory (default: `results`)
+- `--help`: Show help message
 
 **Optional:**
 - `--run_guide_assignment`: Run CRISPR guide assignment (default: true)
 - `--outdir`: Output directory (default: `results`)
 - `--help`: Show help message
 
-**Expected files in data_dir:**
+**Expected files in each data_dir:**
 - `<dragen_file_prefix>.scRNA_metrics.csv`
-- `<dragen_file_prefix>.filtered.matrix.mtx.gz`
-- `<dragen_file_prefix>.filtered.barcodes.tsv.gz`
-- `<dragen_file_prefix>.filtered.features.tsv.gz`
+- `<dragen_file_prefix>.scRNA.barcodeSummary.tsv`
+- `<dragen_file_prefix>.scRNA.filtered.matrix.mtx.gz`
+- `<dragen_file_prefix>.scRNA.filtered.barcodes.tsv.gz`
+- `<dragen_file_prefix>.scRNA.filtered.features.tsv.gz`
 
 ### Execution Profiles
 
@@ -89,44 +100,32 @@ Run with different executors:
 # Local execution without containers (default)
 nextflow run main.nf -profile local \
   --num_input_cells 10000 \
-  --data_dir data/sample_output \
-  --dragen_file_prefix sample_123 \
-  --sample_id "Sample_123" \
-  --sample_basename "sample_123" \
+  --samplesheet samplesheet.csv \
   --outdir results
 
 # AWS Batch with Docker containers
 nextflow run main.nf -profile awsbatch \
   --num_input_cells 10000 \
-  --data_dir s3://bucket/sample_output \
-  --dragen_file_prefix sample_123 \
-  --sample_id "Sample_123" \
-  --sample_basename "sample_123" \
+  --samplesheet s3://bucket/samplesheet.csv \
   --outdir s3://bucket/results
 
 # SLURM cluster
 nextflow run main.nf -profile cluster \
   --num_input_cells 10000 \
-  --data_dir /path/to/data \
-  --dragen_file_prefix sample_123 \
-  --sample_id "Sample_123" \
-  --sample_basename "sample_123"
+  --samplesheet samplesheet.csv \
+  --outdir results
 
 # Google Cloud Platform with containers
 nextflow run main.nf -profile gcp \
   --num_input_cells 10000 \
-  --data_dir gs://bucket/data \
-  --dragen_file_prefix sample_123 \
-  --sample_id "Sample_123" \
-  --sample_basename "sample_123"
+  --samplesheet gs://bucket/samplesheet.csv \
+  --outdir gs://bucket/results
 
 # Local with Docker
 nextflow run main.nf -profile docker \
   --num_input_cells 10000 \
-  --data_dir data/sample_output \
-  --dragen_file_prefix sample_123 \
-  --sample_id "Sample_123" \
-  --sample_basename "sample_123"
+  --samplesheet samplesheet.csv \
+  --outdir results
 ```
 
 #### Profile Details
@@ -188,21 +187,25 @@ nextflow run main.nf -profile docker \
 
 ## Output
 
-Results are organized in the output directory under the `sample_basename` subdirectory:
+Results are organized in the output directory:
 
-**`${params.outdir}/${sample_basename}/crispr_adata/`:**
-- `<sample_basename>.crispr.h5ad` - CRISPR features in AnnData format
-
-**`${params.outdir}/${sample_basename}/ga_crispat/`:** (if guide assignment enabled)
-- `<sample_basename>.assignments.csv` - CRISPAT guide assignments
-
-**`${params.outdir}/${sample_basename}/qc/`:**
+**`${params.outdir}/<sample_basename>/qc/`:** (per-sample QC reports)
 - `<sample_basename>.qc_barcode_metrics.tsv` - Barcode rank metrics
 - `<sample_basename>.qc_metrics.tsv` - Single-cell RNA QC metrics
 - `<sample_basename>.qc_guide_assignment_stats.tsv` - Guide assignment statistics (if enabled)
 - `<sample_basename>.qc_guide_assignment_distribution.png` - Guide assignment distribution plot (if enabled)
 
-**`${params.outdir}/${sample_basename}/pipeline_info/`:** (Nextflow reports)
+**`${params.outdir}/ga_crispat/`:** (guide assignments - if enabled)
+- Single sample: `<sample_basename>.assignments.csv` - CRISPAT guide assignments
+- Multiple samples: `concatenated.assignments.csv` - CRISPAT guide assignments for all samples
+
+**`${params.outdir}/crispr_adata/`:** (CRISPR features - single sample only with guide assignment)
+- `<sample_basename>.crispr.h5ad` - CRISPR features in AnnData format
+
+**`${params.outdir}/concatenated/`:** (multiple samples only with guide assignment)
+- `concatenated.h5ad` - Concatenated CRISPR features from all samples
+
+**`${params.outdir}/<sample_basename>/pipeline_info/`:** (Nextflow reports)
 - `timeline.html` - Execution timeline
 - `report.html` - Resource usage report
 - `trace.txt` - Detailed execution trace
@@ -328,56 +331,64 @@ Modify `nextflow.config` to adjust:
 
 ## Example Workflow
 
-1. Prepare your data directory with the required DRAGEN output files:
+1. Prepare your samplesheet with the required data:
+   ```csv
+   data_dir,dragen_file_prefix,sample_id,sample_basename
+   /path/to/data,sample_123,Sample_123,sample_123
+   ```
+   
+   Each data_dir should contain:
    ```
    data/sample_output/
    ├── sample_123.scRNA_metrics.csv
-   ├── sample_123.filtered.matrix.mtx.gz
-   ├── sample_123.filtered.barcodes.tsv.gz
-   └── sample_123.filtered.features.tsv.gz
+   ├── sample_123.scRNA.barcodeSummary.tsv
+   ├── sample_123.scRNA.filtered.matrix.mtx.gz
+   ├── sample_123.scRNA.filtered.barcodes.tsv.gz
+   └── sample_123.scRNA.filtered.features.tsv.gz
    ```
 
 2. Run the pipeline:
    ```bash
    nextflow run main.nf \
      --num_input_cells 10000 \
-     --data_dir data/sample_output \
-     --dragen_file_prefix sample_123 \
-     --sample_id "Sample_123" \
-     --sample_basename "sample_123" \
+     --samplesheet samplesheet.csv \
      --outdir results
    ```
 
 3. Check outputs in the results directory:
-   - `results/sample_123/crispr_adata/` - CRISPR features h5ad
-   - `results/sample_123/ga_crispat/` - Guide assignments (if enabled)
-   - `results/sample_123/qc/` - Final QC metrics
+   - QC reports per sample: `results/<sample_basename>/qc/`
+   - Guide assignments: `results/ga_crispat/`
+   - CRISPR h5ad (single sample): `results/crispr_adata/`
+   - Concatenated h5ad (multiple samples): `results/concatenated/`
 
 ## CRISPR Guide Assignment
 
 Guide assignment is **enabled by default** (`--run_guide_assignment true`).
 
-**Three-step process**:
+**Three-step process (single sample)**:
 1. **Extract CRISPR features**: Reads matrix/barcodes/features files, extracts "CRISPR Direct Capture" feature types, and writes to an h5ad file (`bin/extract_crispr_features.py`)
 2. **Run guide assignment**: Uses the h5ad file to run CRISPAT's Poisson-Gaussian mixture model (`bin/run_guide_assignment.py`)
 3. **Generate report**: Combines all data to create comprehensive QC metrics (`bin/generate_report_data.py`)
 
+**Multi-sample process**:
+1. **Concatenate samples**: Combines all samples into a single AnnData object (`bin/concatenate_samples.py`)
+2. **Run guide assignment**: Uses the concatenated h5ad to run CRISPAT
+3. **Generate reports**: Creates per-sample QC metrics
+
 **Disable guide assignment**:
 ```bash
-nextflow run main.nf -profile local \
+nextflow run main.nf \
   --num_input_cells 10000 \
-  --data_dir data/sample_output \
-  --dragen_file_prefix sample_123 \
-  --sample_id "Sample_123" \
-  --sample_basename "sample_123" \
+  --samplesheet samplesheet.csv \
   --run_guide_assignment false \
   --outdir results
 ```
 
 **Output files**:
-- `crispr_adata/<sample_basename>.crispr.h5ad`: Extracted CRISPR features in AnnData format
-- `ga_crispat/<sample_basename>.assignments.csv`: Guide assignments from CRISPAT
-- `qc/<sample_basename>.qc_*.tsv`: Final QC metrics with guide assignment data integrated
+- `crispr_adata/<sample_basename>.crispr.h5ad`: Extracted CRISPR features (single sample only)
+- `concatenated/concatenated.h5ad`: Concatenated CRISPR features (multiple samples)
+- `ga_crispat/<sample_basename>.assignments.csv` or `ga_crispat/concatenated.assignments.csv`: Guide assignments
+- `<sample_basename>/qc/<sample_basename>.qc_*.tsv`: Per-sample QC metrics with guide assignment data integrated
 
 ## Resuming Failed Runs
 

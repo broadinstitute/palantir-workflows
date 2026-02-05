@@ -10,10 +10,7 @@ nextflow.enable.dsl=2
 
 // Define parameters
 params.num_input_cells = null          // Number of input cells (integer)
-params.data_dir = null                 // Path to directory containing all data files
-params.dragen_file_prefix = null              // Prefix for all input files
-params.sample_id = null                // Sample identifier (defaults to file_prefix if not provided)
-params.sample_basename = null          // Output basename (defaults to file_prefix if not provided)
+params.samplesheet = null              // CSV file with samples
 params.run_guide_assignment = true     // Whether to run guide assignment
 params.outdir = "results"              // Output directory
 params.help = false
@@ -22,28 +19,36 @@ params.help = false
 def helpMessage() {
     log.info"""
     Usage:
-      nextflow run main.nf --num_input_cells <int> --data_dir <path> --dragen_file_prefix <prefix> [options]
+      nextflow run main.nf --num_input_cells <int> --samplesheet <samplesheet.csv> [options]
 
     Required arguments:
       --num_input_cells          Number of input cells (integer)
-      --data_dir                 Path to directory containing all data files
-      --dragen_file_prefix       Common prefix for all input files (quote if it has leading zeros!)
-      --sample_id                Sample identifier
-      --sample_basename          Output basename for generated files
+      --samplesheet              CSV file with columns: data_dir,dragen_file_prefix,sample_id,sample_basename
 
-    Expected files in data_dir:
+    Samplesheet format:
+      CSV file with columns: data_dir, dragen_file_prefix, sample_id, sample_basename
+      See samplesheet.csv.example for an example
+
+    Expected files in each data_dir:
       <dragen_file_prefix>.scRNA_metrics.csv
-      <dragen_file_prefix>.filtered.matrix.mtx.gz
-      <dragen_file_prefix>.filtered.barcodes.tsv.gz
-      <dragen_file_prefix>.filtered.features.tsv.gz
+      <dragen_file_prefix>.scRNA.barcodeSummary.tsv
+      <dragen_file_prefix>.scRNA.filtered.matrix.mtx.gz
+      <dragen_file_prefix>.scRNA.filtered.barcodes.tsv.gz
+      <dragen_file_prefix>.scRNA.filtered.features.tsv.gz
 
     Optional arguments:
       --run_guide_assignment     Whether to run CRISPR guide assignment (default: ${params.run_guide_assignment})
       --outdir                   Output directory (default: ${params.outdir})
       --help                     Show this help message
     
-    Note: If any parameter values contain leading zeros (e.g., 001234), you MUST quote them:
-      --dragen_file_prefix '001234' --sample_id 'S001' --sample_basename '001234_output'
+    Note: If any parameter values in the samplesheet contain leading zeros (e.g., 001234),
+          ensure they are properly formatted as strings in your CSV.
+    
+    Behavior:
+      - Single sample: Runs EXTRACT_CRISPR_FEATURES then GUIDE_ASSIGNMENT (if enabled)
+      - Multiple samples: Runs CONCATENATE on all samples, then GUIDE_ASSIGNMENT (if enabled)
+      - Per-sample QC reports are always generated in outdir/<sample_basename>/qc/
+      - Guide assignments are output to outdir/ga_crispat/
     """.stripIndent()
 }
 
@@ -51,6 +56,7 @@ def helpMessage() {
 include { GENERATE_REPORT_DATA } from './modules/generate_report_data'
 include { EXTRACT_CRISPR_FEATURES } from './modules/extract_crispr_features'
 include { GUIDE_ASSIGNMENT } from './modules/guide_assignment'
+include { CONCATENATE } from './modules/concatenate'
 
 /*
  * Main workflow
@@ -69,127 +75,105 @@ workflow {
         exit 1
     }
 
-    if (!params.data_dir) {
-        log.error "ERROR: --data_dir is required"
+    if (!params.samplesheet) {
+        log.error "ERROR: --samplesheet is required"
         helpMessage()
         exit 1
     }
 
-    if (!params.dragen_file_prefix) {
-        log.error "ERROR: --dragen_file_prefix is required"
-        helpMessage()
-        exit 1
-    }
-
-    if (!params.sample_id) {
-        log.error "ERROR: --sample_id is required"
-        helpMessage()
-        exit 1
-    }
-
-    if (!params.sample_basename) {
-        log.error "ERROR: --sample_basename is required"
-        helpMessage()
-        exit 1
-    }
-
-    // Force all parameters to strings and strip any quotes that might have been included
-    // (Nextflow may parse numeric-looking strings as numbers at CLI parsing time,
-    //  and quoted values may include the literal quote characters)
-    def dragen_file_prefix = "${params.dragen_file_prefix}".replaceAll(/^['"]|['"]$/, '')
-    def sample_id = "${params.sample_id}".replaceAll(/^['"]|['"]$/, '')
-    def sample_basename = "${params.sample_basename}".replaceAll(/^['"]|['"]$/, '')
+    log.info "Reading samples from samplesheet..."
     
-    // Warn if dragen_file_prefix looks like it was converted from a number
-    // (this happens when users don't quote values with leading zeros)
-    if (params.dragen_file_prefix instanceof Number) {
-        log.warn """
-        ================================================================================
-        WARNING: dragen_file_prefix appears to be a number (${params.dragen_file_prefix})
+    // Read samplesheet and create channels
+    sample_ch = Channel
+        .fromPath(params.samplesheet, checkIfExists: true)
+        .splitCsv(header: true)
+        .map { row ->
+            // Force strings and strip quotes for each field
+            def data_dir = "${row.data_dir}".replaceAll(/^['"]|['"]$/, '')
+            def dragen_file_prefix = "${row.dragen_file_prefix}".replaceAll(/^['"]|['"]$/, '')
+            def sample_id = "${row.sample_id}".replaceAll(/^['"]|['"]$/, '')
+            def sample_basename = "${row.sample_basename}".replaceAll(/^['"]|['"]$/, '')
+            
+            tuple(data_dir, dragen_file_prefix, sample_id, sample_basename)
+        }
+    
+    // Create channels for all files across all samples
+    all_samples = sample_ch.map { data_dir, dragen_file_prefix, sample_id, sample_basename ->
+        def metrics_path = "${data_dir}/${dragen_file_prefix}.scRNA_metrics.csv"
+        def barcode_summary_path = "${data_dir}/${dragen_file_prefix}.scRNA.barcodeSummary.tsv"
+        def matrix_path = "${data_dir}/${dragen_file_prefix}.scRNA.filtered.matrix.mtx.gz"
+        def barcodes_path = "${data_dir}/${dragen_file_prefix}.scRNA.filtered.barcodes.tsv.gz"
+        def features_path = "${data_dir}/${dragen_file_prefix}.scRNA.filtered.features.tsv.gz"
         
-        If your prefix has leading zeros (e.g., 001234), you MUST quote it:
-          --dragen_file_prefix '001234'
-        
-        Without quotes, Nextflow will strip leading zeros at the command line.
-        ================================================================================
-        """.stripIndent()
+        tuple(
+            file(metrics_path),
+            file(barcode_summary_path),
+            file(matrix_path),
+            file(barcodes_path),
+            file(features_path),
+            sample_id,
+            sample_basename
+        )
     }
     
-    // Construct file paths using data_dir and file_prefix
-    def metrics_path = "${params.data_dir}/${dragen_file_prefix}.scRNA_metrics.csv"
-    def barcode_summary_path = "${params.data_dir}/${dragen_file_prefix}.scRNA.barcodeSummary.tsv"
-    def matrix_path = "${params.data_dir}/${dragen_file_prefix}.scRNA.filtered.matrix.mtx.gz"
-    def barcodes_path = "${params.data_dir}/${dragen_file_prefix}.scRNA.filtered.barcodes.tsv.gz"
-    def features_path = "${params.data_dir}/${dragen_file_prefix}.scRNA.filtered.features.tsv.gz"
-    // Log pipeline parameters
-    log.info """
-        ========================================
-        Single-Cell QC Metrics Processing
-        ========================================
-        Num input cells      : ${params.num_input_cells}
-        Data directory       : ${params.data_dir}
-        File prefix          : ${dragen_file_prefix}
-        Sample ID            : ${sample_id}
-        Output basename      : ${sample_basename}
-        scRNA metrics        : ${metrics_path}
-        Filtered matrix      : ${matrix_path}
-        Filtered barcodes    : ${barcodes_path}
-        Filtered features    : ${features_path}
-        Run guide assignment : ${params.run_guide_assignment}
-        Output dir           : ${params.outdir}
-        ========================================
-        """.stripIndent()
-
-    // Create channels from input files
-    num_cells_ch = Channel.value(params.num_input_cells)
-    sample_id_ch = Channel.value(sample_id)
-    sample_basename_ch = Channel.value(sample_basename)
-    metrics_ch = Channel.fromPath(metrics_path, checkIfExists: true)
-    barcode_summary_ch = Channel.fromPath(barcode_summary_path, checkIfExists: true)
-    matrix_ch = Channel.fromPath(matrix_path, checkIfExists: true)
-    barcodes_ch = Channel.fromPath(barcodes_path, checkIfExists: true)
-    features_ch = Channel.fromPath(features_path, checkIfExists: true)
+    // Generate per-sample QC reports
+    qc_input_ch = all_samples.map { metrics, barcode_summary, _matrix, _barcodes, _features, sample_id, sample_basename ->
+        tuple(
+            params.num_input_cells,
+            metrics,
+            barcode_summary,
+            sample_id,
+            sample_basename
+        )
+    }
     
-    // Conditionally run guide assignment if requested
+    GENERATE_REPORT_DATA(qc_input_ch)
+    
     if (params.run_guide_assignment) {
         log.info "Running CRISPR feature extraction and guide assignment..."
         
-        // Step 1: Extract CRISPR features and create h5ad file
-        crispr_input_ch = matrix_ch
-            .combine(barcodes_ch)
-            .combine(features_ch)
-            .combine(sample_basename_ch)
+        // Collect all sample data and branch based on count
+        all_samples
+            .map { it[2..6] }  // matrix, barcodes, features, sample_id, sample_basename
+            .toList()
+            .map { samples ->
+                [
+                    samples.collect { it[0] },  // matrices
+                    samples.collect { it[1] },  // barcodes
+                    samples.collect { it[2] },  // features
+                    samples.collect { it[3] },  // sample_ids
+                    samples.collect { it[4] },  // sample_basenames
+                    samples.size()              // count
+                ]
+            }
+            .branch {
+                single: it[5] == 1
+                multiple: it[5] > 1
+            }
+            .set { sample_data }
         
-        EXTRACT_CRISPR_FEATURES(crispr_input_ch)
+        // Single sample: extract CRISPR features
+        single_sample_ch = sample_data.single
+            .map { matrices, barcodes, features, _sample_ids, sample_basenames, _count ->
+                tuple(matrices[0], barcodes[0], features[0], sample_basenames[0])
+            }
         
-        EXTRACT_CRISPR_FEATURES.out.crispr_adata.view { "Generated CRISPR h5ad: $it" }
+        EXTRACT_CRISPR_FEATURES(single_sample_ch)
         
-        // Step 2: Run CRISPAT guide assignment using the h5ad file
+        // Multiple samples: concatenate
+        multi_sample_ch = sample_data.multiple
+            .map { matrices, barcodes, features, sample_ids, _sample_basenames, _count ->
+                tuple(matrices, barcodes, features, sample_ids)
+            }
+        
+        CONCATENATE(multi_sample_ch)
+        
+        // Combine outputs for guide assignment
         guide_input_ch = EXTRACT_CRISPR_FEATURES.out.crispr_adata
-            .combine(sample_basename_ch)
+            .mix(CONCATENATE.out.concatenated_adata)
         
         GUIDE_ASSIGNMENT(guide_input_ch)
         
-        // Use guide assignment output for metrics processing
-        guide_assignments_ch = GUIDE_ASSIGNMENT.out.guide_assignments
-        
         GUIDE_ASSIGNMENT.out.guide_assignments.view { "Generated guide assignments: $it" }
-    } else {
-        log.info "Skipping guide assignment"
-        // Create empty channel for guide assignments
-        guide_assignments_ch = Channel.fromPath('NO_FILE')
     }
-    
-    // Combine all inputs for report generation
-    input_ch = num_cells_ch
-        .combine(metrics_ch)
-        .combine(barcode_summary_ch)
-        .combine(sample_id_ch)
-        .combine(sample_basename_ch)
-    
-    // Generate report data
-    GENERATE_REPORT_DATA(input_ch)
-    
-    // Emit results
-    GENERATE_REPORT_DATA.out.qc_files.view { "Generated output: $it" }
 }
