@@ -4,7 +4,7 @@
 
 process GENERATE_REPORT_DATA {
     tag "${scrna_metrics.baseName}"
-    publishDir "${params.outdir}/processed", mode: 'copy'
+    publishDir "${params.outdir}/qc", mode: 'copy'
     
     input:
     tuple val(num_input_cells), 
