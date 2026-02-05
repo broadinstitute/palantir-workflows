@@ -41,7 +41,7 @@ def helpMessage() {
 }
 
 // Import modules
-include { PROCESS_METRICS } from './modules/process'
+include { GENERATE_REPORT_DATA } from './modules/generate_report_data'
 include { EXTRACT_CRISPR_FEATURES } from './modules/extract_crispr_features'
 include { GUIDE_ASSIGNMENT } from './modules/guide_assignment'
 
@@ -115,10 +115,10 @@ workflow {
         
         EXTRACT_CRISPR_FEATURES(crispr_input_ch)
         
-        EXTRACT_CRISPR_FEATURES.out.h5ad.view { "Generated CRISPR h5ad: $it" }
+        EXTRACT_CRISPR_FEATURES.out.crispr_adata.view { "Generated CRISPR h5ad: $it" }
         
         // Step 2: Run CRISPAT guide assignment using the h5ad file
-        guide_input_ch = EXTRACT_CRISPR_FEATURES.out.h5ad
+        guide_input_ch = EXTRACT_CRISPR_FEATURES.out.crispr_adata
             .combine(metrics_ch)
         
         GUIDE_ASSIGNMENT(guide_input_ch)
@@ -142,8 +142,8 @@ workflow {
         .combine(assignments_ch)
     
     // Process metrics
-    PROCESS_METRICS(input_ch)
+    GENERATE_REPORT_DATA(input_ch)
     
     // Emit results
-    PROCESS_METRICS.out.results.view { "Generated output: $it" }
+    GENERATE_REPORT_DATA.out.results.view { "Generated output: $it" }
 }
