@@ -13,7 +13,8 @@ process CONCATENATE {
           val(subsample_ids)
     
     output:
-    path "concatenated.h5ad", emit: concatenated_adata
+    path "${params.supersample_basename}.concatenated.h5ad", emit: concatenated_adata
+    path "${params.supersample_basename}.concatenated.crispr.h5ad", emit: concatenated_crispr_adata
     
     script:
     // Convert lists to space-separated strings for passing to Python
@@ -27,7 +28,7 @@ process CONCATENATE {
         --matrices ${matrix_files} \\
         --barcodes ${barcode_files} \\
         --features ${feature_files} \\
-        --sample-ids ${subsample_id_list} \\
-        --output concatenated.h5ad
+        --subsample-ids ${subsample_id_list} \\
+        --supersample-basename ${params.supersample_basename}
     """
 }

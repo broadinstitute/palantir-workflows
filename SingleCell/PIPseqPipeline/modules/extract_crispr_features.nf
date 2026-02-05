@@ -4,7 +4,7 @@
 
 process EXTRACT_CRISPR_FEATURES {
     tag "${subsample_basename}"
-    publishDir "${params.outdir}/${params.supersample_basename}/crispr_adata", mode: 'copy'
+    publishDir "${params.outdir}/${params.supersample_basename}/${subsample_basename}", mode: 'copy'
     
     input:
     tuple path(data_filtered_matrix),
@@ -13,6 +13,7 @@ process EXTRACT_CRISPR_FEATURES {
           val(subsample_basename)
     
     output:
+    path "${subsample_basename}.h5ad", emit: adata
     path "${subsample_basename}.crispr.h5ad", emit: crispr_adata
     
     script:

@@ -10,7 +10,7 @@ from pathlib import Path
 def parse_args():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        description="Concatenate multiple samples using AnnData"
+        description="Concatenate multiple subsamples using AnnData"
     )
     parser.add_argument(
         "--matrices",
@@ -34,16 +34,16 @@ def parse_args():
         help="Paths to filtered features files"
     )
     parser.add_argument(
-        "--sample-ids",
+        "--subsample-ids",
         type=str,
         required=True,
-        help="Comma-separated list of sample IDs"
+        help="Comma-separated list of subsample IDs"
     )
     parser.add_argument(
-        "--output",
+        "--supersample-basename",
         type=str,
         required=True,
-        help="Output path for concatenated h5ad file"
+        help="Basename for output files"
     )
     return parser.parse_args()
 
@@ -51,23 +51,22 @@ def parse_args():
 def main():
     """Main execution function."""
     args = parse_args()
-    
     try:
-        print(f"Concatenating {len(args.matrices)} samples...")
+        print(f"Concatenating {len(args.matrices)} subsamples...")
         
-        # Parse sample IDs
-        sample_ids = args.sample_ids.split(',')
+        # Parse subsample IDs
+        subsample_ids = args.subsample_ids.split(',')
         
         if len(args.matrices) != len(args.barcodes) or len(args.matrices) != len(args.features):
             raise ValueError("Number of matrix, barcode, and feature files must match")
         
-        if len(args.matrices) != len(sample_ids):
-            raise ValueError("Number of files must match number of sample IDs")
+        if len(args.matrices) != len(subsample_ids):
+            raise ValueError("Number of files must match number of subsample IDs")
         
-        # Read all samples
+        # Read all subsamples
         adatas = []
         for i, (matrix, barcode, feature) in enumerate(zip(args.matrices, args.barcodes, args.features)):
-            print(f"Reading sample {sample_ids[i]} from {matrix}...")
+            print(f"Reading subsample {subsample_ids[i]} from {matrix}...")
             
             # Create a temporary directory structure for scanpy
             # scanpy expects the files to be in a directory with specific naming
@@ -82,32 +81,34 @@ def main():
                 shutil.copy(feature, f"{tmpdir}/features.tsv.gz")
                 
                 # Read the 10x format data
-                adata = sc.read_10x_mtx(tmpdir, var_names='gene_symbols', cache=False)
-            
-            # Add sample ID to observations
-            adata.obs['sample_id'] = sample_ids[i]
-            
+                adata = sc.read_10x_mtx(tmpdir, var_names='gene_symbols', gex_only=False, cache=False)
+                        
             # Filter for CRISPR Direct Capture features
-            crispr_mask = adata.var['feature_types'] == 'CRISPR Direct Capture'
-            if crispr_mask.sum() == 0:
-                print(f"Warning: No CRISPR Direct Capture features found in sample {sample_ids[i]}")
-            else:
-                adata = adata[:, crispr_mask].copy()
-                print(f"Sample {sample_ids[i]}: {adata.n_obs} cells, {adata.n_vars} CRISPR features")
-                adatas.append(adata)
+            
+            print(f"subsample {subsample_ids[i]}: {adata.n_obs} cells, {adata.n_vars} CRISPR features")
+            adatas.append(adata)
         
         if len(adatas) == 0:
-            raise ValueError("No samples with CRISPR Direct Capture features found")
+            raise ValueError("No subsamples with CRISPR Direct Capture features found")
         
-        # Concatenate all samples
-        print(f"\nConcatenating {len(adatas)} samples...")
-        concatenated = ad.concat(adatas, join='outer', merge='same')
-        
+        # Concatenate all subsamples
+        print(f"\nConcatenating {len(adatas)} subsamples...")
+        concatenated = ad.concat(adatas, join='outer', merge='same', label='subsample_id', keys=subsample_ids, index_unique='_')
+
         print(f"Concatenated dataset: {concatenated.n_obs} cells, {concatenated.n_vars} features")
         
+        print("Extracting CRISPR Direct Capture features...")
+        crispr_mask = concatenated.var['feature_types'] == 'CRISPR Direct Capture'
+        concatenated_crispr = concatenated[:, crispr_mask].copy()
+
         # Write output
-        print(f"Writing concatenated data to {args.output}...")
-        concatenated.write_h5ad(args.output)
+        output_path = f"{args.supersample_basename}.concatenated.h5ad"
+        print(f"Writing concatenated data to {output_path}...")
+        concatenated.write_h5ad(output_path, compression='gzip')
+
+        crispr_output_path = f"{args.supersample_basename}.concatenated.crispr.h5ad"
+        print(f"Writing concatenated CRISPR data to {crispr_output_path}...")
+        concatenated_crispr.write_h5ad(crispr_output_path, compression='gzip')
         
         print("\n✓ Concatenation completed successfully")
         return 0

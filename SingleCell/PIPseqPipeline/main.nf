@@ -188,7 +188,7 @@ workflow {
         
         // Combine outputs for guide assignment
         guide_input_ch = EXTRACT_CRISPR_FEATURES.out.crispr_adata
-            .mix(CONCATENATE.out.concatenated_adata)
+            .mix(CONCATENATE.out.concatenated_crispr_adata)
         
         GUIDE_ASSIGNMENT(guide_input_ch)
         
