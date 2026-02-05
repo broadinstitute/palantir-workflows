@@ -90,9 +90,13 @@ workflow {
         exit 1
     }
 
+    // Force all parameters to strings to preserve leading zeros
+    // (Nextflow may parse numeric-looking strings as numbers)
+    def dragen_file_prefix = "${params.dragen_file_prefix}"
+    def sample_id = "${params.sample_id}"
+    def output_basename = "${params.output_basename}"
+    
     // Construct file paths using data_dir and file_prefix
-    // Force dragen_file_prefix to be treated as a string to preserve leading zeros
-    def dragen_file_prefix = params.dragen_file_prefix.toString()
     def metrics_path = "${params.data_dir}/${dragen_file_prefix}.scRNA_metrics.csv"
     def barcode_summary_path = "${params.data_dir}/${dragen_file_prefix}.scRNA.barcodeSummary.tsv"
     def matrix_path = "${params.data_dir}/${dragen_file_prefix}.filtered.matrix.mtx.gz"
@@ -106,8 +110,8 @@ workflow {
         Num input cells      : ${params.num_input_cells}
         Data directory       : ${params.data_dir}
         File prefix          : ${dragen_file_prefix}
-        Sample ID            : ${params.sample_id}
-        Output basename      : ${params.output_basename}
+        Sample ID            : ${sample_id}
+        Output basename      : ${output_basename}
         scRNA metrics        : ${metrics_path}
         Filtered matrix      : ${matrix_path}
         Filtered barcodes    : ${barcodes_path}
@@ -119,8 +123,8 @@ workflow {
 
     // Create channels from input files
     num_cells_ch = Channel.value(params.num_input_cells)
-    sample_id_ch = Channel.value(params.sample_id)
-    output_basename_ch = Channel.value(params.output_basename)
+    sample_id_ch = Channel.value(sample_id)
+    output_basename_ch = Channel.value(output_basename)
     metrics_ch = Channel.fromPath(metrics_path, checkIfExists: true)
     barcode_summary_ch = Channel.fromPath(barcode_summary_path, checkIfExists: true)
     matrix_ch = Channel.fromPath(matrix_path, checkIfExists: true)
