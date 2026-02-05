@@ -6,6 +6,13 @@ This is a pipeline for processing single-cell QC metrics from PIPseq data using 
 
 This pipeline processes single-cell RNA-seq data with optional CRISPR guide assignment. It extracts CRISPR features, performs guide assignment using CRISPAT, and generates comprehensive QC reports.
 
+### Pipeline Workflow
+
+The pipeline performs three main tasks:
+1. **Extract CRISPR Features**: Reads 10x matrix files and extracts "CRISPR Direct Capture" features to h5ad format
+2. **Guide Assignment**: Performs CRISPAT guide assignment using Poisson-Gaussian mixture model (optional)
+3. **Generate Report Data**: Creates comprehensive QC metrics and visualizations
+
 ## Pipeline Structure
 
 ```
@@ -20,8 +27,7 @@ SingleCell/PIPseqPipeline/
 │   ├── extract_crispr_features.py   # Extract CRISPR features to h5ad
 │   ├── run_guide_assignment.py      # Run CRISPAT guide assignment
 │   └── generate_report_data.py      # Generate final QC metrics
-├── README.md                        # This file
-└── EXECUTION_GUIDE.md               # Detailed execution guide
+└── README.md                        # This file
 ```
 
 ## Quick Start
@@ -49,7 +55,9 @@ Basic usage:
 nextflow run main.nf \
   --num_input_cells 10000 \
   --data_dir data/sample_output \
-  --file_prefix sample_123 \
+  --dragen_file_prefix sample_123 \
+  --sample_id "Sample_123" \
+  --output_basename "sample_123_processed" \
   --outdir results
 ```
 
@@ -57,8 +65,10 @@ nextflow run main.nf \
 
 **Required:**
 - `--num_input_cells`: Number of input cells (integer)
-- `--data_dir`: Directory containing all input data files
-- `--file_prefix`: Common prefix for all input files
+- `--data_dir`: Directory containing all input data files (DRAGEN output)
+- `--dragen_file_prefix`: Common prefix for all DRAGEN output files
+- `--sample_id`: Sample identifier
+- `--output_basename`: Output basename for generated files
 
 **Optional:**
 - `--run_guide_assignment`: Run CRISPR guide assignment (default: true)
@@ -66,10 +76,10 @@ nextflow run main.nf \
 - `--help`: Show help message
 
 **Expected files in data_dir:**
-- `<prefix>.scRNA_metrics.csv`
-- `<prefix>.filtered.matrix.mtx.gz`
-- `<prefix>.filtered.barcodes.tsv.gz`
-- `<prefix>.filtered.features.tsv.gz`
+- `<dragen_file_prefix>.scRNA_metrics.csv`
+- `<dragen_file_prefix>.filtered.matrix.mtx.gz`
+- `<dragen_file_prefix>.filtered.barcodes.tsv.gz`
+- `<dragen_file_prefix>.filtered.features.tsv.gz`
 
 ### Execution Profiles
 
@@ -80,33 +90,43 @@ Run with different executors:
 nextflow run main.nf -profile local \
   --num_input_cells 10000 \
   --data_dir data/sample_output \
-  --file_prefix sample_123 \
+  --dragen_file_prefix sample_123 \
+  --sample_id "Sample_123" \
+  --output_basename "sample_123_processed" \
   --outdir results
 
 # AWS Batch with Docker containers
 nextflow run main.nf -profile awsbatch \
   --num_input_cells 10000 \
   --data_dir s3://bucket/sample_output \
-  --file_prefix sample_123 \
+  --dragen_file_prefix sample_123 \
+  --sample_id "Sample_123" \
+  --output_basename "sample_123_processed" \
   --outdir s3://bucket/results
 
 # SLURM cluster
 nextflow run main.nf -profile cluster \
   --num_input_cells 10000 \
   --data_dir /path/to/data \
-  --file_prefix sample_123
+  --dragen_file_prefix sample_123 \
+  --sample_id "Sample_123" \
+  --output_basename "sample_123_processed"
 
 # Google Cloud Platform with containers
 nextflow run main.nf -profile gcp \
   --num_input_cells 10000 \
   --data_dir gs://bucket/data \
-  --file_prefix sample_123
+  --dragen_file_prefix sample_123 \
+  --sample_id "Sample_123" \
+  --output_basename "sample_123_processed"
 
 # Local with Docker
 nextflow run main.nf -profile docker \
   --num_input_cells 10000 \
   --data_dir data/sample_output \
-  --file_prefix sample_123
+  --dragen_file_prefix sample_123 \
+  --sample_id "Sample_123" \
+  --output_basename "sample_123_processed"
 ```
 
 #### Profile Details
@@ -179,8 +199,8 @@ Results are organized in the output directory:
 - `<prefix>.guide_assignment.log` - Processing log
 
 **`${params.outdir}/processed/`:**
-- `<prefix>.output.csv` - Final QC metrics and report data
-- `<prefix>.generate_report_data.log` - Processing log
+- `<output_basename>.output.csv` - Final QC metrics and report data
+- `<output_basename>.generate_report_data.log` - Processing log
 
 **`${params.outdir}/pipeline_info/`:** (Nextflow reports)
 - `timeline.html` - Execution timeline
@@ -190,45 +210,38 @@ Results are organized in the output directory:
 
 ## Configuration
 
-### AWS Batch Setup
+### Resource Allocation
 
-To use the `awsbatch` profile, you need to:
+Modify `nextflow.config` to adjust:
+- Resource allocations (CPU, memory, time)
+- Executor settings
+- Process-specific configurations (EXTRACT_CRISPR_FEATURES, GUIDE_ASSIGNMENT, GENERATE_REPORT_DATA)
+- Cloud execution settings (AWS Batch, GCP)
 
-1. **Update `nextflow.config`** with your AWS settings:
-   ```groovy
-   aws.region = 'us-east-1'              // Your AWS region
-   workDir = 's3://your-bucket/work'     // S3 bucket for work directory
-   process.queue = 'your-batch-queue'    // AWS Batch queue name
-   ```
-
-2. **Set container images** (choose one option):
-   - In `nextflow.config`:
-     ```groovy
-     params.container_metrics = 'account.dkr.ecr.region.amazonaws.com/pipseq-metrics:tag'
-     params.container_crispr = 'account.dkr.ecr.region.amazonaws.com/pipseq-crispr:tag'
-     params.container_guide_assignment = 'account.dkr.ecr.region.amazonaws.com/pipseq-guide:tag'
-     ```
-   - Or via command line:
-     ```bash
-     --container_metrics 'your-ecr-uri:tag' \
-     --container_crispr 'your-ecr-uri:tag' \
-     --container_guide_assignment 'your-ecr-uri:tag'
-     ```
-
-3. **AWS Credentials**: Ensure AWS credentials are configured
-   ```bash
-   aws configure
-   # or set environment variables:
-   export AWS_ACCESS_KEY_ID=your_key
-   export AWS_SECRET_ACCESS_KEY=your_secret
-   ```
-
-4. **S3 Permissions**: Ensure your AWS Batch execution role has access to:
-   - Input data buckets (read)
-   - Output bucket (read/write)
-   - Work directory bucket (read/write)
+Example process-specific configuration:
+```groovy
+process {
+    withName: EXTRACT_CRISPR_FEATURES {
+        cpus = 8
+        memory = 32.GB
+        time = 8.h
+    }
+    
+    withName: GUIDE_ASSIGNMENT {
+        cpus = 16
+        memory = 64.GB
+        time = 24.h
+    }
+}
 
 ### Local Execution Setup
+
+**Use when**: Development, testing, or when you have Python dependencies installed locally.
+
+**Requirements**:
+- Python 3.8+ with pandas, scanpy, anndata, crispat, matplotlib, numpy, scipy installed
+- Nextflow >= 22.10.0
+- Scripts in `bin/` directory must be executable
 
 For local execution without containers:
 
@@ -249,9 +262,61 @@ For local execution without containers:
    nextflow run main.nf -profile local \
      --num_input_cells 10000 \
      --data_dir data/sample_output \
-     --file_prefix sample_123 \
+     --dragen_file_prefix sample_123 \
+     --sample_id "Sample_123" \
+     --output_basename "sample_123_processed" \
      --outdir results
    ```
+
+### AWS Batch Execution Setup
+
+**Use when**: Production runs, large-scale processing, cloud-native workflows.
+
+**Prerequisites**:
+1. **AWS Batch Setup**: Create compute environment and job queue
+2. **ECR Repositories**: Push Docker images to ECR
+3. **S3 Buckets**: Create buckets for data and work directory
+4. **IAM Permissions**: Ensure proper S3 access for Batch execution role
+
+**Configuration**:
+
+Update `nextflow.config` with your AWS details:
+```groovy
+awsbatch {
+    aws.region = 'us-east-1'                    // Your region
+    workDir = 's3://my-bucket/work'             // S3 work directory
+    process.queue = 'my-batch-queue'            // Batch queue name
+    
+    // Container images in ECR
+    params.container_metrics = '123456789012.dkr.ecr.us-east-1.amazonaws.com/pipseq-metrics:v1.0'
+    params.container_crispr = '123456789012.dkr.ecr.us-east-1.amazonaws.com/pipseq-crispr:v1.0'
+    params.container_guide_assignment = '123456789012.dkr.ecr.us-east-1.amazonaws.com/pipseq-guide:v1.0'
+}
+```
+
+**Execution**:
+```bash
+# Configure AWS credentials
+export AWS_ACCESS_KEY_ID=your_key_id
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+export AWS_DEFAULT_REGION=us-east-1
+
+# Run pipeline with S3 paths
+nextflow run main.nf -profile awsbatch \
+  --num_input_cells 10000 \
+  --data_dir s3://my-bucket/data/sample_output \
+  --dragen_file_prefix sample_123 \
+  --sample_id "Sample_123" \
+  --output_basename "sample_123_processed" \
+  --outdir s3://my-bucket/results
+```
+
+**AWS Batch Tips**:
+- **Resume failed runs**: Add `-resume` flag
+- **Monitor**: Check AWS Batch console for job status
+- **Logs**: CloudWatch Logs for each task
+- **Costs**: S3 storage + EC2 compute time
+- **Data transfer**: Input/output to S3 is fastest
 
 ### Additional Configuration
 
@@ -263,7 +328,7 @@ Modify `nextflow.config` to adjust:
 
 ## Example Workflow
 
-1. Prepare your data directory with the required files:
+1. Prepare your data directory with the required DRAGEN output files:
    ```
    data/sample_output/
    ├── sample_123.scRNA_metrics.csv
@@ -277,7 +342,9 @@ Modify `nextflow.config` to adjust:
    nextflow run main.nf \
      --num_input_cells 10000 \
      --data_dir data/sample_output \
-     --file_prefix sample_123 \
+     --dragen_file_prefix sample_123 \
+     --sample_id "Sample_123" \
+     --output_basename "sample_123_processed" \
      --outdir results
    ```
 
@@ -286,6 +353,32 @@ Modify `nextflow.config` to adjust:
    - `results/ga_crispat/` - Guide assignments (if enabled)
    - `results/processed/` - Final QC metrics
 
+## CRISPR Guide Assignment
+
+Guide assignment is **enabled by default** (`--run_guide_assignment true`).
+
+**Three-step process**:
+1. **Extract CRISPR features**: Reads matrix/barcodes/features files, extracts "CRISPR Direct Capture" feature types, and writes to an h5ad file (`bin/extract_crispr_features.py`)
+2. **Run guide assignment**: Uses the h5ad file to run CRISPAT's Poisson-Gaussian mixture model (`bin/run_guide_assignment.py`)
+3. **Generate report**: Combines all data to create comprehensive QC metrics (`bin/generate_report_data.py`)
+
+**Disable guide assignment**:
+```bash
+nextflow run main.nf -profile local \
+  --num_input_cells 10000 \
+  --data_dir data/sample_output \
+  --dragen_file_prefix sample_123 \
+  --sample_id "Sample_123" \
+  --output_basename "sample_123_processed" \
+  --run_guide_assignment false \
+  --outdir results
+```
+
+**Output files**:
+- `crispr_adata/<output_basename>.crispr.h5ad`: Extracted CRISPR features in AnnData format
+- `ga_crispat/<output_basename>.assignments.csv`: Guide assignments from CRISPAT
+- `processed/<output_basename>.output.csv`: Final QC metrics with guide assignment data integrated
+
 ## Resuming Failed Runs
 
 Nextflow caches completed tasks. Resume a failed pipeline with `-resume`:
@@ -293,18 +386,71 @@ Nextflow caches completed tasks. Resume a failed pipeline with `-resume`:
 nextflow run main.nf \
   --num_input_cells 10000 \
   --data_dir data/sample_output \
-  --file_prefix sample_123 \
+  --dragen_file_prefix sample_123 \
+  --sample_id "Sample_123" \
+  --output_basename "sample_123_processed" \
   -resume
 ```
 
+## Profile Comparison
+
+| Profile | Executor | Containers | Best For |
+|---------|----------|------------|----------|
+| `local` | Local machine | None | Development, testing, small datasets |
+| `awsbatch` | AWS Batch | Docker (ECR) | Production, large-scale, cloud-native |
+| `docker` | Local machine | Docker | Local testing with containers |
+| `cluster` | SLURM | Optional | HPC clusters |
+| `gcp` | Google Cloud | Docker | Google Cloud users |
+
 ## Troubleshooting
 
-- **Permission denied**: Make sure Python scripts are executable:
-  ```bash
-  chmod +x bin/*.py
+### Local Profile Issues
+
+**Error**: `command not found: extract_crispr_features.py`
+- **Solution**: Ensure scripts are executable: `chmod +x bin/*.py`
+- **Solution**: Check Python is in PATH
+
+**Error**: `ModuleNotFoundError: No module named 'scanpy'` (or anndata, crispat)
+- **Solution**: Install dependencies: `pip install pandas scanpy anndata crispat matplotlib numpy scipy`
+
+**Error**: CRISPR features extraction fails
+- **Solution**: Verify your features file contains "CRISPR Direct Capture" feature type entries
+
+**Error**: File not found
+- **Solution**: Verify file paths and ensure the `dragen_file_prefix` matches your input files exactly
+
+### AWS Batch Profile Issues
+
+**Error**: `Unable to locate credentials`
+- **Solution**: Configure AWS CLI or set environment variables
+
+**Error**: `Access Denied` for S3
+- **Solution**: Check IAM role attached to AWS Batch compute environment
+
+**Error**: Container fails to start
+- **Solution**: Verify ECR image URI is correct
+- **Solution**: Check Batch execution role has ECR pull permissions
+
+**Error**: Job stays in RUNNABLE state
+- **Solution**: Check compute environment is ENABLED and VALID
+- **Solution**: Verify VPC/subnet configuration
+
+### General Issues
+
+- **Out of memory**: Adjust memory allocation in `nextflow.config` for specific processes:
+  ```groovy
+  withName: EXTRACT_CRISPR_FEATURES {
+      memory = 32.GB
+  }
   ```
-- **ModuleNotFoundError**: Install missing Python packages:
-  ```bash
+- **Guide assignment fails**: Check that CRISPR Direct Capture features are present in your features file
+
+## Additional Resources
+
+- [Nextflow AWS Batch Documentation](https://www.nextflow.io/docs/latest/awscloud.html)
+- [AWS Batch Setup Guide](https://docs.aws.amazon.com/batch/latest/userguide/what-is-batch.html)
+- [Nextflow Configuration Reference](https://www.nextflow.io/docs/latest/config.html)
+- [CRISPAT Documentation](https://github.com/pinellolab/CRISPAT)
   pip install pandas scanpy anndata crispat matplotlib
   ```
 - **Out of memory**: Adjust memory allocation in `nextflow.config` for specific processes:
