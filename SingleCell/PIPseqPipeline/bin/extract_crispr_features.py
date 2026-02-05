@@ -110,7 +110,7 @@ def extract_crispr_features(matrix_path, barcodes_path, features_path, output_ba
         shutil.copy(features_path, f'{temp_local_path}/features.tsv.gz')
 
         print('Loading CRISPR Direct Capture data...')
-        adata_crispr = read_10x_mtx_feature_types(temp_local_path, feature_types="CRISPR Direct Capture", var_names='gene_symbols', cache=True, prefix=None)
+        adata_crispr = read_10x_mtx_feature_types(temp_local_path, feature_types="CRISPR Direct Capture", var_names='gene_symbols', cache=False, prefix=None)
         
         print('Writing CRISPR adata to file...')
         adata_crispr.write(f'{output_basename}.crispr.h5ad', compression='gzip')
