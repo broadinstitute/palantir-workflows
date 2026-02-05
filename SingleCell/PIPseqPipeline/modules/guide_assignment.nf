@@ -8,7 +8,7 @@ process GUIDE_ASSIGNMENT {
     
     input:
     tuple path(crispr_h5ad),
-          path(sample_basename)
+          val(sample_basename)
     
     output:
     path "${sample_basename}.assignments.csv", emit: guide_assignments
