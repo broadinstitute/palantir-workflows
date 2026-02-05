@@ -11,14 +11,11 @@ process GENERATE_REPORT_DATA {
           path(scrna_metrics), 
           path(barcode_summary), 
           val(sample_id),
-          val(sample_basename),
-          path(guide_assignments)
-    
+          val(sample_basename)    
     output:
     path "${sample_basename}.qc_*", emit: qc_files
     
     script:
-    def guide_assignments_arg = guide_assignments.name != 'NO_FILE' ? "--guide-assignments ${guide_assignments}" : ""
     """
     # Run the Python processing script
     # The script should be in the bin/ directory and will be automatically available
@@ -27,7 +24,6 @@ process GENERATE_REPORT_DATA {
         --scrna-metrics ${scrna_metrics} \\
         --barcode-summary ${barcode_summary} \\
         --sample-id ${sample_id} \\
-        ${guide_assignments_arg} \\
         --sample-basename ${sample_basename}
     """
 }

@@ -186,7 +186,6 @@ workflow {
         .combine(barcode_summary_ch)
         .combine(sample_id_ch)
         .combine(sample_basename_ch)
-        .combine(guide_assignments_ch)
     
     // Generate report data
     GENERATE_REPORT_DATA(input_ch)
