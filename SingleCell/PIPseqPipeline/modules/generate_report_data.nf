@@ -3,17 +3,17 @@
  */
 
 process GENERATE_REPORT_DATA {
-    tag "${sample_basename}"
-    publishDir "${params.outdir}/${sample_basename}/qc", mode: 'copy'
+    tag "${subsample_basename}"
+    publishDir "${params.outdir}/${params.supersample_basename}/${subsample_basename}/qc", mode: 'copy'
     
     input:
     tuple val(num_input_cells), 
           path(scrna_metrics), 
           path(barcode_summary), 
-          val(sample_id),
-          val(sample_basename)    
+          val(subsample_id),
+          val(subsample_basename)    
     output:
-    path "${sample_basename}.qc_*", emit: qc_files
+    path "${subsample_basename}.qc_*", emit: qc_files
     
     script:
     """
@@ -23,7 +23,7 @@ process GENERATE_REPORT_DATA {
         --num-input-cells ${num_input_cells} \\
         --scrna-metrics ${scrna_metrics} \\
         --barcode-summary ${barcode_summary} \\
-        --sample-id ${sample_id} \\
-        --sample-basename ${sample_basename}
+        --sample-id ${subsample_id} \\
+        --sample-basename ${subsample_basename}
     """
 }

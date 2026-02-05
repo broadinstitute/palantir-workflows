@@ -4,10 +4,10 @@
 
 process GUIDE_ASSIGNMENT {
     tag "guide_assignment"
-    publishDir "${params.outdir}/ga_crispat", mode: 'copy'
+    publishDir "${params.outdir}/${params.supersample_basename}/crispat_ga", mode: 'copy'
     
     input:
-        path(crispr_h5ad)
+    path(crispr_h5ad)
     
     output:
     path "assignments.csv", emit: guide_assignments

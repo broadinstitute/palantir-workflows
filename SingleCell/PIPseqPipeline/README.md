@@ -4,14 +4,20 @@ This is a pipeline for processing single-cell QC metrics from PIPseq data using 
 
 ## Overview
 
-This pipeline processes single-cell RNA-seq data with optional CRISPR guide assignment. It extracts CRISPR features, performs guide assignment using CRISPAT, and generates comprehensive QC reports.
+This pipeline processes single-cell RNA-seq data with optional CRISPR guide assignment. It extracts CRISPR features from subsamples (which can be concatenated into a supersample), performs guide assignment using CRISPAT, and generates comprehensive QC reports.
+
+### Terminology
+
+- **Subsample**: An individual sample (e.g., a technical replicate or a well from a plate)
+- **Supersample**: A logical grouping of subsamples that should be analyzed together (e.g., all wells from one biological sample)
 
 ### Pipeline Workflow
 
 The pipeline performs three main tasks:
 1. **Extract CRISPR Features**: Reads 10x matrix files and extracts "CRISPR Direct Capture" features to h5ad format
-2. **Guide Assignment**: Performs CRISPAT guide assignment using Poisson-Gaussian mixture model (optional)
-3. **Generate Report Data**: Creates comprehensive QC metrics and visualizations
+2. **Concatenate Subsamples** (if multiple): Combines multiple subsamples into a single supersample
+3. **Guide Assignment**: Performs CRISPAT guide assignment using Poisson-Gaussian mixture model (optional)
+4. **Generate Report Data**: Creates comprehensive QC metrics and visualizations for each subsample
 
 ## Pipeline Structure
 
@@ -54,31 +60,34 @@ pip install pandas scanpy anndata crispat matplotlib
 nextflow run main.nf \
   --num_input_cells 10000 \
   --samplesheet samplesheet.csv \
+  --supersample_id "Supersample_A" \
+  --supersample_basename "supersample_A" \
   --outdir results
 ```
 
 Example samplesheet.csv:
 ```csv
-data_dir,dragen_file_prefix,sample_id,sample_basename
-/path/to/data1,sample_001,Sample_001,sample_001
-/path/to/data2,sample_002,Sample_002,sample_002
-/path/to/data3,sample_003,Sample_003,sample_003
+data_dir,dragen_file_prefix,subsample_id,subsample_basename
+/path/to/data1,sample_001,Subsample_001,subsample_001
+/path/to/data2,sample_002,Subsample_002,subsample_002
+/path/to/data3,sample_003,Subsample_003,subsample_003
 ```
 
 **Pipeline behavior:**
-- **Single sample** (samplesheet has 1 row): Runs EXTRACT_CRISPR_FEATURES then GUIDE_ASSIGNMENT
-- **Multiple samples** (samplesheet has >1 row): Runs CONCATENATE on all samples, then GUIDE_ASSIGNMENT
-- Per-sample QC reports are always generated in `outdir/<sample_basename>/qc/`
-- Guide assignments are always output to `outdir/ga_crispat/`
-- CRISPR h5ad files are output to `outdir/crispr_adata/`
+- **Single subsample** (samplesheet has 1 row): Runs EXTRACT_CRISPR_FEATURES then GUIDE_ASSIGNMENT
+- **Multiple subsamples** (samplesheet has >1 row): Runs CONCATENATE on all subsamples, then GUIDE_ASSIGNMENT
+- Per-subsample QC reports are always generated in `outdir/<supersample_basename>/<subsample_basename>/qc/`
+- Guide assignments are output to `outdir/<supersample_basename>/crispat_ga/`
+- CRISPR h5ad files (single subsample) are output to `outdir/<supersample_basename>/crispr_adata/`
+- Concatenated h5ad files (multiple subsamples) are output to `outdir/<supersample_basename>/concatenated/`
 
 ### Command-Line Options
 
 **Required:**
 - `--num_input_cells`: Number of input cells (integer)
-- `--samplesheet`: CSV file with columns: data_dir, dragen_file_prefix, sample_id, sample_basename
-- `--outdir`: Output directory (default: `results`)
-- `--help`: Show help message
+- `--samplesheet`: CSV file with columns: data_dir, dragen_file_prefix, subsample_id, subsample_basename
+- `--supersample_id`: Supersample identifier
+- `--supersample_basename`: Supersample basename for output organization
 
 **Optional:**
 - `--run_guide_assignment`: Run CRISPR guide assignment (default: true)
@@ -189,23 +198,22 @@ nextflow run main.nf -profile docker \
 
 Results are organized in the output directory:
 
-**`${params.outdir}/<sample_basename>/qc/`:** (per-sample QC reports)
-- `<sample_basename>.qc_barcode_metrics.tsv` - Barcode rank metrics
-- `<sample_basename>.qc_metrics.tsv` - Single-cell RNA QC metrics
-- `<sample_basename>.qc_guide_assignment_stats.tsv` - Guide assignment statistics (if enabled)
-- `<sample_basename>.qc_guide_assignment_distribution.png` - Guide assignment distribution plot (if enabled)
+**`${params.outdir}/<supersample_basename>/<subsample_basename>/qc/`:** (per-subsample QC reports)
+- `<subsample_basename>.qc_barcode_metrics.tsv` - Barcode rank metrics
+- `<subsample_basename>.qc_metrics.tsv` - Single-cell RNA QC metrics
+- `<subsample_basename>.qc_guide_assignment_stats.tsv` - Guide assignment statistics (if enabled)
+- `<subsample_basename>.qc_guide_assignment_distribution.png` - Guide assignment distribution plot (if enabled)
 
-**`${params.outdir}/ga_crispat/`:** (guide assignments - if enabled)
-- Single sample: `<sample_basename>.assignments.csv` - CRISPAT guide assignments
-- Multiple samples: `concatenated.assignments.csv` - CRISPAT guide assignments for all samples
+**`${params.outdir}/<supersample_basename>/crispat_ga/`:** (guide assignments - if enabled)
+- `assignments.csv` - CRISPAT guide assignments
 
-**`${params.outdir}/crispr_adata/`:** (CRISPR features - single sample only with guide assignment)
-- `<sample_basename>.crispr.h5ad` - CRISPR features in AnnData format
+**`${params.outdir}/<supersample_basename>/crispr_adata/`:** (CRISPR features - single subsample only with guide assignment)
+- `<subsample_basename>.crispr.h5ad` - CRISPR features in AnnData format
 
-**`${params.outdir}/concatenated/`:** (multiple samples only with guide assignment)
-- `concatenated.h5ad` - Concatenated CRISPR features from all samples
+**`${params.outdir}/<supersample_basename>/concatenated/`:** (multiple subsamples only with guide assignment)
+- `concatenated.h5ad` - Concatenated CRISPR features from all subsamples
 
-**`${params.outdir}/<sample_basename>/pipeline_info/`:** (Nextflow reports)
+**`${params.outdir}/pipeline_info/`:** (Nextflow reports)
 - `timeline.html` - Execution timeline
 - `report.html` - Resource usage report
 - `trace.txt` - Detailed execution trace

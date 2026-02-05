@@ -19,15 +19,19 @@ params.help = false
 def helpMessage() {
     log.info"""
     Usage:
-      nextflow run main.nf --num_input_cells <int> --samplesheet <samplesheet.csv> [options]
+      nextflow run main.nf --num_input_cells <int> --samplesheet <samplesheet.csv> --supersample_id <id> --supersample_basename <name> [options]
 
     Required arguments:
       --num_input_cells          Number of input cells (integer)
-      --samplesheet              CSV file with columns: data_dir,dragen_file_prefix,sample_id,sample_basename
+      --samplesheet              CSV file with columns: data_dir,dragen_file_prefix,subsample_id,subsample_basename
+      --supersample_id           Supersample identifier
+      --supersample_basename     Supersample basename for output organization
 
     Samplesheet format:
-      CSV file with columns: data_dir, dragen_file_prefix, sample_id, sample_basename
+      CSV file with columns: data_dir, dragen_file_prefix, subsample_id, subsample_basename, supersample_id, supersample_basename
       See samplesheet.csv.example for an example
+      - Each row represents a subsample
+      - All rows should have the same supersample_id and supersample_basename (one supersample per run)
 
     Expected files in each data_dir:
       <dragen_file_prefix>.scRNA_metrics.csv
@@ -45,10 +49,10 @@ def helpMessage() {
           ensure they are properly formatted as strings in your CSV.
     
     Behavior:
-      - Single sample: Runs EXTRACT_CRISPR_FEATURES then GUIDE_ASSIGNMENT (if enabled)
-      - Multiple samples: Runs CONCATENATE on all samples, then GUIDE_ASSIGNMENT (if enabled)
-      - Per-sample QC reports are always generated in outdir/<sample_basename>/qc/
-      - Guide assignments are output to outdir/ga_crispat/
+      - Single subsample: Runs EXTRACT_CRISPR_FEATURES then GUIDE_ASSIGNMENT (if enabled)
+      - Multiple subsamples: Runs CONCATENATE on all subsamples, then GUIDE_ASSIGNMENT (if enabled)
+      - Per-subsample QC reports are always generated in outdir/<supersample_basename>/<subsample_basename>/qc/
+      - Guide assignments are output to outdir/<supersample_basename>/crispat_ga/
     """.stripIndent()
 }
 
@@ -81,24 +85,36 @@ workflow {
         exit 1
     }
 
-    log.info "Reading samples from samplesheet..."
+    if (!params.supersample_id) {
+        log.error "ERROR: --supersample_id is required"
+        helpMessage()
+        exit 1
+    }
+
+    if (!params.supersample_basename) {
+        log.error "ERROR: --supersample_basename is required"
+        helpMessage()
+        exit 1
+    }
+
+    log.info "Reading subsamples from samplesheet..."
     
     // Read samplesheet and create channels
-    sample_ch = Channel
+    subsample_ch = Channel
         .fromPath(params.samplesheet, checkIfExists: true)
         .splitCsv(header: true)
         .map { row ->
             // Force strings and strip quotes for each field
             def data_dir = "${row.data_dir}".replaceAll(/^['"]|['"]$/, '')
             def dragen_file_prefix = "${row.dragen_file_prefix}".replaceAll(/^['"]|['"]$/, '')
-            def sample_id = "${row.sample_id}".replaceAll(/^['"]|['"]$/, '')
-            def sample_basename = "${row.sample_basename}".replaceAll(/^['"]|['"]$/, '')
+            def subsample_id = "${row.subsample_id}".replaceAll(/^['"]|['"]$/, '')
+            def subsample_basename = "${row.subsample_basename}".replaceAll(/^['"]|['"]$/, '')
             
-            tuple(data_dir, dragen_file_prefix, sample_id, sample_basename)
+            tuple(data_dir, dragen_file_prefix, subsample_id, subsample_basename)
         }
     
-    // Create channels for all files across all samples
-    all_samples = sample_ch.map { data_dir, dragen_file_prefix, sample_id, sample_basename ->
+    // Create channels for all files across all subsamples
+    all_subsamples = subsample_ch.map { data_dir, dragen_file_prefix, subsample_id, subsample_basename ->
         def metrics_path = "${data_dir}/${dragen_file_prefix}.scRNA_metrics.csv"
         def barcode_summary_path = "${data_dir}/${dragen_file_prefix}.scRNA.barcodeSummary.tsv"
         def matrix_path = "${data_dir}/${dragen_file_prefix}.scRNA.filtered.matrix.mtx.gz"
@@ -111,19 +127,19 @@ workflow {
             file(matrix_path),
             file(barcodes_path),
             file(features_path),
-            sample_id,
-            sample_basename
+            subsample_id,
+            subsample_basename
         )
     }
     
-    // Generate per-sample QC reports
-    qc_input_ch = all_samples.map { metrics, barcode_summary, _matrix, _barcodes, _features, sample_id, sample_basename ->
+    // Generate per-subsample QC reports
+    qc_input_ch = all_subsamples.map { metrics, barcode_summary, _matrix, _barcodes, _features, subsample_id, subsample_basename ->
         tuple(
             params.num_input_cells,
             metrics,
             barcode_summary,
-            sample_id,
-            sample_basename
+            subsample_id,
+            subsample_basename
         )
     }
     
@@ -132,41 +148,38 @@ workflow {
     if (params.run_guide_assignment) {
         log.info "Running CRISPR feature extraction and guide assignment..."
         
-        // Collect all sample data and branch based on count
-        all_samples
-            .map { it[2..6] }  // matrix, barcodes, features, sample_id, sample_basename
+        // Collect all subsample data with count
+        collected_data = all_subsamples
+            .map { it[2..6] }  // matrix, barcodes, features, subsample_id, subsample_basename
             .toList()
-            .map { samples ->
+            .map { subsamples ->
                 [
-                    samples.collect { it[0] },  // matrices
-                    samples.collect { it[1] },  // barcodes
-                    samples.collect { it[2] },  // features
-                    samples.collect { it[3] },  // sample_ids
-                    samples.collect { it[4] },  // sample_basenames
-                    samples.size()              // count
+                    subsamples.collect { it[0] },  // matrices
+                    subsamples.collect { it[1] },  // barcodes
+                    subsamples.collect { it[2] },  // features
+                    subsamples.collect { it[3] },  // subsample_ids
+                    subsamples.collect { it[4] },  // subsample_basenames
+                    subsamples.size()              // count
                 ]
             }
-            .branch {
-                single: it[5] == 1
-                multiple: it[5] > 1
-            }
-            .set { sample_data }
         
-        // Single sample: extract CRISPR features
-        single_sample_ch = sample_data.single
-            .map { matrices, barcodes, features, _sample_ids, sample_basenames, _count ->
-                tuple(matrices[0], barcodes[0], features[0], sample_basenames[0])
+        // Single subsample: extract CRISPR features
+        single_subsample_ch = collected_data
+            .filter { matrices, barcodes, features, _subsample_ids, _subsample_basenames, count -> count == 1 }
+            .map { matrices, barcodes, features, _subsample_ids, subsample_basenames, _count ->
+                tuple(matrices[0], barcodes[0], features[0], subsample_basenames[0])
             }
         
-        EXTRACT_CRISPR_FEATURES(single_sample_ch)
+        EXTRACT_CRISPR_FEATURES(single_subsample_ch)
         
-        // Multiple samples: concatenate
-        multi_sample_ch = sample_data.multiple
-            .map { matrices, barcodes, features, sample_ids, _sample_basenames, _count ->
-                tuple(matrices, barcodes, features, sample_ids)
+        // Multiple subsamples: concatenate
+        multi_subsample_ch = collected_data
+            .filter { matrices, barcodes, features, _subsample_ids, _subsample_basenames, count -> count > 1 }
+            .map { matrices, barcodes, features, subsample_ids, _subsample_basenames, _count ->
+                tuple(matrices, barcodes, features, subsample_ids)
             }
         
-        CONCATENATE(multi_sample_ch)
+        CONCATENATE(multi_subsample_ch)
         
         // Combine outputs for guide assignment
         guide_input_ch = EXTRACT_CRISPR_FEATURES.out.crispr_adata
