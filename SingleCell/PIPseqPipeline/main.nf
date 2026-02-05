@@ -192,5 +192,5 @@ workflow {
     GENERATE_REPORT_DATA(input_ch)
     
     // Emit results
-    GENERATE_REPORT_DATA.out.results.view { "Generated output: $it" }
+    GENERATE_REPORT_DATA.out.qc_files.view { "Generated output: $it" }
 }

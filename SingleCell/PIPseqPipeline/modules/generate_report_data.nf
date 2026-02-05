@@ -15,7 +15,7 @@ process GENERATE_REPORT_DATA {
           path(assignments)
     
     output:
-    path "*.output.csv", emit: results
+    path "${output_basename}.qc_*", emit: qc_files
     path "*.log", emit: logs
     
     script:

@@ -64,7 +64,7 @@ def get_barcode_metrics(barcode_summary_path, sample_id):
 def write_rankplot(barcode_summary_path, sample_id, output_basename):
     print('    Generating barcode rank plot...')
     barcode_metrics = get_barcode_metrics(barcode_summary_path, sample_id)
-    barcode_metrics.to_csv(f'{output_basename}.barcode_metrics.tsv', index=False, sep='\t')
+    barcode_metrics.to_csv(f'{output_basename}.qc_barcode_metrics.tsv', index=False, sep='\t')
 
 def get_sc_metrics(sc_metrics_path, sample_id):
     columns = ['metrics_name', 'value_numeric', 'value_frac']
@@ -88,7 +88,7 @@ def get_sc_metrics(sc_metrics_path, sample_id):
 def write_metrics(sc_metrics_path, sample_id, output_basename):
     print('    Writing single-cell RNA QC metrics...')
     metrics = get_sc_metrics(sc_metrics_path, sample_id)
-    metrics.to_csv(f'{output_basename}.metrics.tsv', index=False, sep='\t')
+    metrics.to_csv(f'{output_basename}.qc_metrics.tsv', index=False, sep='\t')
 
 from typing import OrderedDict
 
@@ -142,7 +142,7 @@ def guide_qc(guide_assignments_path, metrics_path, sample_id, output_basename):
     guide_assignment_stats['frac_cells_with_one_or_two_guides'] = frac_1_2_guides
     guide_assignment_stats['frac_cells_with_three_or_more_guides'] = frac_3_plus_guides
 
-    with open(f'{output_basename}.guide_assignment_stats.tsv', 'w') as f:
+    with open(f'{output_basename}.qc_guide_assignment_stats.tsv', 'w') as f:
         f.write('\t'.join(guide_assignment_stats.keys()) + '\n')
         f.write('\t'.join(str(v) for v in guide_assignment_stats.values()) + '\n')
 
