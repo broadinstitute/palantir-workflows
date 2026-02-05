@@ -91,11 +91,13 @@ workflow {
     }
 
     // Construct file paths using data_dir and file_prefix
-    def metrics_path = "${params.data_dir}/${params.dragen_file_prefix}.scRNA_metrics.csv"
-    def matrix_path = "${params.data_dir}/${params.dragen_file_prefix}.filtered.matrix.mtx.gz"
-    def barcodes_path = "${params.data_dir}/${params.dragen_file_prefix}.filtered.barcodes.tsv.gz"
-    def features_path = "${params.data_dir}/${params.dragen_file_prefix}.filtered.features.tsv.gz"
-
+    // Force dragen_file_prefix to be treated as a string to preserve leading zeros
+    def dragen_file_prefix = params.dragen_file_prefix.toString()
+    def metrics_path = "${params.data_dir}/${dragen_file_prefix}.scRNA_metrics.csv"
+    def barcode_summary_path = "${params.data_dir}/${dragen_file_prefix}.scRNA.barcodeSummary.tsv"
+    def matrix_path = "${params.data_dir}/${dragen_file_prefix}.filtered.matrix.mtx.gz"
+    def barcodes_path = "${params.data_dir}/${dragen_file_prefix}.filtered.barcodes.tsv.gz"
+    def features_path = "${params.data_dir}/${dragen_file_prefix}.filtered.features.tsv.gz"
     // Log pipeline parameters
     log.info """
         ========================================
@@ -103,7 +105,7 @@ workflow {
         ========================================
         Num input cells      : ${params.num_input_cells}
         Data directory       : ${params.data_dir}
-        File prefix          : ${params.dragen_file_prefix}
+        File prefix          : ${dragen_file_prefix}
         Sample ID            : ${params.sample_id}
         Output basename      : ${params.output_basename}
         scRNA metrics        : ${metrics_path}
@@ -120,6 +122,7 @@ workflow {
     sample_id_ch = Channel.value(params.sample_id)
     output_basename_ch = Channel.value(params.output_basename)
     metrics_ch = Channel.fromPath(metrics_path, checkIfExists: true)
+    barcode_summary_ch = Channel.fromPath(barcode_summary_path, checkIfExists: true)
     matrix_ch = Channel.fromPath(matrix_path, checkIfExists: true)
     barcodes_ch = Channel.fromPath(barcodes_path, checkIfExists: true)
     features_ch = Channel.fromPath(features_path, checkIfExists: true)
@@ -157,7 +160,7 @@ workflow {
     // Combine all inputs for report generation
     input_ch = num_cells_ch
         .combine(metrics_ch)
-        .combine(barcodes_ch)  // barcode_summary
+        .combine(barcode_summary_ch)
         .combine(sample_id_ch)
         .combine(output_basename_ch)
         .combine(assignments_ch)
