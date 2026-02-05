@@ -1,6 +1,13 @@
 # PIPseq Pipeline Execution Guide
 
-Quick reference for running the pipeline in different environments.
+Quick reference for running the PIPseq single-cell QC pipeline in different environments.
+
+## Pipeline Overview
+
+The pipeline performs three main tasks:
+1. **Extract CRISPR Features**: Reads 10x matrix files and extracts "CRISPR Direct Capture" features to h5ad format
+2. **Guide Assignment**: Performs CRISPAT guide assignment using Poisson-Gaussian mixture model (optional)
+3. **Generate Report Data**: Creates comprehensive QC metrics and visualizations
 
 ## Local Execution (No Containers)
 
@@ -19,7 +26,7 @@ nextflow run main.nf -profile local \
 ```
 
 **Requirements**:
-- Python 3.8+ with pandas, numpy, scipy installed
+- Python 3.8+ with pandas, scanpy, anndata, crispat, matplotlib, numpy, scipy installed
 - Nextflow >= 22.10.0
 - Scripts in `bin/` directory must be executable
 
@@ -95,17 +102,17 @@ nextflow run main.nf -profile awsbatch \
 
 Enable guide assignment with `--run_guide_assignment true` (enabled by default).
 
-**Two-step process**:
-1. **Extract CRISPR features**: Reads matrix/barcodes/features files, extracts "CRISPR Direct Capture" feature types, and writes to an h5ad file
-2. **Run guide assignment**: Uses the h5ad file to run CRISPAT guide assignment
+**Three-step process**:
+1. **Extract CRISPR features**: Reads matrix/barcodes/features files, extracts "CRISPR Direct Capture" feature types, and writes to an h5ad file (`bin/extract_crispr_features.py`)
+2. **Run guide assignment**: Uses the h5ad file to run CRISPAT's Poisson-Gaussian mixture model (`bin/run_guide_assignment.py`)
+3. **Generate report**: Combines all data to create comprehensive QC metrics (`bin/generate_report_data.py`)
 
 ```bash
-# Local with guide assignment
+# Local with guide assignment (default)
 nextflow run main.nf -profile local \
   --num_input_cells 10000 \
   --data_dir data/sample_output \
   --file_prefix sample_123 \
-  --run_guide_assignment true \
   --outdir results
 
 # AWS Batch with guide assignment
@@ -113,7 +120,6 @@ nextflow run main.nf -profile awsbatch \
   --num_input_cells 10000 \
   --data_dir s3://bucket/sample_output \
   --file_prefix sample_123 \
-  --run_guide_assignment true \
   --outdir s3://bucket/results
 
 # Disable guide assignment
@@ -126,8 +132,9 @@ nextflow run main.nf -profile local \
 ```
 
 **Output files**:
-- `crispr_features/crispr_features.h5ad`: Extracted CRISPR features in h5ad format
-- `guide_assignment/assignments.csv`: Final guide assignments from CRISPAT
+- `crispr_adata/<prefix>.crispr.h5ad`: Extracted CRISPR features in AnnData format
+- `ga_crispat/<prefix>.assignments.csv`: Guide assignments from CRISPAT
+- `processed/<prefix>.output.csv`: Final QC metrics with guide assignment data integrated
 
 ---
 
@@ -147,12 +154,15 @@ nextflow run main.nf -profile local \
 
 ### Local Profile Issues
 
-**Error**: `command not found: process_metrics.py`
+**Error**: `command not found: extract_crispr_features.py`
 - **Solution**: Ensure scripts are executable: `chmod +x bin/*.py`
 - **Solution**: Check Python is in PATH
 
-**Error**: `ModuleNotFoundError: No module named 'pandas'`
-- **Solution**: Install dependencies: `pip install pandas numpy scipy`
+**Error**: `ModuleNotFoundError: No module named 'scanpy'` (or anndata, crispat)
+- **Solution**: Install dependencies: `pip install pandas scanpy anndata crispat matplotlib numpy scipy`
+
+**Error**: CRISPR features extraction fails
+- **Solution**: Verify your features file contains "CRISPR Direct Capture" feature type entries
 
 ### AWS Batch Profile Issues
 

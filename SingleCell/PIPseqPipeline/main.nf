@@ -11,7 +11,9 @@ nextflow.enable.dsl=2
 // Define parameters
 params.num_input_cells = null          // Number of input cells (integer)
 params.data_dir = null                 // Path to directory containing all data files
-params.file_prefix = null              // Prefix for all input files
+params.dragen_file_prefix = null              // Prefix for all input files
+params.sample_id = null                // Sample identifier (defaults to file_prefix if not provided)
+params.output_basename = null          // Output basename (defaults to file_prefix if not provided)
 params.run_guide_assignment = true     // Whether to run guide assignment
 params.outdir = "results"              // Output directory
 params.help = false
@@ -20,18 +22,20 @@ params.help = false
 def helpMessage() {
     log.info"""
     Usage:
-      nextflow run main.nf --num_input_cells <int> --data_dir <path> --file_prefix <prefix> [options]
+      nextflow run main.nf --num_input_cells <int> --data_dir <path> --dragen_file_prefix <prefix> [options]
 
     Required arguments:
       --num_input_cells          Number of input cells (integer)
       --data_dir                 Path to directory containing all data files
-      --file_prefix              Common prefix for all input files
+      --dragen_file_prefix       Common prefix for all input files
+      --sample_id                Sample identifier
+      --output_basename          Output basename for generated files
 
     Expected files in data_dir:
-      <prefix>.scRNA_metrics.csv
-      <prefix>.filtered.matrix.mtx.gz
-      <prefix>.filtered.barcodes.tsv.gz
-      <prefix>.filtered.features.tsv.gz
+      <dragen_file_prefix>.scRNA_metrics.csv
+      <dragen_file_prefix>.filtered.matrix.mtx.gz
+      <dragen_file_prefix>.filtered.barcodes.tsv.gz
+      <dragen_file_prefix>.filtered.features.tsv.gz
 
     Optional arguments:
       --run_guide_assignment     Whether to run CRISPR guide assignment (default: ${params.run_guide_assignment})
@@ -68,17 +72,29 @@ workflow {
         exit 1
     }
 
-    if (!params.file_prefix) {
-        log.error "ERROR: --file_prefix is required"
+    if (!params.dragen_file_prefix) {
+        log.error "ERROR: --dragen_file_prefix is required"
+        helpMessage()
+        exit 1
+    }
+
+    if (!params.sample_id) {
+        log.error "ERROR: --sample_id is required"
+        helpMessage()
+        exit 1
+    }
+
+    if (!params.output_basename) {
+        log.error "ERROR: --output_basename is required"
         helpMessage()
         exit 1
     }
 
     // Construct file paths using data_dir and file_prefix
-    def metrics_path = "${params.data_dir}/${params.file_prefix}.scRNA_metrics.csv"
-    def matrix_path = "${params.data_dir}/${params.file_prefix}.filtered.matrix.mtx.gz"
-    def barcodes_path = "${params.data_dir}/${params.file_prefix}.filtered.barcodes.tsv.gz"
-    def features_path = "${params.data_dir}/${params.file_prefix}.filtered.features.tsv.gz"
+    def metrics_path = "${params.data_dir}/${params.dragen_file_prefix}.scRNA_metrics.csv"
+    def matrix_path = "${params.data_dir}/${params.dragen_file_prefix}.filtered.matrix.mtx.gz"
+    def barcodes_path = "${params.data_dir}/${params.dragen_file_prefix}.filtered.barcodes.tsv.gz"
+    def features_path = "${params.data_dir}/${params.dragen_file_prefix}.filtered.features.tsv.gz"
 
     // Log pipeline parameters
     log.info """
@@ -87,7 +103,9 @@ workflow {
         ========================================
         Num input cells      : ${params.num_input_cells}
         Data directory       : ${params.data_dir}
-        File prefix          : ${params.file_prefix}
+        File prefix          : ${params.dragen_file_prefix}
+        Sample ID            : ${params.sample_id}
+        Output basename      : ${params.output_basename}
         scRNA metrics        : ${metrics_path}
         Filtered matrix      : ${matrix_path}
         Filtered barcodes    : ${barcodes_path}
@@ -99,6 +117,8 @@ workflow {
 
     // Create channels from input files
     num_cells_ch = Channel.value(params.num_input_cells)
+    sample_id_ch = Channel.value(params.sample_id)
+    output_basename_ch = Channel.value(params.output_basename)
     metrics_ch = Channel.fromPath(metrics_path, checkIfExists: true)
     matrix_ch = Channel.fromPath(matrix_path, checkIfExists: true)
     barcodes_ch = Channel.fromPath(barcodes_path, checkIfExists: true)
@@ -112,6 +132,7 @@ workflow {
         crispr_input_ch = matrix_ch
             .combine(barcodes_ch)
             .combine(features_ch)
+            .combine(output_basename_ch)
         
         EXTRACT_CRISPR_FEATURES(crispr_input_ch)
         
@@ -119,7 +140,7 @@ workflow {
         
         // Step 2: Run CRISPAT guide assignment using the h5ad file
         guide_input_ch = EXTRACT_CRISPR_FEATURES.out.crispr_adata
-            .combine(metrics_ch)
+            .combine(output_basename_ch)
         
         GUIDE_ASSIGNMENT(guide_input_ch)
         
@@ -133,15 +154,15 @@ workflow {
         assignments_ch = Channel.fromPath('NO_FILE')
     }
     
-    // Combine all inputs for metrics processing
+    // Combine all inputs for report generation
     input_ch = num_cells_ch
         .combine(metrics_ch)
-        .combine(matrix_ch)
-        .combine(barcodes_ch)
-        .combine(features_ch)
+        .combine(barcodes_ch)  // barcode_summary
+        .combine(sample_id_ch)
+        .combine(output_basename_ch)
         .combine(assignments_ch)
     
-    // Process metrics
+    // Generate report data
     GENERATE_REPORT_DATA(input_ch)
     
     // Emit results
