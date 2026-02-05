@@ -27,7 +27,7 @@ def helpMessage() {
     Required arguments:
       --num_input_cells          Number of input cells (integer)
       --data_dir                 Path to directory containing all data files
-      --dragen_file_prefix       Common prefix for all input files
+      --dragen_file_prefix       Common prefix for all input files (quote if it has leading zeros!)
       --sample_id                Sample identifier
       --output_basename          Output basename for generated files
 
@@ -41,6 +41,9 @@ def helpMessage() {
       --run_guide_assignment     Whether to run CRISPR guide assignment (default: ${params.run_guide_assignment})
       --outdir                   Output directory (default: ${params.outdir})
       --help                     Show this help message
+    
+    Note: If any parameter values contain leading zeros (e.g., 001234), you MUST quote them:
+      --dragen_file_prefix '001234' --sample_id 'S001' --output_basename '001234_output'
     """.stripIndent()
 }
 
@@ -90,11 +93,27 @@ workflow {
         exit 1
     }
 
-    // Force all parameters to strings to preserve leading zeros
-    // (Nextflow may parse numeric-looking strings as numbers)
-    def dragen_file_prefix = "${params.dragen_file_prefix}"
-    def sample_id = "${params.sample_id}"
-    def output_basename = "${params.output_basename}"
+    // Force all parameters to strings and strip any quotes that might have been included
+    // (Nextflow may parse numeric-looking strings as numbers at CLI parsing time,
+    //  and quoted values may include the literal quote characters)
+    def dragen_file_prefix = "${params.dragen_file_prefix}".replaceAll(/^['"]|['"]$/, '')
+    def sample_id = "${params.sample_id}".replaceAll(/^['"]|['"]$/, '')
+    def output_basename = "${params.output_basename}".replaceAll(/^['"]|['"]$/, '')
+    
+    // Warn if dragen_file_prefix looks like it was converted from a number
+    // (this happens when users don't quote values with leading zeros)
+    if (params.dragen_file_prefix instanceof Number) {
+        log.warn """
+        ================================================================================
+        WARNING: dragen_file_prefix appears to be a number (${params.dragen_file_prefix})
+        
+        If your prefix has leading zeros (e.g., 001234), you MUST quote it:
+          --dragen_file_prefix '001234'
+        
+        Without quotes, Nextflow will strip leading zeros at the command line.
+        ================================================================================
+        """.stripIndent()
+    }
     
     // Construct file paths using data_dir and file_prefix
     def metrics_path = "${params.data_dir}/${dragen_file_prefix}.scRNA_metrics.csv"
