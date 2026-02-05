@@ -10,7 +10,6 @@ from pathlib import Path
 from anndata import AnnData
 from typing import Literal
 import scanpy as sc
-import crispat
 import tempfile
 import os
 import shutil
@@ -39,10 +38,10 @@ def parse_args():
         help="Path to filtered features file"
     )
     parser.add_argument(
-        "--output",
+        "--output-basename",
         type=str,
         required=True,
-        help="Path to output h5ad file"
+        help="Base name for output files"
     )
     return parser.parse_args()
 
@@ -102,7 +101,7 @@ def read_10x_mtx_feature_types(
         gex_rows = adata.var["feature_types"] == feature_types
         return adata[:, gex_rows].copy()
 
-def extract_crispr_features(matrix_path, barcodes_path, features_path, output_path):
+def extract_crispr_features(matrix_path, barcodes_path, features_path, output_basename):
     with tempfile.TemporaryDirectory() as tmpdirname:
         temp_local_path = f'{tmpdirname}'
         # Copy files to temp directory
@@ -114,7 +113,7 @@ def extract_crispr_features(matrix_path, barcodes_path, features_path, output_pa
         adata_crispr = read_10x_mtx_feature_types(temp_local_path, feature_types="CRISPR Direct Capture", var_names='gene_symbols', cache=True, prefix=None)
         
         print('Writing CRISPR adata to file...')
-        adata_crispr.write(output_path, compression='gzip')
+        adata_crispr.write(f'{output_basename}.crispr.h5ad', compression='gzip')
     
     return None
 
@@ -128,7 +127,7 @@ def main():
             args.data_filtered_matrix,
             args.data_filtered_barcodes,
             args.data_filtered_features,
-            args.output
+            args.output_basename
         )
         print("\n✓ CRISPR feature extraction completed successfully")
         return 0
