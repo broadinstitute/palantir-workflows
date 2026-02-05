@@ -19,6 +19,6 @@ process GUIDE_ASSIGNMENT {
     # The script should be in the bin/ directory and will be automatically available
     run_guide_assignment.py \\
         --crispr-h5ad ${crispr_h5ad} \\
-        --output-basename ${sample_basename}
+        --sample-basename ${sample_basename}
     """
 }

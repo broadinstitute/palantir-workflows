@@ -28,6 +28,6 @@ process GENERATE_REPORT_DATA {
         --barcode-summary ${barcode_summary} \\
         --sample-id ${sample_id} \\
         ${guide_assignments_arg} \\
-        --output-basename ${sample_basename}
+        --sample-basename ${sample_basename}
     """
 }

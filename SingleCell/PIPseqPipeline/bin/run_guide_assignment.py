@@ -30,7 +30,7 @@ def parse_args():
         help="Path to feature barcode reference file"
     )
     parser.add_argument(
-        "--output-basename",
+        "--sample-basename",
         type=str,
         required=True,
         help="Base name for output assignments CSV file"

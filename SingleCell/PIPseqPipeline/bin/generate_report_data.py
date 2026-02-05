@@ -39,7 +39,7 @@ def parse_args():
         help="Sample identifier"
     )
     parser.add_argument(
-        "--output-basename",
+        "--sample-basename",
         type=str,
         required=True,
         help="Base name for output files"

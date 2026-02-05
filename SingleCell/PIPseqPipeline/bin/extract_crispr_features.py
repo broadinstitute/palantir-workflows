@@ -38,7 +38,7 @@ def parse_args():
         help="Path to filtered features file"
     )
     parser.add_argument(
-        "--output-basename",
+        "--sample-basename",
         type=str,
         required=True,
         help="Base name for output files"

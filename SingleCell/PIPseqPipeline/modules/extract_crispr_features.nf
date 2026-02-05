@@ -23,6 +23,6 @@ process EXTRACT_CRISPR_FEATURES {
         --data-filtered-matrix ${data_filtered_matrix} \\
         --data-filtered-barcodes ${data_filtered_barcodes} \\
         --data-filtered-features ${data_filtered_features} \\
-        --output-basename ${sample_basename}
+        --sample-basename ${sample_basename}
     """
 }
