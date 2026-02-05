@@ -16,7 +16,6 @@ process GENERATE_REPORT_DATA {
     
     output:
     path "${output_basename}.qc_*", emit: qc_files
-    path "*.log", emit: logs
     
     script:
     def guide_assignments_arg = guide_assignments.name != 'NO_FILE' ? "--guide-assignments ${guide_assignments}" : ""

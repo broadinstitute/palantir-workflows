@@ -155,8 +155,6 @@ def guide_qc(guide_assignments_path, metrics_path, sample_id, output_basename):
 def main():
     """Main execution function."""
     args = parse_args()
-
-    asdfasdfjo;i
     
     try:
         print('Generating report data...')

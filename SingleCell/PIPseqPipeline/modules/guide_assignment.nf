@@ -12,7 +12,6 @@ process GUIDE_ASSIGNMENT {
     
     output:
     path "${output_basename}.assignments.csv", emit: guide_assignments
-    path "*.log", emit: logs
     
     script:
     """
@@ -20,7 +19,6 @@ process GUIDE_ASSIGNMENT {
     # The script should be in the bin/ directory and will be automatically available
     run_guide_assignment.py \\
         --crispr-h5ad ${crispr_h5ad} \\
-        --output-basename ${output_basename} \\
-        2>&1 | tee ${output_basename}.guide_assignment.log
+        --output-basename ${output_basename}
     """
 }

@@ -14,7 +14,6 @@ process EXTRACT_CRISPR_FEATURES {
     
     output:
     path "${output_basename}.crispr.h5ad", emit: crispr_adata
-    path "*.log", emit: logs
     
     script:
     """
@@ -24,7 +23,6 @@ process EXTRACT_CRISPR_FEATURES {
         --data-filtered-matrix ${data_filtered_matrix} \\
         --data-filtered-barcodes ${data_filtered_barcodes} \\
         --data-filtered-features ${data_filtered_features} \\
-        --output-basename ${output_basename} \\
-        2>&1 | tee ${output_basename}.extract_crispr_features.log
+        --output-basename ${output_basename}
     """
 }
