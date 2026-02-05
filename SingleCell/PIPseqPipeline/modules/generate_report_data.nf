@@ -3,19 +3,19 @@
  */
 
 process GENERATE_REPORT_DATA {
-    tag "${scrna_metrics.baseName}"
-    publishDir "${params.outdir}/${output_basename}/qc", mode: 'copy'
+    tag "${sample_basename}"
+    publishDir "${params.outdir}/${sample_basename}/qc", mode: 'copy'
     
     input:
     tuple val(num_input_cells), 
           path(scrna_metrics), 
           path(barcode_summary), 
           val(sample_id),
-          val(output_basename),
+          val(sample_basename),
           path(guide_assignments)
     
     output:
-    path "${output_basename}.qc_*", emit: qc_files
+    path "${sample_basename}.qc_*", emit: qc_files
     
     script:
     def guide_assignments_arg = guide_assignments.name != 'NO_FILE' ? "--guide-assignments ${guide_assignments}" : ""
@@ -28,6 +28,6 @@ process GENERATE_REPORT_DATA {
         --barcode-summary ${barcode_summary} \\
         --sample-id ${sample_id} \\
         ${guide_assignments_arg} \\
-        --output-basename ${output_basename}
+        --output-basename ${sample_basename}
     """
 }

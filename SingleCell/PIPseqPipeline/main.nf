@@ -13,7 +13,7 @@ params.num_input_cells = null          // Number of input cells (integer)
 params.data_dir = null                 // Path to directory containing all data files
 params.dragen_file_prefix = null              // Prefix for all input files
 params.sample_id = null                // Sample identifier (defaults to file_prefix if not provided)
-params.output_basename = null          // Output basename (defaults to file_prefix if not provided)
+params.sample_basename = null          // Output basename (defaults to file_prefix if not provided)
 params.run_guide_assignment = true     // Whether to run guide assignment
 params.outdir = "results"              // Output directory
 params.help = false
@@ -29,7 +29,7 @@ def helpMessage() {
       --data_dir                 Path to directory containing all data files
       --dragen_file_prefix       Common prefix for all input files (quote if it has leading zeros!)
       --sample_id                Sample identifier
-      --output_basename          Output basename for generated files
+      --sample_basename          Output basename for generated files
 
     Expected files in data_dir:
       <dragen_file_prefix>.scRNA_metrics.csv
@@ -43,7 +43,7 @@ def helpMessage() {
       --help                     Show this help message
     
     Note: If any parameter values contain leading zeros (e.g., 001234), you MUST quote them:
-      --dragen_file_prefix '001234' --sample_id 'S001' --output_basename '001234_output'
+      --dragen_file_prefix '001234' --sample_id 'S001' --sample_basename '001234_output'
     """.stripIndent()
 }
 
@@ -87,8 +87,8 @@ workflow {
         exit 1
     }
 
-    if (!params.output_basename) {
-        log.error "ERROR: --output_basename is required"
+    if (!params.sample_basename) {
+        log.error "ERROR: --sample_basename is required"
         helpMessage()
         exit 1
     }
@@ -98,7 +98,7 @@ workflow {
     //  and quoted values may include the literal quote characters)
     def dragen_file_prefix = "${params.dragen_file_prefix}".replaceAll(/^['"]|['"]$/, '')
     def sample_id = "${params.sample_id}".replaceAll(/^['"]|['"]$/, '')
-    def output_basename = "${params.output_basename}".replaceAll(/^['"]|['"]$/, '')
+    def sample_basename = "${params.sample_basename}".replaceAll(/^['"]|['"]$/, '')
     
     // Warn if dragen_file_prefix looks like it was converted from a number
     // (this happens when users don't quote values with leading zeros)
@@ -130,7 +130,7 @@ workflow {
         Data directory       : ${params.data_dir}
         File prefix          : ${dragen_file_prefix}
         Sample ID            : ${sample_id}
-        Output basename      : ${output_basename}
+        Output basename      : ${sample_basename}
         scRNA metrics        : ${metrics_path}
         Filtered matrix      : ${matrix_path}
         Filtered barcodes    : ${barcodes_path}
@@ -143,7 +143,7 @@ workflow {
     // Create channels from input files
     num_cells_ch = Channel.value(params.num_input_cells)
     sample_id_ch = Channel.value(sample_id)
-    output_basename_ch = Channel.value(output_basename)
+    sample_basename_ch = Channel.value(sample_basename)
     metrics_ch = Channel.fromPath(metrics_path, checkIfExists: true)
     barcode_summary_ch = Channel.fromPath(barcode_summary_path, checkIfExists: true)
     matrix_ch = Channel.fromPath(matrix_path, checkIfExists: true)
@@ -158,7 +158,7 @@ workflow {
         crispr_input_ch = matrix_ch
             .combine(barcodes_ch)
             .combine(features_ch)
-            .combine(output_basename_ch)
+            .combine(sample_basename_ch)
         
         EXTRACT_CRISPR_FEATURES(crispr_input_ch)
         
@@ -166,7 +166,7 @@ workflow {
         
         // Step 2: Run CRISPAT guide assignment using the h5ad file
         guide_input_ch = EXTRACT_CRISPR_FEATURES.out.crispr_adata
-            .combine(output_basename_ch)
+            .combine(sample_basename_ch)
         
         GUIDE_ASSIGNMENT(guide_input_ch)
         
@@ -185,7 +185,7 @@ workflow {
         .combine(metrics_ch)
         .combine(barcode_summary_ch)
         .combine(sample_id_ch)
-        .combine(output_basename_ch)
+        .combine(sample_basename_ch)
         .combine(guide_assignments_ch)
     
     // Generate report data

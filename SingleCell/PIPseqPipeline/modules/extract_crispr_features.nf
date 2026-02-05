@@ -3,17 +3,17 @@
  */
 
 process EXTRACT_CRISPR_FEATURES {
-    tag "${data_filtered_matrix.baseName}"
-    publishDir "${params.outdir}/${output_basename}/crispr_adata", mode: 'copy'
+    tag "${sample_basename}"
+    publishDir "${params.outdir}/${sample_basename}/crispr_adata", mode: 'copy'
     
     input:
     tuple path(data_filtered_matrix),
           path(data_filtered_barcodes),
           path(data_filtered_features),
-          val(output_basename)
+          val(sample_basename)
     
     output:
-    path "${output_basename}.crispr.h5ad", emit: crispr_adata
+    path "${sample_basename}.crispr.h5ad", emit: crispr_adata
     
     script:
     """
@@ -23,6 +23,6 @@ process EXTRACT_CRISPR_FEATURES {
         --data-filtered-matrix ${data_filtered_matrix} \\
         --data-filtered-barcodes ${data_filtered_barcodes} \\
         --data-filtered-features ${data_filtered_features} \\
-        --output-basename ${output_basename}
+        --output-basename ${sample_basename}
     """
 }

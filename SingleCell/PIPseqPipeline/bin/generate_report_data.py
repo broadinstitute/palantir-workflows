@@ -67,10 +67,10 @@ def get_barcode_metrics(barcode_summary_path, sample_id):
     print('Done')
     return data
 
-def write_rankplot(barcode_summary_path, sample_id, output_basename):
+def write_rankplot(barcode_summary_path, sample_id, sample_basename):
     print('    Generating barcode rank plot...')
     barcode_metrics = get_barcode_metrics(barcode_summary_path, sample_id)
-    barcode_metrics.to_csv(f'{output_basename}.qc_barcode_metrics.tsv', index=False, sep='\t')
+    barcode_metrics.to_csv(f'{sample_basename}.qc_barcode_metrics.tsv', index=False, sep='\t')
 
 def get_sc_metrics(sc_metrics_path, sample_id):
     columns = ['metrics_name', 'value_numeric', 'value_frac']
@@ -91,15 +91,15 @@ def get_sc_metrics(sc_metrics_path, sample_id):
     metrics['sample_id'] = sample_id
     return metrics
 
-def write_metrics(sc_metrics_path, sample_id, output_basename):
+def write_metrics(sc_metrics_path, sample_id, sample_basename):
     print('    Writing single-cell RNA QC metrics...')
     metrics = get_sc_metrics(sc_metrics_path, sample_id)
-    metrics.to_csv(f'{output_basename}.qc_metrics.tsv', index=False, sep='\t')
+    metrics.to_csv(f'{sample_basename}.qc_metrics.tsv', index=False, sep='\t')
 
 from typing import OrderedDict
 
 
-def guide_qc(guide_assignments_path, metrics_path, sample_id, output_basename):
+def guide_qc(guide_assignments_path, metrics_path, sample_id, sample_basename):
     guide_assignments = pd.read_csv(guide_assignments_path)
     metrics = pd.read_csv(metrics_path, names=['metric_type', 'sample_id', 'metric', 'value', 'frac'])
     
@@ -137,7 +137,7 @@ def guide_qc(guide_assignments_path, metrics_path, sample_id, output_basename):
 
     plt.tight_layout()
     
-    fig.savefig(f'{output_basename}.qc_guide_assignment_distribution.png', dpi=300)
+    fig.savefig(f'{sample_basename}.qc_guide_assignment_distribution.png', dpi=300)
 
     guide_assignment_stats = OrderedDict()
     guide_assignment_stats['sample_id'] = sample_id
@@ -148,7 +148,7 @@ def guide_qc(guide_assignments_path, metrics_path, sample_id, output_basename):
     guide_assignment_stats['frac_cells_with_one_or_two_guides'] = frac_1_2_guides
     guide_assignment_stats['frac_cells_with_three_or_more_guides'] = frac_3_plus_guides
 
-    with open(f'{output_basename}.qc_guide_assignment_stats.tsv', 'w') as f:
+    with open(f'{sample_basename}.qc_guide_assignment_stats.tsv', 'w') as f:
         f.write('\t'.join(guide_assignment_stats.keys()) + '\n')
         f.write('\t'.join(str(v) for v in guide_assignment_stats.values()) + '\n')
 
@@ -162,19 +162,19 @@ def main():
         write_rankplot(
             args.barcode_summary,
             args.sample_id,
-            args.output_basename
+            args.sample_basename
         )
         write_metrics(
             args.scrna_metrics,
             args.sample_id,
-            args.output_basename
+            args.sample_basename
         )
         if args.guide_assignments is not None:
             guide_qc(
                 args.guide_assignments,
                 args.scrna_metrics,
                 args.sample_id,
-                args.output_basename
+                args.sample_basename
             )
         print("\n✓ Report data generation completed successfully")
         return 0

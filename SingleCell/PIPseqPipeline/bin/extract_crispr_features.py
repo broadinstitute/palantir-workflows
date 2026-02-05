@@ -101,7 +101,7 @@ def read_10x_mtx_feature_types(
         gex_rows = adata.var["feature_types"] == feature_types
         return adata[:, gex_rows].copy()
 
-def extract_crispr_features(matrix_path, barcodes_path, features_path, output_basename):
+def extract_crispr_features(matrix_path, barcodes_path, features_path, sample_basename):
     with tempfile.TemporaryDirectory() as tmpdirname:
         temp_local_path = f'{tmpdirname}'
         # Copy files to temp directory
@@ -113,7 +113,7 @@ def extract_crispr_features(matrix_path, barcodes_path, features_path, output_ba
         adata_crispr = read_10x_mtx_feature_types(temp_local_path, feature_types="CRISPR Direct Capture", var_names='gene_symbols', cache=False, prefix=None)
         
         print('Writing CRISPR adata to file...')
-        adata_crispr.write(f'{output_basename}.crispr.h5ad', compression='gzip')
+        adata_crispr.write(f'{sample_basename}.crispr.h5ad', compression='gzip')
     
     return None
 
@@ -127,7 +127,7 @@ def main():
             args.data_filtered_matrix,
             args.data_filtered_barcodes,
             args.data_filtered_features,
-            args.output_basename
+            args.sample_basename
         )
         print("\n✓ CRISPR feature extraction completed successfully")
         return 0
