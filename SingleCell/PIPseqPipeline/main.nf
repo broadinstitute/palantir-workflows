@@ -105,10 +105,15 @@ workflow {
         .splitCsv(header: true)
         .map { row ->
             // Force strings and strip quotes for each field
-            def data_dir = "${row.data_dir}".replaceAll(/^['"]|['"]$/, '')
-            def dragen_file_prefix = "${row.dragen_file_prefix}".replaceAll(/^['"]|['"]$/, '')
-            def subsample_id = "${row.subsample_id}".replaceAll(/^['"]|['"]$/, '')
-            def subsample_basename = "${row.subsample_basename}".replaceAll(/^['"]|['"]$/, '')
+            def data_dir = "${row.data_dir ?: ''}".replaceAll(/^['"]|['"]$/, '')
+            def dragen_file_prefix = "${row.dragen_file_prefix ?: ''}".replaceAll(/^['"]|['"]$/, '')
+            def subsample_id = "${row.subsample_id ?: ''}".replaceAll(/^['"]|['"]$/, '')
+            def subsample_basename = "${row.subsample_basename ?: ''}".replaceAll(/^['"]|['"]$/, '')
+            
+            // Validate that all required columns are present
+            if (!data_dir || !dragen_file_prefix || !subsample_id || !subsample_basename) {
+                error "ERROR: Samplesheet is missing required column(s). Required columns: data_dir, dragen_file_prefix, subsample_id, subsample_basename\nFound columns: ${row.keySet().join(', ')}"
+            }
             
             tuple(data_dir, dragen_file_prefix, subsample_id, subsample_basename)
         }
