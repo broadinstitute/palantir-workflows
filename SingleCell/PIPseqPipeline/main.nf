@@ -118,9 +118,9 @@ workflow {
     // Construct file paths using data_dir and file_prefix
     def metrics_path = "${params.data_dir}/${dragen_file_prefix}.scRNA_metrics.csv"
     def barcode_summary_path = "${params.data_dir}/${dragen_file_prefix}.scRNA.barcodeSummary.tsv"
-    def matrix_path = "${params.data_dir}/${dragen_file_prefix}.filtered.matrix.mtx.gz"
-    def barcodes_path = "${params.data_dir}/${dragen_file_prefix}.filtered.barcodes.tsv.gz"
-    def features_path = "${params.data_dir}/${dragen_file_prefix}.filtered.features.tsv.gz"
+    def matrix_path = "${params.data_dir}/${dragen_file_prefix}.scRNA.filtered.matrix.mtx.gz"
+    def barcodes_path = "${params.data_dir}/${dragen_file_prefix}.scRNA.filtered.barcodes.tsv.gz"
+    def features_path = "${params.data_dir}/${dragen_file_prefix}.scRNA.filtered.features.tsv.gz"
     // Log pipeline parameters
     log.info """
         ========================================
