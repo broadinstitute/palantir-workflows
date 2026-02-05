@@ -1,0 +1,4 @@
+# Additional pip packages for metrics processing
+# Core packages (pandas, numpy, scanpy, anndata, python-slugify) are installed via conda
+# Add any pip-only packages here if needed
+
