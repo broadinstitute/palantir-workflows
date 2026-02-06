@@ -6,6 +6,7 @@ import scanpy as sc
 import anndata as ad
 from pathlib import Path
 
+sc.settings.n_jobs = -1
 
 def parse_args():
     """Parse command-line arguments."""
@@ -96,15 +97,16 @@ def main():
         concatenated = ad.concat(adatas, join='outer', merge='same', label='subsample_id', keys=subsample_ids, index_unique='_')
 
         print(f"Concatenated dataset: {concatenated.n_obs} cells, {concatenated.n_vars} features")
-        
-        print("Extracting CRISPR Direct Capture features...")
-        crispr_mask = concatenated.var['feature_types'] == 'CRISPR Direct Capture'
-        concatenated_crispr = concatenated[:, crispr_mask].copy()
 
         # Write output
         output_path = f"{args.supersample_basename}.concatenated.h5ad"
         print(f"Writing concatenated data to {output_path}...")
         concatenated.write_h5ad(output_path, compression='gzip')
+        
+        print("Extracting CRISPR Direct Capture features...")
+        print(concatenated.var_keys())
+        crispr_mask = concatenated.var['feature_types'] == 'CRISPR Direct Capture'
+        concatenated_crispr = concatenated[:, crispr_mask]
 
         crispr_output_path = f"{args.supersample_basename}.concatenated.crispr.h5ad"
         print(f"Writing concatenated CRISPR data to {crispr_output_path}...")

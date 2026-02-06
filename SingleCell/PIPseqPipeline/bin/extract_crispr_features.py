@@ -14,6 +14,9 @@ import tempfile
 import os
 import shutil
 
+sc.settings.n_jobs = -1
+
+
 def parse_args():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
