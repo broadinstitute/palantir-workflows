@@ -34,6 +34,7 @@ workflow CNVGermlineCohortWorkflow {
       File? blacklist_intervals
       Array[String]+ normal_bams
       Array[String]+ normal_bais
+      Array[File]? pon_counts
       String cohort_entity_id
       File contig_ploidy_priors
       Int num_intervals_per_scatter
@@ -232,6 +233,8 @@ workflow CNVGermlineCohortWorkflow {
         }
     }
 
+    Array[File] pon_counts_files = flatten(select_all([pon_counts, CollectCounts.counts]))
+
     if (!defined(filtered_intervals_for_init_model)) {
         
         call CNVTasks.FilterIntervals {
@@ -239,7 +242,7 @@ workflow CNVGermlineCohortWorkflow {
                 intervals = select_first([preprocessed_intervals_for_init_model, PreprocessIntervals.preprocessed_intervals]),
                 blacklist_intervals = blacklist_intervals_for_filter_intervals,
                 annotated_intervals = AnnotateIntervals.annotated_intervals,
-                read_count_files = CollectCounts.counts,
+                read_count_files = pon_counts_files,
                 minimum_gc_content = minimum_gc_content,
                 maximum_gc_content = maximum_gc_content,
                 minimum_mappability = minimum_mappability,
@@ -262,7 +265,7 @@ workflow CNVGermlineCohortWorkflow {
         input:
             cohort_entity_id = cohort_entity_id,
             intervals = select_first([filtered_intervals_for_init_model, FilterIntervals.filtered_intervals]),
-            read_count_files = CollectCounts.counts,
+            read_count_files = pon_counts_files,
             contig_ploidy_priors = contig_ploidy_priors,
             gatk4_jar_override = gatk4_jar_override,
             gatk_docker = gatk_docker,
@@ -291,7 +294,7 @@ workflow CNVGermlineCohortWorkflow {
             input:
                 scatter_index = scatter_index,
                 cohort_entity_id = cohort_entity_id,
-                read_count_files = CollectCounts.counts,
+                read_count_files = pon_counts_files,
                 contig_ploidy_calls_tar = DetermineGermlineContigPloidyCohortMode.contig_ploidy_calls_tar,
                 intervals = ScatterIntervals.scattered_interval_lists[scatter_index],
                 annotated_intervals = AnnotateIntervals.annotated_intervals,

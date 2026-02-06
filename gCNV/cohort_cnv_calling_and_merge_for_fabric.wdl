@@ -12,6 +12,7 @@ workflow CohortCNVCallingAndMergeForFabric {
       File? blacklist_intervals
       Array[String]+ normal_bams
       Array[String]+ normal_bais
+      Array[File]? pon_counts
       String cohort_entity_id
       File contig_ploidy_priors
       Int num_intervals_per_scatter
@@ -255,7 +256,8 @@ workflow CohortCNVCallingAndMergeForFabric {
             maximum_number_pass_events_per_sample = maximum_number_pass_events_per_sample,
             init_gcnv_model_tars = init_gcnv_model_tars,
             preprocessed_intervals_for_init_model = preprocessed_intervals_for_init_model,
-            filtered_intervals_for_init_model = filtered_intervals_for_init_model
+            filtered_intervals_for_init_model = filtered_intervals_for_init_model,
+            pon_counts = pon_counts
     }
 
     scatter (i in range(length(CNVGermlineCohortWorkflow.genotyped_segments_vcfs))) {
