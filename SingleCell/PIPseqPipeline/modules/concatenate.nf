@@ -4,7 +4,7 @@
 
 process CONCATENATE {
     tag "Concatenating ${subsample_ids.size()} subsamples"
-    publishDir "${params.outdir}/${params.supersample_basename}/concatenated", mode: 'copy'
+    publishDir "${params.outdir}/${params.supersample_basename}/adata", mode: 'copy'
     
     input:
     tuple path(matrices),
@@ -13,8 +13,8 @@ process CONCATENATE {
           val(subsample_ids)
     
     output:
-    path "${params.supersample_basename}.concatenated.h5ad", emit: concatenated_adata
-    path "${params.supersample_basename}.concatenated.crispr.h5ad", emit: concatenated_crispr_adata
+    path "${params.supersample_basename}.h5ad", emit: concatenated_adata
+    path "${params.supersample_basename}.crispr.h5ad", emit: concatenated_crispr_adata
     
     script:
     // Convert lists to space-separated strings for passing to Python

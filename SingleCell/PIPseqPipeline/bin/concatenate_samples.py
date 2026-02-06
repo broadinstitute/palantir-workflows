@@ -86,21 +86,25 @@ def main():
                         
             # Filter for CRISPR Direct Capture features
             
-            print(f"subsample {subsample_ids[i]}: {adata.n_obs} cells, {adata.n_vars} CRISPR features")
+            print(f"subsample {subsample_ids[i]}: {adata.n_obs} cells, {adata.n_vars} features")
             adatas.append(adata)
         
         if len(adatas) == 0:
-            raise ValueError("No subsamples with CRISPR Direct Capture features found")
+            raise ValueError("No subsamples found")
         
-        # Concatenate all subsamples
-        print(f"\nConcatenating {len(adatas)} subsamples...")
-        concatenated = ad.concat(adatas, join='outer', merge='same', label='subsample_id', keys=subsample_ids, index_unique='_')
+        if len(adatas) == 1:
+            print("Only one subsample provided, skipping concatenation.")
+            concatenated = adatas[0]
+        else:
+            # Concatenate all subsamples
+            print(f"\nConcatenating {len(adatas)} subsamples...")
+            concatenated = ad.concat(adatas, join='outer', merge='same', label='subsample_id', keys=subsample_ids, index_unique='_')
 
-        print(f"Concatenated dataset: {concatenated.n_obs} cells, {concatenated.n_vars} features")
+            print(f"Concatenated dataset: {concatenated.n_obs} cells, {concatenated.n_vars} features")
 
         # Write output
-        output_path = f"{args.supersample_basename}.concatenated.h5ad"
-        print(f"Writing concatenated data to {output_path}...")
+        output_path = f"{args.supersample_basename}.h5ad"
+        print(f"Writing data to {output_path}...")
         concatenated.write_h5ad(output_path, compression='gzip')
         
         print("Extracting CRISPR Direct Capture features...")
@@ -108,8 +112,8 @@ def main():
         crispr_mask = concatenated.var['feature_types'] == 'CRISPR Direct Capture'
         concatenated_crispr = concatenated[:, crispr_mask]
 
-        crispr_output_path = f"{args.supersample_basename}.concatenated.crispr.h5ad"
-        print(f"Writing concatenated CRISPR data to {crispr_output_path}...")
+        crispr_output_path = f"{args.supersample_basename}.crispr.h5ad"
+        print(f"Writing CRISPR data to {crispr_output_path}...")
         concatenated_crispr.write_h5ad(crispr_output_path, compression='gzip')
         
         print("\n✓ Concatenation completed successfully")

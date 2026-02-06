@@ -14,8 +14,8 @@ This pipeline processes single-cell RNA-seq data with optional CRISPR guide assi
 ### Pipeline Workflow
 
 The pipeline performs three main tasks:
-1. **Extract CRISPR Features**: Reads 10x matrix files and extracts "CRISPR Direct Capture" features to h5ad format
-2. **Concatenate Subsamples** (if multiple): Combines multiple subsamples into a single supersample
+1. **Concatenate Subsamples**: Combines subsamples into a supersample (handles single subsample case automatically)
+2. **Extract CRISPR Features**: Extracts "CRISPR Direct Capture" features from the concatenated data
 3. **Guide Assignment**: Performs CRISPAT guide assignment using Poisson-Gaussian mixture model (optional)
 4. **Generate Report Data**: Creates comprehensive QC metrics and visualizations for each subsample
 
@@ -74,12 +74,11 @@ data_dir,dragen_file_prefix,subsample_id,subsample_basename
 ```
 
 **Pipeline behavior:**
-- **Single subsample** (samplesheet has 1 row): Runs EXTRACT_CRISPR_FEATURES then GUIDE_ASSIGNMENT
-- **Multiple subsamples** (samplesheet has >1 row): Runs CONCATENATE on all subsamples, then GUIDE_ASSIGNMENT
+- Concatenates all subsamples (handles single subsample case automatically)
+- Runs GUIDE_ASSIGNMENT on concatenated CRISPR features (if enabled)
 - Per-subsample QC reports are always generated in `outdir/<supersample_basename>/<subsample_basename>/qc/`
+- Concatenated AnnData outputs to `outdir/<supersample_basename>/adata/`
 - Guide assignments are output to `outdir/<supersample_basename>/crispat_ga/`
-- CRISPR h5ad files (single subsample) are output to `outdir/<supersample_basename>/crispr_adata/`
-- Concatenated h5ad files (multiple subsamples) are output to `outdir/<supersample_basename>/concatenated/`
 
 ### Command-Line Options
 
@@ -204,14 +203,12 @@ Results are organized in the output directory:
 - `<subsample_basename>.qc_guide_assignment_stats.tsv` - Guide assignment statistics (if enabled)
 - `<subsample_basename>.qc_guide_assignment_distribution.png` - Guide assignment distribution plot (if enabled)
 
+**`${params.outdir}/<supersample_basename>/adata/`:** (concatenated AnnData files)
+- `<supersample_basename>.h5ad` - Concatenated AnnData with all features
+- `<supersample_basename>.crispr.h5ad` - Concatenated CRISPR features only
+
 **`${params.outdir}/<supersample_basename>/crispat_ga/`:** (guide assignments - if enabled)
 - `assignments.csv` - CRISPAT guide assignments
-
-**`${params.outdir}/<supersample_basename>/crispr_adata/`:** (CRISPR features - single subsample only with guide assignment)
-- `<subsample_basename>.crispr.h5ad` - CRISPR features in AnnData format
-
-**`${params.outdir}/<supersample_basename>/concatenated/`:** (multiple subsamples only with guide assignment)
-- `concatenated.h5ad` - Concatenated CRISPR features from all subsamples
 
 **`${params.outdir}/pipeline_info/`:** (Nextflow reports)
 - `timeline.html` - Execution timeline

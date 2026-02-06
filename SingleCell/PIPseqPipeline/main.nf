@@ -28,10 +28,9 @@ def helpMessage() {
       --supersample_basename     Supersample basename for output organization
 
     Samplesheet format:
-      CSV file with columns: data_dir, dragen_file_prefix, subsample_id, subsample_basename, supersample_id, supersample_basename
+      CSV file with columns: data_dir, dragen_file_prefix, subsample_id, subsample_basename
       See samplesheet.csv.example for an example
-      - Each row represents a subsample
-      - All rows should have the same supersample_id and supersample_basename (one supersample per run)
+      - Each row represents a subsample belonging to the supersample specified in --supersample_id/--supersample_basename
 
     Expected files in each data_dir:
       <dragen_file_prefix>.scRNA_metrics.csv
@@ -49,16 +48,16 @@ def helpMessage() {
           ensure they are properly formatted as strings in your CSV.
     
     Behavior:
-      - Single subsample: Runs EXTRACT_CRISPR_FEATURES then GUIDE_ASSIGNMENT (if enabled)
-      - Multiple subsamples: Runs CONCATENATE on all subsamples, then GUIDE_ASSIGNMENT (if enabled)
+      - Concatenates all subsamples (handles single subsample case automatically)
+      - Runs GUIDE_ASSIGNMENT on concatenated CRISPR features (if enabled)
       - Per-subsample QC reports are always generated in outdir/<supersample_basename>/<subsample_basename>/qc/
+      - Concatenated AnnData outputs to outdir/<supersample_basename>/adata/
       - Guide assignments are output to outdir/<supersample_basename>/crispat_ga/
     """.stripIndent()
 }
 
 // Import modules
 include { GENERATE_REPORT_DATA } from './modules/generate_report_data'
-include { EXTRACT_CRISPR_FEATURES } from './modules/extract_crispr_features'
 include { GUIDE_ASSIGNMENT } from './modules/guide_assignment'
 include { CONCATENATE } from './modules/concatenate'
 
@@ -153,44 +152,21 @@ workflow {
     if (params.run_guide_assignment) {
         log.info "Running CRISPR feature extraction and guide assignment..."
         
-        // Collect all subsample data with count
-        collected_data = all_subsamples
-            .map { it[2..6] }  // matrix, barcodes, features, subsample_id, subsample_basename
+        // Collect all subsample data for concatenation
+        concatenate_input_ch = all_subsamples
             .toList()
             .map { subsamples ->
-                [
-                    subsamples.collect { it[0] },  // matrices
-                    subsamples.collect { it[1] },  // barcodes
-                    subsamples.collect { it[2] },  // features
-                    subsamples.collect { it[3] },  // subsample_ids
-                    subsamples.collect { it[4] },  // subsample_basenames
-                    subsamples.size()              // count
-                ]
+                tuple(
+                    subsamples.collect { it[2] },  // matrices
+                    subsamples.collect { it[3] },  // barcodes
+                    subsamples.collect { it[4] },  // features
+                    subsamples.collect { it[5] }   // subsample_ids
+                )
             }
         
-        // Single subsample: extract CRISPR features
-        single_subsample_ch = collected_data
-            .filter { matrices, barcodes, features, _subsample_ids, _subsample_basenames, count -> count == 1 }
-            .map { matrices, barcodes, features, _subsample_ids, subsample_basenames, _count ->
-                tuple(matrices[0], barcodes[0], features[0], subsample_basenames[0])
-            }
+        CONCATENATE(concatenate_input_ch)
         
-        EXTRACT_CRISPR_FEATURES(single_subsample_ch)
-        
-        // Multiple subsamples: concatenate
-        multi_subsample_ch = collected_data
-            .filter { matrices, barcodes, features, _subsample_ids, _subsample_basenames, count -> count > 1 }
-            .map { matrices, barcodes, features, subsample_ids, _subsample_basenames, _count ->
-                tuple(matrices, barcodes, features, subsample_ids)
-            }
-        
-        CONCATENATE(multi_subsample_ch)
-        
-        // Combine outputs for guide assignment
-        guide_input_ch = EXTRACT_CRISPR_FEATURES.out.crispr_adata
-            .mix(CONCATENATE.out.concatenated_crispr_adata)
-        
-        GUIDE_ASSIGNMENT(guide_input_ch)
+        GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
         
         GUIDE_ASSIGNMENT.out.guide_assignments.view { "Generated guide assignments: $it" }
     }
