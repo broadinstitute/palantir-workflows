@@ -31,7 +31,7 @@ def parse_args():
     )
     return parser.parse_args()
 
-def run_guide_assignment(crispr_adata_path, sample_basename):
+def run_guide_assignment(crispr_adata_path):
     
     print('Running CRISPAT Gaussian Mixture model...')
     crispat.ga_poisson_gauss(f'{crispr_adata_path}', f'crispat_ga/poisson_gauss/')
