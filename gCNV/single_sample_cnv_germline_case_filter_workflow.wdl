@@ -414,10 +414,11 @@ task ExtractPoNFreqAnnotateFilterAndQC {
             return df
 
         df = read_vcf_to_df("~{vcf}")
+        sample_id = get_sample_id("~{vcf}")
         df_expanded = get_exon_expanded_events(df, intervals)
 
         vcfs = ["~{sep='","' panel_vcfs}"]
-        df_panel = pd.concat([read_vcf_to_df(vcf) for vcf in vcfs])
+        df_panel = pd.concat([read_vcf_to_df(vcf) for vcf in vcfs if get_sample_id(vcf)!=sample_id])
         df_panel_expanded = get_exon_expanded_events(df_panel, intervals)
 
         df_expanded_with_panel = df_expanded.join(df_panel_expanded, how="left", lsuffix="_sample", rsuffix="_panel")
