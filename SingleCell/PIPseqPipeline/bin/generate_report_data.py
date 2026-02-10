@@ -69,14 +69,14 @@ def get_sc_metrics(sc_metrics_path, sample_id):
     metrics = pd.read_csv(sc_metrics_path, names=['metric_type', 'sample_id', 'metric', 'value', 'frac'], dtype={'sample_id': str})
     
     metrics = metrics.pivot(index=['sample_id'], columns='metric', values='value')
-    if metrics['sample_id'].values[0] != sample_id:
-        raise ValueError(f"Sample ID in sc metrics file ({metrics['sample_id'].values[0]}) does not match expected sample ID ({sample_id})")
+    if metrics.index[0] != sample_id:
+        raise ValueError(f"Sample ID in scRNA metrics file ({metrics.index[0]}) does not match expected sample ID ({sample_id})")
     return metrics
 
 def write_metrics(sc_metrics_path, sample_id, sample_basename):
     print('    Writing single-cell RNA QC metrics...')
     metrics = get_sc_metrics(sc_metrics_path, sample_id)
-    metrics.to_csv(f'{sample_basename}.qc_metrics.tsv', index=False, sep='\t')
+    metrics.to_csv(f'{sample_basename}.qc_metrics.tsv', index=True, sep='\t')
 
 def main():
     """Main execution function."""
