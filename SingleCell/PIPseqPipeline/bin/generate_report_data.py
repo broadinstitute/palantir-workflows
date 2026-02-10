@@ -66,12 +66,11 @@ def write_rankplot(barcode_summary_path, sample_id, sample_basename):
     barcode_metrics.to_csv(f'{sample_basename}.qc_barcode_metrics.tsv', index=False, sep='\t')
 
 def get_sc_metrics(sc_metrics_path, sample_id):
-    metrics = pd.read_csv(sc_metrics_path, names=['metric_type', 'sample_id', 'metric', 'value', 'frac'])
+    metrics = pd.read_csv(sc_metrics_path, names=['metric_type', 'sample_id', 'metric', 'value', 'frac'], dtype={'sample_id': str})
     
-    metrics = metrics.pivot(index=['condition'], columns='metric', values=['value', 'value_frac']).reset_index()
-    metrics = metrics.drop(columns=[col for col in metrics.columns if col[0] == 'value_frac'])
-    metrics.columns = [col[0] if col[0] != 'value' else col[1] for col in metrics.columns.values]
-    metrics['sample_id'] = sample_id
+    metrics = metrics.pivot(index=['sample_id'], columns='metric', values='value')
+    if metrics['sample_id'].values[0] != sample_id:
+        raise ValueError(f"Sample ID in sc metrics file ({metrics['sample_id'].values[0]}) does not match expected sample ID ({sample_id})")
     return metrics
 
 def write_metrics(sc_metrics_path, sample_id, sample_basename):
