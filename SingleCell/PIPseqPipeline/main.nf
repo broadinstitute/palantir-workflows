@@ -26,6 +26,8 @@ def helpMessage() {
       --samplesheet              CSV file with columns: data_dir,dragen_file_prefix,subsample_id,subsample_basename
       --supersample_id           Supersample identifier
       --supersample_basename     Supersample basename for output organization
+      --min_valid_guides         Minimum number of valid guides for guide assignment QC (integer)
+      --max_valid_guides         Maximum number of valid guides for guide assignment QC (integer)
 
     Samplesheet format:
       CSV file with columns: data_dir, dragen_file_prefix, subsample_id, subsample_basename
@@ -58,6 +60,7 @@ def helpMessage() {
 
 // Import modules
 include { GENERATE_REPORT_DATA } from './modules/generate_report_data'
+include { GENERATE_SUPERSAMPLE_QC } from './modules/generate_supersample_qc'
 include { GUIDE_ASSIGNMENT } from './modules/guide_assignment'
 include { CONCATENATE } from './modules/concatenate'
 
@@ -92,6 +95,12 @@ workflow {
 
     if (!params.supersample_basename) {
         log.error "ERROR: --supersample_basename is required"
+        helpMessage()
+        exit 1
+    }
+
+    if (!params.min_valid_guides || !params.max_valid_guides) {
+        log.error "ERROR: --min_valid_guides and --max_valid_guides are required"
         helpMessage()
         exit 1
     }
@@ -169,5 +178,29 @@ workflow {
         GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
         
         GUIDE_ASSIGNMENT.out.guide_assignments.view { "Generated guide assignments: $it" }
+        
+        // Set guide assignments channel
+        guide_assignments_ch = GUIDE_ASSIGNMENT.out.guide_assignments
+    } else {
+        // Use placeholder for guide assignments
+        guide_assignments_ch = Channel.of(file('NO_FILE'))
     }
+    
+    // Generate supersample QC (always runs)
+    supersample_qc_input = GENERATE_REPORT_DATA.out.qc_files
+        .collect()
+        .combine(guide_assignments_ch)
+        .map { qc_files, guide_assignments ->
+            tuple(
+                params.num_input_cells,
+                qc_files,
+                params.supersample_basename,
+                params.supersample_id,
+                guide_assignments,
+                params.min_valid_guides,
+                params.max_valid_guides
+            )
+        }
+    
+    GENERATE_SUPERSAMPLE_QC(supersample_qc_input)
 }
