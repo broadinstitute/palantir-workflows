@@ -233,7 +233,14 @@ workflow CNVGermlineCohortWorkflow {
         }
     }
 
-    Array[File] pon_counts_files = flatten(select_all([pon_counts, CollectCounts.counts]))
+    Array[File] counts_files = flatten(select_all([pon_counts, CollectCounts.counts]))
+    if (defined(pon_counts)) {
+        scatter (this_pon_counts in select_first([pon_counts])) {
+            String pon_entity_ids = basename(this_pon_counts, ".counts.hdf5")
+        }
+    }
+    Array[String] entity_ids = flatten(select_all([pon_entity_ids, CollectCounts.entity_id]))
+    Int sample_index_offset = if (defined(pon_counts)) then length(select_first([pon_counts])) else 0
 
     if (!defined(filtered_intervals_for_init_model)) {
         
@@ -242,7 +249,7 @@ workflow CNVGermlineCohortWorkflow {
                 intervals = select_first([preprocessed_intervals_for_init_model, PreprocessIntervals.preprocessed_intervals]),
                 blacklist_intervals = blacklist_intervals_for_filter_intervals,
                 annotated_intervals = AnnotateIntervals.annotated_intervals,
-                read_count_files = pon_counts_files,
+                read_count_files = counts_files,
                 minimum_gc_content = minimum_gc_content,
                 maximum_gc_content = maximum_gc_content,
                 minimum_mappability = minimum_mappability,
@@ -265,7 +272,7 @@ workflow CNVGermlineCohortWorkflow {
         input:
             cohort_entity_id = cohort_entity_id,
             intervals = select_first([filtered_intervals_for_init_model, FilterIntervals.filtered_intervals]),
-            read_count_files = pon_counts_files,
+            read_count_files = counts_files,
             contig_ploidy_priors = contig_ploidy_priors,
             gatk4_jar_override = gatk4_jar_override,
             gatk_docker = gatk_docker,
@@ -294,7 +301,7 @@ workflow CNVGermlineCohortWorkflow {
             input:
                 scatter_index = scatter_index,
                 cohort_entity_id = cohort_entity_id,
-                read_count_files = pon_counts_files,
+                read_count_files = counts_files,
                 contig_ploidy_calls_tar = DetermineGermlineContigPloidyCohortMode.contig_ploidy_calls_tar,
                 intervals = ScatterIntervals.scattered_interval_lists[scatter_index],
                 annotated_intervals = AnnotateIntervals.annotated_intervals,
@@ -347,10 +354,11 @@ workflow CNVGermlineCohortWorkflow {
     Array[Array[File]] call_tars_sample_by_shard = transpose(GermlineCNVCallerCohortMode.gcnv_call_tars)
 
     scatter (sample_index in range(length(CollectCounts.entity_id))) {
+        Int offset_sample_index = sample_index + sample_index_offset
         call CNVTasks.PostprocessGermlineCNVCalls {
             input:
-                entity_id = CollectCounts.entity_id[sample_index],
-                gcnv_calls_tars = call_tars_sample_by_shard[sample_index],
+                entity_id = entity_ids[offset_sample_index],
+                gcnv_calls_tars = call_tars_sample_by_shard[offset_sample_index],
                 gcnv_model_tars = GermlineCNVCallerCohortMode.gcnv_model_tar,
                 calling_configs = GermlineCNVCallerCohortMode.calling_config_json,
                 denoising_configs = GermlineCNVCallerCohortMode.denoising_config_json,
@@ -359,12 +367,36 @@ workflow CNVGermlineCohortWorkflow {
                 contig_ploidy_calls_tar = DetermineGermlineContigPloidyCohortMode.contig_ploidy_calls_tar,
                 allosomal_contigs = allosomal_contigs,
                 ref_copy_number_autosomal_contigs = ref_copy_number_autosomal_contigs,
-                sample_index = sample_index,
+                sample_index = offset_sample_index,
                 maximum_number_events = maximum_number_events_per_sample,
                 maximum_number_pass_events = maximum_number_pass_events_per_sample,
                 gatk4_jar_override = gatk4_jar_override,
                 gatk_docker = gatk_docker,
                 preemptible_attempts = preemptible_attempts
+        }
+    }
+
+    if (defined(pon_counts)) {
+        scatter (pon_sample_index in range(length(select_first([pon_entity_ids])))) {
+            call CNVTasks.PostprocessGermlineCNVCalls as PostprocessGermlineCNVCalls_PON {
+                input:
+                    entity_id = entity_ids[pon_sample_index],
+                    gcnv_calls_tars = call_tars_sample_by_shard[pon_sample_index],
+                    gcnv_model_tars = GermlineCNVCallerCohortMode.gcnv_model_tar,
+                    calling_configs = GermlineCNVCallerCohortMode.calling_config_json,
+                    denoising_configs = GermlineCNVCallerCohortMode.denoising_config_json,
+                    gcnvkernel_version = GermlineCNVCallerCohortMode.gcnvkernel_version_json,
+                    sharded_interval_lists = GermlineCNVCallerCohortMode.sharded_interval_list,
+                    contig_ploidy_calls_tar = DetermineGermlineContigPloidyCohortMode.contig_ploidy_calls_tar,
+                    allosomal_contigs = allosomal_contigs,
+                    ref_copy_number_autosomal_contigs = ref_copy_number_autosomal_contigs,
+                    sample_index = pon_sample_index,
+                    maximum_number_events = maximum_number_events_per_sample,
+                    maximum_number_pass_events = maximum_number_pass_events_per_sample,
+                    gatk4_jar_override = gatk4_jar_override,
+                    gatk_docker = gatk_docker,
+                    preemptible_attempts = preemptible_attempts
+            }
         }
     }
 
@@ -443,6 +475,10 @@ workflow CNVGermlineCohortWorkflow {
         File genotyped_segments_vcfs_path_list = WriteSegments.path_list
         Array[File] genotyped_segments_vcf_indexes = PostprocessGermlineCNVCalls.genotyped_segments_vcf_index
         File genotyped_segments_vcf_indexes_path_list = WriteSegmentIndexes.path_list
+
+        Array[File]? pon_genotyped_segments_vcfs = PostprocessGermlineCNVCalls_PON.genotyped_segments_vcf
+        Array[File]? pon_genotyped_segments_vcf_indexes = PostprocessGermlineCNVCalls_PON.genotyped_segments_vcf_index
+        Array[File]? pon_denoised_copy_ratios = PostprocessGermlineCNVCalls_PON.denoised_copy_ratios
 
         Array[File] denoised_copy_ratios = PostprocessGermlineCNVCalls.denoised_copy_ratios
         Array[File] sample_qc_status_files = PostprocessGermlineCNVCalls.qc_status_file
