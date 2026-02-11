@@ -233,6 +233,8 @@ def main():
         return 0
     except Exception as e:
         print(f"\n✗ Error during supersample QC generation: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
         return 1
 
 if __name__ == "__main__":
