@@ -226,7 +226,7 @@ def main():
 
 
         if guide_assignments is not None:
-            guide_qc(guide_assignments, supersample_metrics, args.supersample_basename, args.supersample_id)
+            guide_qc(guide_assignments, supersample_metrics, args.supersample_basename, args.supersample_id, min_valid_guides=args.min_valid_guides, max_valid_guides=args.max_valid_guides)
             generate_sankey_plot(supersample_metrics, args.supersample_id, args.supersample_basename)
 
         print("\n✓ Supersample QC generation completed successfully")
