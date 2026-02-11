@@ -63,7 +63,7 @@ def parse_args():
 def generate_supersample_qc(guide_assignments, subsample_qc_files, supersample_basename, supersample_id, num_input_cells, min_valid_guides, max_valid_guides):
     subsample_metrics = pd.concat([pd.read_table(subsample_qc_file) for subsample_qc_file in subsample_qc_files], ignore_index=True)
 
-    supersample_metrics = pd.DataFrame(columns=['sample_id'])
+    supersample_metrics = pd.DataFrame({'sample_id': [supersample_id]})
     supersample_metrics['N0 Input cells'] = num_input_cells
     supersample_metrics['N1 Passing cells'] = subsample_metrics['Passing cells'].sum()
     supersample_metrics['N2 Guide containing passing cells'] = (subsample_metrics['Fraction passing cells with CRISPR reads'] * subsample_metrics['Passing cells']).sum()
@@ -72,7 +72,6 @@ def generate_supersample_qc(guide_assignments, subsample_qc_files, supersample_b
         num_guides_per_cell = guide_assignments.groupby('cell')['gRNA'].nunique().value_counts()
         n3_guide_assignment_passing_cells = num_guides_per_cell[(num_guides_per_cell.index >= min_valid_guides) & (num_guides_per_cell.index <= max_valid_guides)].sum()
         supersample_metrics['N4 Guide assignment passing cells'] = n3_guide_assignment_passing_cells
-    supersample_metrics['sample_id'] = supersample_id
 
     return supersample_metrics
 
