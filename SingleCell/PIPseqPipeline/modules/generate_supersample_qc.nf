@@ -9,6 +9,8 @@ process GENERATE_SUPERSAMPLE_QC {
     input:
     tuple val(num_input_cells),
           path(subsample_qc_files),
+          val(supersample_basename),
+          val(supersample_id),
           path(guide_assignments),
           val(min_valid_guides),
           val(max_valid_guides)
@@ -25,7 +27,8 @@ process GENERATE_SUPERSAMPLE_QC {
     generate_supersample_qc.py \\
         --num-input-cells ${num_input_cells} \\
         --subsample-qc-files ${subsample_qc_files.join(' ')} \\
-        --supersample-basename ${params.supersample_basename} \\
+        --supersample-basename ${supersample_basename} \\
+        --supersample-id ${supersample_id} \\
         ${guide_arg}
     """
 }

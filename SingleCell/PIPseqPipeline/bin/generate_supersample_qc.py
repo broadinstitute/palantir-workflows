@@ -76,16 +76,16 @@ def generate_supersample_qc(guide_assignments, subsample_qc_files, supersample_b
 
     return supersample_metrics
 
-def guide_qc(guide_assignments, supersample_metrics, supersample_basename, supersample_id):
+def guide_qc(guide_assignments, supersample_metrics, supersample_basename, supersample_id, min_valid_guides, max_valid_guides):
     guides_per_cell = guide_assignments.groupby('cell')['gRNA'].nunique()
     
     num_passing_cells = supersample_metrics.loc[supersample_metrics['sample_id'] == supersample_id, 'N1 Passing cells'].values[0]
 
     plotdata = guides_per_cell.value_counts()
     plotdata[0] = num_passing_cells - sum(plotdata)
-    frac_no_guides = plotdata[0] / num_passing_cells
-    frac_1_2_guides = (plotdata[1]+plotdata[2]) / num_passing_cells
-    frac_3_plus_guides = 1 - (plotdata[0] + plotdata[1] + plotdata[2]) / num_passing_cells
+    frac_too_few_guides = plotdata[plotdata.index < min_valid_guides].sum() / num_passing_cells
+    frac_too_many_guides = plotdata[plotdata.index > max_valid_guides].sum() / num_passing_cells
+    frac_valid_guides = plotdata[(plotdata.index >= min_valid_guides) & (plotdata.index <= max_valid_guides)].sum() / num_passing_cells
 
     plotdata = plotdata[plotdata.index <= 10]
     plotdata = plotdata.sort_index()
@@ -103,10 +103,13 @@ def guide_qc(guide_assignments, supersample_metrics, supersample_basename, super
 
     # Legend handles
     from matplotlib.patches import Patch
+    label_too_few = '0' if min_valid_guides == 1 else f'0-{min_valid_guides-1}'
+    label_valid_guides = f'{min_valid_guides}-{max_valid_guides}' if max_valid_guides > min_valid_guides else f'{min_valid_guides}'
+    label_too_many = f'>{max_valid_guides+1}+'
     legend_handles = [
-        Patch(color='gray', label=f'0 guides: {frac_no_guides:.1%}'),
-        Patch(color='C0', label=f'1-2 guides: {frac_1_2_guides:.1%}'),
-        Patch(color='C1', label=f'3+ guides: {frac_3_plus_guides:.1%}'),
+        Patch(color='gray', label=f'{label_too_few} guides: {frac_too_few_guides:.1%}'),
+        Patch(color='C0', label=f'{label_valid_guides} guides: {frac_valid_guides:.1%}'),
+        Patch(color='C1', label=f'{label_too_many} guides: {frac_too_many_guides:.1%}'),
     ]
     ax.legend(handles=legend_handles, loc='upper right')
 

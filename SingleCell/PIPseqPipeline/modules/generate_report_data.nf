@@ -13,7 +13,8 @@ process GENERATE_REPORT_DATA {
           val(subsample_id),
           val(subsample_basename)    
     output:
-    path "${subsample_basename}.qc_*", emit: qc_files
+    path "${subsample_basename}.qc_metrics.tsv", emit: qc_metrics
+    path "${subsample_basename}.qc_barcode_metrics.tsv", emit: qc_barcode_metrics
     
     script:
     """
