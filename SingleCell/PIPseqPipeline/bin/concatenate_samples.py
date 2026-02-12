@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import sys
 import scanpy as sc
 import anndata as ad
 from pathlib import Path
+import tempfile
+import shutil
 
 sc.settings.n_jobs = -1
 
@@ -65,47 +68,41 @@ def main():
             raise ValueError("Number of files must match number of subsample IDs")
         
         # Read all subsamples
-        adatas = []
-        for i, (matrix, barcode, feature) in enumerate(zip(args.matrices, args.barcodes, args.features)):
-            print(f"Reading subsample {subsample_ids[i]} from {matrix}...")
-            
-            # Create a temporary directory structure for scanpy
-            # scanpy expects the files to be in a directory with specific naming
-            import tempfile
-            import shutil
-            import gzip
-            
-            with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory() as tmpdir:
+
+            for i, (matrix, barcode, feature) in enumerate(zip(args.matrices, args.barcodes, args.features)):
+                print(f"Reading subsample {subsample_ids[i]} from {matrix}...")
+                
+                os.mkdir(f"{tmpdir}/{i}")
                 # Copy files to temp directory with expected names
-                shutil.copy(matrix, f"{tmpdir}/matrix.mtx.gz")
-                shutil.copy(barcode, f"{tmpdir}/barcodes.tsv.gz")
-                shutil.copy(feature, f"{tmpdir}/features.tsv.gz")
+                shutil.copy(matrix, f"{tmpdir}/{i}/matrix.mtx.gz")
+                shutil.copy(barcode, f"{tmpdir}/{i}/barcodes.tsv.gz")
+                shutil.copy(feature, f"{tmpdir}/{i}/features.tsv.gz")
                 
                 # Read the 10x format data
-                adata = sc.read_10x_mtx(tmpdir, var_names='gene_symbols', gex_only=False, cache=False)
-                        
-            # Filter for CRISPR Direct Capture features
+                adata = sc.read_10x_mtx(f"{tmpdir}/{i}", var_names='gene_symbols', gex_only=False, cache=False)
+                adata.write_h5ad(f"{tmpdir}/{i}.h5ad", compression='gzip')
             
-            print(f"subsample {subsample_ids[i]}: {adata.n_obs} cells, {adata.n_vars} features")
-            adatas.append(adata)
-        
-        if len(adatas) == 0:
-            raise ValueError("No subsamples found")
-        
-        if len(adatas) == 1:
-            print("Only one subsample provided, skipping concatenation.")
-            concatenated = adatas[0]
-        else:
-            # Concatenate all subsamples
-            print(f"\nConcatenating {len(adatas)} subsamples...")
-            concatenated = ad.concat(adatas, join='outer', merge='same', label='subsample_id', keys=subsample_ids, index_unique='_')
+                print(f"subsample {subsample_ids[i]}: {adata.n_obs} cells, {adata.n_vars} features")        
 
-            print(f"Concatenated dataset: {concatenated.n_obs} cells, {concatenated.n_vars} features")
+            if len(args.matrices) == 1:
+                print("Only one subsample provided, skipping concatenation.")
+                shutil.move(f"{tmpdir}/0.h5ad", f"{args.supersample_basename}.h5ad")
+            else:
+                # Concatenate all subsamples
+                print(f"\nConcatenating {len(args.matrices)} subsamples...")
+                ad.experimental.concat_on_disk(
+                    in_files=[f"{tmpdir}/{i}.h5ad" for i in range(len(args.matrices))],
+                    out_file=f"{args.supersample_basename}.h5ad",
+                    axis='obs',
+                    label='subsample_id',
+                    keys=subsample_ids,
+                    index_unique='_',
+                    join='outer',
+                    merge='same')
 
-        # Write output
-        output_path = f"{args.supersample_basename}.h5ad"
-        print(f"Writing data to {output_path}...")
-        concatenated.write_h5ad(output_path, compression='gzip')
+        concatenated = sc.read_h5ad(f"{args.supersample_basename}.h5ad")
+        print(f"Concatenated data: {concatenated.n_obs} cells, {concatenated.n_vars} features")
         
         print("Extracting CRISPR Direct Capture features...")
         print(concatenated.var_keys())
