@@ -82,8 +82,10 @@ def main():
                 # Read the 10x format data
                 adata = sc.read_10x_mtx(f"{tmpdir}/{i}", var_names='gene_symbols', gex_only=False, cache=False)
                 adata.write_h5ad(f"{tmpdir}/{i}.h5ad", compression='gzip')
-            
-                print(f"subsample {subsample_ids[i]}: {adata.n_obs} cells, {adata.n_vars} features")        
+
+                print(f"subsample {subsample_ids[i]}: {adata.n_obs} cells, {adata.n_vars} features")
+                
+                del adata       
 
             if len(args.matrices) == 1:
                 print("Only one subsample provided, skipping concatenation.")
