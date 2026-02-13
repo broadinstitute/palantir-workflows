@@ -187,13 +187,16 @@ workflow {
     }
     
     // Generate supersample QC (always runs)
-    collected_qc_metrics = GENERATE_REPORT_DATA.out.qc_metrics.collect()
-    
-    supersample_qc_input = guide_assignments_ch
-        .map { guide_assignments ->
+    supersample_qc_input = GENERATE_REPORT_DATA.out.qc_metrics
+        .collect()
+        .concat(guide_assignments_ch)
+        .toList()
+        .map { items ->
+            def qc_metrics = items[0]
+            def guide_assignments = items[1]
             tuple(
                 params.num_input_cells,
-                collected_qc_metrics,
+                qc_metrics,
                 params.supersample_basename,
                 params.supersample_id,
                 guide_assignments,
