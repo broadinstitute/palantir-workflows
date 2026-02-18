@@ -32,20 +32,14 @@ def parse_args():
     return parser.parse_args()
 
 def run_guide_assignment(crispr_adata_path):
-    
     print('Running CRISPAT Gaussian Mixture model...')
     crispat.ga_poisson_gauss(f'{crispr_adata_path}', f'crispat_ga/poisson_gauss/')
-
-    shutil.copy(f'crispat_ga/poisson_gauss/assignments.csv', 'assignments.csv')
-    
-    return None
 
 def main():
     """Main execution function."""
     args = parse_args()
     
     try:
-        # Load 10x data
         run_guide_assignment(
             args.crispr_adata
         )

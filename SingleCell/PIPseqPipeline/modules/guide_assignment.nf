@@ -10,7 +10,8 @@ process GUIDE_ASSIGNMENT {
     path(crispr_adata)
     
     output:
-    path "assignments.csv", emit: guide_assignments
+    path "crispat_ga/", emit: crispat_ga_dir
+    path "crispat_ga/poisson_gauss/assignments.csv", emit: guide_assignments
     
     script:
     """
