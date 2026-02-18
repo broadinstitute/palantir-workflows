@@ -11,7 +11,7 @@ workflow CohortCNVCallingAndMergeForFabric {
       File intervals
       Array[String]+ normal_bams
       Array[String]+ normal_bais
-      Array[File] pon_counts
+      Array[File]? pon_counts
       String cohort_entity_id
       File contig_ploidy_priors
       Int num_intervals_per_scatter
