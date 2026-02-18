@@ -109,10 +109,11 @@ workflow CohortCNVCallingAndMergeForFabric {
             case_copy_ratios = CNVGermlineCohortWorkflow.denoised_copy_ratios[i],
             case_read_counts = CNVGermlineCohortWorkflow.read_counts[i],
             panel_copy_ratios = select_first([CNVGermlineCohortWorkflow.pon_denoised_copy_ratios, CNVGermlineCohortWorkflow.denoised_copy_ratios]),
-            panel_read_counts = pon_counts,
+            panel_read_counts = select_first([pon_counts, CNVGermlineCohortWorkflow.read_counts]),
             interval_lists = CNVGermlineCohortWorkflow.sharded_interval_lists
         }
     }
+
 
     output {
         Array[File] filtered_cnv_genotyped_segments_vcf = ExtractPoNFreqAnnotateFilterAndQC.filtered_vcf
