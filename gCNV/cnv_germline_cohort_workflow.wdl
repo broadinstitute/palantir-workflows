@@ -165,23 +165,22 @@ workflow CNVGermlineCohortWorkflow {
       ##########################
       Int maximum_number_events_per_sample
       Int maximum_number_pass_events_per_sample
-
     }
 
     Array[Pair[String, String]] normal_bams_and_bais = zip(normal_bams, normal_bais)
 
     call CNVTasks.PreprocessIntervals {
-            input:
-                intervals = intervals,
-                blacklist_intervals = blacklist_intervals,
-                ref_fasta = ref_fasta,
-                ref_fasta_fai = ref_fasta_fai,
-                ref_fasta_dict = ref_fasta_dict,
-                padding = padding,
-                bin_length = bin_length,
-                gatk4_jar_override = gatk4_jar_override,
-                gatk_docker = gatk_docker,
-                preemptible_attempts = preemptible_attempts
+        input:
+            intervals = intervals,
+            blacklist_intervals = blacklist_intervals,
+            ref_fasta = ref_fasta,
+            ref_fasta_fai = ref_fasta_fai,
+            ref_fasta_dict = ref_fasta_dict,
+            padding = padding,
+            bin_length = bin_length,
+            gatk4_jar_override = gatk4_jar_override,
+            gatk_docker = gatk_docker,
+            preemptible_attempts = preemptible_attempts
     }
     
     if (select_first([do_explicit_gc_correction, true])) {
@@ -202,7 +201,6 @@ workflow CNVGermlineCohortWorkflow {
                 preemptible_attempts = preemptible_attempts
         }
     }
-    
 
     scatter (normal_bam_and_bai in normal_bams_and_bais) {
         call CNVTasks.CollectCounts {
@@ -225,26 +223,26 @@ workflow CNVGermlineCohortWorkflow {
     }
 
     call CNVTasks.FilterIntervals {
-            input:
-                intervals = PreprocessIntervals.preprocessed_intervals,
-                blacklist_intervals = blacklist_intervals_for_filter_intervals,
-                annotated_intervals = AnnotateIntervals.annotated_intervals,
-                read_count_files = CollectCounts.counts,
-                minimum_gc_content = minimum_gc_content,
-                maximum_gc_content = maximum_gc_content,
-                minimum_mappability = minimum_mappability,
-                maximum_mappability = maximum_mappability,
-                minimum_segmental_duplication_content = minimum_segmental_duplication_content,
-                maximum_segmental_duplication_content = maximum_segmental_duplication_content,
-                low_count_filter_count_threshold = low_count_filter_count_threshold,
-                low_count_filter_percentage_of_samples = low_count_filter_percentage_of_samples,
-                extreme_count_filter_minimum_percentile = extreme_count_filter_minimum_percentile,
-                extreme_count_filter_maximum_percentile = extreme_count_filter_maximum_percentile,
-                extreme_count_filter_percentage_of_samples = extreme_count_filter_percentage_of_samples,
-                gatk4_jar_override = gatk4_jar_override,
-                gatk_docker = gatk_docker,
-                mem_gb = mem_gb_for_filter_intervals,
-                preemptible_attempts = preemptible_attempts
+        input:
+            intervals = PreprocessIntervals.preprocessed_intervals,
+            blacklist_intervals = blacklist_intervals_for_filter_intervals,
+            annotated_intervals = AnnotateIntervals.annotated_intervals,
+            read_count_files = CollectCounts.counts,
+            minimum_gc_content = minimum_gc_content,
+            maximum_gc_content = maximum_gc_content,
+            minimum_mappability = minimum_mappability,
+            maximum_mappability = maximum_mappability,
+            minimum_segmental_duplication_content = minimum_segmental_duplication_content,
+            maximum_segmental_duplication_content = maximum_segmental_duplication_content,
+            low_count_filter_count_threshold = low_count_filter_count_threshold,
+            low_count_filter_percentage_of_samples = low_count_filter_percentage_of_samples,
+            extreme_count_filter_minimum_percentile = extreme_count_filter_minimum_percentile,
+            extreme_count_filter_maximum_percentile = extreme_count_filter_maximum_percentile,
+            extreme_count_filter_percentage_of_samples = extreme_count_filter_percentage_of_samples,
+            gatk4_jar_override = gatk4_jar_override,
+            gatk_docker = gatk_docker,
+            mem_gb = mem_gb_for_filter_intervals,
+            preemptible_attempts = preemptible_attempts
     }
 
     call DetermineGermlineContigPloidyCohortMode {
@@ -273,7 +271,6 @@ workflow CNVGermlineCohortWorkflow {
     }
 
     scatter (scatter_index in range(length(ScatterIntervals.scattered_interval_lists))) {
-
         call GermlineCNVCallerCohortMode {
             input:
                 scatter_index = scatter_index,
@@ -433,6 +430,7 @@ workflow CNVGermlineCohortWorkflow {
         File model_qc_status_file = CollectModelQualityMetrics.qc_status_file
         String model_qc_string = CollectModelQualityMetrics.qc_status_string
 
+        Array[File] gcnv_model_tars = GermlineCNVCallerCohortMode.gcnv_model_tar
         Array[File] calling_configs = GermlineCNVCallerCohortMode.calling_config_json
         Array[File] denoising_configs = GermlineCNVCallerCohortMode.denoising_config_json
         Array[File] gcnvkernel_version = GermlineCNVCallerCohortMode.gcnvkernel_version_json
