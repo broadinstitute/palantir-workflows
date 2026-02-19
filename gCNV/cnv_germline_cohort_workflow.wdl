@@ -182,7 +182,7 @@ workflow CNVGermlineCohortWorkflow {
             gatk_docker = gatk_docker,
             preemptible_attempts = preemptible_attempts
     }
-    
+
     if (select_first([do_explicit_gc_correction, true])) {
         call CNVTasks.AnnotateIntervals {
             input:
