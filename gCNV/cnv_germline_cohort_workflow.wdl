@@ -34,7 +34,6 @@ workflow CNVGermlineCohortWorkflow {
       File? blacklist_intervals
       Array[String]+ normal_bams
       Array[String]+ normal_bais
-      Array[File]? pon_counts
       String cohort_entity_id
       File contig_ploidy_priors
       Int num_intervals_per_scatter
@@ -167,18 +166,11 @@ workflow CNVGermlineCohortWorkflow {
       Int maximum_number_events_per_sample
       Int maximum_number_pass_events_per_sample
 
-      #optional init model
-      Array[File]? init_gcnv_model_tars
-      File? preprocessed_intervals_for_init_model
-      File? filtered_intervals_for_init_model
-
     }
 
     Array[Pair[String, String]] normal_bams_and_bais = zip(normal_bams, normal_bais)
 
-    if (!defined(preprocessed_intervals_for_init_model)) {
-        
-        call CNVTasks.PreprocessIntervals {
+    call CNVTasks.PreprocessIntervals {
             input:
                 intervals = intervals,
                 blacklist_intervals = blacklist_intervals,
@@ -190,13 +182,12 @@ workflow CNVGermlineCohortWorkflow {
                 gatk4_jar_override = gatk4_jar_override,
                 gatk_docker = gatk_docker,
                 preemptible_attempts = preemptible_attempts
-        }
     }
     
     if (select_first([do_explicit_gc_correction, true])) {
         call CNVTasks.AnnotateIntervals {
             input:
-                intervals = select_first([preprocessed_intervals_for_init_model, PreprocessIntervals.preprocessed_intervals]),
+                intervals = PreprocessIntervals.preprocessed_intervals,
                 ref_fasta = ref_fasta,
                 ref_fasta_fai = ref_fasta_fai,
                 ref_fasta_dict = ref_fasta_dict,
@@ -216,7 +207,7 @@ workflow CNVGermlineCohortWorkflow {
     scatter (normal_bam_and_bai in normal_bams_and_bais) {
         call CNVTasks.CollectCounts {
             input:
-                intervals = select_first([preprocessed_intervals_for_init_model, PreprocessIntervals.preprocessed_intervals]),
+                intervals = PreprocessIntervals.preprocessed_intervals,
                 bam = normal_bam_and_bai.left,
                 bam_idx = normal_bam_and_bai.right,
                 ref_fasta = ref_fasta,
@@ -233,23 +224,12 @@ workflow CNVGermlineCohortWorkflow {
         }
     }
 
-    Array[File] counts_files = flatten(select_all([pon_counts, CollectCounts.counts]))
-    if (defined(pon_counts)) {
-        scatter (this_pon_counts in select_first([pon_counts])) {
-            String pon_entity_ids = basename(this_pon_counts, ".counts.hdf5")
-        }
-    }
-    Array[String] entity_ids = flatten(select_all([pon_entity_ids, CollectCounts.entity_id]))
-    Int sample_index_offset = if (defined(pon_counts)) then length(select_first([pon_counts])) else 0
-
-    if (!defined(filtered_intervals_for_init_model)) {
-        
-        call CNVTasks.FilterIntervals {
+    call CNVTasks.FilterIntervals {
             input:
-                intervals = select_first([preprocessed_intervals_for_init_model, PreprocessIntervals.preprocessed_intervals]),
+                intervals = PreprocessIntervals.preprocessed_intervals,
                 blacklist_intervals = blacklist_intervals_for_filter_intervals,
                 annotated_intervals = AnnotateIntervals.annotated_intervals,
-                read_count_files = counts_files,
+                read_count_files = CollectCounts.counts,
                 minimum_gc_content = minimum_gc_content,
                 maximum_gc_content = maximum_gc_content,
                 minimum_mappability = minimum_mappability,
@@ -265,14 +245,13 @@ workflow CNVGermlineCohortWorkflow {
                 gatk_docker = gatk_docker,
                 mem_gb = mem_gb_for_filter_intervals,
                 preemptible_attempts = preemptible_attempts
-        }
     }
 
     call DetermineGermlineContigPloidyCohortMode {
         input:
             cohort_entity_id = cohort_entity_id,
-            intervals = select_first([filtered_intervals_for_init_model, FilterIntervals.filtered_intervals]),
-            read_count_files = counts_files,
+            intervals = FilterIntervals.filtered_intervals,
+            read_count_files = CollectCounts.counts,
             contig_ploidy_priors = contig_ploidy_priors,
             gatk4_jar_override = gatk4_jar_override,
             gatk_docker = gatk_docker,
@@ -287,21 +266,19 @@ workflow CNVGermlineCohortWorkflow {
 
     call CNVTasks.ScatterIntervals {
         input:
-            interval_list = select_first([filtered_intervals_for_init_model, FilterIntervals.filtered_intervals]),
+            interval_list = FilterIntervals.filtered_intervals,
             num_intervals_per_scatter = num_intervals_per_scatter,
             gatk_docker = gatk_docker,
             preemptible_attempts = preemptible_attempts
     }
 
     scatter (scatter_index in range(length(ScatterIntervals.scattered_interval_lists))) {
-        if (defined(init_gcnv_model_tars)) {
-            File init_gcnv_model_tar_this_scatter = select_first([init_gcnv_model_tars])[scatter_index]
-        }
+
         call GermlineCNVCallerCohortMode {
             input:
                 scatter_index = scatter_index,
                 cohort_entity_id = cohort_entity_id,
-                read_count_files = counts_files,
+                read_count_files = CollectCounts.counts,
                 contig_ploidy_calls_tar = DetermineGermlineContigPloidyCohortMode.contig_ploidy_calls_tar,
                 intervals = ScatterIntervals.scattered_interval_lists[scatter_index],
                 annotated_intervals = AnnotateIntervals.annotated_intervals,
@@ -346,19 +323,17 @@ workflow CNVGermlineCohortWorkflow {
                 caller_internal_admixing_rate = gcnv_caller_internal_admixing_rate,
                 caller_external_admixing_rate = gcnv_caller_external_admixing_rate,
                 disable_annealing = gcnv_disable_annealing,
-                preemptible_attempts = preemptible_attempts,
-                init_gcnv_model_tars = init_gcnv_model_tar_this_scatter
+                preemptible_attempts = preemptible_attempts
         }
     }
 
     Array[Array[File]] call_tars_sample_by_shard = transpose(GermlineCNVCallerCohortMode.gcnv_call_tars)
 
     scatter (sample_index in range(length(CollectCounts.entity_id))) {
-        Int offset_sample_index = sample_index + sample_index_offset
         call CNVTasks.PostprocessGermlineCNVCalls {
             input:
-                entity_id = entity_ids[offset_sample_index],
-                gcnv_calls_tars = call_tars_sample_by_shard[offset_sample_index],
+                entity_id = CollectCounts.entity_id[sample_index],
+                gcnv_calls_tars = call_tars_sample_by_shard[sample_index],
                 gcnv_model_tars = GermlineCNVCallerCohortMode.gcnv_model_tar,
                 calling_configs = GermlineCNVCallerCohortMode.calling_config_json,
                 denoising_configs = GermlineCNVCallerCohortMode.denoising_config_json,
@@ -367,36 +342,12 @@ workflow CNVGermlineCohortWorkflow {
                 contig_ploidy_calls_tar = DetermineGermlineContigPloidyCohortMode.contig_ploidy_calls_tar,
                 allosomal_contigs = allosomal_contigs,
                 ref_copy_number_autosomal_contigs = ref_copy_number_autosomal_contigs,
-                sample_index = offset_sample_index,
+                sample_index = sample_index,
                 maximum_number_events = maximum_number_events_per_sample,
                 maximum_number_pass_events = maximum_number_pass_events_per_sample,
                 gatk4_jar_override = gatk4_jar_override,
                 gatk_docker = gatk_docker,
                 preemptible_attempts = preemptible_attempts
-        }
-    }
-
-    if (defined(pon_counts)) {
-        scatter (pon_sample_index in range(length(select_first([pon_entity_ids])))) {
-            call CNVTasks.PostprocessGermlineCNVCalls as PostprocessGermlineCNVCalls_PON {
-                input:
-                    entity_id = entity_ids[pon_sample_index],
-                    gcnv_calls_tars = call_tars_sample_by_shard[pon_sample_index],
-                    gcnv_model_tars = GermlineCNVCallerCohortMode.gcnv_model_tar,
-                    calling_configs = GermlineCNVCallerCohortMode.calling_config_json,
-                    denoising_configs = GermlineCNVCallerCohortMode.denoising_config_json,
-                    gcnvkernel_version = GermlineCNVCallerCohortMode.gcnvkernel_version_json,
-                    sharded_interval_lists = GermlineCNVCallerCohortMode.sharded_interval_list,
-                    contig_ploidy_calls_tar = DetermineGermlineContigPloidyCohortMode.contig_ploidy_calls_tar,
-                    allosomal_contigs = allosomal_contigs,
-                    ref_copy_number_autosomal_contigs = ref_copy_number_autosomal_contigs,
-                    sample_index = pon_sample_index,
-                    maximum_number_events = maximum_number_events_per_sample,
-                    maximum_number_pass_events = maximum_number_pass_events_per_sample,
-                    gatk4_jar_override = gatk4_jar_override,
-                    gatk_docker = gatk_docker,
-                    preemptible_attempts = preemptible_attempts
-            }
         }
     }
 
@@ -453,11 +404,11 @@ workflow CNVGermlineCohortWorkflow {
 
 
     output {
-        File preprocessed_intervals = select_first([PreprocessIntervals.preprocessed_intervals, preprocessed_intervals_for_init_model])
+        File preprocessed_intervals = PreprocessIntervals.preprocessed_intervals
         Array[File] read_counts_entity_ids = CollectCounts.entity_id
         Array[File] read_counts = CollectCounts.counts
         File? annotated_intervals = AnnotateIntervals.annotated_intervals
-        File filtered_intervals = select_first([filtered_intervals_for_init_model, FilterIntervals.filtered_intervals])
+        File filtered_intervals = FilterIntervals.filtered_intervals
         File contig_ploidy_model_tar = DetermineGermlineContigPloidyCohortMode.contig_ploidy_model_tar
         File contig_ploidy_calls_tar = DetermineGermlineContigPloidyCohortMode.contig_ploidy_calls_tar
         File contig_ploidy_calls_tar_path_list = WritePloidyCalls.path_list
@@ -475,10 +426,6 @@ workflow CNVGermlineCohortWorkflow {
         File genotyped_segments_vcfs_path_list = WriteSegments.path_list
         Array[File] genotyped_segments_vcf_indexes = PostprocessGermlineCNVCalls.genotyped_segments_vcf_index
         File genotyped_segments_vcf_indexes_path_list = WriteSegmentIndexes.path_list
-
-        Array[File]? pon_genotyped_segments_vcfs = PostprocessGermlineCNVCalls_PON.genotyped_segments_vcf
-        Array[File]? pon_genotyped_segments_vcf_indexes = PostprocessGermlineCNVCalls_PON.genotyped_segments_vcf_index
-        Array[File]? pon_denoised_copy_ratios = PostprocessGermlineCNVCalls_PON.denoised_copy_ratios
 
         Array[File] denoised_copy_ratios = PostprocessGermlineCNVCalls.denoised_copy_ratios
         Array[File] sample_qc_status_files = PostprocessGermlineCNVCalls.qc_status_file
@@ -623,9 +570,6 @@ task GermlineCNVCallerCohortMode {
       Float? caller_internal_admixing_rate
       Float? caller_external_admixing_rate
       Boolean? disable_annealing
-
-      #optional init model
-      File? init_gcnv_model_tars
     }
 
     Int machine_mem_mb = select_first([mem_gb, 7]) * 1000
@@ -646,18 +590,12 @@ task GermlineCNVCallerCohortMode {
         mkdir contig-ploidy-calls
         tar xzf ~{contig_ploidy_calls_tar} -C contig-ploidy-calls
 
-        if [ -n "~{default="" init_gcnv_model_tars}" ]; then
-            mkdir init-gcnv-model
-            tar xzf ~{init_gcnv_model_tars} -C init-gcnv-model
-        fi
-
         gatk --java-options "-Xmx~{command_mem_mb}m"  GermlineCNVCaller \
             --run-mode COHORT \
             -L ~{intervals} \
             --input ~{sep=" --input " read_count_files} \
             --contig-ploidy-calls contig-ploidy-calls \
             ~{"--annotated-intervals " + annotated_intervals} \
-            ~{if defined(init_gcnv_model_tars) then "--model init-gcnv-model" else ""} \
             --interval-merging-rule OVERLAPPING_ONLY \
             --output ~{output_dir_} \
             --output-prefix ~{cohort_entity_id} \

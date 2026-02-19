@@ -11,7 +11,6 @@ workflow CohortCNVCallingAndMergeForFabric {
       File intervals
       Array[String]+ normal_bams
       Array[String]+ normal_bais
-      Array[File]? pon_counts
       String cohort_entity_id
       File contig_ploidy_priors
       Int num_intervals_per_scatter
@@ -73,7 +72,6 @@ workflow CohortCNVCallingAndMergeForFabric {
             maximum_number_pass_events_per_sample = maximum_number_pass_events_per_sample,
             mem_gb_for_germline_cnv_caller = mem_gb_for_germline_cnv_caller,
             cpu_for_germline_cnv_caller = cpu_for_germline_cnv_caller,
-            pon_counts = pon_counts,
             ref_copy_number_autosomal_contigs = ref_copy_number_autosomal_contigs
     }
 
@@ -82,7 +80,7 @@ workflow CohortCNVCallingAndMergeForFabric {
             input:
                 vcf = CNVGermlineCohortWorkflow.genotyped_segments_vcfs[i],
                 vcf_idx = CNVGermlineCohortWorkflow.genotyped_segments_vcf_indexes[i],
-                panel_vcfs = select_first([CNVGermlineCohortWorkflow.pon_genotyped_segments_vcfs, CNVGermlineCohortWorkflow.genotyped_segments_vcfs]),
+                panel_vcfs = CNVGermlineCohortWorkflow.genotyped_segments_vcfs,
                 intervals = CNVGermlineCohortWorkflow.preprocessed_intervals,
                 overlap_thresh = overlap_thresh,
                 filter_expressions = filter_expressions,
@@ -108,8 +106,8 @@ workflow CohortCNVCallingAndMergeForFabric {
             filtered_vcf = ExtractPoNFreqAnnotateFilterAndQC.filtered_vcf,
             case_copy_ratios = CNVGermlineCohortWorkflow.denoised_copy_ratios[i],
             case_read_counts = CNVGermlineCohortWorkflow.read_counts[i],
-            panel_copy_ratios = select_first([CNVGermlineCohortWorkflow.pon_denoised_copy_ratios, CNVGermlineCohortWorkflow.denoised_copy_ratios]),
-            panel_read_counts = select_first([pon_counts, CNVGermlineCohortWorkflow.read_counts]),
+            panel_copy_ratios = CNVGermlineCohortWorkflow.denoised_copy_ratios,
+            panel_read_counts = CNVGermlineCohortWorkflow.read_counts,
             interval_lists = CNVGermlineCohortWorkflow.sharded_interval_lists
         }
     }
