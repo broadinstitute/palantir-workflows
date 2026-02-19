@@ -4,7 +4,7 @@
 
 process GUIDE_ASSIGNMENT {
     tag "guide_assignment"
-    publishDir "${params.outdir}/${params.supersample_basename}/crispat_ga", mode: 'copy'
+    publishDir "${params.outdir}/${params.supersample_basename}", mode: 'copy'
     
     input:
     path(crispr_adata)
