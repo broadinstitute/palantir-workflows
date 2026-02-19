@@ -45,8 +45,8 @@ workflow CohortCNVCallingAndMergeForFabric {
       ##################################################################
       #### optional arguments for ExtractPoNFreqAnnotateFilterAndQC ####
       ##################################################################
-      Array[String]? filter_expressions #= "QUAL < 50"  # Example filter criteria
-      Array[String]? filter_names
+      Array[String] filter_expressions = ['(GT=="alt" | GT=="mis") & ((FMT/CN>1 & QUAL<50) | (FMT/CN==1 & QUAL<100 ) | (FMT/CN==0 & QUAL<400))','(GT=="alt" | GT=="mis") & (INFO/PANEL_FREQ>0.02)']
+      Array[String]? filter_names = ['LowQual','PanelOverlap']
       Int? mem_gb_for_extract_pon_freq
       Int? disk_for_extract_pon_freq
       Float? overlap_thresh
