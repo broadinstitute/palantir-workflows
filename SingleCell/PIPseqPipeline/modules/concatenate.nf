@@ -4,6 +4,7 @@
 
 process CONCATENATE {
     tag "Concatenating ${subsample_ids.size()} subsamples"
+    container 'us.gcr.io/broad-dsde-methods/pipseq-qc:latest'
     publishDir "${params.outdir}/${params.supersample_basename}/adata", mode: 'copy'
     
     input:

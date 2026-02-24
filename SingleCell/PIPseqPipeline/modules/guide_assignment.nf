@@ -3,7 +3,8 @@
  */
 
 process GUIDE_ASSIGNMENT {
-    tag "guide_assignment"
+    tag "guide_assignment"    
+    container 'us.gcr.io/broad-dsde-methods/pipseq-qc:latest'    
     publishDir "${params.outdir}/${params.supersample_basename}", mode: 'copy'
     
     input:
