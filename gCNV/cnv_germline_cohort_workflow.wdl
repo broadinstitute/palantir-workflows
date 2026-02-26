@@ -430,7 +430,6 @@ workflow CNVGermlineCohortWorkflow {
         File model_qc_status_file = CollectModelQualityMetrics.qc_status_file
         String model_qc_string = CollectModelQualityMetrics.qc_status_string
 
-        Array[File] gcnv_model_tars = GermlineCNVCallerCohortMode.gcnv_model_tar
         Array[File] calling_configs = GermlineCNVCallerCohortMode.calling_config_json
         Array[File] denoising_configs = GermlineCNVCallerCohortMode.denoising_config_json
         Array[File] gcnvkernel_version = GermlineCNVCallerCohortMode.gcnvkernel_version_json
