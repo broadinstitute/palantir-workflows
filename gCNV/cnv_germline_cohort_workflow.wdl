@@ -406,7 +406,7 @@ workflow CNVGermlineCohortWorkflow {
 
     output {
         File preprocessed_intervals = PreprocessIntervals.preprocessed_intervals
-        Array[File] read_counts_entity_ids = CollectCounts.entity_id #!FileCoercion
+        Array[String] read_counts_entity_ids = CollectCounts.entity_id
         Array[File] read_counts = CollectCounts.counts
         File? annotated_intervals = AnnotateIntervals.annotated_intervals
         File filtered_intervals = FilterIntervals.filtered_intervals

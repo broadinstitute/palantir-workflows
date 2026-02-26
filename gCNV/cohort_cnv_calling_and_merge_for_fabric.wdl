@@ -9,8 +9,8 @@ workflow CohortCNVCallingAndMergeForFabric {
       #### required basic arguments ####
       ##################################
       File intervals
-      Array[String]+ normal_bams
-      Array[String]+ normal_bais
+      Array[File]+ normal_bams
+      Array[File]+ normal_bais
       String cohort_entity_id
       File contig_ploidy_priors
       Int num_intervals_per_scatter
@@ -46,7 +46,7 @@ workflow CohortCNVCallingAndMergeForFabric {
       #### optional arguments for ExtractPoNFreqAnnotateFilterAndQC ####
       ##################################################################
       Array[String] filter_expressions = ['(GT=="alt" | GT=="mis") & ((FMT/CN>1 & QUAL<50) | (FMT/CN==1 & QUAL<100 ) | (FMT/CN==0 & QUAL<400))','(GT=="alt" | GT=="mis") & (INFO/PANEL_FREQ>0.02)']
-      Array[String]? filter_names = ['LowQual','PanelOverlap']
+      Array[String] filter_names = ['LowQual','PanelOverlap']
       Int? mem_gb_for_extract_pon_freq
       Int? disk_for_extract_pon_freq
       Float? overlap_thresh
@@ -80,7 +80,7 @@ workflow CohortCNVCallingAndMergeForFabric {
             input:
                 vcf = CNVGermlineCohortWorkflow.genotyped_segments_vcfs[i],
                 vcf_idx = CNVGermlineCohortWorkflow.genotyped_segments_vcf_indexes[i],
-                panel_vcfs = CNVGermlineCohortWorkflow.genotyped_segments_vcfs,
+                panel_vcfs = CNVGermlineCohortWorkflow.genotyped_segments_vcfs, #!NonemptyCoercion
                 intervals = CNVGermlineCohortWorkflow.preprocessed_intervals,
                 overlap_thresh = overlap_thresh,
                 filter_expressions = filter_expressions,
@@ -106,9 +106,9 @@ workflow CohortCNVCallingAndMergeForFabric {
             filtered_vcf = ExtractPoNFreqAnnotateFilterAndQC.filtered_vcf,
             case_copy_ratios = CNVGermlineCohortWorkflow.denoised_copy_ratios[i],
             case_read_counts = CNVGermlineCohortWorkflow.read_counts[i],
-            panel_copy_ratios = CNVGermlineCohortWorkflow.denoised_copy_ratios,
-            panel_read_counts = CNVGermlineCohortWorkflow.read_counts,
-            interval_lists = CNVGermlineCohortWorkflow.sharded_interval_lists
+            panel_copy_ratios = CNVGermlineCohortWorkflow.denoised_copy_ratios, #!NonemptyCoercion
+            panel_read_counts = CNVGermlineCohortWorkflow.read_counts, #!NonemptyCoercion
+            interval_lists = CNVGermlineCohortWorkflow.sharded_interval_lists #!NonemptyCoercion
         }
     }
 
