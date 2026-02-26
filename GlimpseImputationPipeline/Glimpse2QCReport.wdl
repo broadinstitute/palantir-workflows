@@ -9,7 +9,6 @@ workflow Glimpse2QCReport {
         File pca_loadings
         File onnx_model
         File coverage_metrics
-        File predicted_sex
     }
 
     call EstimateAncestry {
@@ -33,7 +32,6 @@ workflow Glimpse2QCReport {
             metrics = metrics,
             coverage_metrics = coverage_metrics,
             ancestries = EstimateAncestry.ancestries,
-            predicted_sex = predicted_sex,
             info_scores = ExtractInfoScores.info_scores
     }
 
@@ -162,7 +160,6 @@ task Glimpse2QCReport_t {
         File metrics
         File coverage_metrics
         File ancestries
-        File predicted_sex
         File info_scores
         Int mem_gb=16
     }
@@ -190,9 +187,8 @@ task Glimpse2QCReport_t {
         set.seed(42) # for reproducibility of sampling
         qc_metrics = read_tsv("~{metrics}", col_types = cols(sample_id=col_character()))
         ancestries = read_tsv("~{ancestries}", col_types = cols(sample=col_character()))
-        predicted_sex = read_tsv("~{predicted_sex}", col_types = cols(sample_id=col_character(), predicted_sex=col_character()))
 
-        qc_metrics = qc_metrics %>% inner_join(ancestries, by=c("sample_id"="sample")) %>% inner_join(predicted_sex)
+        qc_metrics = qc_metrics %>% inner_join(ancestries, by=c("sample_id"="sample"))
 
         ancestry_counts <- ancestries %>% group_by(ancestry) %>% count() %>% arrange(-n)
 
@@ -303,8 +299,8 @@ task Glimpse2QCReport_t {
 
         ### Number of Heterozygous Genotypes
         \`\`\`{r n_het, echo=FALSE, message=FALSE, warning=FALSE}
-        ggplot(qc_metrics %>% filter(predicted_sex %in% c("F","M")), aes(x=n_het, fill=ancestry)) +
-        geom_histogram() + theme_bw() + facet_grid(~predicted_sex) +
+        ggplot(qc_metrics, aes(x=n_het, fill=ancestry)) +
+        geom_histogram() + theme_bw() +
         xlab("Number of Heterozygous Genotypes") +
         scale_x_continuous(labels=comma) +
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -313,8 +309,8 @@ task Glimpse2QCReport_t {
 
         ### Number of Homozygous Variant Genotypes
         \`\`\`{r n_hom_var, echo=FALSE, message=FALSE, warning=FALSE}
-        ggplot(qc_metrics %>% filter(predicted_sex %in% c("F","M")), aes(x=n_hom_var, fill=ancestry)) +
-        geom_histogram() + theme_bw() + facet_grid(~predicted_sex)  +
+        ggplot(qc_metrics, aes(x=n_hom_var, fill=ancestry)) +
+        geom_histogram() + theme_bw() +
         xlab("Number of Homozygous Variant Genotypes") +
         scale_x_continuous(labels=comma) +
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -322,8 +318,8 @@ task Glimpse2QCReport_t {
 
         ### Ratio of Heterozygous to Homozygous Variant Genotypes
         \`\`\`{r r_het_hom_var, echo=FALSE, message=FALSE, warning=FALSE}
-        ggplot(qc_metrics %>% filter(predicted_sex %in% c("F","M")), aes(x=r_het_hom_var, fill=ancestry)) +
-        geom_histogram() + theme_bw() + facet_grid(~predicted_sex) +
+        ggplot(qc_metrics, aes(x=r_het_hom_var, fill=ancestry)) +
+        geom_histogram() + theme_bw() +
         xlab("Ratio of Heterozygous to Homozygous Variant Genotypes") +
         scale_x_continuous(labels=comma)
         \`\`\`
