@@ -66,7 +66,7 @@ task ReferenceFreeAnalysis {
         String docker = "us.gcr.io/broad-dsde-methods/kockan/gffcompare@sha256:b7208e67cb52ef41f0b9f9182414b8f12617a079546bbc2a4dbd826590ec63d2"
     }
 
-    String base = select_first([basename(inputGTF, ".gtf"), basename(inputGTF, ".gff")])
+    String base = basename(basename(inputGTF, ".gtf"), ".gff")
 
     command <<<
         gffcompare -r ~{expressedGTF} -o ~{base}.reffree ~{inputGTF}

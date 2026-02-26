@@ -88,7 +88,7 @@ workflow BenchmarkVCFs {
                 interval_labels=["Evaluation"]
         }
 
-        File converted_evaluation_bed = select_first(ConvertEvalIntervals.bed_files)
+        File converted_evaluation_bed = ConvertEvalIntervals.bed_files[0]
     }
 
     call IntervalList2Bed.IntervalList2Bed as ConvertIntervals {
@@ -111,7 +111,7 @@ workflow BenchmarkVCFs {
     }
 
     if (check_fingerprint) {
-        call Fingerprint.MatchFingerprints as CheckFingerprint {
+        call Fingerprint.MatchFingerprints as CheckFingerprint { #!UnusedCall
             input:
                 input_files=[query_vcf],
                 input_indices=[query_vcf_index],
@@ -143,14 +143,14 @@ workflow BenchmarkVCFs {
             preemptible=preemptible
     }
 
-    scatter (genotype_selector in genotype_selector_list) {
+    scatter (genotype_selector_a in genotype_selector_list) {
         call BCFToolsStats as AllRegionsStats {
             input:
                 combined_vcfeval_output=StandardVCFEval.combined_output,
                 combined_vcfeval_output_index=StandardVCFEval.combined_output_index,
                 stratifier_label="AllRegions",
-                bcf_genotype=genotype_selector.bcf_genotype,
-                bcf_genotype_label=genotype_selector.bcf_genotype_label,
+                bcf_genotype=genotype_selector_a.bcf_genotype,
+                bcf_genotype_label=genotype_selector_a.bcf_genotype_label,
                 query_output_sample_name=query_output_sample_name,
                 base_output_sample_name=base_output_sample_name
         }
@@ -175,9 +175,9 @@ workflow BenchmarkVCFs {
     call CombineSummaries {
         input:
             ROC_summaries=StandardVCFEval.ROC_summaries,
-            SN_summaries=select_all(flatten([AllRegionsStats.full_sn, SubsetStats.full_sn])),
-            IDD_summaries=select_all(flatten([AllRegionsStats.full_idd, SubsetStats.full_idd])),
-            ST_summaries=select_all(flatten([AllRegionsStats.full_st, SubsetStats.full_st])),
+            SN_summaries=flatten([AllRegionsStats.full_sn, SubsetStats.full_sn]),
+            IDD_summaries=flatten([AllRegionsStats.full_idd, SubsetStats.full_idd]),
+            ST_summaries=flatten([AllRegionsStats.full_st, SubsetStats.full_st]),
             experiment=experiment,
             extra_column_names=extra_column_names,
             extra_column_values=extra_column_values
@@ -186,10 +186,10 @@ workflow BenchmarkVCFs {
     if (create_igv_session) {
         call IGV.CreateIGVSession as IGVSession {
             input:
-            bams=optional_igv_bams,
-            vcfs=[StandardVCFEval.combined_output],
-            interval_files=stratifier_intervals,
-            reference=ref_fasta,
+            bams=optional_igv_bams, #!StringCoercion
+            vcfs=[StandardVCFEval.combined_output], #!StringCoercion
+            interval_files=stratifier_intervals, #!StringCoercion
+            reference=ref_fasta, #!StringCoercion
             output_name=igv_session_name
         }
     }
@@ -239,9 +239,6 @@ task VCFEval {
         Boolean require_matching_genotypes
         Boolean enable_ref_overlap
 
-        # Experiment label for ROCs
-        String? experiment
-
         # Runtime params
         Int? preemptible
         RuntimeAttributes runtimeAttributes = {"disk_size": ceil(2 * size(query_vcf, "GB") + 2 * size(base_vcf, "GB") + size(reference.fasta, "GB")) + 50,
@@ -273,6 +270,7 @@ task VCFEval {
         if [ -z ~{par_bed} ];
         then
             rtg format -o rtg_ref ~{reference.fasta}
+            #shellcheck disable=SC2086
             rtg vcfeval \
                 ~{false="--all-records" true="" passing_only} \
                 ~{false="--squash-ploidy" true="" require_matching_genotypes} \
@@ -315,7 +313,7 @@ task VCFEval {
                 --output-mode combine \
                 --decompose \
                 --roc-subset snp,indel \
-                $ROC_REGIONS_FLAGS \
+                "$ROC_REGIONS_FLAGS" \
                 --roc-cross-join \
                 --XXcom.rtg.vcf.eval.roc-subset-rescale true \
                 -t rtg_ref \
@@ -334,7 +332,7 @@ task VCFEval {
                 --output-mode combine \
                 --decompose \
                 --roc-subset snp,indel \
-                $ROC_REGIONS_FLAGS \
+                "$ROC_REGIONS_FLAGS" \
                 --XXcom.rtg.vcf.eval.roc-subset-rescale true \
                 --roc-cross-join \
                 -t rtg_ref \

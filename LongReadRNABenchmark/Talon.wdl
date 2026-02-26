@@ -14,7 +14,7 @@ task TalonTask {
         Int memoryGB = 256
         Int diskSizeGB = 500
         String docker = "us.gcr.io/broad-dsde-methods/kockan/talon@sha256:7b9d92e0fa6e3f83c164a51c2eab9382e80ae963c61ec686ed462d8634bf8009"
-        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh" #!FileCoercion
     }
 
     String talonPrefix = "Talon_out_~{datasetName}"

@@ -50,7 +50,6 @@ workflow FindSamplesAndBenchmark {
         # Fingerprint arguments
         File haplotype_map
         Boolean check_all_file_pairs = true
-        Boolean fail_on_mismatch = false
         Boolean check_only_matching_sample_names = false
         String crosscheck_by = "FILE"    # Or: READGROUP, LIBRARY, SAMPLE
         Float lod_threshold = -5
@@ -72,7 +71,7 @@ workflow FindSamplesAndBenchmark {
     }
 
     scatter(paired_data in cross(base_vcf_data, query_vcf_data)) {
-        call MatchFingerprints.MatchFingerprints as MatchFingerprints {
+        call MatchFingerprints.MatchFingerprints as MatchFingerprints { #!NameCollision
             input:
                 input_files=[paired_data.right.vcf],
                 input_indices=[paired_data.right.index],
@@ -81,7 +80,6 @@ workflow FindSamplesAndBenchmark {
                 second_input_extra_files=[paired_data.left.eval_intervals],
                 haplotype_map=haplotype_map,
                 check_all_file_pairs=check_all_file_pairs,
-                fail_on_mismatch=fail_on_mismatch,
                 check_only_matching_sample_names=check_only_matching_sample_names,
                 crosscheck_by=crosscheck_by,
                 lod_threshold=lod_threshold
@@ -89,9 +87,9 @@ workflow FindSamplesAndBenchmark {
     }
 
     # If the two files had a fingerprint match, run Benchmark over the matching sample name pairs
-    scatter(matched_files in flatten(MatchFingerprints.all_matched_pairs_and_samples)) {
+    scatter(matched_files in flatten(MatchFingerprints.all_matched_pairs_and_samples)) { 
         scatter(matched_sample_pair in matched_files.right) {
-            call BenchmarkVCFs.BenchmarkVCFs as BenchmarkVCFs {
+            call BenchmarkVCFs.BenchmarkVCFs as BenchmarkVCFs { #!NameCollision
                 input:
                     base_vcf=matched_files.left.right.main_file,
                     base_vcf_index=matched_files.left.right.index_file,
@@ -113,8 +111,6 @@ workflow FindSamplesAndBenchmark {
                     passing_only=passing_only,
                     require_matching_genotypes=require_matching_genotypes,
                     enable_ref_overlap=enable_ref_overlap,
-                    check_fingerprint=false,
-                    haplotype_map=haplotype_map,
                     create_igv_session=create_igv_sessions,
                     igv_session_name=igv_session_name,
                     preemptible=preemptible
@@ -124,7 +120,7 @@ workflow FindSamplesAndBenchmark {
 
     call CombineTables.CombineTables as CombineBenchmarkSummaries {
         input:
-            tables=select_all(flatten(BenchmarkVCFs.SimpleSummary)),
+            tables=flatten(BenchmarkVCFs.SimpleSummary),
             extra_column_names=extra_column_names,
             extra_column_values=extra_column_values,
             output_name="SimpleSummary"
@@ -132,7 +128,7 @@ workflow FindSamplesAndBenchmark {
 
     call CombineTables.CombineTables as CombineSnpStats {
         input:
-            tables=select_all(flatten(BenchmarkVCFs.SNPSubstitutionStats)),
+            tables=flatten(BenchmarkVCFs.SNPSubstitutionStats),
             extra_column_names=extra_column_names,
             extra_column_values=extra_column_values,
             output_name="SNPSubstitutionStats"
@@ -140,7 +136,7 @@ workflow FindSamplesAndBenchmark {
 
     call CombineTables.CombineTables as CombineIndelStats {
         input:
-            tables=select_all(flatten(BenchmarkVCFs.IndelDistributionStats)),
+            tables=flatten(BenchmarkVCFs.IndelDistributionStats),
             extra_column_names=extra_column_names,
             extra_column_values=extra_column_values,
             output_name="IndelDistributionStats"
@@ -148,7 +144,7 @@ workflow FindSamplesAndBenchmark {
 
     call CombineTables.CombineTables as CombineRocStats {
         input:
-            tables=select_all(flatten(BenchmarkVCFs.ROCStats)),
+            tables=flatten(BenchmarkVCFs.ROCStats),
             extra_column_names=extra_column_names,
             extra_column_values=extra_column_values,
             output_name="ROCStats"

@@ -240,12 +240,14 @@ task CollectCounts {
         (if format_ == "TSV_GZ" then true else false))
     String counts_filename = "~{base_filename}.~{counts_filename_extension}"
     String counts_filename_for_collect_read_counts = basename(counts_filename, ".gz")
+    String counts_index_filename = "~{base_filename}.~{counts_index_filename_extension}"
 
     command <<<
         set -eu
         export GATK_LOCAL_JAR=~{default="/root/gatk.jar" gatk4_jar_override}
 
-        case ~{format_} in
+        format="~{format_}"
+        case "$format" in
             HDF5 | TSV | TSV_GZ)
                 ;;
             *)
@@ -296,6 +298,7 @@ task CollectCounts {
     output {
         String entity_id = base_filename
         File counts = counts_filename
+        File? counts_index = counts_index_filename
     }
 }
 
@@ -405,8 +408,8 @@ task ScatterIntervals {
         # IntervalListTools tries to equally divide intervals across shards to give at least INTERVAL_COUNT in each and
         # puts remainder intervals in the last shard, so integer division gives the number of shards
         # (unless NUM_INTERVALS < num_intervals_per_scatter and NUM_SCATTERS = 0, in which case we still want a single shard)
-        NUM_INTERVALS=$(grep -v '@' ~{interval_list} | wc -l)
-        NUM_SCATTERS=$(echo $((NUM_INTERVALS / ~{num_intervals_per_scatter})))
+        NUM_INTERVALS=$(grep -vc '@' ~{interval_list})
+        NUM_SCATTERS=$((NUM_INTERVALS / ~{num_intervals_per_scatter}))
 
         if [ $NUM_SCATTERS -le 1 ]; then
             # if only a single shard is required, then we can just rename the original interval list
@@ -421,9 +424,9 @@ task ScatterIntervals {
 
             # output files are named output_dir_/temp_0001_of_N/scattered.interval_list, etc. (N = number of scatters);
             # we rename them as output_dir_/base_filename.scattered.0001.interval_list, etc.
-            ls -v ~{output_dir_}/*/scattered.interval_list | \
+            find ~{output_dir_} -type f -name "scattered.interval_list" | sort | \
                 cat -n | \
-                while read n filename; do mv $filename ~{output_dir_}/~{base_filename}.scattered.$(printf "%04d" $n).interval_list; done
+                while read -r n filename; do mv "$filename" "~{output_dir_}/~{base_filename}.scattered.$(printf "%04d" "$n").interval_list"; done
             rm -rf ~{output_dir_}/temp_*_of_*
         fi
     >>>
@@ -498,24 +501,24 @@ task PostprocessGermlineCNVCalls {
         gcnvkernel_version_array=(~{sep=" " gcnvkernel_version})
         sharded_interval_lists_array=(~{sep=" " sharded_interval_lists})
         calls_args=""
-        for index in ${!gcnv_calls_tar_array[@]}; do
+        for index in "${!gcnv_calls_tar_array[@]}"; do
             gcnv_calls_tar=${gcnv_calls_tar_array[$index]}
-            mkdir -p CALLS_$index/SAMPLE_~{sample_index}
-            tar xzf $gcnv_calls_tar -C CALLS_$index/SAMPLE_~{sample_index}
-            cp ${calling_configs_array[$index]} CALLS_$index/
-            cp ${denoising_configs_array[$index]} CALLS_$index/
-            cp ${gcnvkernel_version_array[$index]} CALLS_$index/
-            cp ${sharded_interval_lists_array[$index]} CALLS_$index/
+            mkdir -p "CALLS_$index/SAMPLE_~{sample_index}"
+            tar xzf "$gcnv_calls_tar" -C "CALLS_$index/SAMPLE_~{sample_index}"
+            cp "${calling_configs_array[$index]}" "CALLS_$index/"
+            cp "${denoising_configs_array[$index]}" "CALLS_$index/"
+            cp "${gcnvkernel_version_array[$index]}" "CALLS_$index/"
+            cp "${sharded_interval_lists_array[$index]}" "CALLS_$index/"
             calls_args="$calls_args --calls-shard-path CALLS_$index"
         done
 
         # untar models to MODEL_0, MODEL_1, etc directories and build the command line
         gcnv_model_tar_array=(~{sep=" " gcnv_model_tars})
         model_args=""
-        for index in ${!gcnv_model_tar_array[@]}; do
-            gcnv_model_tar=${gcnv_model_tar_array[$index]}
-            mkdir MODEL_$index
-            tar xzf $gcnv_model_tar -C MODEL_$index
+        for index in "${!gcnv_model_tar_array[@]}"; do
+            gcnv_model_tar="${gcnv_model_tar_array[$index]}"
+            mkdir "MODEL_$index"
+            tar xzf "$gcnv_model_tar" -C "MODEL_$index"
             model_args="$model_args --model-shard-path MODEL_$index"
         done
 
@@ -523,8 +526,8 @@ task PostprocessGermlineCNVCalls {
         tar xzf ~{contig_ploidy_calls_tar} -C contig-ploidy-calls
 
         gatk --java-options "-Xmx~{command_mem_mb}m" PostprocessGermlineCNVCalls \
-            $calls_args \
-            $model_args \
+            "$calls_args" \
+            "$model_args" \
             ~{sep=" " allosomal_contigs_args} \
             --autosomal-ref-copy-number ~{ref_copy_number_autosomal_contigs} \
             --contig-ploidy-calls contig-ploidy-calls \
@@ -538,10 +541,10 @@ task PostprocessGermlineCNVCalls {
 
         #use wc instead of grep -c so zero count isn't non-zero exit
         #use grep -P to recognize tab character
-        NUM_SEGMENTS=$(zgrep '^[^#]' ~{genotyped_segments_vcf_filename} | grep -v '0/0' | grep -v -P '\t0:1:' | grep '' | wc -l)
-        NUM_PASS_SEGMENTS=$(zgrep '^[^#]' ~{genotyped_segments_vcf_filename} | grep -v '0/0' | grep -v -P '\t0:1:' | grep 'PASS' | wc -l)
-        if [ $NUM_SEGMENTS -lt ~{maximum_number_events} ]; then
-            if [ $NUM_PASS_SEGMENTS -lt ~{maximum_number_pass_events} ]; then
+        NUM_SEGMENTS=$(zgrep '^[^#]' ~{genotyped_segments_vcf_filename} | grep -v '0/0' | grep -v -P '\t0:1:' | grep -c '')
+        NUM_PASS_SEGMENTS=$(zgrep '^[^#]' ~{genotyped_segments_vcf_filename} | grep -v '0/0' | grep -v -P '\t0:1:' | grep -c 'PASS')
+        if [ "$NUM_SEGMENTS" -lt ~{maximum_number_events} ]; then
+            if [ "$NUM_PASS_SEGMENTS" -lt ~{maximum_number_pass_events} ]; then
               echo "PASS" >> ~{qc_status_filename}
             else
               echo "EXCESSIVE_NUMBER_OF_PASS_EVENTS" >> ~{qc_status_filename}
@@ -594,15 +597,15 @@ task CollectModelQualityMetrics {
         qc_status="PASS"
 
         gcnv_model_tar_array=(~{sep=" " gcnv_model_tars})
-        for index in ${!gcnv_model_tar_array[@]}; do
+        for index in "${!gcnv_model_tar_array[@]}"; do
             gcnv_model_tar=${gcnv_model_tar_array[$index]}
-            mkdir MODEL_$index
-            tar xzf $gcnv_model_tar -C MODEL_$index
-            ard_file=MODEL_$index/mu_ard_u_log__.tsv
+            mkdir MODEL_"$index"
+            tar xzf "$gcnv_model_tar" -C MODEL_"$index"
+            ard_file=MODEL_"$index"/mu_ard_u_log__.tsv
 
             #check whether all values for ARD components are negative
-            NUM_POSITIVE_VALUES=$(awk '{ if (index($0, "@") == 0) {if ($1 > 0.0) {print $1} }}' MODEL_$index/mu_ard_u_log__.tsv | wc -l)
-            if [ $NUM_POSITIVE_VALUES -eq 0 ]; then
+            NUM_POSITIVE_VALUES=$(awk '{ if (index($0, "@") == 0) {if ($1 > 0.0) {print $1} }}' "$ard_file" | wc -l)
+            if [ "$NUM_POSITIVE_VALUES" -eq 0 ]; then
                 qc_status="ALL_PRINCIPAL_COMPONENTS_USED"
                 break
             fi
@@ -686,7 +689,6 @@ task ScatterPloidyCallsBySample {
     }
 
     Int num_samples = length(samples)
-    String out_dir = "calls_renamed"
 
     command <<<
       set -eu
@@ -703,7 +705,7 @@ task ScatterPloidyCallsBySample {
       do
         sample_id=${sample_ids[$i]}
         padded_sample_index=$(printf "%0${num_digits}d" $i)
-        tar -czf sample_${padded_sample_index}.${sample_id}.contig_ploidy_calls.tar.gz -C calls/SAMPLE_${i} .
+        tar -czf "sample_${padded_sample_index}.${sample_id}.contig_ploidy_calls.tar.gz" -C "calls/SAMPLE_${i}" .
       done
     >>>
 

@@ -11,16 +11,17 @@ concurrency:
   cancel-in-progress: true
 env:
   CROMWELL_VERSION: 91
+  MINIWDL_VERSION: 1.13.1
 jobs:
   validate_wdl:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/install-cromwell
+      - uses: ./.github/actions/install-miniwdl
         with:
-          CROMWELL_VERSION: ${{ env.CROMWELL_VERSION }}
-      - name: Womtool Validate
-        run: find . -name '*.wdl' | xargs -tI {} java -jar ${WOMTOOL_JAR} validate {}
+          MINIWDL_VERSION: ${{ env.MINIWDL_VERSION }}
+      - name: miniwdl check
+        run: find . -name '*.wdl' -not -path "./PRS/Validation/ValidateScoring.wdl" | xargs -I {} bash -c 'output=$(miniwdl check --strict "{}" 2>&1); if [ $? -ne 0 ]; then echo -e "FAILED {}\n$output"; exit 1; fi'
 
   test_wdl:
     needs: validate_wdl

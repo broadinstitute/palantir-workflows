@@ -60,12 +60,13 @@ workflow BenchmarkAndCompareVCFs {
                 score_field=score_field,
                 experiment=experiment,
                 extra_column_names=extra_column_names,
-                extra_column_values=extra_column_values
+                extra_column_values=extra_column_values,
+                evaluation_intervals=evaluation_intervals[i]
 
         }
     }
 
-    call CompareBenchmarks.CompareBenchmarks as CompareBenchmarks {
+    call CompareBenchmarks.CompareBenchmarks as CompareBenchmarks { #!NameCollision
         input:
             benchmark_summaries = Benchmark.SimpleSummary,
             sample_ids = sample_ids,

@@ -32,8 +32,8 @@ workflow CNVGermlineCohortWorkflow {
       ##################################
       File intervals
       File? blacklist_intervals
-      Array[String]+ normal_bams
-      Array[String]+ normal_bais
+      Array[File]+ normal_bams
+      Array[File]+ normal_bais
       String cohort_entity_id
       File contig_ploidy_priors
       Int num_intervals_per_scatter
@@ -115,6 +115,7 @@ workflow CNVGermlineCohortWorkflow {
       Int? gcnv_max_copy_number
       Int? mem_gb_for_germline_cnv_caller
       Int? cpu_for_germline_cnv_caller
+      Int? disk_for_germline_cnv_caller
 
       # optional arguments for germline CNV denoising model
       Int? gcnv_max_bias_factors
@@ -167,7 +168,7 @@ workflow CNVGermlineCohortWorkflow {
       Int maximum_number_pass_events_per_sample
     }
 
-    Array[Pair[String, String]] normal_bams_and_bais = zip(normal_bams, normal_bais)
+    Array[Pair[File, File]] normal_bams_and_bais = zip(normal_bams, normal_bais)
 
     call CNVTasks.PreprocessIntervals {
         input:
@@ -283,6 +284,7 @@ workflow CNVGermlineCohortWorkflow {
                 gatk_docker = gatk_docker,
                 mem_gb = mem_gb_for_germline_cnv_caller,
                 cpu = cpu_for_germline_cnv_caller,
+                disk_space_gb = disk_for_germline_cnv_caller,
                 p_alt = gcnv_p_alt,
                 p_active = gcnv_p_active,
                 cnv_coherence_length = gcnv_cnv_coherence_length,
@@ -344,7 +346,9 @@ workflow CNVGermlineCohortWorkflow {
                 maximum_number_pass_events = maximum_number_pass_events_per_sample,
                 gatk4_jar_override = gatk4_jar_override,
                 gatk_docker = gatk_docker,
-                preemptible_attempts = preemptible_attempts
+                preemptible_attempts = preemptible_attempts,
+                mem_gb = mem_gb_for_postprocess_germline_cnv_calls,
+                disk_space_gb = disk_space_gb_for_postprocess_germline_cnv_calls
         }
     }
 
@@ -365,44 +369,44 @@ workflow CNVGermlineCohortWorkflow {
 
     call WritePathList as WritePloidyCalls {
     	input:
-        	file_paths = [DetermineGermlineContigPloidyCohortMode.contig_ploidy_calls_tar],
+        	file_paths = [DetermineGermlineContigPloidyCohortMode.contig_ploidy_calls_tar], #!StringCoercion
             outfile = "contig_ploidy_calls_tar.paths.list"
     }
 
     call WritePathMatrix as WriteGCNVCalls {
     	input:
-            path_matrix = GermlineCNVCallerCohortMode.gcnv_call_tars,
+            path_matrix = GermlineCNVCallerCohortMode.gcnv_call_tars, #!StringCoercion
             outfile = "gcnv_call_tars.paths.list"
     }
 
     call WritePathList as WriteSegments {
     	input:
-        	file_paths = PostprocessGermlineCNVCalls.genotyped_segments_vcf,
+        	file_paths = PostprocessGermlineCNVCalls.genotyped_segments_vcf, #!StringCoercion
             outfile = "genotyped_segments_vcf.paths.list"
     }
 
     call WritePathList as WriteSegmentIndexes {
     	input:
-        	file_paths = PostprocessGermlineCNVCalls.genotyped_segments_vcf_index,
+        	file_paths = PostprocessGermlineCNVCalls.genotyped_segments_vcf_index, #!StringCoercion
             outfile = "genotyped_segments_vcf_index.paths.list"
     }
 
     call WritePathList as WriteIntervals {
     	input:
-        	file_paths = PostprocessGermlineCNVCalls.genotyped_intervals_vcf,
+        	file_paths = PostprocessGermlineCNVCalls.genotyped_intervals_vcf, #!StringCoercion
             outfile = "genotyped_intervals_vcf.paths.list"
     }
 
     call WritePathList as WriteIntervalIndexes {
     	input:
-        	file_paths = PostprocessGermlineCNVCalls.genotyped_intervals_vcf_index,
+        	file_paths = PostprocessGermlineCNVCalls.genotyped_intervals_vcf_index, #!StringCoercion
             outfile = "genotyped_intervals_vcf_index.paths.list"
     }
 
 
     output {
         File preprocessed_intervals = PreprocessIntervals.preprocessed_intervals
-        Array[File] read_counts_entity_ids = CollectCounts.entity_id
+        Array[File] read_counts_entity_ids = CollectCounts.entity_id #!FileCoercion
         Array[File] read_counts = CollectCounts.counts
         File? annotated_intervals = AnnotateIntervals.annotated_intervals
         File filtered_intervals = FilterIntervals.filtered_intervals
@@ -576,7 +580,6 @@ task GermlineCNVCallerCohortMode {
     String output_dir_ = select_first([output_dir, "out"])
     Int num_samples = length(read_count_files)
 
-    String dollar = "$" #WDL workaround, see https://github.com/broadinstitute/cromwell/issues/1819
 
     command <<<
         set -eu
@@ -643,8 +646,8 @@ task GermlineCNVCallerCohortMode {
         NUM_DIGITS=${#NUM_SAMPLES}
         while [ $CURRENT_SAMPLE -lt $NUM_SAMPLES ]; do
             CURRENT_SAMPLE_WITH_LEADING_ZEROS=$(printf "%0${NUM_DIGITS}d" $CURRENT_SAMPLE)
-            tar czf ~{cohort_entity_id}-gcnv-calls-shard-~{scatter_index}-sample-$CURRENT_SAMPLE_WITH_LEADING_ZEROS.tar.gz -C ~{output_dir_}/~{cohort_entity_id}-calls/SAMPLE_$CURRENT_SAMPLE .
-            let CURRENT_SAMPLE=CURRENT_SAMPLE+1
+            tar czf "~{cohort_entity_id}-gcnv-calls-shard-~{scatter_index}-sample-$CURRENT_SAMPLE_WITH_LEADING_ZEROS.tar.gz" -C ~{output_dir_}/~{cohort_entity_id}-calls/SAMPLE_$CURRENT_SAMPLE .
+            (( CURRENT_SAMPLE=CURRENT_SAMPLE+1 ))
         done
 
         rm -rf contig-ploidy-calls
@@ -699,7 +702,7 @@ task WritePathList {
       docker: docker
       memory: machine_mem_gb + " GB"
       disks: "local-disk " + disk_space_gb + " HDD"
-      preemptible: 3
+      preemptible: preemptible_attempts
     }
 
     output {
@@ -727,7 +730,7 @@ task WritePathMatrix {
       docker: docker
       memory: machine_mem_gb + " GB"
       disks: "local-disk " + disk_space_gb + " HDD"
-      preemptible: 3
+      preemptible: preemptible_attempts
     }
 
     output {

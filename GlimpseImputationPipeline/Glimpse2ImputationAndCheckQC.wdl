@@ -42,7 +42,7 @@ workflow Glimpse2ImputationAndCheckQC {
         Int? glimpse_phase_mem_gb
     }
 
-    call Glimpse2Imputation.Glimpse2Imputation {
+    call Glimpse2Imputation.Glimpse2Imputation as RunGlimpse2Imputation {
         input:
             reference_chunks = reference_chunks,
             input_vcf = input_vcf,
@@ -69,9 +69,9 @@ workflow Glimpse2ImputationAndCheckQC {
             mem_gb_phase = glimpse_phase_mem_gb
     }
 
-    call Glimpse2CheckQC.Glimpse2CheckQC {
+    call Glimpse2CheckQC.Glimpse2CheckQC as RunGlimpse2CheckQC {
         input:
-            qc_metrics = Glimpse2Imputation.qc_metrics,
+            qc_metrics = RunGlimpse2Imputation.qc_metrics,
             qc_metrics_thresholds = qc_metrics_thresholds,
             output_basename = output_basename,
             preemptible = check_qc_preemptible,
@@ -81,14 +81,14 @@ workflow Glimpse2ImputationAndCheckQC {
     }
 
     output {
-        File imputed_vcf = Glimpse2Imputation.imputed_vcf
-        File imputed_vcf_index = Glimpse2Imputation.imputed_vcf_index
-        File imputed_vcf_md5sum = Glimpse2Imputation.imputed_vcf_md5sum
+        File imputed_vcf = RunGlimpse2Imputation.imputed_vcf
+        File imputed_vcf_index = RunGlimpse2Imputation.imputed_vcf_index
+        File imputed_vcf_md5sum = RunGlimpse2Imputation.imputed_vcf_md5sum
         
-        File qc_metrics = Glimpse2Imputation.qc_metrics
-        File coverage_metrics = Glimpse2Imputation.coverage_metrics
+        File qc_metrics = RunGlimpse2Imputation.qc_metrics
+        File coverage_metrics = RunGlimpse2Imputation.coverage_metrics
 
-        Boolean qc_passed = Glimpse2CheckQC.qc_passed
-        File qc_failures = Glimpse2CheckQC.qc_failures
+        Boolean qc_passed = RunGlimpse2CheckQC.qc_passed
+        File qc_failures = RunGlimpse2CheckQC.qc_failures
     }
 }

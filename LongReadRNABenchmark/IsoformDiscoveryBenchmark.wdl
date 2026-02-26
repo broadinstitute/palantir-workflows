@@ -19,7 +19,6 @@ workflow LongReadRNABenchmark {
         File referenceAnnotation
         File expressedGTF
         File expressedKeptGTF
-        File excludedGTF
         String datasetName
         String dataType
     }
@@ -65,8 +64,7 @@ workflow LongReadRNABenchmark {
             referenceGenome = referenceGenome,
             referenceGenomeIndex = referenceGenomeIndex,
             referenceAnnotation = referenceAnnotation,
-            datasetName = datasetName,
-            dataType = dataType
+            datasetName = datasetName
     }
 
     call FlairWorkflow.Flair as Flair {
@@ -105,8 +103,7 @@ workflow LongReadRNABenchmark {
             inputBAMIndex = inputBAMIndex,
             referenceGenome = referenceGenome,
             referenceGenomeIndex = referenceGenomeIndex,
-            referenceAnnotation = referenceAnnotation,
-            datasetName = datasetName
+            referenceAnnotation = referenceAnnotation
     }
 
     call CupcakeWorkflow.Cupcake as Cupcake {
@@ -140,36 +137,36 @@ workflow LongReadRNABenchmark {
     call IsoformDiscoveryBenchmarkTasks.GffCompareTrackDenovo {
         input:
             datasetName = datasetName,
-            toolGTFs = gtfListReduced,
+            toolGTFs = gtfListReduced, #!NonemptyCoercion
             expressedKeptGTF = expressedKeptGTF
     }
 
-    scatter(gtf in gtfListReferenceFree) {
+    scatter(gtfRefFree in gtfListReferenceFree) {
         call IsoformDiscoveryBenchmarkTasks.ReferenceFreeAnalysis {
             input:
-                inputGTF = gtf,
+                inputGTF = gtfRefFree,
                 expressedGTF = expressedGTF
         }
     }
 
     call IsoformDiscoveryBenchmarkTasks.SummarizeAnalysis {
         input:
-            trackingFiles = GffCompareTrack.tracking,
-            toolNames = toolNamesReduced,
+            trackingFiles = GffCompareTrack.tracking, #!NonemptyCoercion
+            toolNames = toolNamesReduced, #!NonemptyCoercion
             datasetName = datasetName
     }
 
     call IsoformDiscoveryBenchmarkTasks.SummarizeReferenceFreeAnalysis {
         input:
-            inputList = ReferenceFreeAnalysis.stats,
-            toolNames = toolNamesReferenceFree,
+            inputList = ReferenceFreeAnalysis.stats, #!NonemptyCoercion
+            toolNames = toolNamesReferenceFree, #!NonemptyCoercion
             datasetName = datasetName
     }
 
     call IsoformDiscoveryBenchmarkTasks.SummarizeDenovoAnalysis {
         input:
             trackingFile = GffCompareTrackDenovo.tracking,
-            toolNames = toolNamesReduced,
+            toolNames = toolNamesReduced, #!NonemptyCoercion
             datasetName = datasetName
     }
 

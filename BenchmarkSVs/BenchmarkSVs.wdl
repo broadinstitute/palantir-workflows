@@ -1,6 +1,6 @@
 version 1.0
 
-import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/Utilities/WDLs/CreateIGVSession.wdl" as IGV
+import "../Utilities/WDLs/CreateIGVSession.wdl" as IGV
 import "tasks.wdl" as SV_tasks
 
 struct RuntimeAttributes {
@@ -48,14 +48,12 @@ workflow BenchmarkSVs {
                 evaluation_pct=evaluation_pct
         }
 
-        if (defined(base_vcf)) {
-            call SV_tasks.SubsetEvaluation as SubsetBase {
-                input:
-                    input_vcf=select_first([base_vcf]),
-                    input_vcf_index=select_first([base_vcf_index]),
-                    evaluation_bed=select_first([evaluation_bed]),
-                    evaluation_pct=evaluation_pct
-            }
+        call SV_tasks.SubsetEvaluation as SubsetBase {
+            input:
+                input_vcf=base_vcf,
+                input_vcf_index=base_vcf_index,
+                evaluation_bed=select_first([evaluation_bed]),
+                evaluation_pct=evaluation_pct
         }
     }
 
@@ -154,10 +152,10 @@ workflow BenchmarkSVs {
     if (create_igv_session) {
         call IGV.CreateIGVSession as IGVSession {
             input:
-                bams=optional_igv_bams,
-                vcfs=[RunTruvari.tp_base, RunTruvari.tp_comp, RunTruvari.fp, RunTruvari.fn],
-                interval_files=bed_regions,
-                reference=ref_fasta
+                bams=optional_igv_bams, #!StringCoercion
+                vcfs=[RunTruvari.tp_base, RunTruvari.tp_comp, RunTruvari.fp, RunTruvari.fn], #!StringCoercion
+                interval_files=bed_regions, #!StringCoercion
+                reference=ref_fasta #!StringCoercion
         }
     }
 

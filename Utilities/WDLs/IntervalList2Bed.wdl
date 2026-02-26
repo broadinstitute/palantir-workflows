@@ -26,12 +26,12 @@ workflow IntervalList2Bed {
 
             if (basename(basename(p.right, BED_EXT), BED_EXT_COMP) != basename(p.right)) {
                 File bed_file_pair = p.right
-                File bed_label_pair = p.left
+                String bed_label_pair = p.left
             }
         }
 
         Array[File] new_interval_files_pair = flatten([select_all(bed_file_pair), select_all(ConvertPairs.bed_file)])
-        Array[File] new_interval_labels_pair = flatten([select_all(bed_label_pair), select_all(ConvertPairs.bed_label)])
+        Array[String] new_interval_labels_pair = flatten([select_all(bed_label_pair), select_all(ConvertPairs.bed_label)])
     }
 
     if (!defined(interval_labels)) {
@@ -51,7 +51,7 @@ workflow IntervalList2Bed {
         }
 
         Array[File] new_interval_files = flatten([select_all(bed_file), select_all(ConvertUnlabeled.bed_file)])
-        Array[File] new_interval_labels = flatten([select_all(bed_label), select_all(ConvertUnlabeled.bed_label)])
+        Array[String] new_interval_labels = flatten([select_all(bed_label), select_all(ConvertUnlabeled.bed_label)])
     }
 
 

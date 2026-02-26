@@ -46,11 +46,11 @@ workflow Glimpse2SplitReference {
 
         call GlimpseSplitReferenceTask {
             input:
-                reference_panel = reference_filename,
-                reference_panel_index = reference_filename + reference_panel_index_suffix,
+                reference_panel = reference_filename, #!FileCoercion
+                reference_panel_index = reference_filename + reference_panel_index_suffix, #!FileCoercion
                 contig = contig_region,
                 i_contig = i_contig,
-                genetic_map = genetic_map_filename,
+                genetic_map = genetic_map_filename, #!FileCoercion
                 seed = seed,
                 min_window_cm = min_window_cm,
                 uniform_number_variants = uniform_number_variants,
@@ -63,7 +63,7 @@ workflow Glimpse2SplitReference {
     if (defined(output_path)) {
         call ExportReferencePanel {
             input:
-                reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks),
+                reference_chunks = flatten(GlimpseSplitReferenceTask.split_reference_chunks), #!StringCoercion
                 output_path = select_first([output_path]),
                 output_panel_name = select_first([output_panel_name, "reference_panel"])
         }
@@ -110,11 +110,11 @@ task GlimpseSplitReferenceTask {
         CONTIGINDEX=$(printf "%04d" ~{i_contig})
 
         /bin/GLIMPSE2_chunk --input ~{reference_panel} --region ~{contig} --map ~{genetic_map} --sequential \
-            --threads ${NPROC} --output chunks_contigindex_${CONTIGINDEX}.txt \
+            --threads "${NPROC}" --output "chunks_contigindex_${CONTIGINDEX}.txt" \
             ~{"--seed "+seed} ~{"--window-cm "+min_window_cm} ~{uniform_number_variants_string}
 
-        if [ -f chunks_contigindex_${CONTIGINDEX}.txt_uniform ]; then
-            mv chunks_contigindex_${CONTIGINDEX}.txt_uniform chunks_contigindex_${CONTIGINDEX}.txt
+        if [ -f "chunks_contigindex_${CONTIGINDEX}.txt_uniform" ]; then
+            mv "chunks_contigindex_${CONTIGINDEX}.txt_uniform" "chunks_contigindex_${CONTIGINDEX}.txt"
         fi
 
         mkdir -p ~{reference_output_dir}
@@ -123,18 +123,17 @@ task GlimpseSplitReferenceTask {
         while IFS="" read -r LINE || [ -n "$LINE" ];
         do
             # Extract coordinates from chunks.txt file
-            printf -v ID "%02d" $(echo $LINE | cut -d" " -f1)
-            IRG=$(echo $LINE | cut -d" " -f3)
-            ORG=$(echo $LINE | cut -d" " -f4)
+            IRG=$(echo "$LINE" | cut -d" " -f3)
+            ORG=$(echo "$LINE" | cut -d" " -f4)
 
             # Print chunk index to variable
             CHUNKINDEX=$(printf "%04d" $I_CHUNK)
 
-            /bin/GLIMPSE2_split_reference --threads ${NPROC} --reference ~{reference_panel} --map ~{genetic_map} --input-region ${IRG} --output-region ${ORG} --output ~{reference_output_dir}/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX} ~{keep_monomorphic_ref_sites_string} ~{"--seed "+seed}
+            /bin/GLIMPSE2_split_reference --threads "${NPROC}" --reference ~{reference_panel} --map ~{genetic_map} --input-region "${IRG}" --output-region "${ORG}" --output "~{reference_output_dir}/reference_panel_contigindex_${CONTIGINDEX}_chunkindex_${CHUNKINDEX}" ~{keep_monomorphic_ref_sites_string} ~{"--seed "+seed}
 
             # Increase i (and make sure the exit code is zero)
             (( I_CHUNK++ )) || true
-        done < chunks_contigindex_${CONTIGINDEX}.txt
+        done < "chunks_contigindex_${CONTIGINDEX}.txt"
     >>>
 
     runtime {
@@ -167,19 +166,19 @@ task ExportReferencePanel {
 
     command <<<
         if [[ "~{output_path}" != gs://* ]]; then
-            echo "\nError: Output path must start with gs://\n"
+            printf "\nError: Output path must start with gs://\n"
             exit 1
         fi
 
         EXISTING_FILES=$(gcloud storage ls ~{output_path_no_trailing_slash}/chunks 2> /dev/null || true)
         if [[ -n "$EXISTING_FILES" ]]; then
-            echo "\nError: Directory ~{output_path_no_trailing_slash}/chunks is not empty. Please clear it before proceeding.\n"
+            printf "\nError: Directory ~{output_path_no_trailing_slash}/chunks is not empty. Please clear it before proceeding.\n"
             exit 1
         fi
 
         EXISTING_FILES=$(gcloud storage ls ~{output_path_no_trailing_slash}/~{output_panel_name}.txt 2> /dev/null || true)
         if [[ -n "$EXISTING_FILES" ]]; then
-            echo "\nError: File ~{output_path_no_trailing_slash}/~{output_panel_name}.txt already exists. Please delete it before proceeding.\n"
+            printf "\nError: File ~{output_path_no_trailing_slash}/~{output_panel_name}.txt already exists. Please delete it before proceeding.\n"
             exit 1
         fi
         

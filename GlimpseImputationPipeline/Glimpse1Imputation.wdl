@@ -26,14 +26,14 @@ workflow GlimpseImputation {
 
         call Glimpse {
             input:
-                reference_panel = reference_filename,
-                reference_panel_index = reference_filename + reference_panel_index_suffix,
+                reference_panel = reference_filename, #!FileCoercion
+                reference_panel_index = reference_filename + reference_panel_index_suffix, #!FileCoercion
                 contig_name = chunks_and_contig.right.right,
                 chunks = chunks_and_contig.left,
                 ref_dict = ref_dict,
                 input_vcf = input_vcf,
                 input_vcf_index = input_vcf_index,
-                genetic_map = genetic_map_filename,
+                genetic_map = genetic_map_filename, #!FileCoercion
                 mem_gb = mem_gb,
                 cpu = cpu,
                 preemptible = preemptible,
@@ -85,12 +85,12 @@ task Glimpse {
         
         while IFS="" read -r LINE || [ -n "$LINE" ];
         do
-            printf -v ID "%02d" $(echo $LINE | cut -d" " -f1)
-            IRG=$(echo $LINE | cut -d" " -f3)
-            ORG=$(echo $LINE | cut -d" " -f4)
-            PHASE_OUT=phased.chunk${ID}.vcf.gz
-            /glimpse/phase/bin/GLIMPSE_phase --input ~{input_vcf} --reference ~{reference_panel} --map ~{genetic_map} --input-region ${IRG} --output-region ${ORG} --output ${PHASE_OUT} --thread ~{cpu}
-            tabix ${PHASE_OUT}
+            printf -v ID "%02d" "$(echo "$LINE" | cut -d" " -f1)"
+            IRG="$(echo "$LINE" | cut -d" " -f3)"
+            ORG="$(echo "$LINE" | cut -d" " -f4)"
+            PHASE_OUT="phased.chunk${ID}.vcf.gz"
+            /glimpse/phase/bin/GLIMPSE_phase --input ~{input_vcf} --reference ~{reference_panel} --map ~{genetic_map} --input-region "${IRG}" --output-region "${ORG}" --output "${PHASE_OUT}" --thread ~{cpu}
+            tabix "${PHASE_OUT}"
         done < ~{chunks}
 
         LST=list.txt

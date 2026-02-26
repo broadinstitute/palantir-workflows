@@ -36,7 +36,7 @@ workflow Glimpse2Imputation {
         if (!defined(cpu_phase) || !defined(mem_gb_phase)) {
             call GetNumberOfSitesInChunk {
                 input:
-                    reference_chunk = reference_chunk,
+                    reference_chunk = reference_chunk, #!FileCoercion
                     docker = docker_extract_num_sites_from_reference_chunk
             }
 
@@ -68,7 +68,7 @@ workflow Glimpse2Imputation {
 
         call GlimpsePhase {
             input:
-                reference_chunk = reference_chunk,
+                reference_chunk = reference_chunk, #!FileCoercion
                 input_vcf = input_vcf,
                 input_vcf_index = input_vcf_index,
                 impute_reference_only_variants = impute_reference_only_variants,
@@ -161,14 +161,15 @@ task GlimpsePhase {
     command <<<
         set -euo pipefail
 
-        export GCS_OAUTH_TOKEN=$(/google-cloud-sdk/bin/gcloud auth application-default print-access-token)
+        GCS_OAUTH_TOKEN="$(/google-cloud-sdk/bin/gcloud auth application-default print-access-token)"
+        export GCS_OAUTH_TOKEN
 
         cram_paths=( ~{sep=" " crams} )
         cram_index_paths=( ~{sep=" " cram_indices} )
         sample_ids=( ~{sep=" " sample_ids} )
 
         duplicate_cram_filenames=$(printf "%s\n" "${cram_paths[@]}" | xargs -I {} basename {} | sort | uniq -d)
-        if [ ! -z "$duplicate_cram_filenames" ]; then
+        if [ -n "$duplicate_cram_filenames" ]; then
             echo "ERROR: The input CRAMs contain multiple files with the same basename, which leads to an error due to the way that htslib is implemented. Duplicate filenames:"
             printf "%s\n" "${duplicate_cram_filenames[@]}"
             exit 1
@@ -207,7 +208,7 @@ task GlimpsePhase {
         #We need to make sure that stderr is maintained since cromwell looks for oom strings
         #in stderr
 
-        eval $cmd 2> >(tee glimpse_stderr.log >&2) 
+        eval "$cmd" 2> >(tee glimpse_stderr.log >&2) 
 
         if grep -q "EOF marker is absent" glimpse_stderr.log; then 
             echo "An input file appears to be truncated.  This may be either a truly truncated file which needs to be fixed, or a networking error which can just be retried."
@@ -222,7 +223,7 @@ task GlimpsePhase {
         cpu: cpu
         preemptible: preemptible
         maxRetries: max_retries
-        checkpointFile: "checkpoint.bin"
+        checkpointFile: "checkpoint.bin" #!UnknownRuntimeKey
     }
 
     output {
@@ -253,7 +254,7 @@ task GlimpseLigate {
         NPROC=$(nproc)
         echo "nproc reported ${NPROC} CPUs, using that number as the threads argument for GLIMPSE."
         
-        /bin/GLIMPSE2_ligate --input ~{write_lines(imputed_chunks)} --output ligated.vcf.gz --threads ${NPROC}
+        /bin/GLIMPSE2_ligate --input ~{write_lines(imputed_chunks)} --output ligated.vcf.gz --threads "${NPROC}"
 
         # Set correct reference dictionary
         bcftools view -h --no-version ligated.vcf.gz > old_header.vcf        
@@ -445,7 +446,7 @@ task CombineCoverageMetrics
         cov_files=( ~{sep=" " cov_metrics} )
 
         for i in "${!cov_files[@]}"; do
-            if [ $i -eq 0 ]; then
+            if [ "$i" -eq 0 ]; then
                 n_skip=1
                 echo 'Chunk' > chunk_col.txt
             else
@@ -454,13 +455,13 @@ task CombineCoverageMetrics
             # glimpse coverage metrics are formatted to be human readable in a command line, not machine readable or consistent.  ie, number of tabs 
             # are variable between columns depending on length of sample names, odd things like that.  We want these to be machine readable tables, 
             # so need to fix this.
-            zcat ${cov_files[$i]} | tail -n +$((n_skip + 1)) | sed s/%//g | sed s/"No data"/"No data pct"/g | sed s/\\t\\t/\\t/g >> cov_file.txt
+            zcat "${cov_files[$i]}" | tail -n +$((n_skip + 1)) | sed s/%//g | sed s/"No data"/"No data pct"/g | sed s/\\t\\t/\\t/g >> cov_file.txt
             n_lines_cov=$(< cov_file.txt wc -l)
             n_lines_chunk=$(< chunk_col.txt wc -l)
             n_lines_out=$((n_lines_cov-n_lines_chunk))
             echo 'n_lines_out=' ${n_lines_out}
-            echo ${cov_files[$i]}
-            { yes ${i} || :; } | head -n ${n_lines_out} >> chunk_col.txt
+            echo "${cov_files[$i]}"
+            { yes "${i}" || :; } | head -n ${n_lines_out} >> chunk_col.txt
         done
 
         paste chunk_col.txt cov_file.txt > ~{output_basename}.coverage_metrics.txt

@@ -12,7 +12,7 @@ task IsoSeqTask {
         Int memoryGB = 256
         Int diskSizeGB = 500
         String docker = "us.gcr.io/broad-dsde-methods/kockan/isoseq3@sha256:e715dda61f295d6825c0f4bea5133d583158db5d63c550ff186ee59f1ff10385"
-        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+        File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh" #!FileCoercion
     }
 
     command <<<
