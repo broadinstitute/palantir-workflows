@@ -2,8 +2,23 @@
     "supersample_id": "ASAP_A",
     "broad_run_json": "broad_run.json",
     "fastq_list": "m1_fastq_list.csv",
-    "scrna_feature_barcode_reference": "guide_whitelist.csv",
-    "scrna_barcode_sequence_list": "barcode_whitelist.csv",
+    "scrna_feature_barcode_reference": "potc_guides_20251110.csv",
+    "scrna_barcode_sequence_list": "",
+    "scrna_feature_barcode_groups":
+    {
+        "sublibrary1":
+        [
+            "RGID1",
+            "RGID2",
+            "RGID3"
+        ],
+        "sublibrary2":
+        [
+            "RGID4",
+            "RGID5",
+            "RGID6"
+        ]
+    },
     "num_input_cells": 2088000,
     "min_valid_guides": 1,
     "max_valid_guides": 2
