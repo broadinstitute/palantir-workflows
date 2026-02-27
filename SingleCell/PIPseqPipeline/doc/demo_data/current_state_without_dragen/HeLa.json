@@ -4,5 +4,7 @@
     "supersample_id": "HeLa",
     "supersample_basename": "HeLa",
     "outdir": "results",
-    "run_guide_assignment": false
+    "run_guide_assignment": false,
+    "min_valid_guides": 1,
+    "max_valid_guides": 2
 }
