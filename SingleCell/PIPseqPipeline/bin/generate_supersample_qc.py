@@ -208,8 +208,8 @@ def main():
             if (args.min_valid_guides is None or args.max_valid_guides is None):
                 raise ValueError("Both --min-valid-guides and --max-valid-guides must be set if --guide-assignments is provided")
             guide_assignments = pd.read_csv(args.guide_assignments) if args.guide_assignments is not None and args.guide_assignments != 'NO_FILE' else None
-        else:
-            raise RuntimeError("Right now, we require guide assignments to generate the supersample QC report. Change this if you want to allow generating the report without guide assignments.")
+        #else:
+        #    raise RuntimeError("Right now, we require guide assignments to generate the supersample QC report. Change this if you want to allow generating the report without guide assignments.")
 
         print(f"Generating supersample QC for {args.supersample_id}...")
         supersample_metrics = generate_supersample_qc(
