@@ -17,7 +17,7 @@ process GENERATE_SUPERSAMPLE_QC {
     
     output:
     path "${params.supersample_basename}.guide_assignment_distribution.png", emit: guide_assignment_distribution, optional: true
-    path "${params.supersample_basename}.sankey.png", emit: sankey
+    path "${params.supersample_basename}.sankey.png", emit: sankey, optional: true
     path "${params.supersample_basename}.supersample_qc_metrics.tsv", emit: supersample_qc_metrics
     
     script:
