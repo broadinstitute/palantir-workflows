@@ -25,10 +25,14 @@ RUN conda install -y -c conda-forge -c bioconda \
     numpy \
     scanpy \
     anndata \
-    crispat \
     matplotlib \
     scipy \
+    pip \
     && conda clean -a -y
+
+# Copy requirements.txt and install pip packages
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Set PATH for scripts
 ENV PATH="/app/bin:${PATH}"

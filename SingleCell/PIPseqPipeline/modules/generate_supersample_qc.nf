@@ -4,7 +4,7 @@
 
 process GENERATE_SUPERSAMPLE_QC {
     tag "${params.supersample_basename}"
-    container 'us.gcr.io/broad-dsde-methods/pipseq-qc:latest'
+    container '175707589989.dkr.ecr.us-east-2.amazonaws.com/pipseq-qc:latest'
     publishDir "${params.outdir}/${params.supersample_basename}/supersample_qc", mode: 'copy'
     
     input:
