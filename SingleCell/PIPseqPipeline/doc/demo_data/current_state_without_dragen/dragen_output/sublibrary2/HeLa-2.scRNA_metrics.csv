@@ -1,0 +1,55 @@
+SINGLE-CELL RNA INPUT READ METRICS,HeLa-2,Total input gene expression reads,4114661310,0.750
+SINGLE-CELL RNA INPUT READ METRICS,HeLa-2,Total input feature reads,1373224267,0.250
+SINGLE-CELL RNA INPUT READ METRICS,HeLa-2,Total input reads based on read groups,5487885577,1.000
+SINGLE-CELL RNA BARCODE READ METRICS,HeLa-2,Reads missing barcodes,0,0.000
+SINGLE-CELL RNA BARCODE READ METRICS,HeLa-2,Reads with exactly matching barcodes,4966577307,0.905
+SINGLE-CELL RNA BARCODE READ METRICS,HeLa-2,Reads with corrected barcodes,168130054,0.031
+SINGLE-CELL RNA BARCODE READ METRICS,HeLa-2,Reads with non-matching barcodes,353178216,0.064
+SINGLE-CELL RNA BARCODE READ METRICS,HeLa-2,Total input reads,5487885577,1.000
+SINGLE-CELL RNA BARCODE READ METRICS,HeLa-2,Total barcoded reads,5134707361,0.936
+SINGLE-CELL RNA BARCODE READ METRICS,HeLa-2,Total barcoded gene expression reads,3812697148,0.743
+SINGLE-CELL RNA BARCODE READ METRICS,HeLa-2,Total barcoded feature reads,1322010213,0.257
+SINGLE-CELL RNA BARCODE READ METRICS,HeLa-2,Total barcoded reads based on read groups,5134707361,1.000
+SINGLE-CELL RNA READ MATCHING METRICS,HeLa-2,Unique exon matching reads,2898782841,0.565
+SINGLE-CELL RNA READ MATCHING METRICS,HeLa-2,Unique intron matching reads,100922558,0.020
+SINGLE-CELL RNA READ MATCHING METRICS,HeLa-2,Filtered antisense reads,43508975,0.008
+SINGLE-CELL RNA READ MATCHING METRICS,HeLa-2,Filtered ambiguously matching reads,21543447,0.004
+SINGLE-CELL RNA READ MATCHING METRICS,HeLa-2,Filtered non-matching reads,528566640,0.103
+SINGLE-CELL RNA READ MATCHING METRICS,HeLa-2,Mitochondrial reads,218624096,0.043
+SINGLE-CELL RNA READ MATCHING METRICS,HeLa-2,Feature matching reads,983981661,0.192
+SINGLE-CELL RNA READ MATCHING METRICS,HeLa-2,Feature non-matching reads,338777143,0.066
+SINGLE-CELL RNA READ MATCHING METRICS,HeLa-2,Total feature reads,1322758804,0.258
+SINGLE-CELL RNA READ MATCHING METRICS,HeLa-2,Total unfiltered gene reads,2999705399,0.584
+SINGLE-CELL RNA READ MATCHING METRICS,HeLa-2,Total mapped reads,5134707361,1.000
+SINGLE-CELL RNA MOLECULE COUNT METRICS,HeLa-2,Reads with valid molecular identifier sequences,4118258227
+SINGLE-CELL RNA MOLECULE COUNT METRICS,HeLa-2,Reads with corrected molecular identifier sequences,0
+SINGLE-CELL RNA MOLECULE COUNT METRICS,HeLa-2,Reads with invalid molecular identifier sequences,0
+SINGLE-CELL RNA MOLECULE COUNT METRICS,HeLa-2,Total gene reads,3811948557
+SINGLE-CELL RNA MOLECULE COUNT METRICS,HeLa-2,Total gene and feature reads,5134707361
+SINGLE-CELL RNA MOLECULE COUNT METRICS,HeLa-2,Total counted gene reads,3134276570
+SINGLE-CELL RNA MOLECULE COUNT METRICS,HeLa-2,Total counted gene and feature reads,4118258227
+SINGLE-CELL RNA MOLECULE COUNT METRICS,HeLa-2,Total molecules,825560900
+SINGLE-CELL RNA MOLECULE COUNT METRICS,HeLa-2,Total feature molecules,983981657
+SINGLE-CELL RNA MOLECULE COUNT METRICS,HeLa-2,Sequencing saturation,0.74
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Total unique barcodes,12670523
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Passing cell threshold (by molecule count),1674
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Passing cells,129243
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Fraction of reads in passing cells,0.8834
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Fraction of feature reads in passing cells,0.9105
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Fraction of reads in passing cells that are genic,0.8310
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Mean reads per cell (Total gene reads / Passing cells),29494.4295
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Median reads per passing cell,22468
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Median molecules per passing cell,4798
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Median genes per passing cell,2178
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Total genes detected,33150
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Mean feature reads per cell (Total feature reads / Passing cells),10234.6650
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Median feature reads per passing cell,480
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Median feature molecules per passing cell,480
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Median features per passing cell,9
+SINGLE-CELL RNA CELL METRICS,HeLa-2,Total features detected,11941
+SINGLE-CELL RNA CRISPR METRICS,HeLa-2,CRISPR reads with exactly matching barcodes,1299197112
+SINGLE-CELL RNA CRISPR METRICS,HeLa-2,CRISPR reads with corrected barcodes,22305904
+SINGLE-CELL RNA CRISPR METRICS,HeLa-2,Total CRISPR reads matching known barcodes,1321503016
+SINGLE-CELL RNA CRISPR METRICS,HeLa-2,CRISPR tag mapping rate,0.7441
+SINGLE-CELL RNA CRISPR METRICS,HeLa-2,CRISPR fraction valid reads in cells,0.6774
+SINGLE-CELL RNA CRISPR METRICS,HeLa-2,Fraction passing cells with CRISPR reads,0.9296

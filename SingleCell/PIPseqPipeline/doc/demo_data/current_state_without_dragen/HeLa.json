@@ -1,0 +1,8 @@
+{
+    "num_input_cells": 10000,
+    "samplesheet": "doc/demo_data/current_state_without_dragen/HeLa.csv",
+    "supersample_id": "HeLa",
+    "supersample_basename": "HeLa",
+    "outdir": "results",
+    "run_guide_assignment": false
+}
