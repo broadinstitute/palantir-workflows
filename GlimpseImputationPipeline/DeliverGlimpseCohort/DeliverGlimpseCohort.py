@@ -8,6 +8,7 @@ from datetime import datetime
 import pytz
 import tempfile
 import base64
+import re
 
 def get_workspace_bucket(namespace, name):
     """Get the bucket for a workspace"""
@@ -76,7 +77,7 @@ def record_delivery(source_namespace, source_workspace, cohort_name, target_name
     """Record the delivery in the source workspace's delivery table"""
     table_name = "delivery"
     now = datetime.now(pytz.UTC)
-    delivery_id = f"{cohort_name}_to_{target_namespace}_{target_workspace}_{now.strftime('%Y%m%d_%H%M%SZ')}"
+    delivery_id = re.sub(r'[^a-zA-Z0-9_\-.]', '_', f"{cohort_name}_to_{target_namespace}_{target_workspace}_{now.strftime('%Y%m%d_%H%M%SZ')}")
     
     with StringIO() as table_io:
         table_io.write('entity:delivery_id\tsource_cohort\ttarget_namespace\ttarget_workspace\tdelivery_date\t' + '\t'.join(delivered_files.keys()) + '\n')
