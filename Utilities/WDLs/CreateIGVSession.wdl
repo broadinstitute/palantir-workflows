@@ -134,7 +134,7 @@ task MakeIGVXML {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.0"
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim:1.1"
         disks: "local-disk " + disk_size + " HDD"
         cpu: cpu
         memory: memory + "GB"
