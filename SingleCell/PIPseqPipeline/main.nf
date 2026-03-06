@@ -10,7 +10,10 @@ nextflow.enable.dsl=2
 
 // Define parameters
 params.num_input_cells = null          // Number of input cells (integer)
-params.samplesheet = null              // CSV file with samples
+params.fastq_list = null               // CSV file with FASTQ information (RGID, RGSM, RGTY, Read1File, Read2File)
+params.ref_tar = null                  // DRAGEN reference tar file
+params.annotation_file = null          // Gene annotation file for DRAGEN
+params.scrna_feature_barcode_reference = null  // Feature barcode reference for DRAGEN
 params.run_guide_assignment = true     // Whether to run guide assignment
 params.outdir = "results"              // Output directory
 params.help = false
@@ -19,46 +22,42 @@ params.help = false
 def helpMessage() {
     log.info"""
     Usage:
-      nextflow run main.nf --num_input_cells <int> --samplesheet <samplesheet.csv> --supersample_id <id> --supersample_basename <name> [options]
+      nextflow run main.nf --num_input_cells <int> --fastq_list <fastq_list.csv> --supersample_id <id> --supersample_basename <name> [options]
 
     Required arguments:
       --num_input_cells          Number of input cells (integer)
-      --samplesheet              CSV file with columns: data_dir,dragen_file_prefix,subsample_id,subsample_basename
+      --fastq_list               CSV file with FASTQ information (columns: RGID, RGSM, RGTY, Read1File, Read2File)
       --supersample_id           Supersample identifier
       --supersample_basename     Supersample basename for output organization
       --min_valid_guides         Minimum number of valid guides for guide assignment QC (integer)
       --max_valid_guides         Maximum number of valid guides for guide assignment QC (integer)
+      --ref_tar                  DRAGEN reference genome tar file
+      --annotation_file          Gene annotation file for DRAGEN
+      --scrna_feature_barcode_reference  Feature barcode reference file for DRAGEN
 
-    Samplesheet format:
-      CSV file with columns: data_dir, dragen_file_prefix, subsample_id, subsample_basename
-      See samplesheet.csv.example for an example
-      - Each row represents a subsample belonging to the supersample specified in --supersample_id/--supersample_basename
-
-    Expected files in each data_dir:
-      <dragen_file_prefix>.scRNA_metrics.csv
-      <dragen_file_prefix>.scRNA.barcodeSummary.tsv
-      <dragen_file_prefix>.scRNA.filtered.matrix.mtx.gz
-      <dragen_file_prefix>.scRNA.filtered.barcodes.tsv.gz
-      <dragen_file_prefix>.scRNA.filtered.features.tsv.gz
+    Fastq_list format:
+      CSV file with columns: RGID, RGSM, RGTY, Read1File, Read2File
+      - RGSM values represent subsample IDs
+      - RGTY indicates readgroup type ('expression' or 'feature')
+      - All rows with the same RGSM belong to the same subsample
 
     Optional arguments:
       --run_guide_assignment     Whether to run CRISPR guide assignment (default: ${params.run_guide_assignment})
       --outdir                   Output directory (default: ${params.outdir})
       --help                     Show this help message
     
-    Note: If any parameter values in the samplesheet contain leading zeros (e.g., 001234),
-          ensure they are properly formatted as strings in your CSV.
-    
     Behavior:
+      - Runs DRAGEN scRNA for each subsample
       - Concatenates all subsamples (handles single subsample case automatically)
       - Runs GUIDE_ASSIGNMENT on concatenated CRISPR features (if enabled)
-      - Per-subsample QC reports are always generated in outdir/<supersample_basename>/<subsample_basename>/qc/
+      - Per-subsample QC reports are generated in outdir/<supersample_basename>/<subsample_basename>/qc/
       - Concatenated AnnData outputs to outdir/<supersample_basename>/adata/
       - Guide assignments are output to outdir/<supersample_basename>/crispat_ga/
     """.stripIndent()
 }
 
 // Import modules
+include { DRAGEN_SCRNA } from './modules/dragen_scrna'
 include { GENERATE_REPORT_DATA } from './modules/generate_report_data'
 include { GENERATE_SUPERSAMPLE_QC } from './modules/generate_supersample_qc'
 include { GUIDE_ASSIGNMENT } from './modules/guide_assignment'
@@ -81,8 +80,8 @@ workflow {
         exit 1
     }
 
-    if (!params.samplesheet) {
-        log.error "ERROR: --samplesheet is required"
+    if (!params.fastq_list) {
+        log.error "ERROR: --fastq_list is required"
         helpMessage()
         exit 1
     }
@@ -105,45 +104,123 @@ workflow {
         exit 1
     }
 
-    log.info "Reading subsamples from samplesheet..."
+    if (!params.ref_tar) {
+        log.error "ERROR: --ref_tar is required"
+        helpMessage()
+        exit 1
+    }
+
+    if (!params.annotation_file) {
+        log.error "ERROR: --annotation_file is required"
+        helpMessage()
+        exit 1
+    }
+
+    if (!params.scrna_feature_barcode_reference) {
+        log.error "ERROR: --scrna_feature_barcode_reference is required"
+        helpMessage()
+        exit 1
+    }
+
+    log.info "Reading subsamples from fastq_list..."
     
-    // Read samplesheet and create channels
-    subsample_ch = Channel
-        .fromPath(params.samplesheet, checkIfExists: true)
+    // Read fastq_list and parse subsample information
+    fastq_list_ch = Channel
+        .fromPath(params.fastq_list, checkIfExists: true)
         .splitCsv(header: true)
         .map { row ->
-            // Force strings and strip quotes for each field
-            def data_dir = "${row.data_dir ?: ''}".replaceAll(/^['"]|['"]$/, '')
-            def dragen_file_prefix = "${row.dragen_file_prefix ?: ''}".replaceAll(/^['"]|['"]$/, '')
-            def subsample_id = "${row.subsample_id ?: ''}".replaceAll(/^['"]|['"]$/, '')
-            def subsample_basename = "${row.subsample_basename ?: ''}".replaceAll(/^['"]|['"]$/, '')
-            
-            // Validate that all required columns are present
-            if (!data_dir || !dragen_file_prefix || !subsample_id || !subsample_basename) {
-                error "ERROR: Samplesheet is missing required column(s). Required columns: data_dir, dragen_file_prefix, subsample_id, subsample_basename\nFound columns: ${row.keySet().join(', ')}"
-            }
-            
-            tuple(data_dir, dragen_file_prefix, subsample_id, subsample_basename)
+            tuple(
+                row.RGID,
+                row.RGSM,  // subsample_id
+                row.RGTY,  // 'expression' or 'feature'
+                file(row.Read1File),
+                file(row.Read2File)
+            )
         }
     
-    // Create channels for all files across all subsamples
-    all_subsamples = subsample_ch.map { data_dir, dragen_file_prefix, subsample_id, subsample_basename ->
-        def metrics_path = "${data_dir}/${dragen_file_prefix}.scRNA_metrics.csv"
-        def barcode_summary_path = "${data_dir}/${dragen_file_prefix}.scRNA.barcodeSummary.tsv"
-        def matrix_path = "${data_dir}/${dragen_file_prefix}.scRNA.filtered.matrix.mtx.gz"
-        def barcodes_path = "${data_dir}/${dragen_file_prefix}.scRNA.filtered.barcodes.tsv.gz"
-        def features_path = "${data_dir}/${dragen_file_prefix}.scRNA.filtered.features.tsv.gz"
-        
+    // Group by subsample (RGSM) and collect feature RGIDs
+    subsample_info = fastq_list_ch
+        .toList()
+        .map { rows ->
+            // Get unique subsamples
+            def subsamples = rows.collect { it[1] }.unique()
+            
+            // For each subsample, collect feature RGIDs
+            subsamples.collect { rgsm ->
+                def feature_rgids = rows
+                    .findAll { it[1] == rgsm && it[2] == 'feature' }
+                    .collect { it[0] }
+                    .join(',')
+                
+                // Collect all fastq files for this subsample
+                def fastqs = rows
+                    .findAll { it[1] == rgsm }
+                    .collectMany { [it[3], it[4]] }
+                
+                tuple(rgsm, feature_rgids, fastqs)
+            }
+        }
+        .flatten()
+        .collate(3)
+    
+    log.info "Running DRAGEN scRNA for each subsample..."
+    
+    // Prepare DRAGEN inputs
+    dragen_input_ch = subsample_info.map { rgsm, feature_rgids, fastqs ->
         tuple(
-            file(metrics_path),
-            file(barcode_summary_path),
-            file(matrix_path),
-            file(barcodes_path),
-            file(features_path),
-            subsample_id,
-            subsample_basename
+            fastqs,
+            rgsm,
+            file(params.ref_tar),
+            file(params.fastq_list),
+            file(params.annotation_file),
+            file(params.scrna_feature_barcode_reference),
+            feature_rgids
         )
     }
+    
+    // Run DRAGEN
+    DRAGEN_SCRNA(dragen_input_ch)
+    
+    // Extract DRAGEN outputs and create channel for downstream processing
+    // DRAGEN outputs are in <sample_id>/ directory with prefix <sample_id>
+    all_subsamples = DRAGEN_SCRNA.out.output
+            .flatten()
+            .map { output_file ->
+                def file_name = output_file.getName()
+                
+                // Extract subsample_id from directory structure
+                def subsample_id = file_name.tokenize('.')[0]
+                
+                // Match specific output files
+                if (file_name.endsWith('.scRNA_metrics.csv')) {
+                    tuple('metrics', subsample_id, output_file)
+                } else if (file_name.endsWith('.scRNA.barcodeSummary.tsv')) {
+                    tuple('barcode_summary', subsample_id, output_file)
+                } else if (file_name.endsWith('.scRNA.filtered.matrix.mtx.gz')) {
+                    tuple('matrix', subsample_id, output_file)
+                } else if (file_name.endsWith('.scRNA.filtered.barcodes.tsv.gz')) {
+                    tuple('barcodes', subsample_id, output_file)
+                } else if (file_name.endsWith('.scRNA.filtered.features.tsv.gz')) {
+                    tuple('features', subsample_id, output_file)
+                } else {
+                    null
+                }
+            }
+            .filter { it != null }
+            .groupTuple(by: 1)  // Group by subsample_id
+            .map { file_types, subsample_id, files ->
+                // Reorganize into expected structure
+                def file_map = [file_types, files].transpose().collectEntries()
+                tuple(
+                    file_map['metrics'],
+                    file_map['barcode_summary'],
+                    file_map['matrix'],
+                    file_map['barcodes'],
+                    file_map['features'],
+                    subsample_id,
+                    subsample_id  // Use subsample_id as basename too
+                )
+            }
     
     // Generate per-subsample QC reports
     qc_input_ch = all_subsamples.map { metrics, barcode_summary, _matrix, _barcodes, _features, subsample_id, subsample_basename ->

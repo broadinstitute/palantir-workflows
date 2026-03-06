@@ -1,6 +1,5 @@
 {
     "supersample_id": "ASAP_A",
-    "broad_run_json": "broad_run.json",
     "fastq_list": "m1_fastq_list.csv",
     "scrna_feature_barcode_reference": "guide_whitelist.csv",
     "scrna_barcode_sequence_list": "barcode_whitelist.csv",
