@@ -129,52 +129,47 @@ workflow {
         .fromPath(params.fastq_list, checkIfExists: true)
         .splitCsv(header: true)
         .map { row ->
-            tuple(
-                row.RGID,
-                row.RGSM,  // subsample_id
-                row.RGTY,  // 'expression' or 'feature'
-                file(row.Read1File),
-                file(row.Read2File)
-            )
+            [
+                RGID: row.RGID,
+                RGSM: row.RGSM,  // subsample_id
+                RGTY: row.RGTY,  // 'expression' or 'feature'
+                Read1File: file(row.Read1File),
+                Read2File: file(row.Read2File)
+            ]
         }
     
     // Group by subsample (RGSM) and collect feature RGIDs
     subsample_info = fastq_list_ch
         .toList()
-        .map { rows ->
+        .flatMap { rows ->
             // Get unique subsamples
-            def subsamples = rows.collect { it[1] }.unique()
+            def subsamples = rows.collect { it.RGSM }.unique()
             
             // For each subsample, collect feature RGIDs
             subsamples.collect { rgsm ->
                 def feature_rgids = rows
-                    .findAll { it[1] == rgsm && it[2] == 'feature' }
-                    .collect { it[0] }
+                    .findAll { it.RGSM == rgsm && it.RGTY == 'feature' }
+                    .collect { it.RGID }
                     .join(',')
                 
-                // Collect all fastq files for this subsample
-                def fastqs = rows
-                    .findAll { it[1] == rgsm }
-                    .collectMany { [it[3], it[4]] }
-                
-                tuple(rgsm, feature_rgids, fastqs)
+                [
+                    rgsm: rgsm,
+                    feature_rgids: feature_rgids
+                ]
             }
         }
-        .flatten()
-        .collate(3)
     
     log.info "Running DRAGEN scRNA for each subsample..."
     
     // Prepare DRAGEN inputs
-    dragen_input_ch = subsample_info.map { rgsm, feature_rgids, fastqs ->
+    dragen_input_ch = subsample_info.map { info ->
         tuple(
-            fastqs,
-            rgsm,
+            info.rgsm,
             file(params.ref_tar),
             file(params.fastq_list),
             file(params.annotation_file),
             file(params.scrna_feature_barcode_reference),
-            feature_rgids
+            info.feature_rgids
         )
     }
     
@@ -183,12 +178,14 @@ workflow {
     
     // Extract DRAGEN outputs and create channel for downstream processing
     // DRAGEN outputs are in <sample_id>/ directory with prefix <sample_id>
+    // The output channel emits all files (including subdirectories)
     all_subsamples = DRAGEN_SCRNA.out.output
-            .flatten()
+            .flatten()  // Flatten all output items
+            .filter { it.isFile() }  // Keep only files, not directories
             .map { output_file ->
                 def file_name = output_file.getName()
                 
-                // Extract subsample_id from directory structure
+                // Extract subsample_id from filename
                 def subsample_id = file_name.tokenize('.')[0]
                 
                 // Match specific output files
@@ -254,8 +251,6 @@ workflow {
         
         GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
         
-        GUIDE_ASSIGNMENT.out.guide_assignments.view { "Generated guide assignments: $it" }
-        
         // Set guide assignments channel
         guide_assignments_ch = GUIDE_ASSIGNMENT.out.guide_assignments
     } else {
@@ -266,11 +261,12 @@ workflow {
     // Generate supersample QC (always runs)
     supersample_qc_input = GENERATE_REPORT_DATA.out.qc_metrics
         .collect()
-        .concat(guide_assignments_ch)
-        .toList()
-        .map { items ->
-            def qc_metrics = items[0]
-            def guide_assignments = items[1]
+        .combine(guide_assignments_ch)
+        .map { combined ->
+            // combined is a list [qc_metrics_list, guide_assignments_file]
+            def qc_metrics = combined[0]
+            def guide_assignments = combined[1]
+            
             tuple(
                 params.num_input_cells,
                 qc_metrics,

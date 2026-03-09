@@ -31,4 +31,15 @@ process CONCATENATE {
         --subsample-ids ${subsample_id_list} \\
         --supersample-basename ${params.supersample_basename}
     """
+    
+    stub:
+    def subsample_id_list = subsample_ids.join(',')
+    """
+    echo "[STUB] Would concatenate ${subsample_ids.size()} subsamples:"
+    echo "  Subsamples: ${subsample_id_list}"
+    echo "  Supersample basename: ${params.supersample_basename}"
+    
+    touch ${params.supersample_basename}.h5ad
+    touch ${params.supersample_basename}.crispr.h5ad
+    """
 }

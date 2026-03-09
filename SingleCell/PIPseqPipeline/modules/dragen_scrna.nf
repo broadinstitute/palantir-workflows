@@ -1,4 +1,5 @@
 process DRAGEN_SCRNA {
+    tag "${sample_id}"
 
     // The container must be a DRAGEN image that is included in an accepted bundle and will determine the DRAGEN version
     container '079623148045.dkr.ecr.us-east-1.amazonaws.com/cp-prod/084b1d0d-3593-4e02-bac5-419425a4075d:latest'
@@ -10,8 +11,7 @@ process DRAGEN_SCRNA {
 
     
     input:
-        tuple path(fastqs),
-              val(sample_id),
+        tuple val(sample_id),
               path(ref_tar),
               path(fastq_list),
               path(annotation_file),
@@ -19,13 +19,11 @@ process DRAGEN_SCRNA {
               val(scrna_feature_barcode_groups)
     output:
         stdout emit: result
-        path '*', emit: output
+        path '**/*', emit: output
 
     script:
-    def fastqList = fastqs.collect{ it.toString() }
         """
         set -ex
-        echo ${fastqList.join(' ')}
         ### create temporary directory for DRAGEN reference to get extracted to
         mkdir -p /scratch/reference
         tar -C /scratch/reference -xf ${ref_tar}
@@ -85,4 +83,23 @@ process DRAGEN_SCRNA {
         rm -f logs/dragen_last_good_run.log
 
         """
+    
+    stub:
+    """
+    echo "[STUB] Would run DRAGEN with:"
+    echo "  Sample ID: ${sample_id}"
+    echo "  Feature barcode groups: ${scrna_feature_barcode_groups}"
+    echo "  Reference: ${ref_tar}"
+    echo "  Annotation: ${annotation_file}"
+    
+    mkdir -p ${sample_id}
+    touch ${sample_id}/${sample_id}.scRNA_metrics.csv
+    touch ${sample_id}/${sample_id}.scRNA.barcodeSummary.tsv
+    touch ${sample_id}/${sample_id}.scRNA.filtered.matrix.mtx.gz
+    touch ${sample_id}/${sample_id}.scRNA.filtered.barcodes.tsv.gz
+    touch ${sample_id}/${sample_id}.scRNA.filtered.features.tsv.gz
+    
+    mkdir -p logs
+    echo "[STUB] DRAGEN completed successfully" > logs/stub.log
+    """
 }

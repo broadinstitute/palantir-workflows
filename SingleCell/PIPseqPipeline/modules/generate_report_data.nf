@@ -27,4 +27,15 @@ process GENERATE_REPORT_DATA {
         --sample-id ${subsample_id} \\
         --sample-basename ${subsample_basename}
     """
+    
+    stub:
+    """
+    echo "[STUB] Would generate report data with:"
+    echo "  Sample ID: ${subsample_id}"
+    echo "  Sample basename: ${subsample_basename}"
+    echo "  Num input cells: ${num_input_cells}"
+    
+    touch ${subsample_basename}.qc_metrics.tsv
+    touch ${subsample_basename}.qc_barcode_metrics.tsv
+    """
 }

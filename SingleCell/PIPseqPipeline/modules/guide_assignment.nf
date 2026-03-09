@@ -20,4 +20,13 @@ process GUIDE_ASSIGNMENT {
     run_guide_assignment.py \\
         --crispr-adata ${crispr_adata}
     """
+    
+    stub:
+    """
+    echo "[STUB] Would run guide assignment on: ${crispr_adata}"
+    
+    mkdir -p crispat_ga/poisson_gauss
+    touch crispat_ga/poisson_gauss/assignments.csv
+    echo "guide_id,cell_id,assignment_score" > crispat_ga/poisson_gauss/assignments.csv
+    """
 }

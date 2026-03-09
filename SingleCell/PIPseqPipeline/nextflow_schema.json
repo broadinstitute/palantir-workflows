@@ -1,0 +1,161 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/SingleCell/PIPseqPipeline/nextflow_schema.json",
+    "title": "PIPseq Pipeline",
+    "description": "Single-cell RNA sequencing QC pipeline with DRAGEN scRNA processing and CRISPR guide assignment",
+    "type": "object",
+    "definitions": {
+        "input_output_options": {
+            "title": "Input/output options",
+            "type": "object",
+            "fa_icon": "fas fa-terminal",
+            "description": "Define where the pipeline should find input data and save output data.",
+            "required": [
+                "fastq_list",
+                "supersample_id",
+                "supersample_basename"
+            ],
+            "properties": {
+                "fastq_list": {
+                    "type": "string",
+                    "format": "file-path",
+                    "mimetype": "text/csv",
+                    "pattern": "^\\S+\\.csv$",
+                    "description": "Path to CSV file with FASTQ information",
+                    "help_text": "CSV file with columns: RGID, RGSM, RGTY, Read1File, Read2File. RGSM values represent subsample IDs. RGTY indicates readgroup type ('expression' or 'feature'). All rows with the same RGSM belong to the same subsample.",
+                    "fa_icon": "fas fa-file-csv"
+                },
+                "supersample_id": {
+                    "type": "string",
+                    "description": "Supersample identifier",
+                    "help_text": "Unique identifier for the supersample being processed.",
+                    "fa_icon": "fas fa-tag"
+                },
+                "supersample_basename": {
+                    "type": "string",
+                    "description": "Supersample basename for output organization",
+                    "help_text": "Base name used for organizing output directories and files.",
+                    "fa_icon": "fas fa-folder"
+                },
+                "outdir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "The output directory where the results will be saved",
+                    "default": "results",
+                    "fa_icon": "fas fa-folder-open"
+                }
+            }
+        },
+        "dragen_options": {
+            "title": "DRAGEN scRNA options",
+            "type": "object",
+            "description": "Parameters for DRAGEN scRNA processing",
+            "default": "",
+            "fa_icon": "fas fa-dna",
+            "required": [
+                "ref_tar",
+                "annotation_file",
+                "scrna_feature_barcode_reference",
+                "num_input_cells"
+            ],
+            "properties": {
+                "ref_tar": {
+                    "type": "string",
+                    "format": "file-path",
+                    "pattern": "^\\S+\\.tar$",
+                    "description": "DRAGEN reference genome tar file",
+                    "help_text": "Path to the DRAGEN reference genome archive.",
+                    "fa_icon": "fas fa-archive"
+                },
+                "annotation_file": {
+                    "type": "string",
+                    "format": "file-path",
+                    "pattern": "^\\S+\\.(gtf|gff)$",
+                    "description": "Gene annotation file for DRAGEN",
+                    "help_text": "GTF or GFF gene annotation file used by DRAGEN for scRNA processing.",
+                    "fa_icon": "fas fa-file-alt"
+                },
+                "scrna_feature_barcode_reference": {
+                    "type": "string",
+                    "format": "file-path",
+                    "mimetype": "text/csv",
+                    "pattern": "^\\S+\\.csv$",
+                    "description": "Feature barcode reference file for DRAGEN",
+                    "help_text": "CSV file containing feature barcode sequences for CRISPR guide detection.",
+                    "fa_icon": "fas fa-barcode"
+                },
+                "num_input_cells": {
+                    "type": "integer",
+                    "description": "Number of input cells",
+                    "help_text": "Expected number of cells in the input sample. Used for quality control metrics.",
+                    "fa_icon": "fas fa-hashtag",
+                    "minimum": 1
+                }
+            }
+        },
+        "guide_assignment_options": {
+            "title": "Guide assignment options",
+            "type": "object",
+            "description": "Parameters for CRISPR guide assignment",
+            "default": "",
+            "fa_icon": "fas fa-cut",
+            "properties": {
+                "run_guide_assignment": {
+                    "type": "boolean",
+                    "description": "Whether to run CRISPR guide assignment",
+                    "default": true,
+                    "help_text": "Enable or disable CRISPR guide assignment analysis. If disabled, only QC metrics will be generated.",
+                    "fa_icon": "fas fa-toggle-on"
+                },
+                "min_valid_guides": {
+                    "type": "integer",
+                    "description": "Minimum number of valid guides for guide assignment QC",
+                    "help_text": "Minimum threshold for the number of valid guides per cell for quality control.",
+                    "fa_icon": "fas fa-level-down-alt",
+                    "minimum": 0
+                },
+                "max_valid_guides": {
+                    "type": "integer",
+                    "description": "Maximum number of valid guides for guide assignment QC",
+                    "help_text": "Maximum threshold for the number of valid guides per cell for quality control.",
+                    "fa_icon": "fas fa-level-up-alt",
+                    "minimum": 1
+                }
+            },
+            "required": [
+                "min_valid_guides",
+                "max_valid_guides"
+            ]
+        },
+        "generic_options": {
+            "title": "Generic options",
+            "type": "object",
+            "fa_icon": "fas fa-cog",
+            "description": "Less common options for the pipeline, typically set in a config file.",
+            "help_text": "These options are common to all pipelines and allow you to customize various aspects of pipeline execution.",
+            "properties": {
+                "help": {
+                    "type": "boolean",
+                    "description": "Display help text",
+                    "fa_icon": "fas fa-question-circle",
+                    "default": false,
+                    "hidden": true
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "$ref": "#/definitions/input_output_options"
+        },
+        {
+            "$ref": "#/definitions/dragen_options"
+        },
+        {
+            "$ref": "#/definitions/guide_assignment_options"
+        },
+        {
+            "$ref": "#/definitions/generic_options"
+        }
+    ]
+}
