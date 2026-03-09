@@ -1,9 +1,9 @@
 /*
  * Process module for metrics processing
  */
-
 process GENERATE_REPORT_DATA {
     tag "${subsample_basename}"
+    container "${params.qc_container}"
     publishDir "${params.outdir}/${params.supersample_basename}/${subsample_basename}/qc", mode: 'copy'
     
     input:
@@ -20,7 +20,7 @@ process GENERATE_REPORT_DATA {
     """
     # Run the Python processing script
     # The script should be in the bin/ directory and will be automatically available
-    generate_report_data.py \\
+    python ${workflow.launchDir}/bin/generate_report_data.py \\
         --num-input-cells ${num_input_cells} \\
         --scrna-metrics ${scrna_metrics} \\
         --barcode-summary ${barcode_summary} \\

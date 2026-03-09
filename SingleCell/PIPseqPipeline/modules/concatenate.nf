@@ -1,9 +1,9 @@
 /*
  * Process module for concatenating multiple subsamples using AnnData
  */
-
 process CONCATENATE {
     tag "Concatenating ${subsample_ids.size()} subsamples"
+    container "${params.qc_container}"
     publishDir "${params.outdir}/${params.supersample_basename}/adata", mode: 'copy'
     
     input:
@@ -24,7 +24,7 @@ process CONCATENATE {
     def subsample_id_list = subsample_ids.join(',')
     """
     # Concatenate multiple subsamples using AnnData
-    concatenate_samples.py \\
+    python ${workflow.launchDir}/bin/concatenate_samples.py \\
         --matrices ${matrix_files} \\
         --barcodes ${barcode_files} \\
         --features ${feature_files} \\

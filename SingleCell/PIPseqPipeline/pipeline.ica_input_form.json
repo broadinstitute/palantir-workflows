@@ -1,0 +1,102 @@
+{
+  "fields": [
+    {
+      "id": "section_datainputs",
+      "type": "section",
+      "label": "Section for selecting data inputs"
+    },
+    {
+      "type": "data",
+      "id": "num_input_cells",
+      "helpText": "Path data that defines FILE params.num_input_cells",
+      "label": "num_input_cells",
+      "minValues": 1,
+      "maxValues": 999,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "id": "general section parameters",
+      "type": "section",
+      "label": "general"
+    },
+    {
+      "type": "textbox",
+      "id": "outdir",
+      "minValues": 0,
+      "maxValues": 1,
+      "value": "\"results\""
+    },
+    {
+      "type": "textbox",
+      "id": "supersample_basename",
+      "minValues": 0,
+      "maxValues": 1,
+      "value": "\"output\""
+    },
+    {
+      "type": "textbox",
+      "id": "fastq_list",
+      "minValues": 0,
+      "maxValues": 1,
+      "value": "STRING"
+    },
+    {
+      "type": "textbox",
+      "id": "ref_tar",
+      "minValues": 0,
+      "maxValues": 1,
+      "value": "STRING"
+    },
+    {
+      "type": "textbox",
+      "id": "annotation_file",
+      "minValues": 0,
+      "maxValues": 1,
+      "value": "STRING"
+    },
+    {
+      "type": "textbox",
+      "id": "scrna_feature_barcode_reference",
+      "minValues": 0,
+      "maxValues": 1,
+      "value": "STRING"
+    },
+    {
+      "type": "checkbox",
+      "id": "run_guide_assignment",
+      "minValues": 0,
+      "maxValues": 1,
+      "value": true
+    },
+    {
+      "type": "textbox",
+      "id": "supersample_id",
+      "minValues": 0,
+      "maxValues": 1,
+      "value": "STRING"
+    },
+    {
+      "type": "textbox",
+      "id": "min_valid_guides",
+      "minValues": 0,
+      "maxValues": 1,
+      "value": "STRING"
+    },
+    {
+      "type": "textbox",
+      "id": "max_valid_guides",
+      "minValues": 0,
+      "maxValues": 1,
+      "value": "STRING"
+    },
+    {
+      "type": "textbox",
+      "id": "qc_container",
+      "minValues": 0,
+      "maxValues": 1,
+      "value": "STRING"
+    }
+  ]
+}

@@ -15,6 +15,16 @@ params.scrna_feature_barcode_reference = null  // Feature barcode reference for 
 params.run_guide_assignment = true     // Whether to run guide assignment
 params.outdir = "results"              // Output directory
 params.help = false
+params.num_input_cells = null
+params.fastq_list = null
+params.ref_tar = null
+params.annotation_file = null
+params.scrna_feature_barcode_reference = null
+params.run_guide_assignment = true
+params.help = false
+params.supersample_id = null
+params.min_valid_guides = null
+params.max_valid_guides = null
 // Help message
 def helpMessage() {
     log.info"""
@@ -273,11 +283,15 @@ println("Returning workflow run-metric reports from ICA")
 }
 workflow.onComplete{ 
 if(workflow.success){
-	println("Pipeline Completed Successfully")
-	System.exit(0)
+
+println("Pipeline Completed Successfully")
+
+System.exit(0)
 }
 else{
-	println("Pipeline Completed with Errors")
-	System.exit(1)
+
+println("Pipeline Completed with Errors")
+
+System.exit(1)
 }
 }

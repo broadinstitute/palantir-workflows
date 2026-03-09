@@ -1,9 +1,9 @@
 /*
  * Process module for generating supersample-level QC
  */
-
 process GENERATE_SUPERSAMPLE_QC {
     tag "${params.supersample_basename}"
+    container "${params.qc_container}"
     publishDir "${params.outdir}/${params.supersample_basename}/supersample_qc", mode: 'copy'
     
     input:
@@ -24,7 +24,7 @@ process GENERATE_SUPERSAMPLE_QC {
     def guide_arg = guide_assignments.name != 'NO_FILE' ? "--guide-assignments ${guide_assignments} --min-valid-guides ${min_valid_guides} --max-valid-guides ${max_valid_guides}" : ""
     """
     # Run the supersample QC script
-    generate_supersample_qc.py \\
+    python ${workflow.launchDir}/bin/generate_supersample_qc.py \\
         --num-input-cells ${num_input_cells} \\
         --subsample-qc-files ${subsample_qc_files.join(' ')} \\
         --supersample-basename ${supersample_basename} \\
