@@ -121,7 +121,7 @@ def generate_sankey_plot(supersample_metrics, supersample_id, supersample_basena
     sankey_source = f'''
 // === Nodes and Flows ===
 
-N0: Input cells [{this_supersample_metrics['N0 Input cells']:.0f}] N1: GEX passing cells
+N0: Input cells [{this_supersample_metrics['N1 Passing cells']:.0f}] N1: GEX passing cells
 N0: Input cells [{this_supersample_metrics['N0 Input cells'] - this_supersample_metrics['N1 Passing cells']:.0f}] Empty droplets
 N1: GEX passing cells [{this_supersample_metrics['N2 Guide containing passing cells']:.0f}] N2: Guide containing passing cells
 N1: GEX passing cells [{this_supersample_metrics['N1 Passing cells'] - this_supersample_metrics['N2 Guide containing passing cells']:.0f}] Cells with no guide reads
