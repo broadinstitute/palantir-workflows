@@ -128,6 +128,12 @@ workflow {
     fastq_list_ch = Channel
         .fromPath(params.fastq_list, checkIfExists: true)
         .splitCsv(header: true)
+        .filter { row ->
+            // Filter out rows with empty or null required fields
+            row.RGID && row.RGSM && row.RGTY && row.Read1File && row.Read2File &&
+            row.RGID.trim() && row.RGSM.trim() && row.RGTY.trim() &&
+            row.Read1File.trim() && row.Read2File.trim()
+        }
         .map { row ->
             [
                 RGID: row.RGID,
