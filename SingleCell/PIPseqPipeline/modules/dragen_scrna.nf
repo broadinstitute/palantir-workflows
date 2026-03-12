@@ -16,12 +16,14 @@ process DRAGEN_SCRNA {
               path(fastq_list),
               path(annotation_file),
               path(scrna_feature_barcode_reference),
-              val(scrna_feature_barcode_groups)
+              val(scrna_feature_barcode_groups),
+              path(fastq_files)
     output:
         stdout emit: result
         path '**/*', emit: output
 
     script:
+        def fastqList = fastq_files.collect{ it.toString() }
         """
         set -ex
         ### create temporary directory for DRAGEN reference to get extracted to
