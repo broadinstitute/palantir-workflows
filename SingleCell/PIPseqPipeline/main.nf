@@ -181,7 +181,10 @@ workflow {
     // Prepare DRAGEN inputs
     dragen_input_ch = subsample_info
         .combine(fastq_files_ch)
-        .map { info, fastq_files ->
+        .map { items ->
+            // items is a list: [info_map, [fastq_files]]
+            def info = items[0]
+            def fastq_files = items[1]
             tuple(
                 info.rgsm,
                 file(params.ref_tar),
