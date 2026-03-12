@@ -1,9 +1,9 @@
 process DRAGEN_SCRNA {
     tag "${sample_id}"
 
-    // The container must be a DRAGEN image that is included in an accepted bundle and will determine the DRAGEN version
-    container '079623148045.dkr.ecr.us-east-1.amazonaws.com/cp-prod/084b1d0d-3593-4e02-bac5-419425a4075d:latest'
-    pod annotation: 'scheduler.illumina.com/presetSize', value: 'fpga-medium'
+    // 4.5.0-2307-gc8db6ea0
+    container '079623148045.dkr.ecr.us-east-1.amazonaws.com/cp-prod/42e2947c-3505-4667-8493-a3606fae06fa:latest'
+    pod annotation: 'scheduler.illumina.com/presetSize', value: 'fpga2-large'
     // add scratch space for intermediate files
     pod annotation: 'volumes.illumina.com/scratchSize', value: '1TiB'
     // ICA will upload everything in the "out" folder to cloud storage 
