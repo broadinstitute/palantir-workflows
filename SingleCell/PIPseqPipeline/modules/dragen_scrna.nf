@@ -82,6 +82,7 @@ process DRAGEN_SCRNA {
         cp -rvL /var/log/dragen/* logs/
         rm -f logs/dragen_last_good_run.log
 
+        /opt/edico/bin/dragen_reset
         """
     
     stub:
