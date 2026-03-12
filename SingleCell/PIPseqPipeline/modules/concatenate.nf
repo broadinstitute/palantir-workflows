@@ -23,6 +23,8 @@ process CONCATENATE {
     def feature_files = features.join(' ')
     def subsample_id_list = subsample_ids.join(',')
     """
+    export NUMBA_CACHE_DIR=${workflow.launchDir}
+    export MPLCONFIGDIR=${workflow.launchDir}
     # Concatenate multiple subsamples using AnnData
     concatenate_samples.py \\
         --matrices ${matrix_files} \\
