@@ -7,7 +7,7 @@ process DRAGEN_SCRNA {
     // add scratch space for intermediate files
     pod annotation: 'volumes.illumina.com/scratchSize', value: '1TiB'
     // ICA will upload everything in the "out" folder to cloud storage 
-    publishDir 'out', mode: 'copy'
+    publishDir "${params.outdir}/${params.supersample_basename}/${sample_id}", mode: 'copy'
 
     
     input:
@@ -20,7 +20,7 @@ process DRAGEN_SCRNA {
               path(fastq_files)
     output:
         stdout emit: result
-        path '**/*', emit: output
+        path 'dragen_output/*', emit: output
 
     script:
         def fastqList = fastq_files.collect{ it.toString() }
@@ -31,7 +31,7 @@ process DRAGEN_SCRNA {
         tar -C /scratch/reference -xf ${ref_tar}
         
         ### create output folder
-        mkdir -p ${sample_id}
+        mkdir -p dragen_output
         
         ### pre-requisite steps to ensure robust DRAGEN pipeline running
         /opt/edico/bin/dragen_reset
@@ -66,7 +66,7 @@ process DRAGEN_SCRNA {
             --qc-enable-depth-metrics false \\
             --enable-metrics-json true \\
             --output-file-prefix ${sample_id} \\
-            --output-directory ./${sample_id} \\
+            --output-directory dragen_output \\
             --intermediate-results-dir /scratch \\
             --fastq-list-sample-id ${sample_id} \\
             --ref-dir /scratch/reference \\
@@ -96,12 +96,12 @@ process DRAGEN_SCRNA {
     echo "  Annotation: ${annotation_file}"
     echo "  FASTQ files: ${fastq_files.join(', ')}"
     
-    mkdir -p ${sample_id}
-    touch ${sample_id}/${sample_id}.scRNA_metrics.csv
-    touch ${sample_id}/${sample_id}.scRNA.barcodeSummary.tsv
-    touch ${sample_id}/${sample_id}.scRNA.filtered.matrix.mtx.gz
-    touch ${sample_id}/${sample_id}.scRNA.filtered.barcodes.tsv.gz
-    touch ${sample_id}/${sample_id}.scRNA.filtered.features.tsv.gz
+    mkdir -p dragen_output
+    touch dragen_output/${sample_id}.scRNA_metrics.csv
+    touch dragen_output/${sample_id}.scRNA.barcodeSummary.tsv
+    touch dragen_output/${sample_id}.scRNA.filtered.matrix.mtx.gz
+    touch dragen_output/${sample_id}.scRNA.filtered.barcodes.tsv.gz
+    touch dragen_output/${sample_id}.scRNA.filtered.features.tsv.gz
     
     mkdir -p logs
     echo "[STUB] DRAGEN completed successfully" > logs/stub.log
