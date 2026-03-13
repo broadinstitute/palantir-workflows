@@ -5,6 +5,7 @@
 process GENERATE_SUPERSAMPLE_QC {
     tag "${params.supersample_basename}"
     publishDir "${params.outdir}/${params.supersample_basename}/supersample_qc", mode: 'copy'
+    container "${params.qc_container}"
     
     input:
     tuple val(num_input_cells),

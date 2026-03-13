@@ -5,6 +5,7 @@
 process GUIDE_ASSIGNMENT {
     tag "guide_assignment"
     publishDir "${params.outdir}/${params.supersample_basename}", mode: 'copy'
+    container "${params.qc_container}"
     
     input:
     path(crispr_adata)

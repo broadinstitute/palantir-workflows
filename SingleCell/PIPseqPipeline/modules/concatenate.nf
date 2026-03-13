@@ -5,6 +5,7 @@
 process CONCATENATE {
     tag "Concatenating ${subsample_ids.size()} subsamples"
     publishDir "${params.outdir}/${params.supersample_basename}/adata", mode: 'copy'
+    container "${params.qc_container}"
     
     input:
     tuple path(matrices),

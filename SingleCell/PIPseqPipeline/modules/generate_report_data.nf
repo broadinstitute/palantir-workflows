@@ -5,6 +5,7 @@
 process GENERATE_REPORT_DATA {
     tag "${subsample_basename}"
     publishDir "${params.outdir}/${params.supersample_basename}/${subsample_basename}/qc", mode: 'copy'
+    container "${params.qc_container}"
     
     input:
     tuple val(num_input_cells), 
