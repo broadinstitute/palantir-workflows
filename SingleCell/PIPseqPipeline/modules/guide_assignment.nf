@@ -18,6 +18,7 @@ process GUIDE_ASSIGNMENT {
     """
     export NUMBA_CACHE_DIR=${workflow.launchDir}
     export MPLCONFIGDIR=${workflow.launchDir}
+    export TORCHINDUCTOR_CACHE_DIR=${workflow.launchDir}
     
     # Run the CRISPAT guide assignment script
     # The script should be in the bin/ directory and will be automatically available

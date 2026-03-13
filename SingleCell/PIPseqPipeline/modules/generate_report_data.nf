@@ -21,6 +21,7 @@ process GENERATE_REPORT_DATA {
     """
     export NUMBA_CACHE_DIR=${workflow.launchDir}
     export MPLCONFIGDIR=${workflow.launchDir}
+    export TORCHINDUCTOR_CACHE_DIR=${workflow.launchDir}
 
     # Run the Python processing script
     # The script should be in the bin/ directory and will be automatically available

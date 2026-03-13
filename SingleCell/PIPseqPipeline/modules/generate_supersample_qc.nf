@@ -26,6 +26,7 @@ process GENERATE_SUPERSAMPLE_QC {
     """
     export NUMBA_CACHE_DIR=${workflow.launchDir}
     export MPLCONFIGDIR=${workflow.launchDir}
+    export TORCHINDUCTOR_CACHE_DIR=${workflow.launchDir}
     
     # Run the supersample QC script
     generate_supersample_qc.py \\
