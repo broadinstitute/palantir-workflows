@@ -19,6 +19,9 @@ process GENERATE_REPORT_DATA {
     
     script:
     """
+    export NUMBA_CACHE_DIR=${workflow.launchDir}
+    export MPLCONFIGDIR=${workflow.launchDir}
+
     # Run the Python processing script
     # The script should be in the bin/ directory and will be automatically available
     generate_report_data.py \\

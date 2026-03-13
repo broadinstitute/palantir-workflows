@@ -24,6 +24,9 @@ process GENERATE_SUPERSAMPLE_QC {
     script:
     def guide_arg = guide_assignments.name != 'NO_FILE' ? "--guide-assignments ${guide_assignments} --min-valid-guides ${min_valid_guides} --max-valid-guides ${max_valid_guides}" : ""
     """
+    export NUMBA_CACHE_DIR=${workflow.launchDir}
+    export MPLCONFIGDIR=${workflow.launchDir}
+    
     # Run the supersample QC script
     generate_supersample_qc.py \\
         --num-input-cells ${num_input_cells} \\
