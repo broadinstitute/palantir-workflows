@@ -11,7 +11,6 @@ nextflow.enable.dsl=2
 // Define parameters
 params.num_input_cells = null          // Number of input cells (integer)
 params.fastq_list = null               // CSV file with FASTQ information (RGID, RGSM, RGTY, Read1File, Read2File)
-params.fastq_files = null              // FASTQ files (glob pattern, e.g., '*.fastq.gz')
 params.ref_tar = null                  // DRAGEN reference tar file
 params.annotation_file = null          // Gene annotation file for DRAGEN
 params.scrna_feature_barcode_reference = null  // Feature barcode reference for DRAGEN
@@ -28,7 +27,6 @@ def helpMessage() {
     Required arguments:
       --num_input_cells          Number of input cells (integer)
       --fastq_list               CSV file with FASTQ information (columns: RGID, RGSM, RGTY, Read1File, Read2File)
-      --fastq_files              FASTQ files (glob pattern like '*.fastq.gz', or comma-separated list of files)
       --supersample_id           Supersample identifier
       --supersample_basename     Supersample basename for output organization
       --min_valid_guides         Minimum number of valid guides for guide assignment QC (integer)
@@ -84,12 +82,6 @@ workflow {
 
     if (!params.fastq_list) {
         log.error "ERROR: --fastq_list is required"
-        helpMessage()
-        exit 1
-    }
-
-    if (!params.fastq_files) {
-        log.error "ERROR: --fastq_files is required"
         helpMessage()
         exit 1
     }
@@ -159,42 +151,41 @@ workflow {
             // Get unique subsamples
             def subsamples = rows.collect { it.RGSM }.unique()
             
-            // For each subsample, collect feature RGIDs
+            // For each subsample, collect feature RGIDs and FASTQ files
             subsamples.collect { rgsm ->
                 def feature_rgids = rows
                     .findAll { it.RGSM == rgsm && it.RGTY == 'feature' }
                     .collect { it.RGID }
                     .join(',')
                 
+                // Collect all unique FASTQ files for this subsample
+                def fastq_files = rows
+                    .findAll { it.RGSM == rgsm }
+                    .collectMany { [it.Read1File, it.Read2File] }
+                    .unique()
+                
                 [
                     rgsm: rgsm,
-                    feature_rgids: feature_rgids
+                    feature_rgids: feature_rgids,
+                    fastq_files: fastq_files
                 ]
             }
         }
     
     log.info "Running DRAGEN scRNA for each subsample..."
     
-    // Collect all FASTQ files
-    fastq_files_ch = Channel.fromPath(params.fastq_files, checkIfExists: true).collect()
-    
     // Prepare DRAGEN inputs
-    dragen_input_ch = subsample_info
-        .combine(fastq_files_ch)
-        .map { items ->
-            // items is a list: [info_map, [fastq_files]]
-            def info = items[0]
-            def fastq_files = items[1]
-            tuple(
-                info.rgsm,
-                file(params.ref_tar),
-                file(params.fastq_list),
-                file(params.annotation_file),
-                file(params.scrna_feature_barcode_reference),
-                info.feature_rgids,
-                fastq_files
-            )
-        }
+    dragen_input_ch = subsample_info.map { info ->
+        tuple(
+            info.rgsm,
+            file(params.ref_tar),
+            file(params.fastq_list),
+            file(params.annotation_file),
+            file(params.scrna_feature_barcode_reference),
+            info.feature_rgids,
+            info.fastq_files
+        )
+    }.view()
     
     // Run DRAGEN
     DRAGEN_SCRNA(dragen_input_ch)

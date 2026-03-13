@@ -94,6 +94,7 @@ process DRAGEN_SCRNA {
     echo "  Feature barcode groups: ${scrna_feature_barcode_groups}"
     echo "  Reference: ${ref_tar}"
     echo "  Annotation: ${annotation_file}"
+    echo "  FASTQ files: ${fastq_files.join(', ')}"
     
     mkdir -p ${sample_id}
     touch ${sample_id}/${sample_id}.scRNA_metrics.csv
