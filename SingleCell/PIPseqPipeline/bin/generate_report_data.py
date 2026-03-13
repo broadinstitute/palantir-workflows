@@ -39,14 +39,14 @@ def parse_args():
         help="Sample identifier"
     )
     parser.add_argument(
-        "--sample-basename",
+        "--supersample-id",
         type=str,
         required=True,
-        help="Base name for output files"
+        help="Supersample identifier"
     )
     return parser.parse_args()
 
-def get_barcode_metrics(barcode_summary_path, sample_id):
+def get_barcode_metrics(barcode_summary_path, sample_id, supersample_id):
     data = pd.read_table(barcode_summary_path, usecols=['Molecules', 'Filter'])
     data = data.sort_values(by='Molecules', ascending=False).reset_index(drop=True)
     data = pd.concat([
@@ -57,15 +57,17 @@ def get_barcode_metrics(barcode_summary_path, sample_id):
     data.index = data.index + 1
     data = data.reset_index(names='Rank')
     data['sample_id'] = sample_id
+    data['supersample_id'] = supersample_id
+
     print('Done')
     return data
 
-def write_rankplot(barcode_summary_path, sample_id, sample_basename):
+def write_rankplot(barcode_summary_path, sample_id, supersample_id):
     print('    Generating barcode rank plot...')
-    barcode_metrics = get_barcode_metrics(barcode_summary_path, sample_id)
-    barcode_metrics.to_csv(f'{sample_basename}.qc_barcode_metrics.tsv', index=False, sep='\t')
+    barcode_metrics = get_barcode_metrics(barcode_summary_path, sample_id, supersample_id)
+    barcode_metrics.to_csv(f'{sample_id}.qc_barcode_metrics.tsv', index=False, sep='\t')
 
-def get_sc_metrics(sc_metrics_path, sample_id):
+def get_sc_metrics(sc_metrics_path, sample_id, supersample_id):
     metrics = pd.read_csv(sc_metrics_path, names=['metric_type', 'sample_id', 'metric', 'value', 'frac'], dtype={'sample_id': str})
     
     metrics = metrics.pivot(index=['sample_id'], columns='metric', values='value')
@@ -78,13 +80,16 @@ def get_sc_metrics(sc_metrics_path, sample_id):
     metrics['Fraction Mapped Reads'] = (metrics['Unique exon matching reads'] + metrics['Unique intron matching reads'] + metrics['Mitochondrial reads']) / metrics['Total barcoded reads']
     metrics['Mean reads per cell'] = metrics['Total gene reads'] / metrics['Passing cells']
     metrics['Fraction CRISPR Barcoded Reads'] = metrics['Total CRISPR reads matching known barcodes'] / metrics['Total feature reads']
+    
+    metrics['supersample_id'] = supersample_id
+    metrics.columns = ['sample_id', 'supersample_id'] + [col for col in metrics.columns if col not in ['sample_id', 'supersample_id']]
 
     return metrics
 
-def write_metrics(sc_metrics_path, sample_id, sample_basename):
+def write_metrics(sc_metrics_path, sample_id, supersample_id):
     print('    Writing single-cell RNA QC metrics...')
-    metrics = get_sc_metrics(sc_metrics_path, sample_id)
-    metrics.to_csv(f'{sample_basename}.qc_metrics.tsv', index=True, sep='\t')
+    metrics = get_sc_metrics(sc_metrics_path, sample_id, supersample_id)
+    metrics.to_csv(f'{sample_id}.qc_metrics.tsv', index=True, sep='\t')
 
 def main():
     """Main execution function."""
@@ -96,12 +101,12 @@ def main():
         write_rankplot(
             args.barcode_summary,
             args.sample_id,
-            args.sample_basename
+            args.supersample_id
         )
         write_metrics(
             args.scrna_metrics,
             args.sample_id,
-            args.sample_basename
+            args.supersample_id
         )
         print("\n✓ Report data generation completed successfully")
         return 0

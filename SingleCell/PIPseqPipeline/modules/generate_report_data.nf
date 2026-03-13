@@ -3,8 +3,8 @@
  */
 
 process GENERATE_REPORT_DATA {
-    tag "${subsample_basename}"
-    publishDir "${params.outdir}/${params.supersample_basename}/${subsample_basename}/qc", mode: 'copy'
+    tag "${subsample_id}"
+    publishDir "${params.outdir}/${params.supersample_basename}/${subsample_id}/qc", mode: 'copy'
     container "${params.qc_container}"
     
     input:
@@ -12,10 +12,10 @@ process GENERATE_REPORT_DATA {
           path(scrna_metrics), 
           path(barcode_summary), 
           val(subsample_id),
-          val(subsample_basename)    
+          val(supersample_id)    
     output:
-    path "${subsample_basename}.qc_metrics.tsv", emit: qc_metrics
-    path "${subsample_basename}.qc_barcode_metrics.tsv", emit: qc_barcode_metrics
+    path "${subsample_id}.qc_metrics.tsv", emit: qc_metrics
+    path "${subsample_id}.qc_barcode_metrics.tsv", emit: qc_barcode_metrics
     
     script:
     """
@@ -30,17 +30,18 @@ process GENERATE_REPORT_DATA {
         --scrna-metrics ${scrna_metrics} \\
         --barcode-summary ${barcode_summary} \\
         --sample-id ${subsample_id} \\
-        --sample-basename ${subsample_basename}
+        --supersample-id ${supersample_id}
     """
     
     stub:
     """
     echo "[STUB] Would generate report data with:"
     echo "  Sample ID: ${subsample_id}"
-    echo "  Sample basename: ${subsample_basename}"
+    echo "  Sample basename: ${subsample_id}"
+    echo "  Supersample ID: ${supersample_id}"
     echo "  Num input cells: ${num_input_cells}"
     
-    touch ${subsample_basename}.qc_metrics.tsv
-    touch ${subsample_basename}.qc_barcode_metrics.tsv
+    touch ${subsample_id}.qc_metrics.tsv
+    touch ${subsample_id}.qc_barcode_metrics.tsv
     """
 }

@@ -185,7 +185,7 @@ workflow {
             info.feature_rgids,
             info.fastq_files
         )
-    }.view()
+    }
     
     // Run DRAGEN
     DRAGEN_SCRNA(dragen_input_ch)
@@ -228,19 +228,18 @@ workflow {
                     file_map['matrix'],
                     file_map['barcodes'],
                     file_map['features'],
-                    subsample_id,
-                    subsample_id  // Use subsample_id as basename too
+                    subsample_id
                 )
             }
     
     // Generate per-subsample QC reports
-    qc_input_ch = all_subsamples.map { metrics, barcode_summary, _matrix, _barcodes, _features, subsample_id, subsample_basename ->
+    qc_input_ch = all_subsamples.map { metrics, barcode_summary, _matrix, _barcodes, _features, subsample_id ->
         tuple(
             params.num_input_cells,
             metrics,
             barcode_summary,
             subsample_id,
-            subsample_basename
+            params.supersample_id
         )
     }
     
