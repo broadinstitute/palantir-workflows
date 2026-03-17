@@ -190,7 +190,7 @@ listimbalances Y'''
         f.write(sankey_source)
     
     sankey_process = subprocess.run(
-        ['node', '/disk/fluent_validation/sankeymatic_local/cli.js',
+        ['node', '/app/sankeymatic_local/cli.js',
          f'{supersample_basename}.sankey_input.txt', f'{supersample_basename}.sankey.png'],
          capture_output=True)
     if sankey_process.returncode != 0:

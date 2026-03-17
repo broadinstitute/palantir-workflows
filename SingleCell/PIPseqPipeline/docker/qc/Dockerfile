@@ -25,10 +25,21 @@ RUN conda install -y -c conda-forge -c bioconda \
     numpy \
     scanpy \
     anndata \
-    crispat \
     matplotlib \
     scipy \
     && conda clean -a -y
+
+    # Copy requirements.txt and install Python packages
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash && \
+    export NVM_DIR="$HOME/.nvm" && \
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
+     nvm install 24 && \
+     npm install puppeteer
+
+RUN git clone https://github.com/michaelgatzen/sankeymatic_local.git
 
 # Set PATH for scripts
 ENV PATH="/app/bin:${PATH}"

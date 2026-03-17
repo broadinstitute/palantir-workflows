@@ -56,8 +56,11 @@ def get_barcode_metrics(barcode_summary_path, sample_id, supersample_id):
     data = data.loc[~data.index.duplicated(keep='first')]
     data.index = data.index + 1
     data = data.reset_index(names='Rank')
-    data['sample_id'] = sample_id
+
     data['supersample_id'] = supersample_id
+    data['sample_id'] = sample_id
+
+    data = data[['supersample_id', 'sample_id'] + [col for col in data.columns if col not in ['sample_id', 'supersample_id']]]
 
     print('Done')
     return data
@@ -82,7 +85,8 @@ def get_sc_metrics(sc_metrics_path, sample_id, supersample_id):
     metrics['Fraction CRISPR Barcoded Reads'] = metrics['Total CRISPR reads matching known barcodes'] / metrics['Total feature reads']
     
     metrics['supersample_id'] = supersample_id
-    metrics.columns = ['sample_id', 'supersample_id'] + [col for col in metrics.columns if col not in ['sample_id', 'supersample_id']]
+    metrics = metrics.reset_index()
+    metrics = metrics[['supersample_id', 'sample_id'] + [col for col in metrics.columns if col not in ['sample_id', 'supersample_id']]]
 
     return metrics
 
