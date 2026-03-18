@@ -16,7 +16,10 @@ process DRAGEN_SCRNA {
               path(fastq_list),
               path(annotation_file),
               path(scrna_feature_barcode_reference),
+              path(scrna_barcode_sequence_list),
+              path(scrna_cell_hashing_reference),
               val(scrna_feature_barcode_groups),
+              val(scrna_hto_barcode_groups),
               path(fastq_files)
     output:
         stdout emit: result
@@ -24,6 +27,9 @@ process DRAGEN_SCRNA {
 
     script:
         def fastqList = fastq_files.collect{ it.toString() }
+        def scrna_barcode_sequence_list_arg = scrna_barcode_sequence_list.name != 'NO_BARCODE_SEQ_LIST' ? "--scrna-barcode-sequence-list ${scrna_barcode_sequence_list}" : ""
+        def scrna_cell_hashing_reference_arg = scrna_cell_hashing_reference.name != 'NO_CELL_HASHING_REF' ? "--scrna-cell-hashing-reference ${scrna_cell_hashing_reference}" : ""
+        def scrna_hto_barcode_groups_arg = scrna_cell_hashing_reference.name != 'NO_CELL_HASHING_REF' ? "--scrna-hto-barcode-groups ${scrna_hto_barcode_groups}" : ""
         """
         set -ex
         ### create temporary directory for DRAGEN reference to get extracted to
@@ -73,6 +79,9 @@ process DRAGEN_SCRNA {
             --scrna-enable-pipseq-crispr-mode true \\
             --scrna-feature-barcode-reference ${scrna_feature_barcode_reference} \\
             --scrna-feature-barcode-groups ${scrna_feature_barcode_groups} \\
+            ${scrna_barcode_sequence_list_arg} \\
+            ${scrna_cell_hashing_reference_arg} \\
+            ${scrna_hto_barcode_groups_arg} \\
             --bin_memory 64424509440 \\
             --bin-split-threshold 32212254720 \\
             --force \\
@@ -88,10 +97,20 @@ process DRAGEN_SCRNA {
         """
     
     stub:
+        def scrna_barcode_sequence_list_arg = scrna_barcode_sequence_list.name != 'NO_BARCODE_SEQ_LIST' ? "--scrna-barcode-sequence-list ${scrna_barcode_sequence_list}" : ""
+        def scrna_cell_hashing_reference_arg = scrna_cell_hashing_reference.name != 'NO_CELL_HASHING_REF' ? "--scrna-cell-hashing-reference ${scrna_cell_hashing_reference}" : ""
+        def scrna_hto_barcode_groups_arg = scrna_cell_hashing_reference.name != 'NO_CELL_HASHING_REF' ? "--scrna-hto-barcode-groups ${scrna_hto_barcode_groups}" : ""
     """
     echo "[STUB] Would run DRAGEN with:"
     echo "  Sample ID: ${sample_id}"
     echo "  Feature barcode groups: ${scrna_feature_barcode_groups}"
+    echo "  Feature barcode reference: ${scrna_feature_barcode_reference}"
+    echo "  Barcode sequence list: ${scrna_barcode_sequence_list.name != 'NO_BARCODE_SEQ_LIST' ? scrna_barcode_sequence_list : 'Not provided'}"
+    echo "  Cell hashing reference: ${scrna_cell_hashing_reference.name != 'NO_CELL_HASHING_REF' ? scrna_cell_hashing_reference : 'Not provided'}"
+    echo "  Cell hashing barcode groups: ${scrna_hto_barcode_groups}"
+    echo "  scrna_barcode_sequence_list_arg: ${scrna_barcode_sequence_list_arg}"
+    echo "  scrna_cell_hashing_reference_arg: ${scrna_cell_hashing_reference_arg}"
+    echo "  scrna_hto_barcode_groups_arg: ${scrna_hto_barcode_groups_arg}"
     echo "  Reference: ${ref_tar}"
     echo "  Annotation: ${annotation_file}"
     echo "  FASTQ files: ${fastq_files.join(', ')}"

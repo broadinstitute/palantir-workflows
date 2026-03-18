@@ -1,0 +1,25 @@
+RGID,RGSM,RGPL,RGLB,RGCN,RGPM,Lane,Read1File,Read2File,RGTY
+subsample1.e,subsample1,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,expression
+subsample1.f,subsample1,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,feature
+subsample1.h,subsample1,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,hashing
+subsample2.e,subsample2,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,expression
+subsample2.f,subsample2,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,feature
+subsample2.h,subsample2,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,hashing
+subsample3.e,subsample3,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,expression
+subsample3.f,subsample3,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,feature
+subsample3.h,subsample3,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,hashing
+subsample4.e,subsample4,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,expression
+subsample4.f,subsample4,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,feature
+subsample4.h,subsample4,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,hashing
+subsample5.e,subsample5,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,expression
+subsample5.f,subsample5,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,feature
+subsample5.h,subsample5,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,hashing
+subsample6.e,subsample6,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,expression
+subsample6.f,subsample6,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,feature
+subsample6.h,subsample6,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,hashing
+subsample7.e,subsample7,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,expression
+subsample7.f,subsample7,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,feature
+subsample7.h,subsample7,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,hashing
+subsample8.e,subsample8,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,expression
+subsample8.f,subsample8,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,feature
+subsample8.h,subsample8,ILLUMINA,RGLB,BI,NovaSeq X,lane,stub_inputs/R1.fastq.gz,stub_inputs/R2.fastq.gz,hashing

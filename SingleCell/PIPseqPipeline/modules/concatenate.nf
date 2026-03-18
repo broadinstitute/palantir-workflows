@@ -24,6 +24,7 @@ process CONCATENATE {
     def feature_files = features.join(' ')
     def subsample_id_list = subsample_ids.join(',')
     """
+    set -ex
     export NUMBA_CACHE_DIR=${workflow.launchDir}
     export MPLCONFIGDIR=${workflow.launchDir}
     export TORCHINDUCTOR_CACHE_DIR=${workflow.launchDir}

@@ -14,6 +14,8 @@ params.fastq_list = null               // CSV file with FASTQ information (RGID,
 params.ref_tar = null                  // DRAGEN reference tar file
 params.annotation_file = null          // Gene annotation file for DRAGEN
 params.scrna_feature_barcode_reference = null  // Feature barcode reference for DRAGEN
+params.scrna_barcode_sequence_list = null      // Optional barcode sequence list for DRAGEN
+params.scrna_cell_hashing_reference = null     // Optional cell hashing reference for DRAGEN
 params.run_guide_assignment = true     // Whether to run guide assignment
 params.outdir = "results"              // Output directory
 params.help = false
@@ -34,6 +36,10 @@ def helpMessage() {
       --ref_tar                  DRAGEN reference genome tar file
       --annotation_file          Gene annotation file for DRAGEN
       --scrna_feature_barcode_reference  Feature barcode reference file for DRAGEN
+
+    Optional DRAGEN arguments:
+      --scrna_barcode_sequence_list      Barcode sequence list file for DRAGEN (optional)
+      --scrna_cell_hashing_reference     Cell hashing reference file for DRAGEN (optional)
 
     Fastq_list format:
       CSV file with columns: RGID, RGSM, RGTY, Read1File, Read2File
@@ -138,7 +144,7 @@ workflow {
             [
                 RGID: row.RGID,
                 RGSM: row.RGSM,  // subsample_id
-                RGTY: row.RGTY,  // 'expression' or 'feature'
+                RGTY: row.RGTY,  // 'expression' or 'feature' or 'hashing'
                 Read1File: file(row.Read1File),
                 Read2File: file(row.Read2File)
             ]
@@ -158,6 +164,11 @@ workflow {
                     .collect { it.RGID }
                     .join(',')
                 
+                def hashing_rgids = rows
+                    .findAll { it.RGSM == rgsm && it.RGTY == 'hashing' }
+                    .collect { it.RGID }
+                    .join(',')
+                
                 // Collect all unique FASTQ files for this subsample
                 def fastq_files = rows
                     .findAll { it.RGSM == rgsm }
@@ -167,6 +178,7 @@ workflow {
                 [
                     rgsm: rgsm,
                     feature_rgids: feature_rgids,
+                    hashing_rgids: hashing_rgids,
                     fastq_files: fastq_files
                 ]
             }
@@ -182,10 +194,13 @@ workflow {
             file(params.fastq_list),
             file(params.annotation_file),
             file(params.scrna_feature_barcode_reference),
+            params.scrna_barcode_sequence_list ? file(params.scrna_barcode_sequence_list) : file('NO_BARCODE_SEQ_LIST'),
+            params.scrna_cell_hashing_reference ? file(params.scrna_cell_hashing_reference) : file('NO_CELL_HASHING_REF'),
             info.feature_rgids,
+            info.hashing_rgids,
             info.fastq_files
         )
-    }
+    }.view { "Prepared DRAGEN input for subsample: ${it}" }
     
     // Run DRAGEN
     DRAGEN_SCRNA(dragen_input_ch)

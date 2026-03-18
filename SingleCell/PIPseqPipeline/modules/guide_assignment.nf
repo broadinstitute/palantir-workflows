@@ -16,6 +16,7 @@ process GUIDE_ASSIGNMENT {
     
     script:
     """
+    set -ex
     export NUMBA_CACHE_DIR=${workflow.launchDir}
     export MPLCONFIGDIR=${workflow.launchDir}
     export TORCHINDUCTOR_CACHE_DIR=${workflow.launchDir}

@@ -1,0 +1,15 @@
+{
+    "supersample_id": "stub_supersample",
+    "supersample_basename": "stub_supersample",
+    "fastq_list": "stub_inputs/fastq_list.csv",
+    "fastq_files": [
+        "stub_inputs/R1.stub.fastq.gz",
+        "stub_inputs/R2.stub.fastq.gz"
+    ],
+    "scrna_feature_barcode_reference": "stub_inputs/scrna_feature_barcode_reference.stub.csv",
+    "annotation_file": "stub_inputs/annotation.stub.gtf",
+    "ref_tar": "stub_inputs/ref.stub.tar",
+    "num_input_cells": 2088000,
+    "min_valid_guides": 1,
+    "max_valid_guides": 2
+}
