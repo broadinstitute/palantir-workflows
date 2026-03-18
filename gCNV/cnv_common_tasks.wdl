@@ -500,7 +500,7 @@ task PostprocessGermlineCNVCalls {
         denoising_configs_array=(~{sep=" " denoising_configs})
         gcnvkernel_version_array=(~{sep=" " gcnvkernel_version})
         sharded_interval_lists_array=(~{sep=" " sharded_interval_lists})
-        calls_args=""
+        calls_args=()
         for index in "${!gcnv_calls_tar_array[@]}"; do
             gcnv_calls_tar=${gcnv_calls_tar_array[$index]}
             mkdir -p "CALLS_$index/SAMPLE_~{sample_index}"
@@ -509,25 +509,25 @@ task PostprocessGermlineCNVCalls {
             cp "${denoising_configs_array[$index]}" "CALLS_$index/"
             cp "${gcnvkernel_version_array[$index]}" "CALLS_$index/"
             cp "${sharded_interval_lists_array[$index]}" "CALLS_$index/"
-            calls_args="$calls_args --calls-shard-path CALLS_$index"
+            calls_args+=("--calls-shard-path" "CALLS_$index")
         done
 
         # untar models to MODEL_0, MODEL_1, etc directories and build the command line
         gcnv_model_tar_array=(~{sep=" " gcnv_model_tars})
-        model_args=""
+        model_args=()
         for index in "${!gcnv_model_tar_array[@]}"; do
             gcnv_model_tar="${gcnv_model_tar_array[$index]}"
             mkdir "MODEL_$index"
             tar xzf "$gcnv_model_tar" -C "MODEL_$index"
-            model_args="$model_args --model-shard-path MODEL_$index"
+            model_args+=("--model-shard-path" "MODEL_$index")
         done
 
         mkdir contig-ploidy-calls
         tar xzf ~{contig_ploidy_calls_tar} -C contig-ploidy-calls
 
         gatk --java-options "-Xmx~{command_mem_mb}m" PostprocessGermlineCNVCalls \
-            "$calls_args" \
-            "$model_args" \
+            "${calls_args[@]}" \
+            "${model_args[@]}" \
             ~{sep=" " allosomal_contigs_args} \
             --autosomal-ref-copy-number ~{ref_copy_number_autosomal_contigs} \
             --contig-ploidy-calls contig-ploidy-calls \
