@@ -3,6 +3,7 @@ version 1.0
 import "HPVDeepSeekGenotyping.wdl" as HPVDeepSeekGenotyping
 import "HPVDeepSeekSomaticVariantCalling.wdl" as HPVDeepSeekSomaticVariantCalling
 import "HPVDeepSeekTertiaryAnalysis.wdl" as HPVDeepSeekTertiaryAnalysis
+import "HPVDeepSeekNormalization.wdl" as HPVDeepSeekNormalization
 
 workflow HPVDeepSeek {
     input {
@@ -25,10 +26,10 @@ workflow HPVDeepSeek {
         String bait_set_name
         String read_group_id
         String read_group_sample_name
-        String read_group_library_name = "LB_TEST"
+        String read_group_library_name = "LB_DEFAULT"
         String read_group_platform = "ILLUMINA"
-        String read_group_platform_unit = "PU_TEST"
-        String read_group_description = "KAPA_TE"
+        String read_group_platform_unit = "PU_DEFAULT"
+        String read_group_description = "DS_DEFAULT"
         String read_structure = "3M2S+T"
 
         # HPVDeepSeekSomaticVariantCalling inputs
@@ -51,6 +52,10 @@ workflow HPVDeepSeek {
         # HPVDeepSeekTertiaryAnalysis inputs
         File high_risk_snps_hpv
         File hpv16_sublineages
+
+        # HPVDeepSeekNormalization inputs
+        Float ml_plasma= 60.0
+        Float ng_cfdna = 20.0
     }
 
     call HPVDeepSeekGenotyping.HPVDeepSeekGenotyping {
@@ -117,6 +122,16 @@ workflow HPVDeepSeek {
             hpv16_sublineages = hpv16_sublineages
     }
 
+    call HPVDeepSeekNormalization.HPVDeepSeekNormalization {
+        input:
+            bam = HPVDeepSeekGenotyping.final_bam,
+            bai = HPVDeepSeekGenotyping.final_bam_index,
+            top_hpv_contig = HPVDeepSeekGenotyping.top_hpv_contig,
+            top_hpv_num_reads = HPVDeepSeekGenotyping.top_hpv_num_reads,
+            ml_plasma = ml_plasma,
+            ng_cfdna = ng_cfdna
+    }
+
     output {
         # HPVDeepSeekGenotyping outputs
         File raw_bam = HPVDeepSeekGenotyping.raw_bam
@@ -181,5 +196,12 @@ workflow HPVDeepSeek {
         File phylogenetic_tree_visualization = HPVDeepSeekTertiaryAnalysis.phylogenetic_tree_visualization
         File sublineage_call = HPVDeepSeekTertiaryAnalysis.sublineage_call
         File high_risk_snps_found = HPVDeepSeekTertiaryAnalysis.high_risk_snps_found
+
+        # HPVDeepSeekNormalization outputs
+        Int gapdh_num_reads = HPVDeepSeekNormalization.gapdh_num_reads
+        Float cthpvdna_per_human_genome_equivalents = HPVDeepSeekNormalization.cthpvdna_per_human_genome_equivalents
+        Float cthpvdna_count_per_ml_plasma = HPVDeepSeekNormalization.cthpvdna_count_per_ml_plasma
+        Float cthpvdna_count_per_ng_cfdna = HPVDeepSeekNormalization.cthpvdna_count_per_ng_cfdna
+        Float cthpvdna_per_human_genome_equivalents_per_ml_plasma = HPVDeepSeekNormalization.cthpvdna_per_human_genome_equivalents_per_ml_plasma
     }
 }
