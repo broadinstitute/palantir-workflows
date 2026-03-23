@@ -33,11 +33,9 @@ RUN conda install -y -c conda-forge -c bioconda \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Node.js 24 from NodeSource and puppeteer
-RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
-    apt-get install -y nodejs && \
-    npm install -g puppeteer && \
-    rm -rf /var/lib/apt/lists/*
+# Install Node.js 24 from official prebuilt binaries and puppeteer
+RUN curl -fsSL https://nodejs.org/dist/v24.14.0/node-v24.14.0-linux-x64.tar.xz | tar -xJ -C /usr/local --strip-components=1 && \
+    npm install -g puppeteer
 
 RUN git clone https://github.com/michaelgatzen/sankeymatic_local.git
 
