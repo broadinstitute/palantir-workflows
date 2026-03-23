@@ -25,9 +25,7 @@ process GENERATE_SUPERSAMPLE_QC {
     def guide_arg = guide_assignments.name != 'NO_FILE' ? "--guide-assignments ${guide_assignments} --min-valid-guides ${min_valid_guides} --max-valid-guides ${max_valid_guides}" : ""
     """
     set -ex
-    echo \$PATH
-    du /root/.nvm/versions/node/v24.14.0/bin/node
-    which node
+    
     export NUMBA_CACHE_DIR=${workflow.launchDir}
     export MPLCONFIGDIR=${workflow.launchDir}
     export TORCHINDUCTOR_CACHE_DIR=${workflow.launchDir}
