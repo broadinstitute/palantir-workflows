@@ -18,7 +18,7 @@ process GENERATE_SUPERSAMPLE_QC {
     
     output:
     path "${params.supersample_basename}.guide_assignment_distribution.png", emit: guide_assignment_distribution
-    path "${params.supersample_basename}.sankey.png", emit: sankey
+    //path "${params.supersample_basename}.sankey.png", emit: sankey
     path "${params.supersample_basename}.supersample_qc_metrics.tsv", emit: supersample_qc_metrics
     
     script:
@@ -53,7 +53,7 @@ process GENERATE_SUPERSAMPLE_QC {
     # Create optional outputs if guides are present
     if [ "${has_guides}" = "true" ]; then
         touch ${params.supersample_basename}.guide_assignment_distribution.png
-        touch ${params.supersample_basename}.sankey.png
+        #touch ${params.supersample_basename}.sankey.png
     fi
     """
 }
