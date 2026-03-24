@@ -541,8 +541,10 @@ task PostprocessGermlineCNVCalls {
 
         #use wc instead of grep -c so zero count isn't non-zero exit
         #use grep -P to recognize tab character
-        NUM_SEGMENTS=$(zgrep '^[^#]' ~{genotyped_segments_vcf_filename} | grep -v '0/0' | grep -v -P '\t0:1:' | grep -c '')
-        NUM_PASS_SEGMENTS=$(zgrep '^[^#]' ~{genotyped_segments_vcf_filename} | grep -v '0/0' | grep -v -P '\t0:1:' | grep -c 'PASS')
+        #shellcheck disable=SC2126
+        NUM_SEGMENTS=$(zgrep '^[^#]' ~{genotyped_segments_vcf_filename} | grep -v '0/0' | grep -v -P '\t0:1:' | grep '' | wc -l)
+        #shellcheck disable=SC2126
+        NUM_PASS_SEGMENTS=$(zgrep '^[^#]' ~{genotyped_segments_vcf_filename} | grep -v '0/0' | grep -v -P '\t0:1:' | grep 'PASS' | wc -l)
         if [ "$NUM_SEGMENTS" -lt ~{maximum_number_events} ]; then
             if [ "$NUM_PASS_SEGMENTS" -lt ~{maximum_number_pass_events} ]; then
               echo "PASS" >> ~{qc_status_filename}
