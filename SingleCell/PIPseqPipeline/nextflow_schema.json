@@ -127,6 +127,28 @@
                 "max_valid_guides"
             ]
         },
+        "resource_options": {
+            "title": "Resource options",
+            "type": "object",
+            "fa_icon": "fas fa-server",
+            "description": "Resource allocation options for pipeline processes.",
+            "properties": {
+                "concatenate_cpus": {
+                    "type": "integer",
+                    "description": "Number of CPUs for CONCATENATE process",
+                    "default": 8,
+                    "fa_icon": "fas fa-microchip",
+                    "minimum": 1
+                },
+                "concatenate_memory_gb": {
+                    "type": "integer",
+                    "description": "Memory in GB for CONCATENATE process",
+                    "default": 24,
+                    "fa_icon": "fas fa-memory",
+                    "minimum": 1
+                }
+            }
+        },
         "generic_options": {
             "title": "Generic options",
             "type": "object",
@@ -153,6 +175,9 @@
         },
         {
             "$ref": "#/definitions/guide_assignment_options"
+        },
+        {
+            "$ref": "#/definitions/resource_options"
         },
         {
             "$ref": "#/definitions/generic_options"
