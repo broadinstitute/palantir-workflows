@@ -187,7 +187,7 @@ task TrimAndFilter {
         Int cpu = 3
         Int memory_gb = 16
         Int disk_size_gb = ceil((2.5 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + 50)
-        Int min_ssd_size_gb = 512
+        Int min_ssd_size_gb = 1024
         Boolean use_ssd = true
     }
 
