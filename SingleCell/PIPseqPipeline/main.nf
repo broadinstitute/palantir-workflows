@@ -19,6 +19,8 @@ params.scrna_cell_hashing_reference = null     // Optional cell hashing referenc
 params.run_guide_assignment = true     // Whether to run guide assignment
 params.outdir = "results"              // Output directory
 params.help = false
+params.dragen_container = null         // DRAGEN container image
+params.qc_container = null             // QC container image
 
 // Help message
 def helpMessage() {
@@ -36,6 +38,8 @@ def helpMessage() {
       --ref_tar                  DRAGEN reference genome tar file
       --annotation_file          Gene annotation file for DRAGEN
       --scrna_feature_barcode_reference  Feature barcode reference file for DRAGEN
+      --dragen_container         Container image for DRAGEN execution
+      --qc_container             Container image for QC processing
 
     Optional DRAGEN arguments:
       --scrna_barcode_sequence_list      Barcode sequence list file for DRAGEN (optional)
@@ -124,6 +128,18 @@ workflow {
 
     if (!params.scrna_feature_barcode_reference) {
         log.error "ERROR: --scrna_feature_barcode_reference is required"
+        helpMessage()
+        exit 1
+    }
+
+    if (!params.dragen_container) {
+        log.error "ERROR: --dragen_container is required"
+        helpMessage()
+        exit 1
+    }
+
+    if (!params.qc_container) {
+        log.error "ERROR: --qc_container is required"
         helpMessage()
         exit 1
     }

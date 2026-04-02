@@ -44,6 +44,9 @@ RUN curl -fsSL https://nodejs.org/dist/v24.14.0/node-v24.14.0-linux-x64.tar.xz |
 
 RUN git clone https://github.com/michaelgatzen/sankeymatic_local.git
 
+RUN git clone https://github.com/michaelgatzen/crispat.git
+RUN cd crispat && pip install .
+
 # Set PATH for scripts
 ENV PATH="/app/bin:${PATH}"
 

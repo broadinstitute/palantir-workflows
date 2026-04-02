@@ -1,8 +1,7 @@
 process DRAGEN_SCRNA {
     tag "${sample_id}"
 
-    // 4.5.0-2307-gc8db6ea0
-    container '079623148045.dkr.ecr.us-east-1.amazonaws.com/cp-prod/42e2947c-3505-4667-8493-a3606fae06fa:latest'
+    container "${params.dragen_container}"
     pod annotation: 'scheduler.illumina.com/presetSize', value: 'fpga2-large'
     // add scratch space for intermediate files
     pod annotation: 'volumes.illumina.com/scratchSize', value: '1TiB'
