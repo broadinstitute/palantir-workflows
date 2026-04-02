@@ -21,6 +21,7 @@ params.outdir = "results"              // Output directory
 params.help = false
 params.dragen_container = null         // DRAGEN container image
 params.qc_container = null             // QC container image
+params.use_direct_capture_mode = true       // Whether to use direct capture mode in DRAGEN
 
 // Help message
 def helpMessage() {
@@ -42,13 +43,14 @@ def helpMessage() {
       --qc_container             Container image for QC processing
 
     Optional DRAGEN arguments:
+      --use_direct_capture_mode          Whether to use direct capture mode in DRAGEN (default: ${params.use_direct_capture_mode})
       --scrna_barcode_sequence_list      Barcode sequence list file for DRAGEN (optional)
       --scrna_cell_hashing_reference     Cell hashing reference file for DRAGEN (optional)
 
     Fastq_list format:
       CSV file with columns: RGID, RGSM, RGTY, Read1File, Read2File
       - RGSM values represent subsample IDs
-      - RGTY indicates readgroup type ('expression' or 'feature')
+      - RGTY indicates readgroup type ('expression' or 'feature' or 'hashing')
       - All rows with the same RGSM belong to the same subsample
 
     Optional arguments:
@@ -214,9 +216,10 @@ workflow {
             params.scrna_cell_hashing_reference ? file(params.scrna_cell_hashing_reference) : file('NO_CELL_HASHING_REF'),
             info.feature_rgids,
             info.hashing_rgids,
-            info.fastq_files
+            info.fastq_files,
+            params.use_direct_capture_mode
         )
-    }.view { "Prepared DRAGEN input for subsample: ${it}" }
+    }
     
     // Run DRAGEN
     DRAGEN_SCRNA(dragen_input_ch)

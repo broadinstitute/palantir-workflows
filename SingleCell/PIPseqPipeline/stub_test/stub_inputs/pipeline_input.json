@@ -11,5 +11,10 @@
     "ref_tar": "stub_inputs/ref.stub.tar",
     "num_input_cells": 2088000,
     "min_valid_guides": 1,
-    "max_valid_guides": 2
+    "max_valid_guides": 2,
+    "dragen_container": "dragen_container",
+    "qc_container": "qc_container",
+    "use_direct_capture_mode": false,
+    "concatenate_cpus": 4,
+    "concatenate_memory_gb": 16
 }
