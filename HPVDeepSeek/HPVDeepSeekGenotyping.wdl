@@ -258,7 +258,7 @@ task BwaMem {
         Int num_threads = 32
         Int memory_gb = 64
         Int disk_size_gb = ceil((3 * (size(fastq1, "GiB") + size(fastq2, "GiB"))) + size(reference, "GiB") + 100)
-        Int min_ssd_size_gb = 512
+        Int min_ssd_size_gb = 1024
         Boolean use_ssd = true
     }
 
