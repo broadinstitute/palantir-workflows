@@ -82,7 +82,6 @@ def get_sc_metrics(sc_metrics_path, sample_id, supersample_id):
     metrics['Fraction Reads with valid IMI'] = (metrics['Reads with valid molecular identifier sequences'] + metrics['Reads with corrected molecular identifier sequences']) / metrics['Total barcoded reads']
     metrics['Fraction Mapped Reads'] = (metrics['Unique exon matching reads'] + metrics['Unique intron matching reads'] + metrics['Mitochondrial reads']) / metrics['Total barcoded reads']
     metrics['Mean reads per cell'] = metrics['Total gene reads'] / metrics['Passing cells']
-    metrics['Fraction CRISPR Barcoded Reads'] = metrics['Total CRISPR reads matching known barcodes'] / metrics['Total feature reads']
     
     metrics['supersample_id'] = supersample_id
     metrics = metrics.reset_index()
