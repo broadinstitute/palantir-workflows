@@ -144,6 +144,24 @@ workflow {
         exit 1
     }
 
+    if (!params.concatenate_cpus) {
+        log.error "ERROR: --concatenate_cpus is required"
+        helpMessage()
+        exit 1
+    }
+
+    if (!params.concatenate_memory_gb) {
+        log.error "ERROR: --concatenate_memory_gb is required"
+        helpMessage()
+        exit 1
+    }
+
+    if (!params.dragen_scratch_tb) {
+        log.error "ERROR: --dragen_scratch_tb is required"
+        helpMessage()
+        exit 1
+    }
+
     log.info "Reading subsamples from fastq_list..."
     
     // Read fastq_list and parse subsample information
