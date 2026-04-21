@@ -21,6 +21,7 @@ params.outdir = "results"              // Output directory
 params.help = false
 params.dragen_container = null         // DRAGEN container image
 params.qc_container = null             // QC container image
+params.guide_assignment_num_processes = null  // Number of processes for guide assignment (default: all available cores)
 
 // Help message
 def helpMessage() {
@@ -53,6 +54,7 @@ def helpMessage() {
 
     Optional arguments:
       --run_guide_assignment     Whether to run CRISPR guide assignment (default: ${params.run_guide_assignment})
+      --guide_assignment_num_processes  Number of processes to use for guide assignment (default: all available cores)
       --outdir                   Output directory (default: ${params.outdir})
       --help                     Show this help message
     
@@ -234,7 +236,7 @@ workflow {
             info.hashing_rgids,
             info.fastq_files
         )
-    }.view { "Prepared DRAGEN input for subsample: ${it}" }
+    }
     
     // Run DRAGEN
     DRAGEN_SCRNA(dragen_input_ch)

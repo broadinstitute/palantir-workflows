@@ -29,11 +29,17 @@ def parse_args():
         required=True,
         help="Path to feature barcode reference file"
     )
+    parser.add_argument(
+        "--num-processes",
+        type=int,
+        default=None,
+        help="Number of processes to use for parallelization (default: all available cores)"
+    )
     return parser.parse_args()
 
-def run_guide_assignment(crispr_adata_path):
+def run_guide_assignment(crispr_adata_path, num_processes):
     print('Running CRISPAT Gaussian Mixture model...')
-    crispat.ga_poisson_gauss(f'{crispr_adata_path}', f'crispat_ga/poisson_gauss/')
+    crispat.ga_poisson_gauss(f'{crispr_adata_path}', f'crispat_ga/poisson_gauss/', parallelize=True, n_processes=num_processes, report_interval_seconds=30)
 
 def main():
     """Main execution function."""
@@ -41,7 +47,8 @@ def main():
     
     try:
         run_guide_assignment(
-            args.crispr_adata
+            args.crispr_adata,
+            args.num_processes
         )
         print("\n✓ Guide assignment completed successfully")
         return 0
