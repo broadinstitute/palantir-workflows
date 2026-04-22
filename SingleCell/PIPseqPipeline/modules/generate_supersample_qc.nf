@@ -40,18 +40,19 @@ process GENERATE_SUPERSAMPLE_QC {
     """
     
     stub:
-    def has_guides = guide_assignments.name != 'NO_FILE'
+    def guide_arg = guide_assignments.name != 'NO_FILE' ? "--guide-assignments ${guide_assignments} --min-valid-guides ${min_valid_guides} --max-valid-guides ${max_valid_guides}" : ""
     """
     echo "[STUB] Would generate supersample QC with:"
     echo "  Supersample ID: ${supersample_id}"
     echo "  Supersample basename: ${supersample_basename}"
     echo "  Num subsamples: ${subsample_qc_files.size()}"
-    echo "  Has guide assignments: ${has_guides}"
+    echo "  Subsample QC files: ${subsample_qc_files.join(', ')}"
+    echo "  Guide arguments: ${guide_arg}"
     
     touch ${params.supersample_basename}.supersample_qc_metrics.tsv
     
     # Create optional outputs if guides are present
-    if [ "${has_guides}" = "true" ]; then
+    if [ "${guide_arg}" != "" ]; then
         touch ${params.supersample_basename}.guide_assignment_distribution.png
         #touch ${params.supersample_basename}.sankey.png
     fi

@@ -328,15 +328,15 @@ workflow {
     // Generate supersample QC (always runs)
     supersample_qc_input = GENERATE_REPORT_DATA.out.qc_metrics
         .collect()
+        .map { qc_metrics_list -> [qc_metrics_list] }  // Wrap list in tuple to preserve it
         .combine(guide_assignments_ch)
-        .map { combined ->
-            // combined is a list [qc_metrics_list, guide_assignments_file]
-            def qc_metrics = combined[0]
-            def guide_assignments = combined[1]
+        .map { qc_metrics_list, guide_assignments ->
+            // qc_metrics_list is the collected list of qc files
+            // guide_assignments is the guide assignments file (or NO_FILE)
             
             tuple(
                 params.num_input_cells,
-                qc_metrics,
+                qc_metrics_list,
                 params.supersample_basename,
                 params.supersample_id,
                 guide_assignments,
