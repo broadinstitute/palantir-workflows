@@ -66,7 +66,7 @@ def generate_supersample_qc(guide_assignments, subsample_qc_files, supersample_b
     supersample_metrics = pd.DataFrame({'sample_id': [supersample_id]})
     supersample_metrics['N0 Input cells'] = num_input_cells
     supersample_metrics['N1 Passing cells'] = subsample_metrics['Passing cells'].sum()
-    supersample_metrics['N2 Guide containing passing cells'] = (subsample_metrics['Fraction passing cells with CRISPR reads'] * subsample_metrics['Passing cells']).sum()
+    #supersample_metrics['N2 Guide containing passing cells'] = (subsample_metrics['Fraction passing cells with CRISPR reads'] * subsample_metrics['Passing cells']).sum()
     
     if guide_assignments is not None:
         num_guides_per_cell = guide_assignments.groupby('cell')['gRNA'].nunique().value_counts()
