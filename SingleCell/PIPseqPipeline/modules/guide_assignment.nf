@@ -15,6 +15,7 @@ process GUIDE_ASSIGNMENT {
     path "crispat_ga/poisson_gauss/assignments.csv", emit: guide_assignments
     
     script:
+    def num_processes_arg = params.guide_assignment_num_processes != null ? "--num-processes ${params.guide_assignment_num_processes}" : ""
     """
     set -ex
     export NUMBA_CACHE_DIR=${workflow.launchDir}
@@ -24,7 +25,8 @@ process GUIDE_ASSIGNMENT {
     # Run the CRISPAT guide assignment script
     # The script should be in the bin/ directory and will be automatically available
     run_guide_assignment.py \\
-        --crispr-adata ${crispr_adata}
+        --crispr-adata ${crispr_adata} \\
+        ${num_processes_arg}
     """
     
     stub:
