@@ -250,9 +250,16 @@ task VCFEval {
 
         # rtg vcfeval requires the index to be co-located with the VCF
         # handle cases where index is provided in a different location
-        if [ ! -f "~{query_vcf}.tbi" ]; then
-            cp "~{query_vcf_index}" "~{query_vcf}.tbi"
-        fi
+        colocate_tbi() {
+            local vcf="$1"
+            local index="$2"
+
+             if [ ! -f "${vcf}.tbi" ]; then
+                cp "${index}" "${vcf}.tbi"
+            fi
+        }
+        colocate_tbi "~{base_vcf}" "~{base_vcf_index}"
+        colocate_tbi "~{query_vcf}" "~{query_vcf_index}"
 
         # Make bed file for full reference
         awk -v OFS="\t" '{print $1, 0, $2}' ~{reference.index} > genome_file.bed
