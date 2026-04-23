@@ -39,12 +39,12 @@ def helpMessage() {
       --max_valid_guides         Maximum number of valid guides for guide assignment QC (integer)
       --ref_tar                  DRAGEN reference genome tar file
       --annotation_file          Gene annotation file for DRAGEN
-      --scrna_feature_barcode_reference  Feature barcode reference file for DRAGEN
       --dragen_container         Container image for DRAGEN execution
       --qc_container             Container image for QC processing
 
     Optional DRAGEN arguments:
       --use_direct_capture_mode          Whether to use direct capture mode in DRAGEN (default: ${params.use_direct_capture_mode})
+      --scrna_feature_barcode_reference  Feature barcode reference file for DRAGEN (optional)
       --scrna_barcode_sequence_list      Barcode sequence list file for DRAGEN (optional)
       --scrna_cell_hashing_reference     Cell hashing reference file for DRAGEN (optional)
 
@@ -126,12 +126,6 @@ workflow {
 
     if (!params.annotation_file) {
         log.error "ERROR: --annotation_file is required"
-        helpMessage()
-        exit 1
-    }
-
-    if (!params.scrna_feature_barcode_reference) {
-        log.error "ERROR: --scrna_feature_barcode_reference is required"
         helpMessage()
         exit 1
     }
@@ -231,7 +225,7 @@ workflow {
             file(params.ref_tar),
             file(params.fastq_list),
             file(params.annotation_file),
-            file(params.scrna_feature_barcode_reference),
+            params.scrna_feature_barcode_reference ? file(params.scrna_feature_barcode_reference) : file('NO_FEATURE_BARCODE_REF'),
             params.scrna_barcode_sequence_list ? file(params.scrna_barcode_sequence_list) : file('NO_BARCODE_SEQ_LIST'),
             params.scrna_cell_hashing_reference ? file(params.scrna_cell_hashing_reference) : file('NO_CELL_HASHING_REF'),
             info.feature_rgids,
