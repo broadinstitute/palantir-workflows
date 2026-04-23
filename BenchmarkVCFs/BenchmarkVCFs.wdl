@@ -251,7 +251,7 @@ task VCFEval {
         # rtg vcfeval requires the index to be co-located with the VCF
         # handle cases where index is provided in a different location
         if [ ! -f "~{query_vcf}.tbi" ]; then
-            cp ~{vcf_index} "~{query_vcf}.tbi"
+            cp "~{query_vcf_index}" "~{query_vcf}.tbi"
         fi
 
         # Make bed file for full reference
