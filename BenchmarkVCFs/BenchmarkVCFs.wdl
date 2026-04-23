@@ -258,8 +258,8 @@ task VCFEval {
                 cp "${index}" "${vcf}.tbi"
             fi
         }
-        colocate_tbi "~{base_vcf}" "~{base_vcf_index}"
-        colocate_tbi "~{query_vcf}" "~{query_vcf_index}"
+        colocate_tbi ~{base_vcf} ~{base_vcf_index}
+        colocate_tbi ~{query_vcf} ~{query_vcf_index}
 
         # Make bed file for full reference
         awk -v OFS="\t" '{print $1, 0, $2}' ~{reference.index} > genome_file.bed
