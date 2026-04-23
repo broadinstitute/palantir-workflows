@@ -248,9 +248,11 @@ task VCFEval {
     command <<<
         set -xeuo pipefail
 
-        # rtg vcfeval requires the index to be co-located with the VCF; re-index to guarantee this.
-        bcftools index -t ~{query_vcf}
-        bcftools index -t ~{base_vcf}
+        # rtg vcfeval requires the index to be co-located with the VCF
+        # handle cases where index is provided in a different location
+        if [ ! -f "~{query_vcf}.tbi" ]; then
+            cp ~{vcf_index} "~{query_vcf}.tbi"
+        fi
 
         # Make bed file for full reference
         awk -v OFS="\t" '{print $1, 0, $2}' ~{reference.index} > genome_file.bed
