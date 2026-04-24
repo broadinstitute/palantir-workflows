@@ -25,7 +25,7 @@ git_credential_uuid = '5a2282d8-61a7-4222-8969-bfefbbe4f949'
 
 print(f'Exporting pipeline with the following data:')
 print(f'  Pipeline name: {pipeline_name}')
-print(f'  Pipeline version: {current_git_commit_id}')
+print(f'  Pipeline version: {current_git_commit_id_short}')
 print(f'  Commit: {current_git_commit_id}')
 print(f'  Repository URL: {repository_url}')
 print(f'  Main file path: {main_file_path}')

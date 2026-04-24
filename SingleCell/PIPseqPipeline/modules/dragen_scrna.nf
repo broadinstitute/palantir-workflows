@@ -31,6 +31,7 @@ process DRAGEN_SCRNA {
         def scrna_feature_barcode_reference_arg = scrna_feature_barcode_reference.name != 'NO_FEATURE_BARCODE_REF' ? "--scrna-feature-barcode-reference ${scrna_feature_barcode_reference}" : ""
         def scrna_cell_hashing_reference_arg = scrna_cell_hashing_reference.name != 'NO_CELL_HASHING_REF' ? "--scrna-cell-hashing-reference ${scrna_cell_hashing_reference}" : ""
         def scrna_hto_barcode_groups_arg = scrna_cell_hashing_reference.name != 'NO_CELL_HASHING_REF' ? "--scrna-hto-barcode-groups ${scrna_hto_barcode_groups}" : ""
+        def scrna_direct_capture_mode_arg = scrna_feature_barcode_groups ? "--scrna-enable-direct-capture-mode ${use_direct_capture_mode}" : ""
         def scrna_direct_capture_barcode_groups_arg = scrna_feature_barcode_groups ? (use_direct_capture_mode ? "--scrna-direct-capture-barcode-groups ${scrna_feature_barcode_groups}" : "--scrna-feature-barcode-groups ${scrna_feature_barcode_groups}") : ""
         """
         set -ex
@@ -78,7 +79,7 @@ process DRAGEN_SCRNA {
             --intermediate-results-dir /scratch \\
             --fastq-list-sample-id ${sample_id} \\
             --ref-dir /scratch/reference \\
-            --scrna-enable-direct-capture-mode ${use_direct_capture_mode} \\
+            ${scrna_direct_capture_mode_arg} \\
             ${scrna_feature_barcode_reference_arg} \\
             ${scrna_direct_capture_barcode_groups_arg} \\
             ${scrna_barcode_sequence_list_arg} \\
@@ -103,6 +104,7 @@ process DRAGEN_SCRNA {
         def scrna_cell_hashing_reference_arg = scrna_cell_hashing_reference.name != 'NO_CELL_HASHING_REF' ? "--scrna-cell-hashing-reference ${scrna_cell_hashing_reference}" : ""
         def scrna_hto_barcode_groups_arg = scrna_cell_hashing_reference.name != 'NO_CELL_HASHING_REF' ? "--scrna-hto-barcode-groups ${scrna_hto_barcode_groups}" : ""
         def scrna_direct_capture_barcode_groups_arg = scrna_feature_barcode_groups ? (use_direct_capture_mode ? "--scrna-direct-capture-barcode-groups ${scrna_feature_barcode_groups}" : "--scrna-feature-barcode-groups ${scrna_feature_barcode_groups}") : ""
+        def scrna_direct_capture_mode_arg = scrna_feature_barcode_groups ? "--scrna-enable-direct-capture-mode ${use_direct_capture_mode}" : ""
     """
     echo "[STUB] Would run DRAGEN with:"
     echo "  Sample ID: ${sample_id}"
@@ -114,8 +116,8 @@ process DRAGEN_SCRNA {
     echo "  scrna_barcode_sequence_list_arg: ${scrna_barcode_sequence_list_arg}"
     echo "  scrna_cell_hashing_reference_arg: ${scrna_cell_hashing_reference_arg}"
     echo "  scrna_hto_barcode_groups_arg: ${scrna_hto_barcode_groups_arg}"
-    echo "  use_direct_capture_mode: ${use_direct_capture_mode}"
     echo "  scrna_direct_capture_barcode_groups_arg: ${scrna_direct_capture_barcode_groups_arg}"
+    echo "  scrna_direct_capture_mode_arg: ${scrna_direct_capture_mode_arg}"
     echo "  Reference: ${ref_tar}"
     echo "  Annotation: ${annotation_file}"
     echo "  FASTQ files: ${fastq_files.join(', ')}"
