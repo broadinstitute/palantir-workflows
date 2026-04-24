@@ -1,6 +1,7 @@
 import requests
 import subprocess
 import json
+import datetime
 
 api_url = 'https://ica.illumina.com/ica/rest/api'
 
@@ -52,7 +53,7 @@ headers = {
 files = {
     'language': (None, 'NEXTFLOW'),
     'code': (None, pipeline_name),
-    'description': (None, f'PIPseq pipeline exported from git commit {current_git_commit_id} of repository {repository_url}'),
+    'description': (None, f'Pipeline exported on {datetime.date.today().isoformat()}'),
     'defaultStorageType': (None, 'Small'),
     'proprietary': (None, 'false'),
     'version': (None, current_git_commit_id_short),
