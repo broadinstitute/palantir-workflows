@@ -110,6 +110,12 @@ workflow CohortCNVCallingAndMergeForFabric {
             panel_read_counts = CNVGermlineCohortWorkflow.read_counts, #!NonemptyCoercion
             interval_lists = CNVGermlineCohortWorkflow.sharded_interval_lists #!NonemptyCoercion
         }
+
+        call LowGCDropoutQC {
+            input:
+                counts_hdf5 = CNVGermlineCohortWorkflow.read_counts[i],
+                annotated_intervals = select_first([CNVGermlineCohortWorkflow.annotated_intervals]),
+        }
     }
 
 
@@ -125,7 +131,86 @@ workflow CohortCNVCallingAndMergeForFabric {
         Array[Boolean] qc_passed = qc_passed_scatter
         Array[File] cnv_metrics = ExtractPoNFreqAnnotateFilterAndQC.cnv_metrics
         Array[File] cnv_event_report = GCNVVisualzation.cnv_event_report
+        Array[File] low_gc_dropout_metric = LowGCDropoutQC.low_gc_drouput_tsv
 
     }
 
+}
+
+task LowGCDropoutQC {
+    input {
+        File counts_hdf5
+        File annotated_intervals
+        Int mem_gb = 4
+    }
+
+    String basename = basename(counts_hdf5, ".hdf5")
+    command <<<
+        set -euo pipefail
+
+        python3 << "EOF"
+        import h5py
+        import pandas as pd
+        import numpy as np
+
+        def read_counts(file_path):
+            with h5py.File(file_path, 'r') as f:
+                # 1. Read contig names and create index
+                # .asstr() handles the common HDF5 byte-string issue in Python
+                contigs = pd.DataFrame({
+                    'CONTIG': f['intervals/indexed_contig_names'][:].astype(str)
+                })
+                contigs['contig_idx'] = np.arange(len(contigs))
+
+                # 2. Read interval coordinates (START/END)
+                # HDF5 'transposed_index_start_end' is typically a 2D array
+                coords = f['intervals/transposed_index_start_end'][:].T
+                counts_df = pd.DataFrame(coords, columns=['contig_idx', 'START', 'END'])
+
+                # 3. Join contig names to the coordinates
+                counts_df = counts_df.merge(contigs, on='contig_idx')
+
+                # 4. Read the raw count values
+                counts_df['counts'] = f['counts/values'][:].flatten()
+
+                # 5. Read Sample Name
+                # In GATK HDF5, this is usually a single value or one per bin
+                sample_name = f['sample_metadata/sample_name'][0].decode('utf-8')
+                counts_df['sample_name'] = sample_name
+
+                # 6. Normalize by the mean
+                mean_counts = counts_df['counts'].mean()
+                counts_df['norm_counts'] = counts_df['counts'] / mean_counts
+
+                # 7. Final cleanup (remove the internal index)
+                return counts_df.drop(columns=['contig_idx']), sample_name
+
+        counts_df, sample_name = read_counts("~{counts_hdf5}")
+        intervals = pd.read_csv("~{annotated_intervals}", sep='\t', comment="@")
+        counts_df = counts_df.merge(intervals)
+
+        low_gc_bin_counts = counts_df[(counts_df['GC_CONTENT'] > 0.25) && (counts_df['GC_CONTENT'] < 0.3)]['counts']
+        low_gc_dropout_frac = (low_gc_bin_counts < 0.25 * low_gc_bin_counts.mean()).mean()
+
+
+        with open(f'~{basename}_low_gc_dropout_qc.tsv', 'w') as f:
+            f.write(f"sample\tlow_gc_dropout_frac\n")
+            f.write(f"{sample_name}\t{low_gc_dropout_frac:.4f}\n")        
+        
+        EOF
+
+
+    >>>
+
+    runtime {
+        docker: "us.gcr.io/broad-dsde-methods/python-data-slim"
+        preemptible: 3
+        cpu: 1
+        disks: "local-disk 50 HDD"
+        memory: mem_gb + " GB"
+    }
+
+    output {
+        File low_gc_drouput_tsv = "~{basename}_low_gc_dropout_qc.tsv"
+    }
 }
