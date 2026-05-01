@@ -203,7 +203,7 @@ task LowGCDropoutQC {
     >>>
 
     runtime {
-        docker: "us.gcr.io/broad-dsde-methods/python-data-slim"
+        docker: "us.gcr.io/broad-dsde-methods/python-h5py@sha256:0e6686e91ccd485992d421cef71ca912afabd84fda14f4d755bb1633fbd92305"
         preemptible: 3
         cpu: 1
         disks: "local-disk 50 HDD"
