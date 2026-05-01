@@ -189,7 +189,7 @@ task LowGCDropoutQC {
         intervals = pd.read_csv("~{annotated_intervals}", sep='\t', comment="@")
         counts_df = counts_df.merge(intervals)
 
-        low_gc_bin_counts = counts_df[(counts_df['GC_CONTENT'] > 0.25) && (counts_df['GC_CONTENT'] < 0.3)]['counts']
+        low_gc_bin_counts = counts_df[(counts_df['GC_CONTENT'] > 0.25) & (counts_df['GC_CONTENT'] < 0.3)]['counts']
         low_gc_dropout_frac = (low_gc_bin_counts < 0.25 * low_gc_bin_counts.mean()).mean()
 
 
