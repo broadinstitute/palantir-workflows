@@ -76,3 +76,10 @@ PCARE:
     base:
       test_inputs: "/test/PCARE/test_inputs.json"
       expected_outputs: "/test/PCARE/test_outputs.json"
+
+CohortCNVCallingAndMergeForFabric:
+  path: "/gCNV/cohort_cnv_calling_and_merge_for_fabric.wdl"
+  tests:
+    base:
+      test_inputs: "/test/CohortCNVCallingAndMergeForFabric/test_base_inputs.json"
+      expected_outputs: "/test/CohortCNVCallingAndMergeForFabric/test_base_outputs.json"

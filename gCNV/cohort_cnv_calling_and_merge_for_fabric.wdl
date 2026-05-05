@@ -144,7 +144,7 @@ task LowGCDropoutQC {
         Int mem_gb = 4
     }
 
-    String basename = basename(counts_hdf5, ".hdf5")
+    String basename = basename(counts_hdf5, "counts.hdf5")
     command <<<
         set -euo pipefail
 
