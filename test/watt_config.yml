@@ -81,5 +81,5 @@ CohortCNVCallingAndMergeForFabric:
   path: "/gCNV/cohort_cnv_calling_and_merge_for_fabric.wdl"
   tests:
     base:
-      test_inputs: "/test/CohortCNVCallingAndMergeForFabric/test_base_inputs.json"
-      expected_outputs: "/test/CohortCNVCallingAndMergeForFabric/test_base_outputs.json"
+      test_inputs: "/test/CohortCNVAndMergeForFabric/test_base_inputs.json"
+      expected_outputs: "/test/CohortCNVAndMergeForFabric/test_base_outputs.json"
