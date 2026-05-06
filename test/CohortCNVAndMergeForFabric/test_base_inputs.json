@@ -1,7 +1,7 @@
 {
-    "CNVGermlineCohortWorkflow.mem_gb_for_collect_counts": 2,
-    "CNVGermlineCohortWorkflow.mem_gb_for_determine_germline_contig_ploidy": 2,
-    "CNVGermlineCohortWorkflow.mem_gb_for_filter_intervals": 2,
+    "CohortCNVCallingAndMergeForFabric.CNVGermlineCohortWorkflow.mem_gb_for_collect_counts": 2,
+    "CohortCNVCallingAndMergeForFabric.CNVGermlineCohortWorkflow.mem_gb_for_determine_germline_contig_ploidy": 2,
+    "CohortCNVCallingAndMergeForFabric.CNVGermlineCohortWorkflow.mem_gb_for_filter_intervals": 2,
     "CohortCNVCallingAndMergeForFabric.cohort_entity_id": "test_cohort",
     "CohortCNVCallingAndMergeForFabric.contig_ploidy_priors" : "gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/contig_ploidy_priors_hg38.tsv",
     "CohortCNVCallingAndMergeForFabric.gatk_docker": "broadinstitute/gatk:4.4.0.0",
