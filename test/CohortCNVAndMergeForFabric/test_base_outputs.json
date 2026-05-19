@@ -26,7 +26,28 @@
     "CohortCNVCallingAndMergeForFabric.filtered_cnv_genotyped_segments_vcf_index": null,
     "CohortCNVCallingAndMergeForFabric.filtered_cnv_genotyped_segments_vcf_md5sum": null,
     "CohortCNVCallingAndMergeForFabric.low_gc_dropout_metric": ["gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227275_subset.counts_low_gc_dropout_qc.tsv","gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227278_subset.counts_low_gc_dropout_qc.tsv","gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227283_subset.counts_low_gc_dropout_qc.tsv","gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227285_subset.counts_low_gc_dropout_qc.tsv","gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227293_subset.counts_low_gc_dropout_qc.tsv"],
-    "CohortCNVCallingAndMergeForFabric.merged_vcf": ["gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227275_subset.merged.vcf.gz","gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227278_subset.merged.vcf.gz","gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227283_subset.merged.vcf.gz","gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227285_subset.merged.vcf.gz","gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227293_subset.merged.vcf.gz"],
+    "CohortCNVCallingAndMergeForFabric.merged_vcf": [
+        {
+            "file":"gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227275_subset.merged.vcf.gz",
+            "line_skip_regex": "^##bcftools|^##GATKCommandLine=|^##FORMAT=<ID=GT|^##source="
+        },
+        {
+            "file":"gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227278_subset.merged.vcf.gz",
+            "line_skip_regex": "^##bcftools|^##GATKCommandLine=|^##FORMAT=<ID=GT|^##source="
+        },
+        {
+            "file":"gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227283_subset.merged.vcf.gz",
+            "line_skip_regex": "^##bcftools|^##GATKCommandLine=|^##FORMAT=<ID=GT|^##source="
+        },
+        {
+            "file":"gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227285_subset.merged.vcf.gz",
+            "line_skip_regex": "^##bcftools|^##GATKCommandLine=|^##FORMAT=<ID=GT|^##source="
+        },
+        {
+            "file":"gs://palantir-workflows-test-data/CohortCNVAndMergeForFabric/0437227293_subset.merged.vcf.gz",
+            "line_skip_regex": "^##bcftools|^##GATKCommandLine=|^##FORMAT=<ID=GT|^##source="
+        }
+    ],
     "CohortCNVCallingAndMergeForFabric.merged_vcf_index": null,
     "CohortCNVCallingAndMergeForFabric.merged_vcf_md5sum": null,
     "CohortCNVCallingAndMergeForFabric.qc_passed":[true,true,true,true,true]
