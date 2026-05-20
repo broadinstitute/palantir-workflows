@@ -127,6 +127,7 @@ workflow HPVDeepSeek {
 
     call HPVDeepSeekNormalization.HPVDeepSeekNormalization {
         input:
+            sample_id = output_basename,
             simplex_bam = HPVDeepSeekGenotyping.simplex_bam,
             duplex_bam = HPVDeepSeekGenotyping.duplex_bam,
             simplex_bam_index = HPVDeepSeekGenotyping.simplex_bam_index,
