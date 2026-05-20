@@ -317,7 +317,6 @@ task GetCoverageStatsFiltered {
 task NormalizeHPVCounts {
     input {
         File fs_stats_summary
-        String top_hpv_genotype
         Float ml_plasma
         Float ng_cfdna
 
@@ -340,8 +339,8 @@ task NormalizeHPVCounts {
             mean_simplex_depth_hpv_fs_geq_5 = float(columns[16])
 
             cthpvdna_per_human_genome_equivalents = mean_simplex_depth_hpv_fs_geq_5 / mean_simplex_depth_hg38_fp_only
-            cthpvdna_per_ml_plasma = num_hpv_simplex_reads_fs_geq_5 / ml_plasma
-            cthpvdna_per_ng_cfdna = num_hpv_simplex_reads_fs_geq_5 / ng_cfdna
+            cthpvdna_per_ml_plasma = num_hpv_simplex_reads_fs_geq_5 / ~{ml_plasma}
+            cthpvdna_per_ng_cfdna = num_hpv_simplex_reads_fs_geq_5 / ~{ng_cfdna}
 
             with open("cthpvdna_per_human_genome_equivalents.txt", 'w') as f:
                 f.write(str(cthpvdna_per_human_genome_equivalents))
@@ -414,7 +413,6 @@ workflow HPVDeepSeekNormalization {
     call NormalizeHPVCounts {
         input:
             fs_stats_summary = SummarizeStats.fs_stats_summary,
-            top_hpv_genotype = top_hpv_genotype,
             ml_plasma = ml_plasma,
             ng_cfdna = ng_cfdna
     }
