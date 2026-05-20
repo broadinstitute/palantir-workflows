@@ -88,14 +88,14 @@ task FastqToUbam {
     }
 }
 
-# Extract the UMI sequence from the first 3 bases of each read, skip the next 3 bases
+# Extract the UMI sequence from the first 3 bases of each read, skip the next 2 bases
 # and add the resulting UMI to the RX tag and read name in the output BAM.
 #
 # --molecular-index-tags RX: Tells fgbio to place the extracted UMI into the RX tag of each read.
-# --read-structure 3M3S+T 3M3S+T: Specifies the regular expressions used to extract the UMI from each read sequence:
-# 3M3S+T means:
+# --read-structure 3M2S+T 3M2S+T: Specifies the regular expressions used to extract the UMI from each read sequence:
+# 3M2S+T means:
 # 3M: Match the first 3 bases (UMI).
-# 3S: Skip (soft clip) the next 3 bases.
+# 2S: Skip (soft clip) the next 2 bases.
 # +T: The rest of the read is the template
 # This regex is applied to both R1 and R2 (paired-end reads).
 # --annotate-read-names true: Indicates that the UMI should be appended to the read name (QNAME) in addition to the RX tag.
@@ -381,7 +381,7 @@ task MergeBAMsAndGroupUMIs {
         File reference
         File reference_fai
         File reference_dict
-        Boolean call_duplex_consensus
+        Boolean is_duplex
 
         Int cpu = 1
         Int memory_gb = 16
@@ -390,7 +390,8 @@ task MergeBAMsAndGroupUMIs {
         Boolean use_ssd = true
     }
 
-    String strategy = if call_duplex_consensus then "paired" else "adjacency"
+    String strategy = if is_duplex then "paired" else "adjacency"
+    String output_type = if is_duplex then "duplex" else "simplex"
 
     command <<<
         gatk MergeBamAlignment \
@@ -412,16 +413,16 @@ task MergeBAMsAndGroupUMIs {
 
         fgbio GroupReadsByUmi \
         --input ~{output_basename}.merged.filtered.bam \
-        --output ~{output_basename}.umi_grouped.bam \
+        --output ~{output_basename}.~{output_type}.umi_grouped.bam \
         --strategy ~{strategy} \
         --edits 1 \
         --raw-tag RX \
-        --family-size-histogram ~{output_basename}.umi_group_data.txt
+        --family-size-histogram ~{output_basename}.~{output_type}.umi_group_data.txt
     >>>
 
     output {
-        File umi_grouped_bam = "~{output_basename}.umi_grouped.bam"
-        File umi_group_data = "~{output_basename}.umi_group_data.txt"
+        File umi_grouped_bam = "~{output_basename}.~{output_type}.umi_grouped.bam"
+        File umi_group_data = "~{output_basename}.~{output_type}.umi_group_data.txt"
     }
 
     runtime {
@@ -466,7 +467,7 @@ task MergeConsensus {
         gatk MergeBamAlignment \
         --ALIGNED_BAM ~{consensus_aligned_bam} \
         --UNMAPPED_BAM ~{consensus_unmapped_bam} \
-        --OUTPUT ~{output_basename}.deduped.bam \
+        --OUTPUT ~{output_basename}.bam \
         --REFERENCE_SEQUENCE ~{reference} \
         --SORT_ORDER coordinate \
         --ATTRIBUTES_TO_RETAIN X0 \
@@ -479,7 +480,7 @@ task MergeConsensus {
     >>>
 
     output {
-        File deduped_bam = "~{output_basename}.deduped.bam"
+        File deduped_bam = "~{output_basename}.bam"
     }
 
     runtime {
@@ -514,7 +515,7 @@ task CallMolecularConsensusReads {
     command <<<
         fgbio CallMolecularConsensusReads \
         --input ~{umi_grouped_bam} \
-        --output ~{output_basename}.umi_consensus.unmapped.bam \
+        --output ~{output_basename}.simplex.umi_consensus.unmapped.bam \
         --error-rate-post-umi 40 \
         --error-rate-pre-umi 45 \
         --output-per-base-tags false \
@@ -526,7 +527,7 @@ task CallMolecularConsensusReads {
     >>>
 
     output {
-        File umi_consensus_unmapped_bam = "~{output_basename}.umi_consensus.unmapped.bam"
+        File umi_consensus_unmapped_bam = "~{output_basename}.simplex.umi_consensus.unmapped.bam"
     }
 
     runtime {
@@ -551,7 +552,7 @@ task CallDuplexConsensusReads {
     command <<<
         fgbio CallDuplexConsensusReads \
         --input ~{umi_grouped_bam} \
-        --output ~{output_basename}.umi_consensus.unmapped.bam \
+        --output ~{output_basename}.duplex.umi_consensus.unmapped.bam \
         --error-rate-post-umi 40 \
         --error-rate-pre-umi 45 \
         --min-reads 1 \
@@ -560,12 +561,12 @@ task CallDuplexConsensusReads {
         --read-name-prefix 'consensus' \
         --read-group-id ~{read_group_id} \
         --consensus-call-overlapping-bases true \
-        --stats ~{output_basename}.consensus.stats.txt
+        --stats ~{output_basename}.duplex.consensus.stats.txt
     >>>
 
     output {
-        File umi_consensus_unmapped_bam = "~{output_basename}.umi_consensus.unmapped.bam"
-        File consensus_stats = "~{output_basename}.consensus.stats.txt"
+        File umi_consensus_unmapped_bam = "~{output_basename}.duplex.umi_consensus.unmapped.bam"
+        File consensus_stats = "~{output_basename}.duplex.consensus.stats.txt"
     }
 
     runtime {
@@ -635,9 +636,9 @@ task SamtoolsCoverage {
 }
 
 # HPV+ Classification
-# Sample is considered HPV+ if both thresholds are met:
-# Read count ≥ 10
-# Percentage of HPV genome covered by read alignment ≥ 10%
+# Sample is considered HPV+ if the following thresholds are met:
+# Duplex read count ≥ 4
+# Percentage of HPV genome covered by read alignment ≥ 5%
 task DetermineHPVStatus {
     input {
         File coverage
@@ -673,7 +674,7 @@ task DetermineHPVStatus {
             f.write(str(max_elem[1][1]))
 
         with open("is_hpv_positive.txt", 'w') as f:
-            if max_elem[1][0] >= 10 and max_elem[1][1] >= 10.0:
+            if max_elem[1][0] >= 4 and max_elem[1][1] >= 5.0:
                 f.write("true")
             else:
                 f.write("false")
@@ -682,7 +683,7 @@ task DetermineHPVStatus {
             output_string = ""
             for i in range(1, len(coverage_sorted)):
                 elem = coverage_sorted[i]
-                if elem[1][0] >= 10 and elem[1][1] >= 10.0:
+                if elem[1][0] >= 4 and elem[1][1] >= 5.0:
                     output_string = output_string + str(elem[0]) + ":" + str(elem[1][0]) + ":" + str(elem[1][1]) + ","
 
             if len(output_string) > 0:
@@ -1005,16 +1006,13 @@ task Downsample {
     input {
         File bam
         File bai
-        Float raw_gapdh_mtc = 10000.0
-        Float target_coverage = 10000.0
+        Float downsample_probability = 0.25
         String output_basename
 
         Int cpu = 2
         Int memory_gb = 32
         Int disk_size_gb = 512
     }
-
-    Float downsample_probability = target_coverage / raw_gapdh_mtc
 
     command <<<
         if [[ $(python -c "print(float(~{downsample_probability}) >= 1.0)") == "True" ]]; then
@@ -1067,9 +1065,8 @@ workflow HPVDeepSeekGenotyping {
         String read_group_platform_unit = "PU_TEST"
         String read_group_description = "KAPA_TE"
         String read_structure
-        Boolean call_duplex_consensus = false
         Boolean downsample = false
-        Float? raw_gapdh_mtc
+        Float? downsample_probability
     }
 
     call FastQC as PreTrimmedFastQC {
@@ -1146,7 +1143,7 @@ workflow HPVDeepSeekGenotyping {
             input:
                 bam = SortAndIndexBam.sorted_bam,
                 bai = SortAndIndexBam.sorted_bam_index,
-                raw_gapdh_mtc = raw_gapdh_mtc,
+                downsample_probability = downsample_probability,
                 output_basename = output_basename
         }
     }
@@ -1196,51 +1193,68 @@ workflow HPVDeepSeekGenotyping {
             bait_set_name = bait_set_name
     }
 
-    call MergeBAMsAndGroupUMIs {
+    call MergeBAMsAndGroupUMIs as MergeBAMsAndGroupUMIsSimplex {
         input:
             aligned_bam = aligned_bam,
             unmapped_umi_extracted_bam = ExtractUMIs.umi_extracted_bam,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
-            call_duplex_consensus = call_duplex_consensus,
+            is_duplex = false,
             output_basename = output_basename
     }
 
-    call CollectUMIDuplicationMetrics {
+    call MergeBAMsAndGroupUMIs as MergeBAMsAndGroupUMIsDuplex {
         input:
-            umi_group_data = MergeBAMsAndGroupUMIs.umi_group_data,
+            aligned_bam = aligned_bam,
+            unmapped_umi_extracted_bam = ExtractUMIs.umi_extracted_bam,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict,
+            is_duplex = true,
             output_basename = output_basename
     }
 
-    if(!call_duplex_consensus) {
-        call CallMolecularConsensusReads {
-            input:
-                umi_grouped_bam = MergeBAMsAndGroupUMIs.umi_grouped_bam,
-                read_group_id = read_group_id,
-                output_basename = output_basename
-        }
-    }
-
-    if(call_duplex_consensus) {
-        call CallDuplexConsensusReads {
-            input:
-                umi_grouped_bam = MergeBAMsAndGroupUMIs.umi_grouped_bam,
-                read_group_id = read_group_id,
-                output_basename = output_basename
-        }
-
-        call CollectDuplexSeqMetrics {
-            input:
-                bam = MergeBAMsAndGroupUMIs.umi_grouped_bam
-        }
-    }
-
-    File umi_consensus_unmapped_bam = select_first([CallDuplexConsensusReads.umi_consensus_unmapped_bam, CallMolecularConsensusReads.umi_consensus_unmapped_bam])
-
-    call ConsensusBamToFastq {
+    call CollectUMIDuplicationMetrics as CollectUMIDuplicationMetricsSimplex {
         input:
-            umi_consensus_unmapped_bam = umi_consensus_unmapped_bam,
+            umi_group_data = MergeBAMsAndGroupUMIsSimplex.umi_group_data,
+            output_basename = output_basename + ".simplex"
+    }
+
+    call CollectUMIDuplicationMetrics as CollectUMIDuplicationMetricsDuplex {
+        input:
+            umi_group_data = MergeBAMsAndGroupUMIsDuplex.umi_group_data,
+            output_basename = output_basename + ".duplex"
+    }
+
+    call CallMolecularConsensusReads {
+        input:
+            umi_grouped_bam = MergeBAMsAndGroupUMIsSimplex.umi_grouped_bam,
+            read_group_id = read_group_id,
+            output_basename = output_basename
+    }
+
+    call CallDuplexConsensusReads {
+        input:
+            umi_grouped_bam = MergeBAMsAndGroupUMIsDuplex.umi_grouped_bam,
+            read_group_id = read_group_id,
+            output_basename = output_basename
+    }
+
+    call CollectDuplexSeqMetrics {
+        input:
+            bam = MergeBAMsAndGroupUMIsDuplex.umi_grouped_bam
+    }
+
+    call ConsensusBamToFastq as SimplexConsensusBamToFastq {
+        input:
+            umi_consensus_unmapped_bam = CallMolecularConsensusReads.umi_consensus_unmapped_bam,
+            output_basename = output_basename
+    }
+
+    call ConsensusBamToFastq as DuplexConsensusBamToFastq {
+        input:
+            umi_consensus_unmapped_bam = CallDuplexConsensusReads.umi_consensus_unmapped_bam,
             output_basename = output_basename
     }
 
@@ -1251,11 +1265,10 @@ workflow HPVDeepSeekGenotyping {
     # reference.fasta \
     # consensus_unmapped_R1.fastq consensus_unmapped_R2.fastq | \
     # samtools view -bh - > consensus_mapped_unsorted.bam
-    String consensus_basename = output_basename + ".consensus"
-    call BwaMem as AlignConsensusReads {
+    call BwaMem as AlignSimplexConsensusReads {
         input:
-            fastq1 = ConsensusBamToFastq.consensus_unmapped_fastq1,
-            fastq2 = ConsensusBamToFastq.consensus_unmapped_fastq2,
+            fastq1 = SimplexConsensusBamToFastq.consensus_unmapped_fastq1,
+            fastq2 = SimplexConsensusBamToFastq.consensus_unmapped_fastq2,
             reference = reference,
             bwa_idx_amb = bwa_idx_amb,
             bwa_idx_ann = bwa_idx_ann,
@@ -1269,38 +1282,83 @@ workflow HPVDeepSeekGenotyping {
             read_group_platform_unit = read_group_platform_unit,
             read_group_description = read_group_description,
             soft_clip_supplementary_alignments = true,
-            output_basename = consensus_basename
+            output_basename = output_basename + ".simplex.consensus"
     }
 
-    call GATKSortBam as GATKSortBamConsensusAligned {
+    call BwaMem as AlignDuplexConsensusReads {
         input:
-            bam = AlignConsensusReads.bam
+            fastq1 = DuplexConsensusBamToFastq.consensus_unmapped_fastq1,
+            fastq2 = DuplexConsensusBamToFastq.consensus_unmapped_fastq2,
+            reference = reference,
+            bwa_idx_amb = bwa_idx_amb,
+            bwa_idx_ann = bwa_idx_ann,
+            bwa_idx_bwt = bwa_idx_bwt,
+            bwa_idx_pac = bwa_idx_pac,
+            bwa_idx_sa = bwa_idx_sa,
+            read_group_id = read_group_id,
+            read_group_sample_name = read_group_sample_name,
+            read_group_library_name = read_group_library_name,
+            read_group_platform = read_group_platform,
+            read_group_platform_unit = read_group_platform_unit,
+            read_group_description = read_group_description,
+            soft_clip_supplementary_alignments = true,
+            output_basename = output_basename + ".duplex.consensus"
     }
 
-    call GATKSortBam as GATKSortBamConsensusUnmapped{
+    call GATKSortBam as GATKSortBamSimplexConsensusAligned {
         input:
-            bam = umi_consensus_unmapped_bam
+            bam = AlignSimplexConsensusReads.bam
     }
 
-    call MergeConsensus {
+    call GATKSortBam as GATKSortBamDuplexConsensusAligned {
         input:
-            consensus_aligned_bam = GATKSortBamConsensusAligned.sorted_bam,
-            consensus_unmapped_bam = GATKSortBamConsensusUnmapped.sorted_bam,
+            bam = AlignDuplexConsensusReads.bam
+    }
+
+    call GATKSortBam as GATKSortBamSimplexConsensusUnmapped {
+        input:
+            bam = CallMolecularConsensusReads.umi_consensus_unmapped_bam
+    }
+
+    call GATKSortBam as GATKSortBamDuplexConsensusUnmapped {
+        input:
+            bam = CallDuplexConsensusReads.umi_consensus_unmapped_bam
+    }
+
+    call MergeConsensus as MergeConsensusSimplex {
+        input:
+            consensus_aligned_bam = GATKSortBamSimplexConsensusAligned.sorted_bam,
+            consensus_unmapped_bam = GATKSortBamSimplexConsensusUnmapped.sorted_bam,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
-            output_basename = output_basename
+            output_basename = output_basename + ".simplex"
     }
 
-    call SortAndIndexBam as SortAndIndexFinalBam {
+    call MergeConsensus as MergeConsensusDuplex {
         input:
-            bam = MergeConsensus.deduped_bam
+            consensus_aligned_bam = GATKSortBamDuplexConsensusAligned.sorted_bam,
+            consensus_unmapped_bam = GATKSortBamDuplexConsensusUnmapped.sorted_bam,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict,
+            output_basename = output_basename + ".duplex"
+    }
+
+    call SortAndIndexBam as SortAndIndexSimplexBam {
+        input:
+            bam = MergeConsensusSimplex.deduped_bam
+    }
+
+    call SortAndIndexBam as SortAndIndexDuplexBam {
+        input:
+            bam = MergeConsensusDuplex.deduped_bam
     }
 
     call CollectAlignmentSummaryMetrics as PostConsensusAlignmentSummaryMetrics {
         input:
-            bam = SortAndIndexFinalBam.sorted_bam,
-            bai = SortAndIndexFinalBam.sorted_bam_index,
+            bam = SortAndIndexSimplexBam.sorted_bam,
+            bai = SortAndIndexSimplexBam.sorted_bam_index,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict
@@ -1308,19 +1366,19 @@ workflow HPVDeepSeekGenotyping {
 
     call Flagstat as PostConsensusFlagstat {
         input:
-            bam = SortAndIndexFinalBam.sorted_bam
+            bam = SortAndIndexSimplexBam.sorted_bam
     }
 
     call CollectInsertSizeMetrics as PostConsensusInsertSizeMetrics {
         input:
-            bam = SortAndIndexFinalBam.sorted_bam,
-            bai = SortAndIndexFinalBam.sorted_bam_index
+            bam = SortAndIndexSimplexBam.sorted_bam,
+            bai = SortAndIndexSimplexBam.sorted_bam_index
     }
 
     call CountOnTargetReads as PostConsensusCountOnTargetReads {
         input:
-            bam = SortAndIndexFinalBam.sorted_bam,
-            bai = SortAndIndexFinalBam.sorted_bam_index,
+            bam = SortAndIndexSimplexBam.sorted_bam,
+            bai = SortAndIndexSimplexBam.sorted_bam_index,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
@@ -1329,8 +1387,8 @@ workflow HPVDeepSeekGenotyping {
 
     call CollectHybridSelectionMetrics as PostConsensusHybridSelectionMetrics {
         input:
-            bam = SortAndIndexFinalBam.sorted_bam,
-            bai = SortAndIndexFinalBam.sorted_bam_index,
+            bam = SortAndIndexSimplexBam.sorted_bam,
+            bai = SortAndIndexSimplexBam.sorted_bam_index,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
@@ -1341,7 +1399,7 @@ workflow HPVDeepSeekGenotyping {
 
     call SamtoolsCoverage {
         input:
-            bam = SortAndIndexFinalBam.sorted_bam,
+            bam = SortAndIndexDuplexBam.sorted_bam,
             output_basename = output_basename
     }
 
@@ -1352,8 +1410,8 @@ workflow HPVDeepSeekGenotyping {
 
     call GenotypeSNPsHuman {
         input:
-            bam = SortAndIndexFinalBam.sorted_bam,
-            bai = SortAndIndexFinalBam.sorted_bam_index,
+            bam = SortAndIndexSimplexBam.sorted_bam,
+            bai = SortAndIndexSimplexBam.sorted_bam_index,
             human_snp_targets_bed = human_snp_targets_bed,
             reference = reference,
             output_basename = output_basename
@@ -1362,11 +1420,16 @@ workflow HPVDeepSeekGenotyping {
     output {
         File raw_bam = SortAndIndexBam.sorted_bam
         File raw_bam_index = SortAndIndexBam.sorted_bam_index
-        File final_bam = SortAndIndexFinalBam.sorted_bam
-        File final_bam_index = SortAndIndexFinalBam.sorted_bam_index
-        File umi_grouped_bam = MergeBAMsAndGroupUMIs.umi_grouped_bam
-        File umi_group_data = MergeBAMsAndGroupUMIs.umi_group_data
-        File umi_duplication_metrics = CollectUMIDuplicationMetrics.umi_duplication_metrics
+        File simplex_bam = SortAndIndexSimplexBam.sorted_bam
+        File simplex_bam_index = SortAndIndexSimplexBam.sorted_bam_index
+        File duplex_bam = SortAndIndexDuplexBam.sorted_bam
+        File duplex_bam_index = SortAndIndexDuplexBam.sorted_bam_index
+        File simplex_umi_grouped_bam = MergeBAMsAndGroupUMIsSimplex.umi_grouped_bam
+        File simplex_umi_group_data = MergeBAMsAndGroupUMIsSimplex.umi_group_data
+        File duplex_umi_grouped_bam = MergeBAMsAndGroupUMIsDuplex.umi_grouped_bam
+        File duplex_umi_group_data = MergeBAMsAndGroupUMIsDuplex.umi_group_data
+        File simplex_umi_duplication_metrics = CollectUMIDuplicationMetricsSimplex.umi_duplication_metrics
+        File duplex_umi_duplication_metrics = CollectUMIDuplicationMetricsDuplex.umi_duplication_metrics
         File vcf = GenotypeSNPsHuman.vcf
         File coverage = SamtoolsCoverage.coverage
         String top_hpv_contig = DetermineHPVStatus.top_hpv_contig
@@ -1394,10 +1457,10 @@ workflow HPVDeepSeekGenotyping {
         File post_consensus_ontarget_reads = PostConsensusCountOnTargetReads.ontarget_reads
         File post_consensus_hs_metrics = PostConsensusHybridSelectionMetrics.hs_metrics
         File post_consensus_per_base_coverage = PostConsensusHybridSelectionMetrics.per_base_coverage
-        File? family_sizes = CollectDuplexSeqMetrics.family_sizes
-        File? duplex_family_sizes = CollectDuplexSeqMetrics.duplex_family_sizes
-        File? duplex_yield_metrics = CollectDuplexSeqMetrics.duplex_yield_metrics
-        File? umi_counts = CollectDuplexSeqMetrics.umi_counts
-        File? duplex_qc = CollectDuplexSeqMetrics.duplex_qc
+        File family_sizes = CollectDuplexSeqMetrics.family_sizes
+        File duplex_family_sizes = CollectDuplexSeqMetrics.duplex_family_sizes
+        File duplex_yield_metrics = CollectDuplexSeqMetrics.duplex_yield_metrics
+        File umi_counts = CollectDuplexSeqMetrics.umi_counts
+        File duplex_qc = CollectDuplexSeqMetrics.duplex_qc
     }
 }
