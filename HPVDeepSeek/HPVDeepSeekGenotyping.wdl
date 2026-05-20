@@ -664,13 +664,13 @@ task DetermineHPVStatus {
         coverage_sorted = sorted(coverage_dict.items(), key = lambda item: item[1], reverse = True)
         max_elem = coverage_sorted[0]
 
-        with open("top_hpv_contig.txt", 'w') as f:
+        with open("top_hpv_genotype.txt", 'w') as f:
             f.write(max_elem[0])
 
-        with open("top_hpv_num_reads.txt", 'w') as f:
+        with open("top_hpv_num_duplex_reads.txt", 'w') as f:
             f.write(str(max_elem[1][0]))
 
-        with open("top_hpv_coverage.txt", 'w') as f:
+        with open("top_hpv_duplex_coverage.txt", 'w') as f:
             f.write(str(max_elem[1][1]))
 
         with open("is_hpv_positive.txt", 'w') as f:
@@ -700,9 +700,9 @@ task DetermineHPVStatus {
     }
 
     output {
-        String top_hpv_contig = read_string("top_hpv_contig.txt")
-        Int top_hpv_num_reads = read_int("top_hpv_num_reads.txt")
-        Float top_hpv_coverage = read_float("top_hpv_coverage.txt")
+        String top_hpv_genotype = read_string("top_hpv_genotype.txt")
+        Int top_hpv_num_duplex_reads = read_int("top_hpv_num_duplex_reads.txt")
+        Float top_hpv_duplex_coverage = read_float("top_hpv_duplex_coverage.txt")
         Boolean is_hpv_positive = read_boolean("is_hpv_positive.txt")
         String secondary_hpv_types = read_string("secondary_hpv_types.txt")
     }
@@ -1432,9 +1432,9 @@ workflow HPVDeepSeekGenotyping {
         File duplex_umi_duplication_metrics = CollectUMIDuplicationMetricsDuplex.umi_duplication_metrics
         File vcf = GenotypeSNPsHuman.vcf
         File coverage = SamtoolsCoverage.coverage
-        String top_hpv_contig = DetermineHPVStatus.top_hpv_contig
-        Int top_hpv_num_reads = DetermineHPVStatus.top_hpv_num_reads
-        Float top_hpv_coverage = DetermineHPVStatus.top_hpv_coverage
+        String top_hpv_genotype = DetermineHPVStatus.top_hpv_genotype
+        Int top_hpv_num_duplex_reads = DetermineHPVStatus.top_hpv_num_duplex_reads
+        Float top_hpv_duplex_coverage = DetermineHPVStatus.top_hpv_duplex_coverage
         Boolean is_hpv_positive = DetermineHPVStatus.is_hpv_positive
         String secondary_hpv_types = DetermineHPVStatus.secondary_hpv_types
         File fastp_report_html = TrimAndFilter.fastp_report_html

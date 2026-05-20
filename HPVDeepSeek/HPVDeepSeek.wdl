@@ -23,6 +23,9 @@ workflow HPVDeepSeek {
         File capture_targets_bed
         File bait_interval_list
         File target_interval_list
+        File regions
+        File gapdh_regions
+        File fp_regions
         String bait_set_name
         String read_group_id
         String read_group_sample_name
@@ -124,10 +127,14 @@ workflow HPVDeepSeek {
 
     call HPVDeepSeekNormalization.HPVDeepSeekNormalization {
         input:
-            bam = HPVDeepSeekGenotyping.simplex_bam,
-            bai = HPVDeepSeekGenotyping.simplex_bam_index,
-            top_hpv_contig = HPVDeepSeekGenotyping.top_hpv_contig,
-            top_hpv_num_reads = HPVDeepSeekGenotyping.top_hpv_num_reads,
+            simplex_bam = HPVDeepSeekGenotyping.simplex_bam,
+            duplex_bam = HPVDeepSeekGenotyping.duplex_bam,
+            simplex_bam_index = HPVDeepSeekGenotyping.simplex_bam_index,
+            duplex_bam_index = HPVDeepSeekGenotyping.duplex_bam_index,
+            top_hpv_genotype = HPVDeepSeekGenotyping.top_hpv_genotype,
+            regions = regions,
+            gapdh_regions = gapdh_regions,
+            fp_regions = fp_regions,
             ml_plasma = ml_plasma,
             ng_cfdna = ng_cfdna
     }
@@ -148,9 +155,9 @@ workflow HPVDeepSeek {
         File duplex_umi_duplication_metrics = HPVDeepSeekGenotyping.duplex_umi_duplication_metrics
         File vcf = HPVDeepSeekGenotyping.vcf
         File coverage = HPVDeepSeekGenotyping.coverage
-        String top_hpv_contig = HPVDeepSeekGenotyping.top_hpv_contig
-        Int top_hpv_num_reads = HPVDeepSeekGenotyping.top_hpv_num_reads
-        Float top_hpv_coverage = HPVDeepSeekGenotyping.top_hpv_coverage
+        String top_hpv_genotype = HPVDeepSeekGenotyping.top_hpv_genotype
+        Int top_hpv_num_duplex_reads = HPVDeepSeekGenotyping.top_hpv_num_duplex_reads
+        Float top_hpv_duplex_coverage = HPVDeepSeekGenotyping.top_hpv_duplex_coverage
         Boolean is_hpv_positive = HPVDeepSeekGenotyping.is_hpv_positive
         String secondary_hpv_types = HPVDeepSeekGenotyping.secondary_hpv_types
         File fastp_report_html = HPVDeepSeekGenotyping.fastp_report_html
@@ -203,10 +210,15 @@ workflow HPVDeepSeek {
         File high_risk_snps_found = HPVDeepSeekTertiaryAnalysis.high_risk_snps_found
 
         # HPVDeepSeekNormalization outputs
-        Int gapdh_num_reads = HPVDeepSeekNormalization.gapdh_num_reads
+        File custom_consensus_filter = HPVDeepSeekNormalization.consensus_read_filter
+        File fs_metrics = HPVDeepSeekNormalization.fs_metrics
+        File fs_stats_summary = HPVDeepSeekNormalization.fs_stats_summary
+        File fs_g_1_coverage = HPVDeepSeekNormalization.fs_g_1_coverage
+        File fs_geq_3_coverage = HPVDeepSeekNormalization.fs_geq_3_coverage
+        File fs_geq_5_coverage = HPVDeepSeekNormalization.fs_geq_5_coverage
+        File fs_geq_10_coverage = HPVDeepSeekNormalization.fs_geq_10_coverage
         Float cthpvdna_per_human_genome_equivalents = HPVDeepSeekNormalization.cthpvdna_per_human_genome_equivalents
         Float cthpvdna_count_per_ml_plasma = HPVDeepSeekNormalization.cthpvdna_count_per_ml_plasma
         Float cthpvdna_count_per_ng_cfdna = HPVDeepSeekNormalization.cthpvdna_count_per_ng_cfdna
-        Float cthpvdna_per_human_genome_equivalents_per_ml_plasma = HPVDeepSeekNormalization.cthpvdna_per_human_genome_equivalents_per_ml_plasma
     }
 }
