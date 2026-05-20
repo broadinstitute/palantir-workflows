@@ -88,8 +88,8 @@ workflow HPVDeepSeek {
     call HPVDeepSeekSomaticVariantCalling.HPVDeepSeekSomaticVariantCalling {
         input:
             output_basename = output_basename,
-            tumor_bam = HPVDeepSeekGenotyping.final_bam,
-            tumor_bai = HPVDeepSeekGenotyping.final_bam_index,
+            tumor_bam = HPVDeepSeekGenotyping.duplex_bam,
+            tumor_bai = HPVDeepSeekGenotyping.duplex_bam_index,
             target_intervals = target_intervals,
             reference = reference,
             reference_fai = reference_fai,
@@ -113,8 +113,8 @@ workflow HPVDeepSeek {
     call HPVDeepSeekTertiaryAnalysis.HPVDeepSeekTertiaryAnalysis {
         input:
             output_basename = output_basename,
-            tumor_bam = HPVDeepSeekGenotyping.final_bam,
-            tumor_bai = HPVDeepSeekGenotyping.final_bam_index,
+            tumor_bam = HPVDeepSeekGenotyping.simplex_bam,
+            tumor_bai = HPVDeepSeekGenotyping.simplex_bam_index,
             high_risk_snps_hpv = high_risk_snps_hpv,
             reference = reference,
             reference_fai = reference_fai,
@@ -124,8 +124,8 @@ workflow HPVDeepSeek {
 
     call HPVDeepSeekNormalization.HPVDeepSeekNormalization {
         input:
-            bam = HPVDeepSeekGenotyping.final_bam,
-            bai = HPVDeepSeekGenotyping.final_bam_index,
+            bam = HPVDeepSeekGenotyping.simplex_bam,
+            bai = HPVDeepSeekGenotyping.simplex_bam_index,
             top_hpv_contig = HPVDeepSeekGenotyping.top_hpv_contig,
             top_hpv_num_reads = HPVDeepSeekGenotyping.top_hpv_num_reads,
             ml_plasma = ml_plasma,
@@ -136,11 +136,16 @@ workflow HPVDeepSeek {
         # HPVDeepSeekGenotyping outputs
         File raw_bam = HPVDeepSeekGenotyping.raw_bam
         File raw_bam_index = HPVDeepSeekGenotyping.raw_bam_index
-        File final_bam = HPVDeepSeekGenotyping.final_bam
-        File final_bam_index = HPVDeepSeekGenotyping.final_bam_index
-        File umi_grouped_bam = HPVDeepSeekGenotyping.umi_grouped_bam
-        File umi_group_data = HPVDeepSeekGenotyping.umi_group_data
-        File umi_duplication_metrics = HPVDeepSeekGenotyping.umi_duplication_metrics
+        File simplex_bam = HPVDeepSeekGenotyping.simplex_bam
+        File simplex_bam_index = HPVDeepSeekGenotyping.simplex_bam_index
+        File duplex_bam = HPVDeepSeekGenotyping.duplex_bam
+        File duplex_bam_index = HPVDeepSeekGenotyping.duplex_bam_index
+        File simplex_umi_grouped_bam = HPVDeepSeekGenotyping.simplex_umi_grouped_bam
+        File simplex_umi_group_data = HPVDeepSeekGenotyping.simplex_umi_group_data
+        File duplex_umi_grouped_bam = HPVDeepSeekGenotyping.duplex_umi_grouped_bam
+        File duplex_umi_group_data = HPVDeepSeekGenotyping.duplex_umi_group_data
+        File simplex_umi_duplication_metrics = HPVDeepSeekGenotyping.simplex_umi_duplication_metrics
+        File duplex_umi_duplication_metrics = HPVDeepSeekGenotyping.duplex_umi_duplication_metrics
         File vcf = HPVDeepSeekGenotyping.vcf
         File coverage = HPVDeepSeekGenotyping.coverage
         String top_hpv_contig = HPVDeepSeekGenotyping.top_hpv_contig
@@ -168,11 +173,11 @@ workflow HPVDeepSeek {
         File post_consensus_ontarget_reads = HPVDeepSeekGenotyping.post_consensus_ontarget_reads
         File post_consensus_hs_metrics = HPVDeepSeekGenotyping.post_consensus_hs_metrics
         File post_consensus_per_base_coverage = HPVDeepSeekGenotyping.post_consensus_per_base_coverage
-        File? family_sizes = HPVDeepSeekGenotyping.family_sizes
-        File? duplex_family_sizes = HPVDeepSeekGenotyping.duplex_family_sizes
-        File? duplex_yield_metrics = HPVDeepSeekGenotyping.duplex_yield_metrics
-        File? umi_counts = HPVDeepSeekGenotyping.umi_counts
-        File? duplex_qc = HPVDeepSeekGenotyping.duplex_qc
+        File family_sizes = HPVDeepSeekGenotyping.family_sizes
+        File duplex_family_sizes = HPVDeepSeekGenotyping.duplex_family_sizes
+        File duplex_yield_metrics = HPVDeepSeekGenotyping.duplex_yield_metrics
+        File umi_counts = HPVDeepSeekGenotyping.umi_counts
+        File duplex_qc = HPVDeepSeekGenotyping.duplex_qc
 
         # HPVDeepSeekSomaticVariantCalling outputs
         File unfiltered_vcf = HPVDeepSeekSomaticVariantCalling.unfiltered_vcf
