@@ -237,7 +237,7 @@ task SummarizeStats {
                     gapdh_simplex_reads = gapdh_simplex_reads + int(columns[1])
                     gapdh_duplex_reads = gapdh_duplex_reads + int(columns[2])
 
-                if region in fp_region_list:
+                if (region in fp_region_list) and (not region.startswith("chrX")) and (not region.startswith("chrY")):
                     hg38_simplex_reads_fp_only = hg38_simplex_reads_fp_only + int(columns[1])
                     hg38_duplex_reads_fp_only = hg38_duplex_reads_fp_only + int(columns[2])
                     mean_simplex_depth_hg38_fp_only = mean_simplex_depth_hg38_fp_only + float(columns[7])
@@ -246,7 +246,12 @@ task SummarizeStats {
                     hg38_simplex_reads = hg38_simplex_reads + int(columns[1])
                     hg38_duplex_reads = hg38_duplex_reads + int(columns[2])
 
-        mean_simplex_depth_hg38_fp_only = mean_simplex_depth_hg38_fp_only / len(fp_region_list)
+        num_non_xy_fp_regions = 0
+        for fp_region in fp_region_list:
+            if (not fp_region.startswith("chrX")) and (not fp_region.startswith("chrY")):
+                num_non_xy_fp_regions += 1
+
+        mean_simplex_depth_hg38_fp_only = mean_simplex_depth_hg38_fp_only / num_non_xy_fp_regions
 
         outfile = open("~{sample_id}.fs_stats_summary.tsv", 'w')
 
