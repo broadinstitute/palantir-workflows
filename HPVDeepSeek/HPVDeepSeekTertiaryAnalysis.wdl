@@ -89,7 +89,7 @@ task Sublineages {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
-        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hpv_sublineage@sha256:10f9ff9e349c440dd616b3b94f9e6928b0d4e822c78cabbe8aacfaf08e804e5f"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hpv_sublineage@sha256:58ab0312940008db6bac0a404295f05640449112738612fedc5130c76e73b2fb"
     }
 }
 
@@ -114,11 +114,16 @@ import toyplot.pdf
 
 t = toytree.tree("~{phylogenetic_tree}")
 df = t.distance.get_tip_distance_matrix(df = True)
-d = df.loc["HPV16_Ref"].drop("HPV16_Ref")
+
+hpv16_in_df = False
+if "HPV16_Ref" in df.index:
+    d = df.loc["HPV16_Ref"].drop("HPV16_Ref")
+    hpv16_in_df = True
 
 with open("~{output_basename}.sublineage_call.csv", 'w') as f:
     f.write("run_id,library_id,closest_sublineage,patristic_distance\n")
-    f.write("~{output_basename}" + "," + "~{output_basename}" + "," + str(d.idxmin()) + "," + "{:.8f}".format(d.min()))
+    if hpv16_in_df:
+        f.write("~{output_basename}" + "," + "~{output_basename}" + "," + str(d.idxmin()) + "," + "{:.8f}".format(d.min()))
 
     canvas = toytree.tree("~{phylogenetic_tree}").draw(node_labels = False)[0]
     toyplot.pdf.render(canvas, "~{output_basename}.combo.phy_phyml_tree.pdf")
