@@ -23,9 +23,7 @@ workflow HPVDeepSeek {
         File capture_targets_bed
         File bait_interval_list
         File target_interval_list
-        File regions
-        File gapdh_regions
-        File fp_regions
+        File low_risk_hpv_genotypes
         String bait_set_name
         String read_group_id
         String read_group_sample_name
@@ -57,6 +55,9 @@ workflow HPVDeepSeek {
         File hpv16_sublineages
 
         # HPVDeepSeekNormalization inputs
+        File regions
+        File gapdh_regions
+        File fp_regions
         Float ml_plasma= 60.0
         Float ng_cfdna = 20.0
     }
@@ -78,6 +79,7 @@ workflow HPVDeepSeek {
             capture_targets_bed = capture_targets_bed,
             bait_interval_list = bait_interval_list,
             target_interval_list = target_interval_list,
+            low_risk_hpv_genotypes = low_risk_hpv_genotypes,
             bait_set_name = bait_set_name,
             read_group_id = read_group_id,
             read_group_sample_name = read_group_sample_name,
@@ -161,6 +163,7 @@ workflow HPVDeepSeek {
         Float top_hpv_duplex_coverage = HPVDeepSeekGenotyping.top_hpv_duplex_coverage
         Boolean is_hpv_positive = HPVDeepSeekGenotyping.is_hpv_positive
         String secondary_hpv_types = HPVDeepSeekGenotyping.secondary_hpv_types
+        String low_risk_hpv_genotypes_detected = HPVDeepSeekGenotyping.low_risk_hpv_genotypes_detected
         File fastp_report_html = HPVDeepSeekGenotyping.fastp_report_html
         File fastp_report_json = HPVDeepSeekGenotyping.fastp_report_json
         File pre_trimmed_r1_fastqc_html = HPVDeepSeekGenotyping.pre_trimmed_r1_fastqc_html

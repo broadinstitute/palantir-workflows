@@ -639,9 +639,11 @@ task SamtoolsCoverage {
 # Sample is considered HPV+ if the following thresholds are met:
 # Duplex read count ≥ 4
 # Percentage of HPV genome covered by read alignment ≥ 5%
+# The HPV genotype with the highest number of duplexes is NOT a low-risk HPV genotype
 task DetermineHPVStatus {
     input {
         File coverage
+        File low_risk_hpv_genotypes
 
         Int cpu = 1
         Int memory_gb = 8
@@ -652,14 +654,21 @@ task DetermineHPVStatus {
         set -e
         python3 <<CODE
 
+        low_risk_hpv_genotype_list = []
+        with open("~{low_risk_hpv_genotypes}", 'r') as f:
+            low_risk_hpv_genotype_list = f.read().splitlines()
+
         coverage_dict = {}
+        low_risk_hpv_dict = {}
         with open("~{coverage}", 'r') as infile:
             header = infile.readline()
             for line in infile:
                 line = line.rstrip()
                 columns = line.split('\t')
-                if columns[0].startswith("HPV"):
+                if columns[0].startswith("HPV") and columns[0] not in low_risk_hpv_genotype_list:
                     coverage_dict[columns[0]] = (int(columns[1]), float(columns[2]))
+                elif columns[0].startswith("HPV") and columns[0] in low_risk_hpv_genotype_list:
+                    low_risk_hpv_dict[columns[0]] = (int(columns[1]), float(columns[2]))
 
         coverage_sorted = sorted(coverage_dict.items(), key = lambda item: item[1], reverse = True)
         max_elem = coverage_sorted[0]
@@ -689,6 +698,18 @@ task DetermineHPVStatus {
             if len(output_string) > 0:
                 output_string = output_string[:-1]
             f.write(output_string)
+
+        low_risk_hpv_sorted = sorted(low_risk_hpv_dict.items(), key = lambda item: item[1], reverse = True)
+        with open("low_risk_hpv_genotypes_detected.txt", 'w') as f:
+            output_string = ""
+            for i in range(0, len(low_risk_hpv_sorted)):
+                elem = low_risk_hpv_sorted[i]
+                if elem[1][0] >= 4 and elem[1][1] >= 5.0:
+                    output_string = output_string + str(elem[0]) + ":" + str(elem[1][0]) + ":" + str(elem[1][1]) + ","
+
+                if len(output_string) > 0:
+                    output_string = output_string[:-1]
+                f.write(output_string)
         CODE
     >>>
 
@@ -705,6 +726,7 @@ task DetermineHPVStatus {
         Float top_hpv_duplex_coverage = read_float("top_hpv_duplex_coverage.txt")
         Boolean is_hpv_positive = read_boolean("is_hpv_positive.txt")
         String secondary_hpv_types = read_string("secondary_hpv_types.txt")
+        String low_risk_hpv_genotypes_detected = read_string("low_risk_hpv_genotypes_detected.txt")
     }
 }
 
@@ -1057,6 +1079,7 @@ workflow HPVDeepSeekGenotyping {
         File capture_targets_bed
         File bait_interval_list
         File target_interval_list
+        File low_risk_hpv_genotypes
         String bait_set_name
         String read_group_id
         String read_group_sample_name
@@ -1405,7 +1428,8 @@ workflow HPVDeepSeekGenotyping {
 
     call DetermineHPVStatus {
         input:
-            coverage = SamtoolsCoverage.coverage
+            coverage = SamtoolsCoverage.coverage,
+            low_risk_hpv_genotypes = low_risk_hpv_genotypes
     }
 
     call GenotypeSNPsHuman {
@@ -1437,6 +1461,7 @@ workflow HPVDeepSeekGenotyping {
         Float top_hpv_duplex_coverage = DetermineHPVStatus.top_hpv_duplex_coverage
         Boolean is_hpv_positive = DetermineHPVStatus.is_hpv_positive
         String secondary_hpv_types = DetermineHPVStatus.secondary_hpv_types
+        String low_risk_hpv_genotypes_detected = DetermineHPVStatus.low_risk_hpv_genotypes_detected
         File fastp_report_html = TrimAndFilter.fastp_report_html
         File fastp_report_json = TrimAndFilter.fastp_report_json
         File pre_trimmed_r1_fastqc_html = PreTrimmedFastQC.r1_fastqc_html
