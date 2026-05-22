@@ -946,7 +946,7 @@ task CollectUMIDuplicationMetrics {
     }
 }
 
-task CollectHybridSelectionMetrics {
+task CollectHsMetrics {
     input {
         File bam
         File bai
@@ -956,37 +956,36 @@ task CollectHybridSelectionMetrics {
         File bait_interval_list
         File target_interval_list
         String bait_set_name
+        String output_prefix
 
-        Int cpu = 2
-        Int memory_gb = 16
-        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
+        Int? cpu = 2
+        Int? memory_gb = 32
+        Int? disk_size_gb = 512
     }
-
-    String prefix = basename(bam, ".sorted.bam")
 
     command <<<
         gatk CollectHsMetrics \
-        --BAIT_INTERVALS ~{bait_interval_list} \
         --BAIT_SET_NAME ~{bait_set_name} \
+        --BAIT_INTERVALS ~{bait_interval_list} \
         --TARGET_INTERVALS ~{target_interval_list} \
         --INPUT ~{bam} \
-        --OUTPUT ~{prefix}.hs_metrics.txt \
+        --OUTPUT ~{output_prefix}.hs_metrics.txt \
         --METRIC_ACCUMULATION_LEVEL ALL_READS \
         --REFERENCE_SEQUENCE ~{reference} \
         --COVERAGE_CAP 100000 \
-        --PER_BASE_COVERAGE ~{prefix}.per_base_coverage.txt \
+        --PER_TARGET_COVERAGE ~{output_prefix}.per_target_coverage.txt \
         --VALIDATION_STRINGENCY LENIENT
     >>>
 
     output {
-        File hs_metrics = "~{prefix}.hs_metrics.txt"
-        File per_base_coverage = "~{prefix}.per_base_coverage.txt"
+        File hs_metrics = "~{output_prefix}.hs_metrics.txt"
+        File per_target_coverage = "~{output_prefix}.per_target_coverage.txt"
     }
 
     runtime {
         cpu: cpu
         memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
+        disks: "local-disk ~{disk_size_gb} SSD"
         docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
     }
 }
@@ -1079,6 +1078,10 @@ workflow HPVDeepSeekGenotyping {
         File capture_targets_bed
         File bait_interval_list
         File target_interval_list
+        File hpv_bait_interval_list
+        File hpv_target_interval_list
+        File hg38_bait_interval_list
+        File hg38_target_interval_list
         File low_risk_hpv_genotypes
         String bait_set_name
         String read_group_id
@@ -1204,16 +1207,30 @@ workflow HPVDeepSeekGenotyping {
             capture_targets_bed = capture_targets_bed
     }
 
-    call CollectHybridSelectionMetrics as PreConsensusHybridSelectionMetrics {
+    call CollectHsMetrics as CollectHsMetricsRawHPV {
         input:
             bam = aligned_bam,
             bai = aligned_bam_index,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
-            bait_interval_list = bait_interval_list,
-            target_interval_list = target_interval_list,
-            bait_set_name = bait_set_name
+            bait_interval_list = hpv_bait_interval_list,
+            target_interval_list = hpv_target_interval_list,
+            bait_set_name = bait_set_name,
+            output_prefix = output_basename + ".raw.hpv"
+    }
+
+    call CollectHsMetrics as CollectHsMetricsRawHg38 {
+        input:
+            bam = aligned_bam,
+            bai = aligned_bam_index,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict,
+            bait_interval_list = hg38_bait_interval_list,
+            target_interval_list = hg38_target_interval_list,
+            bait_set_name = bait_set_name,
+            output_prefix = output_basename + ".raw.hg38"
     }
 
     call MergeBAMsAndGroupUMIs as MergeBAMsAndGroupUMIsSimplex {
@@ -1408,16 +1425,56 @@ workflow HPVDeepSeekGenotyping {
             capture_targets_bed = capture_targets_bed
     }
 
-    call CollectHybridSelectionMetrics as PostConsensusHybridSelectionMetrics {
+    call CollectHsMetrics as CollectHsMetricsSimplexHPV {
         input:
             bam = SortAndIndexSimplexBam.sorted_bam,
             bai = SortAndIndexSimplexBam.sorted_bam_index,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
-            bait_interval_list = bait_interval_list,
-            target_interval_list = target_interval_list,
-            bait_set_name = bait_set_name
+            bait_interval_list = hpv_bait_interval_list,
+            target_interval_list = hpv_target_interval_list,
+            bait_set_name = bait_set_name,
+            output_prefix = output_basename + ".simplex.hpv"
+    }
+
+    call CollectHsMetrics as CollectHsMetricsDuplexHPV {
+        input:
+            bam = SortAndIndexDuplexBam.sorted_bam,
+            bai = SortAndIndexDuplexBam.sorted_bam_index,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict,
+            bait_interval_list = hpv_bait_interval_list,
+            target_interval_list = hpv_target_interval_list,
+            bait_set_name = bait_set_name,
+            output_prefix = output_basename + ".duplex.hpv"
+    }
+
+    call CollectHsMetrics as CollectHsMetricsSimplexHg38 {
+        input:
+            bam = SortAndIndexSimplexBam.sorted_bam,
+            bai = SortAndIndexSimplexBam.sorted_bam_index,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict,
+            bait_interval_list = hg38_bait_interval_list,
+            target_interval_list = hg38_target_interval_list,
+            bait_set_name = bait_set_name,
+            output_prefix = output_basename + ".simplex.hg38"
+    }
+
+    call CollectHsMetrics as CollectHsMetricsDuplexHg38 {
+        input:
+            bam = SortAndIndexDuplexBam.sorted_bam,
+            bai = SortAndIndexDuplexBam.sorted_bam_index,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict,
+            bait_interval_list = hg38_bait_interval_list,
+            target_interval_list = hg38_target_interval_list,
+            bait_set_name = bait_set_name,
+            output_prefix = output_basename + ".duplex.hg38"
     }
 
     call SamtoolsCoverage {
@@ -1473,15 +1530,23 @@ workflow HPVDeepSeekGenotyping {
         File pre_consensus_insert_size_metrics = PreConsensusInsertSizeMetrics.insert_size_metrics
         File pre_consensus_insert_size_plot = PreConsensusInsertSizeMetrics.insert_size_plot
         File pre_consensus_ontarget_reads = PreConsensusCountOnTargetReads.ontarget_reads
-        File pre_consensus_hs_metrics = PreConsensusHybridSelectionMetrics.hs_metrics
-        File pre_consensus_per_base_coverage = PreConsensusHybridSelectionMetrics.per_base_coverage
         File post_consensus_alignment_summary_metrics = PostConsensusAlignmentSummaryMetrics.alignment_summary_metrics
         File post_consensus_flagstat = PostConsensusFlagstat.flagstat
         File post_consensus_insert_size_metrics = PostConsensusInsertSizeMetrics.insert_size_metrics
         File post_consensus_insert_size_plot = PostConsensusInsertSizeMetrics.insert_size_plot
         File post_consensus_ontarget_reads = PostConsensusCountOnTargetReads.ontarget_reads
-        File post_consensus_hs_metrics = PostConsensusHybridSelectionMetrics.hs_metrics
-        File post_consensus_per_base_coverage = PostConsensusHybridSelectionMetrics.per_base_coverage
+        File raw_hpv_hs_metrics = CollectHsMetricsRawHPV.hs_metrics
+        File raw_hpv_per_target_coverage = CollectHsMetricsRawHPV.per_target_coverage
+        File raw_hg38_hs_metrics = CollectHsMetricsRawHg38.hs_metrics
+        File raw_hg38_per_target_coverage = CollectHsMetricsRawHg38.per_target_coverage
+        File simplex_hpv_hs_metrics = CollectHsMetricsSimplexHPV.hs_metrics
+        File simplex_hpv_per_target_coverage = CollectHsMetricsSimplexHPV.per_target_coverage
+        File simplex_hg38_hs_metrics = CollectHsMetricsSimplexHg38.hs_metrics
+        File simplex_hg38_per_target_coverage = CollectHsMetricsSimplexHg38.per_target_coverage
+        File duplex_hpv_hs_metrics = CollectHsMetricsDuplexHPV.hs_metrics
+        File duplex_hpv_per_target_coverage = CollectHsMetricsDuplexHPV.per_target_coverage
+        File duplex_hg38_hs_metrics = CollectHsMetricsDuplexHg38.hs_metrics
+        File duplex_hg38_per_target_coverage = CollectHsMetricsDuplexHg38.per_target_coverage
         File family_sizes = CollectDuplexSeqMetrics.family_sizes
         File duplex_family_sizes = CollectDuplexSeqMetrics.duplex_family_sizes
         File duplex_yield_metrics = CollectDuplexSeqMetrics.duplex_yield_metrics
