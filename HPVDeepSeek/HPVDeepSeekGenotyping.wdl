@@ -707,9 +707,9 @@ task DetermineHPVStatus {
                 if elem[1][0] >= 4 and elem[1][1] >= 5.0:
                     output_string = output_string + str(elem[0]) + ":" + str(elem[1][0]) + ":" + str(elem[1][1]) + ","
 
-                if len(output_string) > 0:
-                    output_string = output_string[:-1]
-                f.write(output_string)
+            if len(output_string) > 0:
+                output_string = output_string[:-1]
+            f.write(output_string)
         CODE
     >>>
 
