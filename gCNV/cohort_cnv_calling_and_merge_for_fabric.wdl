@@ -131,7 +131,7 @@ workflow CohortCNVCallingAndMergeForFabric {
         Array[Boolean] qc_passed = qc_passed_scatter
         Array[File] cnv_metrics = ExtractPoNFreqAnnotateFilterAndQC.cnv_metrics
         Array[File] cnv_event_report = GCNVVisualzation.cnv_event_report
-        Array[File] low_gc_dropout_metric = LowGCDropoutQC.low_gc_drouput_tsv
+        Array[File] low_gc_dropout_metric = LowGCDropoutQC.low_gc_dropout_tsv
 
     }
 
@@ -158,7 +158,7 @@ task LowGCDropoutQC {
                 # 1. Read contig names and create index
                 # .asstr() handles the common HDF5 byte-string issue in Python
                 contigs = pd.DataFrame({
-                    'CONTIG': f['intervals/indexed_contig_names'][:].astype(str)
+                    'CONTIG': f['intervals/indexed_contig_names'].asstr()[:]
                 })
                 contigs['contig_idx'] = np.arange(len(contigs))
 
@@ -211,6 +211,6 @@ task LowGCDropoutQC {
     }
 
     output {
-        File low_gc_drouput_tsv = "~{basename}_low_gc_dropout_qc.tsv"
+        File low_gc_dropout_tsv = "~{basename}_low_gc_dropout_qc.tsv"
     }
 }
