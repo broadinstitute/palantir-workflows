@@ -23,6 +23,10 @@ workflow HPVDeepSeek {
         File capture_targets_bed
         File bait_interval_list
         File target_interval_list
+        File hpv_bait_interval_list
+        File hpv_target_interval_list
+        File hg38_bait_interval_list
+        File hg38_target_interval_list
         File low_risk_hpv_genotypes
         String bait_set_name
         String read_group_id
@@ -79,6 +83,10 @@ workflow HPVDeepSeek {
             capture_targets_bed = capture_targets_bed,
             bait_interval_list = bait_interval_list,
             target_interval_list = target_interval_list,
+            hpv_bait_interval_list = hpv_bait_interval_list,
+            hpv_target_interval_list = hpv_target_interval_list,
+            hg38_bait_interval_list = hg38_bait_interval_list,
+            hg38_target_interval_list = hg38_target_interval_list,
             low_risk_hpv_genotypes = low_risk_hpv_genotypes,
             bait_set_name = bait_set_name,
             read_group_id = read_group_id,
