@@ -148,7 +148,6 @@ workflow HPVDeepSeek {
             top_hpv_genotype = HPVDeepSeekGenotyping.top_hpv_genotype,
             top_hpv_num_duplex_reads = HPVDeepSeekGenotyping.top_hpv_num_duplex_reads,
             top_hpv_duplex_coverage = HPVDeepSeekGenotyping.top_hpv_duplex_coverage,
-            is_hpv_positive = HPVDeepSeekGenotyping.is_hpv_positive,
             secondary_hpv_types = HPVDeepSeekGenotyping.secondary_hpv_types,
             low_risk_hpv_genotypes_detected = HPVDeepSeekGenotyping.low_risk_hpv_genotypes_detected,
             cthpvdna_per_human_genome_equivalents = HPVDeepSeekNormalization.cthpvdna_per_human_genome_equivalents,
@@ -258,7 +257,6 @@ task SummarizeOutput {
         String top_hpv_genotype
         Int top_hpv_num_duplex_reads
         Float top_hpv_duplex_coverage
-        Boolean is_hpv_positive
         String secondary_hpv_types
         String low_risk_hpv_genotypes_detected
         Float cthpvdna_per_human_genome_equivalents
@@ -279,7 +277,6 @@ task SummarizeOutput {
                 "top_hpv_genotype": "~{top_hpv_genotype}",
                 "top_hpv_num_duplex_reads": ~{top_hpv_num_duplex_reads},
                 "top_hpv_duplex_coverage": ~{top_hpv_duplex_coverage},
-                "is_hpv_positive": ~{is_hpv_positive},
                 "secondary_hpv_types": "~{secondary_hpv_types}",
                 "low_risk_hpv_genotypes_detected": "~{low_risk_hpv_genotypes_detected}",
                 "cthpvdna_per_human_genome_equivalents": ~{cthpvdna_per_human_genome_equivalents},
