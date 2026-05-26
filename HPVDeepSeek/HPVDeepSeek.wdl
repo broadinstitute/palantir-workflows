@@ -142,6 +142,20 @@ workflow HPVDeepSeek {
             ng_cfdna = ng_cfdna
     }
 
+    call SummarizeOutput {
+        input:
+            sample_id = output_basename,
+            top_hpv_genotype = HPVDeepSeekGenotyping.top_hpv_genotype,
+            top_hpv_num_duplex_reads = HPVDeepSeekGenotyping.top_hpv_num_duplex_reads,
+            top_hpv_duplex_coverage = HPVDeepSeekGenotyping.top_hpv_duplex_coverage,
+            is_hpv_positive = HPVDeepSeekGenotyping.is_hpv_positive,
+            secondary_hpv_types = HPVDeepSeekGenotyping.secondary_hpv_types,
+            low_risk_hpv_genotypes_detected = HPVDeepSeekGenotyping.low_risk_hpv_genotypes_detected,
+            cthpvdna_per_human_genome_equivalents = HPVDeepSeekNormalization.cthpvdna_per_human_genome_equivalents,
+            cthpvdna_count_per_ml_plasma = HPVDeepSeekNormalization.cthpvdna_count_per_ml_plasma,
+            cthpvdna_count_per_ng_cfdna = HPVDeepSeekNormalization.cthpvdna_count_per_ng_cfdna
+    }
+
     output {
         # HPVDeepSeekGenotyping outputs
         File raw_bam = HPVDeepSeekGenotyping.raw_bam
@@ -232,5 +246,60 @@ workflow HPVDeepSeek {
         Float cthpvdna_per_human_genome_equivalents = HPVDeepSeekNormalization.cthpvdna_per_human_genome_equivalents
         Float cthpvdna_count_per_ml_plasma = HPVDeepSeekNormalization.cthpvdna_count_per_ml_plasma
         Float cthpvdna_count_per_ng_cfdna = HPVDeepSeekNormalization.cthpvdna_count_per_ng_cfdna
+
+        # HPVDeepSeek summary output file
+        File summarized_output = SummarizeOutput.summary
+    }
+}
+
+task SummarizeOutput {
+    input {
+        String sample_id
+        String top_hpv_genotype
+        Int top_hpv_num_duplex_reads
+        Float top_hpv_duplex_coverage
+        Boolean is_hpv_positive
+        String secondary_hpv_types
+        String low_risk_hpv_genotypes_detected
+        Float cthpvdna_per_human_genome_equivalents
+        Float cthpvdna_count_per_ml_plasma
+        Float cthpvdna_count_per_ng_cfdna
+
+        Int? cpu = 2
+        Int? memory_gb = 16
+        Int? disk_size_gb = 128
+    }
+
+    command <<<
+        set -e
+        python3 <<CODE
+        import json
+
+        data = {"sample_id": "~{sample_id}",
+                "top_hpv_genotype": "~{top_hpv_genotype}",
+                "top_hpv_num_duplex_reads": ~{top_hpv_num_duplex_reads},
+                "top_hpv_duplex_coverage": ~{top_hpv_duplex_coverage},
+                "is_hpv_positive": ~{is_hpv_positive},
+                "secondary_hpv_types": "~{secondary_hpv_types}",
+                "low_risk_hpv_genotypes_detected": "~{low_risk_hpv_genotypes_detected}",
+                "cthpvdna_per_human_genome_equivalents": ~{cthpvdna_per_human_genome_equivalents},
+                "cthpvdna_count_per_ml_plasma": ~{cthpvdna_count_per_ml_plasma},
+                "cthpvdna_count_per_ng_cfdna": ~{cthpvdna_count_per_ng_cfdna}
+        }
+
+        with open("~{sample_id}.summary.json", 'w') as f:
+            json.dump(data, f)
+        CODE
+    >>>
+
+    output {
+        File summary = "~{sample_id}.summary.json"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk ~{disk_size_gb} SSD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/simple_pysam@sha256:a302f9efe0bf1d4f9998ee1e9dda406223454ccaea0b5619046742221c1d2a74"
     }
 }
