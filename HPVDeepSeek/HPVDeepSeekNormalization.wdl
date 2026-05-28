@@ -251,7 +251,10 @@ task SummarizeStats {
             if (not fp_region.startswith("chrX")) and (not fp_region.startswith("chrY")):
                 num_non_xy_fp_regions += 1
 
-        mean_simplex_depth_hg38_fp_only = mean_simplex_depth_hg38_fp_only / num_non_xy_fp_regions
+        if num_non_xp_fp_regions > 0:
+            mean_simplex_depth_hg38_fp_only = mean_simplex_depth_hg38_fp_only / num_non_xy_fp_regions
+        else:
+            mean_simplex_depth_hg38_fp_only = 0.0
 
         outfile = open("~{sample_id}.fs_stats_summary.tsv", 'w')
 
