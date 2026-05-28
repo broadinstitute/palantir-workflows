@@ -674,7 +674,10 @@ task DetermineHPVStatus {
         max_elem = coverage_sorted[0]
 
         with open("top_hpv_genotype.txt", 'w') as f:
-            f.write(max_elem[0])
+            if max_elem[1][0] == 0:
+                f.write("NA")
+            else:
+                f.write(max_elem[0])
 
         with open("top_hpv_num_duplex_reads.txt", 'w') as f:
             f.write(str(max_elem[1][0]))
