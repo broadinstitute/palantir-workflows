@@ -247,7 +247,7 @@ task FilterAlignmentArtifacts {
         gatk --java-options "-Xms8g -Xmx14g" \
         FilterAlignmentArtifacts \
         --input ~{bam} \
-        --output ~{output_basename}.vcf.gz
+        --output ~{output_basename}.vcf.gz \
         --variant ~{input_vcf} \
         --reference ~{reference} \
         --bwa-mem-index-image ~{realignment_index_bundle}
@@ -569,7 +569,7 @@ workflow HPVDeepSeekSomaticVariantCalling {
     call RunMappingFilter {
         input:
             vcf = mapping_filter_input_vcf,
-            vcf_idx = mapping_filter_input_vcf,
+            vcf_idx = mapping_filter_input_vcf_idx,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
