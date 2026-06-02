@@ -62,8 +62,8 @@ workflow HPVDeepSeek {
         File regions
         File gapdh_regions
         File fp_regions
-        Float ml_plasma= 60.0
-        Float ng_cfdna = 20.0
+        Float ml_plasma
+        Float ng_cfdna
     }
 
     call HPVDeepSeekGenotyping.HPVDeepSeekGenotyping {
