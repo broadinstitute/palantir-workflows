@@ -163,7 +163,7 @@ task NormalizeHPV {
                     detected_hpv_genotypes.append(columns[0])
 
         median_hg38_val = 0.0
-        with open(~{median_hg38}", 'r') as f:
+        with open("~{median_hg38}", 'r') as f:
             median_hg38_val = float(f.readline().strip())
 
         outfile = open("~{sample_id}.normalized_hpv.tsv", 'w')
