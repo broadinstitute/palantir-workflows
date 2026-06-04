@@ -674,7 +674,7 @@ task DetermineHPVStatus {
 
                 if chromosome.startswith("HPV") and num_duplexes > 0:
                     outfile.write(chromosome + "\t" + str(num_duplexes) + "\t" + str(genomic_coverage) + "\t")
-                    if num_duplexes >= 4 and genomic_coverage >= 5.0 and chromosome not in low_risk_genotype_list:
+                    if num_duplexes >= 4 and genomic_coverage >= 5.0 and chromosome not in low_risk_hpv_genotype_list:
                         outfile.write("true" + "\n")
                     else:
                         outfile.write("false" + "\n")
