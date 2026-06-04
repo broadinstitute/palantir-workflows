@@ -638,10 +638,11 @@ task SamtoolsCoverage {
 # HPV+ Classification
 # Sample is considered HPV+ if the following thresholds are met:
 # Duplex read count ≥ 4
-# Percentage of HPV genome covered by read alignment ≥ 5%
-# The HPV genotype with the highest number of duplexes is NOT a low-risk HPV genotype
+# Percentage of HPV genome covered by duplex read alignment ≥ 5%
+# NOT a low-risk HPV genotype
 task DetermineHPVStatus {
     input {
+        String output_basename
         File coverage
         File low_risk_hpv_genotypes
 
@@ -658,61 +659,26 @@ task DetermineHPVStatus {
         with open("~{low_risk_hpv_genotypes}", 'r') as f:
             low_risk_hpv_genotype_list = f.read().splitlines()
 
-        coverage_dict = {}
-        low_risk_hpv_dict = {}
-        with open("~{coverage}", 'r') as infile:
-            header = infile.readline()
-            for line in infile:
+        outfile = open("~{output_basename}.hpv_status.tsv", 'w')
+        outfile.write("HPV_Genotype" + "\t" + "Num_Duplex_Reads" + "\t" + "%_Genomic_Coverage" + "\t" + "Is_Detected" + "\n")
+
+        with open("~{coverage}", 'r') as f:
+            header = f.readline()
+            for line in f:
                 line = line.rstrip()
                 columns = line.split('\t')
-                if columns[0].startswith("HPV") and columns[0] not in low_risk_hpv_genotype_list:
-                    coverage_dict[columns[0]] = (int(columns[1]), float(columns[2]))
-                elif columns[0].startswith("HPV") and columns[0] in low_risk_hpv_genotype_list:
-                    low_risk_hpv_dict[columns[0]] = (int(columns[1]), float(columns[2]))
 
-        coverage_sorted = sorted(coverage_dict.items(), key = lambda item: item[1], reverse = True)
-        max_elem = coverage_sorted[0]
+                chromosome = columns[0]
+                num_duplexes = int(columns[1])
+                genomic_coverage = float(columns[2])
 
-        with open("top_hpv_genotype.txt", 'w') as f:
-            if max_elem[1][0] == 0:
-                f.write("NA")
-            else:
-                f.write(max_elem[0])
-
-        with open("top_hpv_num_duplex_reads.txt", 'w') as f:
-            f.write(str(max_elem[1][0]))
-
-        with open("top_hpv_duplex_coverage.txt", 'w') as f:
-            f.write(str(max_elem[1][1]))
-
-        with open("is_hpv_positive.txt", 'w') as f:
-            if max_elem[1][0] >= 4 and max_elem[1][1] >= 5.0:
-                f.write("true")
-            else:
-                f.write("false")
-
-        with open("secondary_hpv_types.txt", 'w') as f:
-            output_string = ""
-            for i in range(1, len(coverage_sorted)):
-                elem = coverage_sorted[i]
-                if elem[1][0] >= 4 and elem[1][1] >= 5.0:
-                    output_string = output_string + str(elem[0]) + ":" + str(elem[1][0]) + ":" + str(elem[1][1]) + ","
-
-            if len(output_string) > 0:
-                output_string = output_string[:-1]
-            f.write(output_string)
-
-        low_risk_hpv_sorted = sorted(low_risk_hpv_dict.items(), key = lambda item: item[1], reverse = True)
-        with open("low_risk_hpv_genotypes_detected.txt", 'w') as f:
-            output_string = ""
-            for i in range(0, len(low_risk_hpv_sorted)):
-                elem = low_risk_hpv_sorted[i]
-                if elem[1][0] >= 4 and elem[1][1] >= 5.0:
-                    output_string = output_string + str(elem[0]) + ":" + str(elem[1][0]) + ":" + str(elem[1][1]) + ","
-
-            if len(output_string) > 0:
-                output_string = output_string[:-1]
-            f.write(output_string)
+                if chromosome.startswith("HPV") and num_duplexes > 0:
+                    outfile.write(chromosome + "\t" + str(num_duplexes) + "\t" + str(genomic_coverage) + "\t")
+                    if num_duplexes >= 4 and genomic_coverage >= 5.0 and chromosome not in low_risk_genotype_list:
+                        outfile.write("true" + "\n")
+                    else:
+                        outfile.write("false" + "\n")
+        outfile.close()
         CODE
     >>>
 
@@ -724,12 +690,7 @@ task DetermineHPVStatus {
     }
 
     output {
-        String top_hpv_genotype = read_string("top_hpv_genotype.txt")
-        Int top_hpv_num_duplex_reads = read_int("top_hpv_num_duplex_reads.txt")
-        Float top_hpv_duplex_coverage = read_float("top_hpv_duplex_coverage.txt")
-        Boolean is_hpv_positive = read_boolean("is_hpv_positive.txt")
-        String secondary_hpv_types = read_string("secondary_hpv_types.txt")
-        String low_risk_hpv_genotypes_detected = read_string("low_risk_hpv_genotypes_detected.txt")
+        File hpv_status = "~{output_basename}.hpv_status.tsv"
     }
 }
 
@@ -802,33 +763,6 @@ task CollectAlignmentSummaryMetrics {
     }
 }
 
-task Flagstat {
-    input {
-        File bam
-
-        Int cpu = 2
-        Int memory_gb = 16
-        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
-    }
-
-    String prefix = basename(bam, ".sorted.bam")
-
-    command <<<
-        samtools flagstat ~{bam} > ~{prefix}.flagstat.txt
-    >>>
-
-    output {
-        File flagstat = "~{prefix}.flagstat.txt"
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
-        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
-    }
-}
-
 task CollectInsertSizeMetrics {
     input {
         File bam
@@ -852,43 +786,6 @@ task CollectInsertSizeMetrics {
     output {
         File insert_size_metrics = "~{prefix}.insert_size_metrics.txt"
         File insert_size_plot = "~{prefix}.insert_size_plot.pdf"
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} HDD"
-        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
-    }
-}
-
-task CountOnTargetReads {
-    input {
-        File bam
-        File bai
-        File reference
-        File reference_fai
-        File reference_dict
-        File capture_targets_bed
-
-        Int cpu = 2
-        Int memory_gb = 16
-        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
-    }
-
-    String prefix = basename(bam, ".sorted.bam")
-
-    command <<<
-        gatk CountReads \
-        --reference ~{reference} \
-        --input ~{bam} \
-        --intervals ~{capture_targets_bed} \
-        --read-filter MappedReadFilter \
-        --read-filter NotSecondaryAlignmentReadFilter > ~{prefix}.ontarget_reads.txt
-    >>>
-
-    output {
-        File ontarget_reads = "~{prefix}.ontarget_reads.txt"
     }
 
     runtime {
@@ -1026,44 +923,6 @@ task CollectDuplexSeqMetrics {
     }
 }
 
-task Downsample {
-    input {
-        File bam
-        File bai
-        Float downsample_probability = 0.25
-        String output_basename
-
-        Int cpu = 2
-        Int memory_gb = 32
-        Int disk_size_gb = 512
-    }
-
-    command <<<
-        if [[ $(python -c "print(float(~{downsample_probability}) >= 1.0)") == "True" ]]; then
-            cp ~{bam} ~{output_basename}.downsampled.sorted.bam
-            cp ~{bai} ~{output_basename}.downsampled.sorted.bai
-        else
-            gatk DownsampleSam \
-            --INPUT ~{bam} \
-            --OUTPUT ~{output_basename}.downsampled.sorted.bam \
-            --PROBABILITY ~{downsample_probability} \
-            --CREATE_INDEX true
-        fi
-    >>>
-
-    runtime {
-        cpu: cpu
-        memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} SSD"
-        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
-    }
-
-    output {
-        File downsampled_bam = "~{output_basename}.downsampled.sorted.bam"
-        File downsampled_bam_index = "~{output_basename}.downsampled.sorted.bai"
-    }
-}
-
 workflow HPVDeepSeekGenotyping {
     input {
         String output_basename
@@ -1094,8 +953,6 @@ workflow HPVDeepSeekGenotyping {
         String read_group_platform_unit = "PU_TEST"
         String read_group_description = "KAPA_TE"
         String read_structure
-        Boolean downsample = false
-        Float? downsample_probability
     }
 
     call FastQC as PreTrimmedFastQC {
@@ -1167,53 +1024,25 @@ workflow HPVDeepSeekGenotyping {
             bam = AlignReads.bam
     }
 
-    if(downsample) {
-        call Downsample {
-            input:
-                bam = SortAndIndexBam.sorted_bam,
-                bai = SortAndIndexBam.sorted_bam_index,
-                downsample_probability = downsample_probability,
-                output_basename = output_basename
-        }
-    }
-
-    File aligned_bam = select_first([Downsample.downsampled_bam, SortAndIndexBam.sorted_bam])
-    File aligned_bam_index = select_first([Downsample.downsampled_bam_index, SortAndIndexBam.sorted_bam_index])
-
     call CollectAlignmentSummaryMetrics as PreConsensusAlignmentSummaryMetrics {
         input:
-            bam = aligned_bam,
-            bai = aligned_bam_index,
+            bam = SortAndIndexBam.sorted_bam,
+            bai = SortAndIndexBam.sorted_bam_index,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict
     }
 
-    call Flagstat as PreConsensusFlagstat {
-        input:
-            bam = aligned_bam
-    }
-
     call CollectInsertSizeMetrics as PreConsensusInsertSizeMetrics {
         input:
-            bam = aligned_bam,
-            bai = aligned_bam_index
-    }
-
-    call CountOnTargetReads as PreConsensusCountOnTargetReads {
-        input:
-            bam = aligned_bam,
-            bai = aligned_bam_index,
-            reference = reference,
-            reference_fai = reference_fai,
-            reference_dict = reference_dict,
-            capture_targets_bed = capture_targets_bed
+            bam = SortAndIndexBam.sorted_bam,
+            bai = SortAndIndexBam.sorted_bam_index
     }
 
     call CollectHsMetrics as CollectHsMetricsRawHPV {
         input:
-            bam = aligned_bam,
-            bai = aligned_bam_index,
+            bam = SortAndIndexBam.sorted_bam,
+            bai = SortAndIndexBam.sorted_bam_index,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
@@ -1225,8 +1054,8 @@ workflow HPVDeepSeekGenotyping {
 
     call CollectHsMetrics as CollectHsMetricsRawHg38 {
         input:
-            bam = aligned_bam,
-            bai = aligned_bam_index,
+            bam = SortAndIndexBam.sorted_bam,
+            bai = SortAndIndexBam.sorted_bam_index,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
@@ -1238,7 +1067,7 @@ workflow HPVDeepSeekGenotyping {
 
     call MergeBAMsAndGroupUMIs as MergeBAMsAndGroupUMIsSimplex {
         input:
-            aligned_bam = aligned_bam,
+            aligned_bam = SortAndIndexBam.sorted_bam,
             unmapped_umi_extracted_bam = ExtractUMIs.umi_extracted_bam,
             reference = reference,
             reference_fai = reference_fai,
@@ -1249,7 +1078,7 @@ workflow HPVDeepSeekGenotyping {
 
     call MergeBAMsAndGroupUMIs as MergeBAMsAndGroupUMIsDuplex {
         input:
-            aligned_bam = aligned_bam,
+            aligned_bam = SortAndIndexBam.sorted_bam,
             unmapped_umi_extracted_bam = ExtractUMIs.umi_extracted_bam,
             reference = reference,
             reference_fai = reference_fai,
@@ -1407,25 +1236,10 @@ workflow HPVDeepSeekGenotyping {
             reference_dict = reference_dict
     }
 
-    call Flagstat as PostConsensusFlagstat {
-        input:
-            bam = SortAndIndexSimplexBam.sorted_bam
-    }
-
     call CollectInsertSizeMetrics as PostConsensusInsertSizeMetrics {
         input:
             bam = SortAndIndexSimplexBam.sorted_bam,
             bai = SortAndIndexSimplexBam.sorted_bam_index
-    }
-
-    call CountOnTargetReads as PostConsensusCountOnTargetReads {
-        input:
-            bam = SortAndIndexSimplexBam.sorted_bam,
-            bai = SortAndIndexSimplexBam.sorted_bam_index,
-            reference = reference,
-            reference_fai = reference_fai,
-            reference_dict = reference_dict,
-            capture_targets_bed = capture_targets_bed
     }
 
     call CollectHsMetrics as CollectHsMetricsSimplexHPV {
@@ -1489,7 +1303,8 @@ workflow HPVDeepSeekGenotyping {
     call DetermineHPVStatus {
         input:
             coverage = SamtoolsCoverage.coverage,
-            low_risk_hpv_genotypes = low_risk_hpv_genotypes
+            low_risk_hpv_genotypes = low_risk_hpv_genotypes,
+            output_basename = output_basename
     }
 
     call GenotypeSNPsHuman {
@@ -1516,12 +1331,7 @@ workflow HPVDeepSeekGenotyping {
         File duplex_umi_duplication_metrics = CollectUMIDuplicationMetricsDuplex.umi_duplication_metrics
         File vcf = GenotypeSNPsHuman.vcf
         File coverage = SamtoolsCoverage.coverage
-        String top_hpv_genotype = DetermineHPVStatus.top_hpv_genotype
-        Int top_hpv_num_duplex_reads = DetermineHPVStatus.top_hpv_num_duplex_reads
-        Float top_hpv_duplex_coverage = DetermineHPVStatus.top_hpv_duplex_coverage
-        Boolean is_hpv_positive = DetermineHPVStatus.is_hpv_positive
-        String secondary_hpv_types = DetermineHPVStatus.secondary_hpv_types
-        String low_risk_hpv_genotypes_detected = DetermineHPVStatus.low_risk_hpv_genotypes_detected
+        File hpv_status = DetermineHPVStatus.hpv_status
         File fastp_report_html = TrimAndFilter.fastp_report_html
         File fastp_report_json = TrimAndFilter.fastp_report_json
         File pre_trimmed_r1_fastqc_html = PreTrimmedFastQC.r1_fastqc_html
@@ -1529,15 +1339,11 @@ workflow HPVDeepSeekGenotyping {
         File post_trimmed_r1_fastqc_html = PostTrimmedFastQC.r1_fastqc_html
         File post_trimmed_r2_fastqc_html = PostTrimmedFastQC.r2_fastqc_html
         File pre_consensus_alignment_summary_metrics = PreConsensusAlignmentSummaryMetrics.alignment_summary_metrics
-        File pre_consensus_flagstat = PreConsensusFlagstat.flagstat
         File pre_consensus_insert_size_metrics = PreConsensusInsertSizeMetrics.insert_size_metrics
         File pre_consensus_insert_size_plot = PreConsensusInsertSizeMetrics.insert_size_plot
-        File pre_consensus_ontarget_reads = PreConsensusCountOnTargetReads.ontarget_reads
         File post_consensus_alignment_summary_metrics = PostConsensusAlignmentSummaryMetrics.alignment_summary_metrics
-        File post_consensus_flagstat = PostConsensusFlagstat.flagstat
         File post_consensus_insert_size_metrics = PostConsensusInsertSizeMetrics.insert_size_metrics
         File post_consensus_insert_size_plot = PostConsensusInsertSizeMetrics.insert_size_plot
-        File post_consensus_ontarget_reads = PostConsensusCountOnTargetReads.ontarget_reads
         File raw_hpv_hs_metrics = CollectHsMetricsRawHPV.hs_metrics
         File raw_hpv_per_target_coverage = CollectHsMetricsRawHPV.per_target_coverage
         File raw_hg38_hs_metrics = CollectHsMetricsRawHg38.hs_metrics

@@ -475,7 +475,7 @@ workflow HPVDeepSeekSomaticVariantCalling {
         String output_basename
         File tumor_bam
         File tumor_bai
-        File target_intervals
+        File mutect_target_intervals
         File reference
         File reference_fai
         File reference_dict
@@ -515,7 +515,7 @@ workflow HPVDeepSeekSomaticVariantCalling {
             gnomad_idx = gnomad_idx,
             pon = pon,
             pon_idx = pon_idx,
-            intervals = target_intervals,
+            intervals = mutect_target_intervals,
             variants_for_contamination = variants_for_contamination,
             variants_for_contamination_idx = variants_for_contamination_idx,
             output_basename = output_basename

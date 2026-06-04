@@ -38,7 +38,7 @@ workflow HPVDeepSeek {
         String read_structure = "3M2S+T"
 
         # HPVDeepSeekSomaticVariantCalling inputs
-        File target_intervals
+        File mutect_target_intervals
         File gnomad
         File gnomad_idx
         File pon
@@ -59,9 +59,8 @@ workflow HPVDeepSeek {
         File hpv16_sublineages
 
         # HPVDeepSeekNormalization inputs
-        File regions
-        File gapdh_regions
-        File fp_regions
+        File target_intervals
+        File fp_intervals
         Float ml_plasma
         Float ng_cfdna
     }
@@ -103,7 +102,7 @@ workflow HPVDeepSeek {
             output_basename = output_basename,
             tumor_bam = HPVDeepSeekGenotyping.duplex_bam,
             tumor_bai = HPVDeepSeekGenotyping.duplex_bam_index,
-            target_intervals = target_intervals,
+            mutect_target_intervals = mutect_target_intervals,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
@@ -139,28 +138,12 @@ workflow HPVDeepSeek {
         input:
             sample_id = output_basename,
             simplex_bam = HPVDeepSeekGenotyping.simplex_bam,
-            duplex_bam = HPVDeepSeekGenotyping.duplex_bam,
             simplex_bam_index = HPVDeepSeekGenotyping.simplex_bam_index,
-            duplex_bam_index = HPVDeepSeekGenotyping.duplex_bam_index,
-            top_hpv_genotype = HPVDeepSeekGenotyping.top_hpv_genotype,
-            regions = regions,
-            gapdh_regions = gapdh_regions,
-            fp_regions = fp_regions,
+            hpv_status = HPVDeepSeekGenotyping.hpv_status,
+            target_intervals = target_intervals,
+            fp_intervals = fp_intervals,
             ml_plasma = ml_plasma,
             ng_cfdna = ng_cfdna
-    }
-
-    call SummarizeOutput {
-        input:
-            sample_id = output_basename,
-            top_hpv_genotype = HPVDeepSeekGenotyping.top_hpv_genotype,
-            top_hpv_num_duplex_reads = HPVDeepSeekGenotyping.top_hpv_num_duplex_reads,
-            top_hpv_duplex_coverage = HPVDeepSeekGenotyping.top_hpv_duplex_coverage,
-            secondary_hpv_types = HPVDeepSeekGenotyping.secondary_hpv_types,
-            low_risk_hpv_genotypes_detected = HPVDeepSeekGenotyping.low_risk_hpv_genotypes_detected,
-            cthpvdna_per_human_genome_equivalents = HPVDeepSeekNormalization.cthpvdna_per_human_genome_equivalents,
-            cthpvdna_count_per_ml_plasma = HPVDeepSeekNormalization.cthpvdna_count_per_ml_plasma,
-            cthpvdna_count_per_ng_cfdna = HPVDeepSeekNormalization.cthpvdna_count_per_ng_cfdna
     }
 
     output {
@@ -179,12 +162,7 @@ workflow HPVDeepSeek {
         File duplex_umi_duplication_metrics = HPVDeepSeekGenotyping.duplex_umi_duplication_metrics
         File vcf = HPVDeepSeekGenotyping.vcf
         File coverage = HPVDeepSeekGenotyping.coverage
-        String top_hpv_genotype = HPVDeepSeekGenotyping.top_hpv_genotype
-        Int top_hpv_num_duplex_reads = HPVDeepSeekGenotyping.top_hpv_num_duplex_reads
-        Float top_hpv_duplex_coverage = HPVDeepSeekGenotyping.top_hpv_duplex_coverage
-        Boolean is_hpv_positive = HPVDeepSeekGenotyping.is_hpv_positive
-        String secondary_hpv_types = HPVDeepSeekGenotyping.secondary_hpv_types
-        String low_risk_hpv_genotypes_detected = HPVDeepSeekGenotyping.low_risk_hpv_genotypes_detected
+        File hpv_status = HPVDeepSeekGenotyping.hpv_status
         File fastp_report_html = HPVDeepSeekGenotyping.fastp_report_html
         File fastp_report_json = HPVDeepSeekGenotyping.fastp_report_json
         File pre_trimmed_r1_fastqc_html = HPVDeepSeekGenotyping.pre_trimmed_r1_fastqc_html
@@ -192,15 +170,11 @@ workflow HPVDeepSeek {
         File post_trimmed_r1_fastqc_html = HPVDeepSeekGenotyping.post_trimmed_r1_fastqc_html
         File post_trimmed_r2_fastqc_html = HPVDeepSeekGenotyping.post_trimmed_r2_fastqc_html
         File pre_consensus_alignment_summary_metrics = HPVDeepSeekGenotyping.pre_consensus_alignment_summary_metrics
-        File pre_consensus_flagstat = HPVDeepSeekGenotyping.pre_consensus_flagstat
         File pre_consensus_insert_size_metrics = HPVDeepSeekGenotyping.pre_consensus_insert_size_metrics
         File pre_consensus_insert_size_plot = HPVDeepSeekGenotyping.pre_consensus_insert_size_plot
-        File pre_consensus_ontarget_reads = HPVDeepSeekGenotyping.pre_consensus_ontarget_reads
         File post_consensus_alignment_summary_metrics = HPVDeepSeekGenotyping.post_consensus_alignment_summary_metrics
-        File post_consensus_flagstat = HPVDeepSeekGenotyping.post_consensus_flagstat
         File post_consensus_insert_size_metrics = HPVDeepSeekGenotyping.post_consensus_insert_size_metrics
         File post_consensus_insert_size_plot = HPVDeepSeekGenotyping.post_consensus_insert_size_plot
-        File post_consensus_ontarget_reads = HPVDeepSeekGenotyping.post_consensus_ontarget_reads
         File raw_hpv_hs_metrics = HPVDeepSeekGenotyping.raw_hpv_hs_metrics
         File raw_hpv_per_target_coverage = HPVDeepSeekGenotyping.raw_hpv_per_target_coverage
         File raw_hg38_hs_metrics = HPVDeepSeekGenotyping.raw_hg38_hs_metrics
@@ -243,68 +217,6 @@ workflow HPVDeepSeek {
         File high_risk_snps_found = HPVDeepSeekTertiaryAnalysis.high_risk_snps_found
 
         # HPVDeepSeekNormalization outputs
-        File custom_consensus_filter = HPVDeepSeekNormalization.consensus_read_filter
-        File fs_metrics = HPVDeepSeekNormalization.fs_metrics
-        File fs_stats_summary = HPVDeepSeekNormalization.fs_stats_summary
-        File fs_g_1_coverage = HPVDeepSeekNormalization.fs_g_1_coverage
-        File fs_geq_3_coverage = HPVDeepSeekNormalization.fs_geq_3_coverage
-        File fs_geq_5_coverage = HPVDeepSeekNormalization.fs_geq_5_coverage
-        File fs_geq_10_coverage = HPVDeepSeekNormalization.fs_geq_10_coverage
-        Float cthpvdna_per_human_genome_equivalents = HPVDeepSeekNormalization.cthpvdna_per_human_genome_equivalents
-        Float cthpvdna_count_per_ml_plasma = HPVDeepSeekNormalization.cthpvdna_count_per_ml_plasma
-        Float cthpvdna_count_per_ng_cfdna = HPVDeepSeekNormalization.cthpvdna_count_per_ng_cfdna
-
-        # HPVDeepSeek summary output file
-        File summarized_output = SummarizeOutput.summary
-    }
-}
-
-task SummarizeOutput {
-    input {
-        String sample_id
-        String top_hpv_genotype
-        Int top_hpv_num_duplex_reads
-        Float top_hpv_duplex_coverage
-        String secondary_hpv_types
-        String low_risk_hpv_genotypes_detected
-        Float cthpvdna_per_human_genome_equivalents
-        Float cthpvdna_count_per_ml_plasma
-        Float cthpvdna_count_per_ng_cfdna
-
-        Int? cpu = 2
-        Int? memory_gb = 16
-        Int? disk_size_gb = 128
-    }
-
-    command <<<
-        set -e
-        python3 <<CODE
-        import json
-
-        data = {"sample_id": "~{sample_id}",
-                "top_hpv_genotype": "~{top_hpv_genotype}",
-                "top_hpv_num_duplex_reads": ~{top_hpv_num_duplex_reads},
-                "top_hpv_duplex_coverage": ~{top_hpv_duplex_coverage},
-                "secondary_hpv_types": "~{secondary_hpv_types}",
-                "low_risk_hpv_genotypes_detected": "~{low_risk_hpv_genotypes_detected}",
-                "cthpvdna_per_human_genome_equivalents": ~{cthpvdna_per_human_genome_equivalents},
-                "cthpvdna_count_per_ml_plasma": ~{cthpvdna_count_per_ml_plasma},
-                "cthpvdna_count_per_ng_cfdna": ~{cthpvdna_count_per_ng_cfdna}
-        }
-
-        with open("~{sample_id}.summary.json", 'w') as f:
-            json.dump(data, f)
-        CODE
-    >>>
-
-    output {
-        File summary = "~{sample_id}.summary.json"
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memory_gb} GiB"
-        disks: "local-disk ~{disk_size_gb} SSD"
-        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/simple_pysam@sha256:a302f9efe0bf1d4f9998ee1e9dda406223454ccaea0b5619046742221c1d2a74"
+        File normalized_hpv = HPVDeepSeekNormalization.normalized_hpv
     }
 }
