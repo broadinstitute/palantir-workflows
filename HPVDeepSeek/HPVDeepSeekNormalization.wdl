@@ -102,10 +102,10 @@ task GetMedianOfHg38MeanDepthsSimplex {
                 line = line.rstrip()
                 columns = line.split('\t')
 
-                chromosome = tokens[0]
-                start = int(tokens[1])
-                end = int(tokens[2])
-                mean_depth = float(tokens[3])
+                chromosome = columns[0]
+                start = int(columns[1])
+                end = int(columns[2])
+                mean_depth = float(columns[3])
 
                 key = chromosome + ":" + str(start) + "-" + str(end)
 
