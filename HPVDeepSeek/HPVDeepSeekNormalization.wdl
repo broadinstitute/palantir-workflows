@@ -110,7 +110,7 @@ task GetMedianOfHg38MeanDepthsSimplex {
                 key = chromosome + ":" + str(start) + "-" + str(end)
 
                 if (key in fp_interval_list) and (not key.startswith("chrX")) and (not key.startswith("chrY")):
-                    hg38_non_xy_simplex_mean_depths.append(mean_depth)
+                    hg38_non_xy_fp_mean_depths.append(mean_depth)
 
         median_hg38 = statistics.median(hg38_non_xy_fp_mean_depths)
 
