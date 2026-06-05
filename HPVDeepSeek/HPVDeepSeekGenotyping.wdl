@@ -409,7 +409,7 @@ task MergeBAMsAndGroupUMIs {
         --ALIGNER_PROPER_PAIR_FLAGS true \
         --CLIP_OVERLAPPING_READS false
 
-        samtools view -f 2 -q 1 -bh ~{output_basename}.merged.bam > ~{output_basename}.merged.filtered.bam
+        samtools view -f 2 -q 1 -bh ~{output_basename}.merged.bam -o ~{output_basename}.merged.filtered.bam
 
         fgbio GroupReadsByUmi \
         --input ~{output_basename}.merged.filtered.bam \
