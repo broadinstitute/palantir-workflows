@@ -620,7 +620,7 @@ task SamtoolsCoverage {
     }
 
     command <<<
-        samtools coverage ~{bam} | awk '{if(NR==1){printf "%s\t%s\t%s\n",$1,$4,$6} else {printf "%s\t%s\t%s\n",$1,$4,$6}}' > ~{output_basename}.coverage.txt
+        samtools coverage ~{bam} > ~{output_basename}.coverage.txt
     >>>
 
     output {
@@ -669,8 +669,8 @@ task DetermineHPVStatus {
                 columns = line.split('\t')
 
                 chromosome = columns[0]
-                num_duplexes = int(columns[1])
-                genomic_coverage = float(columns[2])
+                num_duplexes = int(columns[3])
+                genomic_coverage = float(columns[4])
 
                 if chromosome.startswith("HPV") and num_duplexes > 0:
                     outfile.write(chromosome + "\t" + str(num_duplexes) + "\t" + str(genomic_coverage) + "\t")
