@@ -363,21 +363,48 @@ task GATKSortBam {
     }
 }
 
-# 1. Merge BWA-aligned reads with original UMI-tagged reads to produce a BAM file that has alignment info + UMI tags, necessary for UMI-aware deduplication.
-# 2. Filter reads with MAPQ < 1 and reads not mapped in proper pair
-# 3. Group together reads that share the same UMI sequence (or a similar one within a defined edit distance) and originate from the same genomic location—used for UMI-aware deduplication.
-# fgbio:
-#--input: Input BAM file containing reads aligned to the reference with UMI tags (RX) and filtered.
-#--output: Output BAM where each read is tagged with a group ID (MI tag) indicating its molecular family.
-#--strategy=adjacency: Uses an adjacency graph to group UMIs—UMIs within one base mismatch (--edits=1) are grouped if one is more abundant.
-#--edits=1: Allows grouping of UMIs within 1 base mismatch (to account for sequencing errors).
-#-t RX: Specifies the tag where UMIs are stored (here, the standard RX tag).
-#-f ...umi_group_data.txt: Outputs grouping statistics and metadata for each molecular family.
-task MergeBAMsAndGroupUMIs {
+task MergeBamAlignment {
     input {
         String output_basename
         File aligned_bam
-        File unmapped_umi_extracted_bam
+        File unmapped_bam
+        File reference
+        File reference_fai
+        File reference_dict
+        String? extra_args
+
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * size(aligned_bam, "GiB") + size(unmapped_bam, "GiB")) + 100)
+        Int min_ssd_size_gb = 512
+        Boolean use_ssd = true
+    }
+
+    command <<<
+        gatk MergeBamAlignment \
+        --ALIGNED_BAM ~{aligned_bam} \
+        --UNMAPPED_BAM ~{unmapped_bam} \
+        --OUTPUT ~{output_basename}.bam \
+        --REFERENCE_SEQUENCE ~{reference} \
+        ~{extra_args}
+    >>>
+
+    output {
+        File merged_bam = "~{output_basename}.bam"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
+    }
+}
+
+task FilterAndGroupReadsByUMI {
+    input {
+        String output_basename
+        File merged_bam
         File reference
         File reference_fai
         File reference_dict
@@ -385,7 +412,7 @@ task MergeBAMsAndGroupUMIs {
 
         Int cpu = 1
         Int memory_gb = 16
-        Int disk_size_gb = ceil((2.5 * size(aligned_bam, "GiB") + size(unmapped_umi_extracted_bam, "GiB")) + 100)
+        Int disk_size_gb = ceil((2.5 * size(merged_bam, "GiB")) + 100)
         Int min_ssd_size_gb = 512
         Boolean use_ssd = true
     }
@@ -394,22 +421,7 @@ task MergeBAMsAndGroupUMIs {
     String output_type = if is_duplex then "duplex" else "simplex"
 
     command <<<
-        gatk MergeBamAlignment \
-        --ATTRIBUTES_TO_RETAIN X0 \
-        --ATTRIBUTES_TO_REMOVE NM \
-        --ATTRIBUTES_TO_REMOVE MD \
-        --ALIGNED_BAM ~{aligned_bam} \
-        --UNMAPPED_BAM ~{unmapped_umi_extracted_bam} \
-        --OUTPUT ~{output_basename}.merged.bam \
-        --REFERENCE_SEQUENCE ~{reference} \
-        --SORT_ORDER queryname \
-        --ALIGNED_READS_ONLY true \
-        --MAX_INSERTIONS_OR_DELETIONS -1 \
-        --PRIMARY_ALIGNMENT_STRATEGY MostDistant \
-        --ALIGNER_PROPER_PAIR_FLAGS true \
-        --CLIP_OVERLAPPING_READS false
-
-        samtools view -f 2 -q 1 -bh ~{output_basename}.merged.bam -o ~{output_basename}.merged.filtered.bam
+        samtools view -f 2 -q 1 -bh ~{merged_bam} -o ~{output_basename}.merged.filtered.bam
 
         fgbio GroupReadsByUmi \
         --input ~{output_basename}.merged.filtered.bam \
@@ -423,64 +435,6 @@ task MergeBAMsAndGroupUMIs {
     output {
         File umi_grouped_bam = "~{output_basename}.~{output_type}.umi_grouped.bam"
         File umi_group_data = "~{output_basename}.~{output_type}.umi_group_data.txt"
-    }
-
-    runtime {
-        cpu: cpu
-        memory: "~{memory_gb} GiB"
-        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
-        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
-    }
-}
-
-# Merge aligned reads with UMI and original tags:
-# gatk MergeBamAlignment \
-# --ALIGNED_BAM consensus_mapped.bam \
-# --UNMAPPED_BAM consensus_unmapped_sorted.bam \
-# --OUTPUT deduped.bam \
-# --REFERENCE_SEQUENCE reference.fasta \
-# --SORT_ORDER coordinate \
-# --ATTRIBUTES_TO_RETAIN X0 \
-# --ATTRIBUTES_TO_RETAIN RX \
-# --ADD_MATE_CIGAR true \
-# --MAX_INSERTIONS_OR_DELETIONS -1 \
-# --PRIMARY_ALIGNMENT_STRATEGY MostDistant \
-# --ALIGNER_PROPER_PAIR_FLAGS true \
-# --CLIP_OVERLAPPING_READS false
-task MergeConsensus {
-    input {
-        String output_basename
-        File consensus_aligned_bam
-        File consensus_unmapped_bam
-        File reference
-        File reference_fai
-        File reference_dict
-
-        Int cpu = 1
-        Int memory_gb = 16
-        Int disk_size_gb = ceil((2.5 * size(consensus_aligned_bam, "GiB") + size(consensus_unmapped_bam, "GiB")) + 100)
-        Int min_ssd_size_gb = 512
-        Boolean use_ssd = true
-    }
-
-    command <<<
-        gatk MergeBamAlignment \
-        --ALIGNED_BAM ~{consensus_aligned_bam} \
-        --UNMAPPED_BAM ~{consensus_unmapped_bam} \
-        --OUTPUT ~{output_basename}.bam \
-        --REFERENCE_SEQUENCE ~{reference} \
-        --SORT_ORDER coordinate \
-        --ATTRIBUTES_TO_RETAIN X0 \
-        --ATTRIBUTES_TO_RETAIN RX \
-        --ADD_MATE_CIGAR true \
-        --MAX_INSERTIONS_OR_DELETIONS -1 \
-        --PRIMARY_ALIGNMENT_STRATEGY MostDistant \
-        --ALIGNER_PROPER_PAIR_FLAGS true \
-        --CLIP_OVERLAPPING_READS false
-    >>>
-
-    output {
-        File deduped_bam = "~{output_basename}.bam"
     }
 
     runtime {
@@ -1065,10 +1019,20 @@ workflow HPVDeepSeekGenotyping {
             output_prefix = output_basename + ".raw.hg38"
     }
 
-    call MergeBAMsAndGroupUMIs as MergeBAMsAndGroupUMIsSimplex {
+    call MergeBamAlignment as MergeBAMs {
         input:
             aligned_bam = SortAndIndexBam.sorted_bam,
-            unmapped_umi_extracted_bam = ExtractUMIs.umi_extracted_bam,
+            unmapped_bam = ExtractUMIs.umi_extracted_bam,
+            reference = reference,
+            reference_fai = reference_fai,
+            reference_dict = reference_dict,
+            output_basename = output_basename + ".merged",
+            extra_args = "--SORT_ORDER queryname --ALIGNED_READS_ONLY true --MAX_INSERTIONS_OR_DELETIONS -1 --PRIMARY_ALIGNMENT_STRATEGY MostDistant --ALIGNER_PROPER_PAIR_FLAGS true --CLIP_OVERLAPPING_READS false --ATTRIBUTES_TO_RETAIN X0 --ATTRIBUTES_TO_REMOVE NM --ATTRIBUTES_TO_REMOVE MD"
+    }
+
+    call FilterAndGroupReadsByUMI as FilterAndGroupReadsByUMISimplex {
+        input:
+            merged_bam = MergeBAMs.merged_bam,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
@@ -1076,10 +1040,9 @@ workflow HPVDeepSeekGenotyping {
             output_basename = output_basename
     }
 
-    call MergeBAMsAndGroupUMIs as MergeBAMsAndGroupUMIsDuplex {
+    call FilterAndGroupReadsByUMI as FilterAndGroupReadsByUMIDuplex {
         input:
-            aligned_bam = SortAndIndexBam.sorted_bam,
-            unmapped_umi_extracted_bam = ExtractUMIs.umi_extracted_bam,
+            merged_bam = MergeBAMs.merged_bam,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
@@ -1089,33 +1052,33 @@ workflow HPVDeepSeekGenotyping {
 
     call CollectUMIDuplicationMetrics as CollectUMIDuplicationMetricsSimplex {
         input:
-            umi_group_data = MergeBAMsAndGroupUMIsSimplex.umi_group_data,
+            umi_group_data = FilterAndGroupReadsByUMISimplex.umi_group_data,
             output_basename = output_basename + ".simplex"
     }
 
     call CollectUMIDuplicationMetrics as CollectUMIDuplicationMetricsDuplex {
         input:
-            umi_group_data = MergeBAMsAndGroupUMIsDuplex.umi_group_data,
+            umi_group_data = FilterAndGroupReadsByUMIDuplex.umi_group_data,
             output_basename = output_basename + ".duplex"
     }
 
     call CallMolecularConsensusReads {
         input:
-            umi_grouped_bam = MergeBAMsAndGroupUMIsSimplex.umi_grouped_bam,
+            umi_grouped_bam = FilterAndGroupReadsByUMISimplex.umi_grouped_bam,
             read_group_id = read_group_id,
             output_basename = output_basename
     }
 
     call CallDuplexConsensusReads {
         input:
-            umi_grouped_bam = MergeBAMsAndGroupUMIsDuplex.umi_grouped_bam,
+            umi_grouped_bam = FilterAndGroupReadsByUMIDuplex.umi_grouped_bam,
             read_group_id = read_group_id,
             output_basename = output_basename
     }
 
     call CollectDuplexSeqMetrics {
         input:
-            bam = MergeBAMsAndGroupUMIsDuplex.umi_grouped_bam
+            bam = FilterAndGroupReadsByUMIDuplex.umi_grouped_bam
     }
 
     call ConsensusBamToFastq as SimplexConsensusBamToFastq {
@@ -1197,34 +1160,36 @@ workflow HPVDeepSeekGenotyping {
             bam = CallDuplexConsensusReads.umi_consensus_unmapped_bam
     }
 
-    call MergeConsensus as MergeConsensusSimplex {
+    call MergeBamAlignment as MergeConsensusSimplex {
         input:
-            consensus_aligned_bam = GATKSortBamSimplexConsensusAligned.sorted_bam,
-            consensus_unmapped_bam = GATKSortBamSimplexConsensusUnmapped.sorted_bam,
+            aligned_bam = GATKSortBamSimplexConsensusAligned.sorted_bam,
+            unmapped_bam = GATKSortBamSimplexConsensusUnmapped.sorted_bam,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
-            output_basename = output_basename + ".simplex"
+            output_basename = output_basename + ".simplex",
+            extra_args = "--SORT_ORDER coordinate --ATTRIBUTES_TO_RETAIN X0 --ATTRIBUTES_TO_RETAIN RX --ADD_MATE_CIGAR true --MAX_INSERTIONS_OR_DELETIONS -1 --PRIMARY_ALIGNMENT_STRATEGY MostDistant --ALIGNER_PROPER_PAIR_FLAGS true --CLIP_OVERLAPPING_READS false"
     }
 
-    call MergeConsensus as MergeConsensusDuplex {
+    call MergeBamAlignment as MergeConsensusDuplex {
         input:
-            consensus_aligned_bam = GATKSortBamDuplexConsensusAligned.sorted_bam,
-            consensus_unmapped_bam = GATKSortBamDuplexConsensusUnmapped.sorted_bam,
+            aligned_bam = GATKSortBamDuplexConsensusAligned.sorted_bam,
+            unmapped_bam = GATKSortBamDuplexConsensusUnmapped.sorted_bam,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
-            output_basename = output_basename + ".duplex"
+            output_basename = output_basename + ".duplex",
+            extra_args = "--SORT_ORDER coordinate --ATTRIBUTES_TO_RETAIN X0 --ATTRIBUTES_TO_RETAIN RX --ADD_MATE_CIGAR true --MAX_INSERTIONS_OR_DELETIONS -1 --PRIMARY_ALIGNMENT_STRATEGY MostDistant --ALIGNER_PROPER_PAIR_FLAGS true --CLIP_OVERLAPPING_READS false"
     }
 
     call SortAndIndexBam as SortAndIndexSimplexBam {
         input:
-            bam = MergeConsensusSimplex.deduped_bam
+            bam = MergeConsensusSimplex.merged_bam
     }
 
     call SortAndIndexBam as SortAndIndexDuplexBam {
         input:
-            bam = MergeConsensusDuplex.deduped_bam
+            bam = MergeConsensusDuplex.merged_bam
     }
 
     call CollectAlignmentSummaryMetrics as PostConsensusAlignmentSummaryMetrics {
@@ -1323,10 +1288,10 @@ workflow HPVDeepSeekGenotyping {
         File simplex_bam_index = SortAndIndexSimplexBam.sorted_bam_index
         File duplex_bam = SortAndIndexDuplexBam.sorted_bam
         File duplex_bam_index = SortAndIndexDuplexBam.sorted_bam_index
-        File simplex_umi_grouped_bam = MergeBAMsAndGroupUMIsSimplex.umi_grouped_bam
-        File simplex_umi_group_data = MergeBAMsAndGroupUMIsSimplex.umi_group_data
-        File duplex_umi_grouped_bam = MergeBAMsAndGroupUMIsDuplex.umi_grouped_bam
-        File duplex_umi_group_data = MergeBAMsAndGroupUMIsDuplex.umi_group_data
+        File simplex_umi_grouped_bam = FilterAndGroupReadsByUMISimplex.umi_grouped_bam
+        File simplex_umi_group_data = FilterAndGroupReadsByUMISimplex.umi_group_data
+        File duplex_umi_grouped_bam = FilterAndGroupReadsByUMIDuplex.umi_grouped_bam
+        File duplex_umi_group_data = FilterAndGroupReadsByUMIDuplex.umi_group_data
         File simplex_umi_duplication_metrics = CollectUMIDuplicationMetricsSimplex.umi_duplication_metrics
         File duplex_umi_duplication_metrics = CollectUMIDuplicationMetricsDuplex.umi_duplication_metrics
         File vcf = GenotypeSNPsHuman.vcf
