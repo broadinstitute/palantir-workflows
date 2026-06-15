@@ -624,7 +624,7 @@ task DetermineHPVStatus {
 
                 chromosome = columns[0]
                 num_duplexes = int(columns[3])
-                genomic_coverage = float(columns[4])
+                genomic_coverage = float(columns[5])
 
                 if chromosome.startswith("HPV") and num_duplexes > 0:
                     outfile.write(chromosome + "\t" + str(num_duplexes) + "\t" + str(genomic_coverage) + "\t")
