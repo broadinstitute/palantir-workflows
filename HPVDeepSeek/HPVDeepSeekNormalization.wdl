@@ -5,7 +5,7 @@ task CalculateMeanDepthsSimplex {
         String sample_id
         File simplex_bam
         File simplex_bam_index
-        File target_intervals
+        File target_bed
 
         Int? cpu = 2
         Int? memory_gb = 16
@@ -22,7 +22,7 @@ task CalculateMeanDepthsSimplex {
         infile_simplex = pysam.AlignmentFile("~{simplex_bam}", "rb")
 
         target_interval_list = []
-        with open("~{target_intervals}", 'r') as f:
+        with open("~{target_bed}", 'r') as f:
             target_interval_list = [line.strip() for line in f]
 
         hg38_target_mean_depths = open("~{sample_id}.hg38_target_mean_depths.tsv", 'w')
@@ -204,7 +204,7 @@ workflow HPVDeepSeekNormalization {
         File simplex_bam
         File simplex_bam_index
         File hpv_status
-        File target_intervals
+        File target_bed
         File fp_intervals
         Float ul_plasma
     }
@@ -214,7 +214,7 @@ workflow HPVDeepSeekNormalization {
             sample_id = sample_id,
             simplex_bam = simplex_bam,
             simplex_bam_index = simplex_bam_index,
-            target_intervals = target_intervals
+            target_bed = target_bed
     }
 
     call GetMedianOfHg38MeanDepthsSimplex {
@@ -222,7 +222,6 @@ workflow HPVDeepSeekNormalization {
             sample_id = sample_id,
             hg38_target_mean_depths = CalculateMeanDepthsSimplex.hg38_target_mean_depths,
             fp_intervals = fp_intervals
-
     }
 
     call NormalizeHPV {

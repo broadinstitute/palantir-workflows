@@ -891,7 +891,6 @@ workflow HPVDeepSeekGenotyping {
         File bwa_idx_bwt
         File bwa_idx_pac
         File bwa_idx_sa
-        File capture_targets_bed
         File bait_interval_list
         File target_interval_list
         File hpv_bait_interval_list

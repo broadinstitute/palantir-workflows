@@ -20,7 +20,7 @@ workflow HPVDeepSeek {
         File bwa_idx_bwt
         File bwa_idx_pac
         File bwa_idx_sa
-        File capture_targets_bed
+        File target_bed
         File bait_interval_list
         File target_interval_list
         File hpv_bait_interval_list
@@ -38,7 +38,6 @@ workflow HPVDeepSeek {
         String read_structure = "3M2S+T"
 
         # HPVDeepSeekSomaticVariantCalling inputs
-        File mutect_target_intervals
         File gnomad
         File gnomad_idx
         File pon
@@ -59,7 +58,6 @@ workflow HPVDeepSeek {
         File hpv16_sublineages
 
         # HPVDeepSeekNormalization inputs
-        File target_intervals
         File fp_intervals
         Float ul_plasma
     }
@@ -78,7 +76,6 @@ workflow HPVDeepSeek {
             bwa_idx_bwt = bwa_idx_bwt,
             bwa_idx_pac = bwa_idx_pac,
             bwa_idx_sa = bwa_idx_sa,
-            capture_targets_bed = capture_targets_bed,
             bait_interval_list = bait_interval_list,
             target_interval_list = target_interval_list,
             hpv_bait_interval_list = hpv_bait_interval_list,
@@ -101,7 +98,7 @@ workflow HPVDeepSeek {
             output_basename = output_basename,
             tumor_bam = HPVDeepSeekGenotyping.duplex_bam,
             tumor_bai = HPVDeepSeekGenotyping.duplex_bam_index,
-            mutect_target_intervals = mutect_target_intervals,
+            mutect_target_intervals = hg38_target_interval_list,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
@@ -139,7 +136,7 @@ workflow HPVDeepSeek {
             simplex_bam = HPVDeepSeekGenotyping.simplex_bam,
             simplex_bam_index = HPVDeepSeekGenotyping.simplex_bam_index,
             hpv_status = HPVDeepSeekGenotyping.hpv_status,
-            target_intervals = target_intervals,
+            target_bed = target_bed,
             fp_intervals = fp_intervals,
             ul_plasma = ul_plasma
     }
