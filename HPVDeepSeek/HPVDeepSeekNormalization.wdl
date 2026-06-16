@@ -25,7 +25,7 @@ task CalculateMeanDepthsSimplex {
         with open("~{target_bed}", 'r') as f:
             target_interval_list = [line.strip() for line in f]
 
-        hg38_target_mean_depths = open("~{sample_id}.hg38_target_mean_depths.tsv", 'w')
+        hg38_target_mean_depths_fs_geq_5 = open("~{sample_id}.hg38_target_mean_depths_fs_geq_5.tsv", 'w')
         hpv_target_mean_depths_fs_geq_5 = open("~{sample_id}.hpv_target_mean_depths_fs_geq_5.tsv", 'w')
 
         for target in target_interval_list:
@@ -36,14 +36,10 @@ task CalculateMeanDepthsSimplex {
 
             total_depth = 0
             num_positions = 0
-
             for pileupcolumn in infile_simplex.pileup(chromosome, start, end, stepper = "all", truncate = False, max_depth = 1000000, ignore_overlaps = True):
-                if chromosome.startswith("HPV"):
-                    for pileupread in pileupcolumn.pileups:
-                        if pileupread.alignment.get_tag("cD") >= 5:
-                            total_depth += 1
-                else:
-                    total_depth += pileupcolumn.nsegments
+                for pileupread in pileupcolumn.pileups:
+                    if pileupread.alignment.get_tag("cD") >= 5:
+                        total_depth += 1
                 num_positions += 1
 
             mean_depth = 0.0
@@ -53,16 +49,16 @@ task CalculateMeanDepthsSimplex {
             if chromosome.startswith("HPV"):
                 hpv_target_mean_depths_fs_geq_5.write(chromosome + "\t" + str(start) + "\t" + str(end) + "\t" + str(mean_depth) + "\n")
             else:
-                hg38_target_mean_depths.write(chromosome + "\t" + str(start) + "\t" + str(end) + "\t" + str(mean_depth) + "\n")
+                hg38_target_mean_depths_fs_geq_5.write(chromosome + "\t" + str(start) + "\t" + str(end) + "\t" + str(mean_depth) + "\n")
 
         hpv_target_mean_depths_fs_geq_5.close()
-        hg38_target_mean_depths.close()
+        hg38_target_mean_depths_fs_geq_5.close()
 
         CODE
     >>>
 
     output {
-        File hg38_target_mean_depths = "~{sample_id}.hg38_target_mean_depths.tsv"
+        File hg38_target_mean_depths_fs_geq_5 = "~{sample_id}.hg38_target_mean_depths_fs_geq_5.tsv"
         File hpv_target_mean_depths_fs_geq_5 = "~{sample_id}.hpv_target_mean_depths_fs_geq_5.tsv"
     }
 
@@ -77,7 +73,7 @@ task CalculateMeanDepthsSimplex {
 task GetMedianOfHg38MeanDepthsSimplex {
     input {
         String sample_id
-        File hg38_target_mean_depths
+        File hg38_target_mean_depths_fs_geq_5
         File fp_intervals
 
         Int? cpu = 2
@@ -97,7 +93,7 @@ task GetMedianOfHg38MeanDepthsSimplex {
 
         hg38_non_xy_fp_mean_depths = []
 
-        with open("~{hg38_target_mean_depths}", 'r') as f:
+        with open("~{hg38_target_mean_depths_fs_geq_5}", 'r') as f:
             for line in f:
                 line = line.rstrip()
                 columns = line.split('\t')
@@ -220,7 +216,7 @@ workflow HPVDeepSeekNormalization {
     call GetMedianOfHg38MeanDepthsSimplex {
         input:
             sample_id = sample_id,
-            hg38_target_mean_depths = CalculateMeanDepthsSimplex.hg38_target_mean_depths,
+            hg38_target_mean_depths_fs_geq_5 = CalculateMeanDepthsSimplex.hg38_target_mean_depths_fs_geq_5,
             fp_intervals = fp_intervals
     }
 
