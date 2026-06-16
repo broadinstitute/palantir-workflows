@@ -136,6 +136,7 @@ task NormalizeHPV {
         File hpv_target_mean_depths_fs_geq_5
         File median_hg38
         Float ul_plasma
+        Float ng_cfdna
 
         Int cpu = 2
         Int memory_gb = 16
@@ -162,7 +163,7 @@ task NormalizeHPV {
             median_hg38_val = float(f.readline().strip())
 
         outfile = open("~{sample_id}.normalized_hpv.tsv", 'w')
-        outfile.write("HPV_Genotype" + "\t" + "Normalized_HPV_Quantity" + "\t" + "Normalized_HPV_Quantity_ml_Plasma" + "\n")
+        outfile.write("HPV_Genotype" + "\t" + "HPV_Mean_Depth_Over_hg38_Median_Depth" + "\t" + "ng_cfDNA" + "\t" + "mL_Plasma" + "\t" + "HPV_Quantity" + "\n")
 
         with open("~{hpv_target_mean_depths_fs_geq_5}", 'r') as f:
             for line in f:
@@ -172,10 +173,10 @@ task NormalizeHPV {
                 if columns[0] not in detected_hpv_genotypes:
                     continue
 
-                normalized_hpv_quantity = float(columns[3]) / median_hg38_val
-                normalized_hpv_quantity_ml_plasma = normalized_hpv_quantity / ~{ul_plasma} / 1000
+                r = float(columns[3]) / median_hg38_val
+                hpv_quantity = r * (~{ng_cfdna} / 0.0033 / ~{ul_plasma} / 1000.0)
 
-                outfile.write(columns[0] + "\t" + str(normalized_hpv_quantity) + "\t" + str(normalized_hpv_quantity_ml_plasma) + "\n")
+                outfile.write(columns[0] + "\t" + str(r) + "\t" + str(~{ng_cfdna}) + "\t" + str(~{ul_plasma} / 1000.0) + "\t" + str(hpv_quantity) + "\n")
 
         outfile.close()
 
@@ -203,6 +204,7 @@ workflow HPVDeepSeekNormalization {
         File target_bed
         File fp_intervals
         Float ul_plasma
+        Float ng_cfdna
     }
 
     call CalculateMeanDepthsSimplex {
@@ -226,7 +228,8 @@ workflow HPVDeepSeekNormalization {
             hpv_status = hpv_status,
             hpv_target_mean_depths_fs_geq_5 = CalculateMeanDepthsSimplex.hpv_target_mean_depths_fs_geq_5,
             median_hg38 = GetMedianOfHg38MeanDepthsSimplex.median_hg38,
-            ul_plasma = ul_plasma
+            ul_plasma = ul_plasma,
+            ng_cfdna = ng_cfdna
     }
 
     output {

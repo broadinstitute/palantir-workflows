@@ -60,6 +60,7 @@ workflow HPVDeepSeek {
         # HPVDeepSeekNormalization inputs
         File fp_intervals
         Float ul_plasma
+        Float ng_cfdna
     }
 
     call HPVDeepSeekGenotyping.HPVDeepSeekGenotyping {
@@ -138,7 +139,8 @@ workflow HPVDeepSeek {
             hpv_status = HPVDeepSeekGenotyping.hpv_status,
             target_bed = target_bed,
             fp_intervals = fp_intervals,
-            ul_plasma = ul_plasma
+            ul_plasma = ul_plasma,
+            ng_cfdna = ng_cfdna
     }
 
     output {
