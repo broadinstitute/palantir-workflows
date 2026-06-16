@@ -853,7 +853,7 @@ task CollectDuplexSeqMetrics {
         Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 50)
     }
 
-    String prefix = basename(bam, ".umi_grouped.bam")
+    String prefix = basename(bam, ".duplex.umi_grouped.bam")
 
     command <<<
         fgbio CollectDuplexSeqMetrics \
