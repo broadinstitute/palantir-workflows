@@ -139,8 +139,7 @@ task NormalizeHPV {
         File hpv_status
         File hpv_target_mean_depths_fs_geq_5
         File median_hg38
-        Float ml_plasma
-        Float ng_cfdna
+        Float ul_plasma
 
         Int cpu = 2
         Int memory_gb = 16
@@ -167,6 +166,7 @@ task NormalizeHPV {
             median_hg38_val = float(f.readline().strip())
 
         outfile = open("~{sample_id}.normalized_hpv.tsv", 'w')
+        outfile.write("HPV_Genotype" + "\t" + "Normalized_HPV_Quantity" + "\t" + "Normalized_HPV_Quantity_ml_Plasma" + "\n")
 
         with open("~{hpv_target_mean_depths_fs_geq_5}", 'r') as f:
             for line in f:
@@ -177,10 +177,9 @@ task NormalizeHPV {
                     continue
 
                 normalized_hpv_quantity = float(columns[3]) / median_hg38_val
-                normalized_hpv_quantity_ml_plasma = normalized_hpv_quantity / ~{ml_plasma}
-                normalized_hpv_quantity_ng_cfdna = normalized_hpv_quantity / ~{ng_cfdna}
+                normalized_hpv_quantity_ml_plasma = normalized_hpv_quantity / ~{ul_plasma} / 1000
 
-                outfile.write(columns[0] + "\t" + str(normalized_hpv_quantity) + "\t" + str(normalized_hpv_quantity_ml_plasma) + "\t" + str(normalized_hpv_quantity_ng_cfdna) + "\n")
+                outfile.write(columns[0] + "\t" + str(normalized_hpv_quantity) + "\t" + str(normalized_hpv_quantity_ml_plasma) + "\n")
 
         outfile.close()
 
@@ -207,8 +206,7 @@ workflow HPVDeepSeekNormalization {
         File hpv_status
         File target_intervals
         File fp_intervals
-        Float ml_plasma
-        Float ng_cfdna
+        Float ul_plasma
     }
 
     call CalculateMeanDepthsSimplex {
@@ -233,8 +231,7 @@ workflow HPVDeepSeekNormalization {
             hpv_status = hpv_status,
             hpv_target_mean_depths_fs_geq_5 = CalculateMeanDepthsSimplex.hpv_target_mean_depths_fs_geq_5,
             median_hg38 = GetMedianOfHg38MeanDepthsSimplex.median_hg38,
-            ml_plasma = ml_plasma,
-            ng_cfdna = ng_cfdna
+            ul_plasma = ul_plasma
     }
 
     output {

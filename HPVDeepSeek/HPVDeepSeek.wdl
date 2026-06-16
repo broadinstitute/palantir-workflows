@@ -61,8 +61,7 @@ workflow HPVDeepSeek {
         # HPVDeepSeekNormalization inputs
         File target_intervals
         File fp_intervals
-        Float ml_plasma
-        Float ng_cfdna
+        Float ul_plasma
     }
 
     call HPVDeepSeekGenotyping.HPVDeepSeekGenotyping {
@@ -142,8 +141,7 @@ workflow HPVDeepSeek {
             hpv_status = HPVDeepSeekGenotyping.hpv_status,
             target_intervals = target_intervals,
             fp_intervals = fp_intervals,
-            ml_plasma = ml_plasma,
-            ng_cfdna = ng_cfdna
+            ul_plasma = ul_plasma
     }
 
     output {
@@ -194,6 +192,7 @@ workflow HPVDeepSeek {
         File duplex_qc = HPVDeepSeekGenotyping.duplex_qc
 
         # HPVDeepSeekSomaticVariantCalling outputs
+        File contamination_table = HPVDeepSeekSomaticVariantCalling.contamination_table
         File unfiltered_vcf = HPVDeepSeekSomaticVariantCalling.unfiltered_vcf
         File unfiltered_vcf_idx = HPVDeepSeekSomaticVariantCalling.unfiltered_vcf_idx
         File mutect2_stats = HPVDeepSeekSomaticVariantCalling.mutect2_stats

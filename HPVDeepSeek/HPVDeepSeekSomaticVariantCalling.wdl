@@ -613,6 +613,7 @@ workflow HPVDeepSeekSomaticVariantCalling {
     }
 
     output {
+        File contamination_table = CalculateContamination.contamination_table
         File unfiltered_vcf = Mutect2.unfiltered_vcf
         File unfiltered_vcf_idx = Mutect2.unfiltered_vcf_idx
         File mutect2_stats = Mutect2.mutect2_stats
