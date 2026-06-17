@@ -28,7 +28,7 @@ task NormalizeHPV {
         df_detected_hpv_genotypes = pd.read_csv("~{hpv_status}", sep = '\t')
 
         chroms_and_lengths = dict(zip(infile_simplex.references, infile_simplex.lengths))
-        chroms_and_lengths_hpv = {k: v for k, v in chrom_lengths.items() if k.startswith("HPV")}
+        chroms_and_lengths_hpv = {k: v for k, v in chroms_and_lengths.items() if k.startswith("HPV")}
 
         new_rows = []
         for key, value in chroms_and_lengths_hpv.items():
