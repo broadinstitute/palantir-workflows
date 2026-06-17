@@ -137,7 +137,6 @@ workflow HPVDeepSeek {
             simplex_bam = HPVDeepSeekGenotyping.simplex_bam,
             simplex_bam_index = HPVDeepSeekGenotyping.simplex_bam_index,
             hpv_status = HPVDeepSeekGenotyping.hpv_status,
-            target_bed = target_bed,
             fp_intervals = fp_intervals,
             ul_plasma = ul_plasma,
             ng_cfdna = ng_cfdna
