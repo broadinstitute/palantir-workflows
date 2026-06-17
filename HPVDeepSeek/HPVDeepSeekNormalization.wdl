@@ -17,7 +17,7 @@ task NormalizeHPV {
 
     command <<<
         set -e
-        python <<CODE
+        python3 <<CODE
 
         import pysam
         import pandas as pd
@@ -73,7 +73,7 @@ task NormalizeHPV {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
-        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/simple_pysam@sha256:1abe088592a1c82c93e6899e03f5aecf1651fc7ecfaaf947417b6ab9b4706884"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/simple_pysam@sha256:f7f71cf1996056c32a4c7ad5ef6a855093383ab5c919a3539874e56a85539256"
     }
 }
 
