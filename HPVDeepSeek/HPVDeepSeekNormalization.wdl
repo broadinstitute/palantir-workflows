@@ -58,7 +58,7 @@ task NormalizeHPV {
         outfile = open("~{sample_id}.normalized_hpv.tsv", 'w')
         outfile.write("HPV_Genotype" + "\t" + "HPV_Mean_Depth_Over_hg38_Median_Depth" + "\t" + "ng_cfDNA" + "\t" + "mL_Plasma" + "\t" + "HPV_Quantity" + "\n")
         for row in df.loc[mask].itertuples():
-            outfile.write(row.chromosome + "\t" + str(row.r) + "\t" + str(ng_cfdna) + "\t"+ str(ul_plasma / 1000.0) + "\t" + str(row.hpv_quantity) + "\n")
+            outfile.write(row.chromosome + "\t" + str(row.r) + "\t" + str(~{ng_cfdna}) + "\t"+ str(~{ul_plasma} / 1000.0) + "\t" + str(row.hpv_quantity) + "\n")
 
         infile_simplex.close()
         outfile.close()
