@@ -17,7 +17,7 @@ task NormalizeHPV {
 
     command <<<
         set -e
-        python3 <<CODE
+        python <<CODE
 
         import pysam
         import pandas as pd
