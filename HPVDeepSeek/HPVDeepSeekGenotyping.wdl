@@ -591,9 +591,7 @@ task SamtoolsCoverage {
 
 # HPV+ Classification
 # Sample is considered HPV+ if the following thresholds are met:
-# Duplex read count ≥ 4
-# Percentage of HPV genome covered by duplex read alignment ≥ 5%
-# NOT a low-risk HPV genotype
+# Duplex read count ≥ 2
 task DetermineHPVStatus {
     input {
         String output_basename
@@ -609,6 +607,8 @@ task DetermineHPVStatus {
         set -e
         python3 <<CODE
 
+        import pandas as pd
+
         low_risk_hpv_genotype_list = []
         with open("~{low_risk_hpv_genotypes}", 'r') as f:
             low_risk_hpv_genotype_list = f.read().splitlines()
@@ -616,23 +616,19 @@ task DetermineHPVStatus {
         outfile = open("~{output_basename}.hpv_status.tsv", 'w')
         outfile.write("HPV_Genotype" + "\t" + "Num_Duplex_Reads" + "\t" + "%_Genomic_Coverage" + "\t" + "Is_Detected" + "\n")
 
-        with open("~{coverage}", 'r') as f:
-            header = f.readline()
-            for line in f:
-                line = line.rstrip()
-                columns = line.split('\t')
+        df = pd.read_csv("~{coverage}", sep = '\t')
+        df = df.rename(columns={"#rname": "rname"})
 
-                chromosome = columns[0]
-                num_duplexes = int(columns[3])
-                genomic_coverage = float(columns[5])
+        df = df[(df["rname"].str.startswith("HPV")) & (df["numreads"] >= 2)]
 
-                if chromosome.startswith("HPV") and num_duplexes > 0:
-                    outfile.write(chromosome + "\t" + str(num_duplexes) + "\t" + str(genomic_coverage) + "\t")
-                    if num_duplexes >= 4 and genomic_coverage >= 5.0 and chromosome not in low_risk_hpv_genotype_list:
-                        outfile.write("true" + "\n")
-                    else:
-                        outfile.write("false" + "\n")
+        for row in df.itertuples():
+            if row.rname in low_risk_hpv_genotype_list:
+                outfile.write(row.rname + "\t" + str(row.numreads) + "\t" + str(row.coverage) + "\t" + "false" + "\n")
+            else:
+                outfile.write(row.rname + "\t" + str(row.numreads) + "\t" + str(row.coverage) + "\t" + "true" + "\n")
+
         outfile.close()
+
         CODE
     >>>
 
@@ -640,7 +636,7 @@ task DetermineHPVStatus {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk ~{disk_size_gb} HDD"
-        docker: "us.gcr.io/broad-dsp-gcr-public/base/python:3.9-debian"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/simple_pysam@sha256:f7f71cf1996056c32a4c7ad5ef6a855093383ab5c919a3539874e56a85539256"
     }
 
     output {
