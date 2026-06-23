@@ -20,7 +20,8 @@ process DRAGEN_SCRNA {
               val(scrna_feature_barcode_groups),
               val(scrna_hto_barcode_groups),
               path(fastq_files),
-              val(use_direct_capture_mode)
+              val(use_direct_capture_mode),
+              val(additional_dragen_args)
     output:
         stdout emit: result
         path 'dragen_output/*', emit: output
@@ -88,7 +89,8 @@ process DRAGEN_SCRNA {
             --bin_memory 64424509440 \\
             --bin-split-threshold 32212254720 \\
             --force \\
-            -v
+            -v \\
+            ${additional_dragen_args}
 
 
         # copy logs

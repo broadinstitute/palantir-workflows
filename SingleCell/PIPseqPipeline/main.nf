@@ -23,6 +23,7 @@ params.dragen_container = null         // DRAGEN container image
 params.qc_container = null             // QC container image
 params.use_direct_capture_mode = true       // Whether to use direct capture mode in DRAGEN
 params.guide_assignment_num_processes = null  // Number of processes for guide assignment (default: all available cores)
+params.additional_dragen_args = null        // Optional additional arguments to pass to DRAGEN command line
 
 // Help message
 def helpMessage() {
@@ -47,6 +48,7 @@ def helpMessage() {
       --scrna_feature_barcode_reference  Feature barcode reference file for DRAGEN (optional)
       --scrna_barcode_sequence_list      Barcode sequence list file for DRAGEN (optional)
       --scrna_cell_hashing_reference     Cell hashing reference file for DRAGEN (optional)
+      --additional_dragen_args           Additional arguments to pass to DRAGEN command line (optional string)
 
     Fastq_list format:
       CSV file with columns: RGID, RGSM, RGTY, Read1File, Read2File
@@ -231,7 +233,8 @@ workflow {
             info.feature_rgids,
             info.hashing_rgids,
             info.fastq_files,
-            params.use_direct_capture_mode
+            params.use_direct_capture_mode,
+            params.additional_dragen_args ?: ''
         )
     }
     

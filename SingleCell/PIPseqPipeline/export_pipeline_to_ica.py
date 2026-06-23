@@ -15,6 +15,7 @@ project_names_and_ids = {
 
 current_git_commit_id = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()
 current_git_commit_id_short = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode().strip()
+current_git_commit_message = subprocess.check_output(['git', 'log', '-1', '--pretty=%B']).decode().strip()
 
 pipeline_name = f'PIPseq_BCL_{current_git_commit_id_short}'
 
@@ -53,7 +54,7 @@ headers = {
 files = {
     'language': (None, 'NEXTFLOW'),
     'code': (None, pipeline_name),
-    'description': (None, f'Pipeline exported on {datetime.date.today().isoformat()}'),
+    'description': (None, f'Pipeline exported on {datetime.date.today().isoformat()}: {current_git_commit_message}'),
     'defaultStorageType': (None, 'Small'),
     'proprietary': (None, 'false'),
     'version': (None, current_git_commit_id_short),
