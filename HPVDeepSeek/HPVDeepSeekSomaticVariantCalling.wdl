@@ -416,11 +416,11 @@ task Funcotate {
 
         if ~{use_gnomad} ; then
             echo "Enabling gnomAD..."
-            for potential_gnomad_gz in gnomAD_exome.tar.gz gnomAD_genome.tar.gz ; do
+            for potential_gnomad_gz in gnomAD_exome.tar.gz gnomAD_genome.tar.gz ; do                # !CommandShellCheck
                 if [[ -f ~{dollar}{DATA_SOURCES_FOLDER}/~{dollar}{potential_gnomad_gz} ]] ; then
-                    cd ~{dollar}{DATA_SOURCES_FOLDER}
+                    cd ~{dollar}{DATA_SOURCES_FOLDER}                                               # !CommandShellCheck
                     tar -zvxf ~{dollar}{potential_gnomad_gz}
-                    cd -
+                    cd -                                                                            # !CommandShellCheck
                 else
                     echo "ERROR: Cannot find gnomAD folder: ~{dollar}{potential_gnomad_gz}" 1>&2
                     false
@@ -430,7 +430,7 @@ task Funcotate {
 
         gatk --java-options "-Xmx14g" \
         Funcotator \
-        --data-sources-path $DATA_SOURCES_FOLDER \
+        --data-sources-path $DATA_SOURCES_FOLDER \                                                  # !CommandShellCheck
         --ref-version ~{reference_version} \
         --output-file-format ~{output_format} \
         --reference ~{reference} \
@@ -493,7 +493,7 @@ workflow HPVDeepSeekSomaticVariantCalling {
         Boolean run_alignment_artifact_filter = false
     }
 
-    call CollectSequencingArtifactMetrics {
+    call CollectSequencingArtifactMetrics { # !UnusedCall
         input:
             bam = tumor_bam,
             bai = tumor_bai,
