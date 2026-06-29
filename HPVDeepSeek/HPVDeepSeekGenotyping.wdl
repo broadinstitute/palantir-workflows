@@ -613,21 +613,15 @@ task DetermineHPVStatus {
         with open("~{low_risk_hpv_genotypes}", 'r') as f:
             low_risk_hpv_genotype_list = f.read().splitlines()
 
-        outfile = open("~{output_basename}.hpv_status.tsv", 'w')
-        outfile.write("HPV_Genotype" + "\t" + "Num_Duplex_Reads" + "\t" + "%_Genomic_Coverage" + "\t" + "Is_Detected" + "\n")
-
         df = pd.read_csv("~{coverage}", sep = '\t')
-        df = df.rename(columns={"#rname": "rname"})
+        df = df.rename(columns = {"#rname": "rname"})
+        df = df[["rname", "numreads", "coverage"]]
 
         df = df[(df["rname"].str.startswith("HPV")) & (df["numreads"] >= 2)]
+        df["Is_Reportable"] = ~df.rname.isin(low_risk_hpv_genotype_list)
 
-        for row in df.itertuples():
-            if row.rname in low_risk_hpv_genotype_list:
-                outfile.write(row.rname + "\t" + str(row.numreads) + "\t" + str(row.coverage) + "\t" + "false" + "\n")
-            else:
-                outfile.write(row.rname + "\t" + str(row.numreads) + "\t" + str(row.coverage) + "\t" + "true" + "\n")
-
-        outfile.close()
+        df = df.rename(columns = {"rname": "HPV_Genotype", "numreads": "Num_Duplex_Reads", "coverage": "%_Genomic_Coverage"})
+        df.to_csv("~{output_basename}.hpv_status.tsv", sep = '\t', index = False)
 
         CODE
     >>>
