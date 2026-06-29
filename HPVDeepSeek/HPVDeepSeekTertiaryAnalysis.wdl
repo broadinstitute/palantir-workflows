@@ -67,7 +67,7 @@ task Sublineages {
             bcftools consensus ~{output_basename}.vcf.gz -o ~{output_basename}.consensus.fasta
 
             cat ~{output_basename}.consensus.fasta ~{hpv16_sublineages} > ~{output_basename}.combo.fasta
-            muscle -threads $(nproc) -align ~{output_basename}.combo.fasta -output ~{output_basename}.combo.afa    # !CommandShellCheck
+            muscle -threads $(nproc) -align ~{output_basename}.combo.fasta -output ~{output_basename}.combo.afa
 
             seqret -osformat2 phylip -sequence ~{output_basename}.combo.afa -outseq ~{output_basename}.combo.phy
 
