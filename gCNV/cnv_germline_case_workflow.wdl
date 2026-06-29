@@ -127,8 +127,8 @@ workflow CNVGermlineCaseWorkflow {
         call CNVTasks.CollectCounts {
             input:
                 intervals = PreprocessIntervals.preprocessed_intervals,
-                bam = normal_bam_and_bai.left,
-                bam_idx = normal_bam_and_bai.right,
+                bam = normal_bam_and_bai.left, #!FileCoercion
+                bam_idx = normal_bam_and_bai.right, #!FileCoercion
                 ref_fasta = ref_fasta,
                 ref_fasta_fai = ref_fasta_fai,
                 ref_fasta_dict = ref_fasta_dict,
@@ -176,6 +176,7 @@ workflow CNVGermlineCaseWorkflow {
                 gatk_docker = gatk_docker,
                 mem_gb = mem_gb_for_germline_cnv_caller,
                 cpu = cpu_for_germline_cnv_caller,
+                disk_space_gb = disk_for_germline_cnv_caller,
                 p_alt = gcnv_p_alt,
                 cnv_coherence_length = gcnv_cnv_coherence_length,
                 max_copy_number = gcnv_max_copy_number,
@@ -228,7 +229,9 @@ workflow CNVGermlineCaseWorkflow {
                 maximum_number_pass_events = maximum_number_pass_events_per_sample,
                 gatk4_jar_override = gatk4_jar_override,
                 gatk_docker = gatk_docker,
-                preemptible_attempts = preemptible_attempts
+                preemptible_attempts = preemptible_attempts,
+                disk_space_gb = disk_space_gb_for_postprocess_germline_cnv_calls,
+                mem_gb = mem_gb_for_postprocess_germline_cnv_calls
         }
     }
 
@@ -434,11 +437,11 @@ task GermlineCNVCallerCaseMode {
 
         CURRENT_SAMPLE=0
         NUM_SAMPLES=~{num_samples}
-        NUM_DIGITS=${#NUM_SAMPLES}
+        NUM_DIGITS="${#NUM_SAMPLES}"
         while [ $CURRENT_SAMPLE -lt $NUM_SAMPLES ]; do
             CURRENT_SAMPLE_WITH_LEADING_ZEROS=$(printf "%0${NUM_DIGITS}d" $CURRENT_SAMPLE)
-            tar czf case-gcnv-calls-shard-~{scatter_index}-sample-$CURRENT_SAMPLE_WITH_LEADING_ZEROS.tar.gz -C ~{output_dir_}/case-calls/SAMPLE_$CURRENT_SAMPLE .
-            let CURRENT_SAMPLE=CURRENT_SAMPLE+1
+            tar czf "case-gcnv-calls-shard-~{scatter_index}-sample-$CURRENT_SAMPLE_WITH_LEADING_ZEROS.tar.gz" -C "~{output_dir_}/case-calls/SAMPLE_$CURRENT_SAMPLE" .
+            (( CURRENT_SAMPLE=CURRENT_SAMPLE+1 ))
         done
 
         rm -rf contig-ploidy-calls

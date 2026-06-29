@@ -1,8 +1,8 @@
 version 1.0
 
-import "PCATasks.wdl" as PCATasks
-import "ScoringTasks.wdl" as ScoringTasks
-import "Structs.wdl"
+import "PCATasks.wdl" as PCATasks #!UnusedImport
+import "ScoringTasks.wdl" as ScoringTasks #!UnusedImport
+import "Structs.wdl" #!UnusedImport
 
 workflow TrainAncestryAdjustmentModel {
   input {

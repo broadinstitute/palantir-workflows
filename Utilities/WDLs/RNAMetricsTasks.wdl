@@ -11,7 +11,7 @@ task RNASeQC2 {
     Int cpu = 1
     Int memory = 64
     Int diskSizeGB = ceil(size(inputBAM, 'GiB') + size(referenceAnnotation, 'GiB')) + 100
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh" #!FileCoercion
 
     String sampleId = basename(inputBAM, ".bam")
 
@@ -54,7 +54,7 @@ task CollectRNASeqMetrics {
     Int diskSizeGB = ceil(size(inputBAM, "GiB") + size(referenceGenome, "GiB") + size(referenceGenomeIndex, "GiB")) + 100
     Int javaMemorySize = memoryMB - 1000
     Int maxHeap = memoryMB - 500
-    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh"
+    File monitoringScript = "gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh" #!FileCoercion
 
     String outputPrefix = basename(inputBAM, ".bam")
 

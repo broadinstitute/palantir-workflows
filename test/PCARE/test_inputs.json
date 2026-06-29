@@ -1,0 +1,17 @@
+{
+    "PCARE.basename" : "test-sample-id",
+    "PCARE.exome_gvcf" : "gs://palantir-workflows-test-data/PCARE/0437224253.hard-filtered.gvcf.gz",
+    "PCARE.exome_gvcf_index" : "gs://palantir-workflows-test-data/PCARE/0437224253.hard-filtered.gvcf.gz.tbi",
+    "PCARE.fam_hist_beta" : 0.5,
+    "PCARE.fam_history" : "gs://palantir-workflows-test-data/PCARE/0437224253.fam_hist.tsv",
+    "PCARE.imputed_wgs_vcf" : "gs://palantir-workflows-test-data/PCARE/0437224253.imputed.vcf.gz",
+    "PCARE.imputed_wgs_vcf_index" : "gs://palantir-workflows-test-data/PCARE/0437224253.imputed.vcf.gz.tbi",
+    "PCARE.pc1_beta" : -0.1,
+    "PCARE.pc2_beta" : 0.1,
+    "PCARE.pc_loadings" : "gs://palantir-workflows-test-data/PCARE/PCARE_pca_2305_weights.pc_loadings",
+    "PCARE.pc_meansd" : "gs://palantir-workflows-test-data/PCARE/PCARE_pca_2305_weights.pc_mean_sd",
+    "PCARE.pc_sites" : "gs://palantir-workflows-test-data/PCARE/PCARE_pca_2305_weights.pc_sites",
+    "PCARE.prs_beta" : 1,
+    "PCARE.prs_weights" : "gs://palantir-workflows-test-data/PCARE/geneticScore.weights.hg38.final.601.tsv",
+    "PCARE.ref_dict" : "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dict"
+}

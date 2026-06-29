@@ -114,7 +114,7 @@ task dipcall {
 
         # male samples need PAR region excluded
         if [[ ~{isMaleSample} == true ]]; then
-            if [[ "~{referenceIsHS38}" ]]; then
+            if [[ "~{referenceIsHS38}" == "true" ]]; then
                 cmd+=( -x /opt/dipcall/dipcall.kit/hs38.PAR.bed )
             elif [ -f "~{custom_PAR_bed}" ]; then
                 cmd+=( -x "~{custom_PAR_bed}" )

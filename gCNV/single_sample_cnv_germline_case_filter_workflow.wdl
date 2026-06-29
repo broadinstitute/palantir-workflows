@@ -200,7 +200,6 @@ workflow SingleSampleGCNVAndFilterVCFs {
             max_events = maximum_number_events_per_sample,
             max_pass_events = maximum_number_pass_events_per_sample,
             sample_name = CollectCounts.entity_id,
-            overlap_thresh = overlap_thresh,
             mem_gb = mem_gb_for_extract_pon_freq,
             disk_size_gb = disk_for_extract_pon_freq
     }
@@ -415,10 +414,11 @@ task ExtractPoNFreqAnnotateFilterAndQC {
             return df
 
         df = read_vcf_to_df("~{vcf}")
+        sample_id = get_sample_id("~{vcf}")
         df_expanded = get_exon_expanded_events(df, intervals)
 
         vcfs = ["~{sep='","' panel_vcfs}"]
-        df_panel = pd.concat([read_vcf_to_df(vcf) for vcf in vcfs])
+        df_panel = pd.concat([read_vcf_to_df(vcf) for vcf in vcfs if get_sample_id(vcf)!=sample_id])
         df_panel_expanded = get_exon_expanded_events(df_panel, intervals)
 
         df_expanded_with_panel = df_expanded.join(df_panel_expanded, how="left", lsuffix="_sample", rsuffix="_panel")
@@ -458,9 +458,9 @@ task ExtractPoNFreqAnnotateFilterAndQC {
         filters=('~{sep="' '" filter_expressions}')
         filter_names=(~{sep=" " filter_names})
 
-        for i in ${!filters[@]}
+        for i in "${!filters[@]}"
         do
-            eval bcftools filter --no-version -m + -e \'${filters[$i]}\' --soft-filter ${filter_names[$i]} -o tmp_out.vcf.gz tmp.vcf.gz
+            eval bcftools filter --no-version -m + -e \'"${filters[$i]}"\' --soft-filter "${filter_names[$i]}" -o tmp_out.vcf.gz tmp.vcf.gz
             mv tmp_out.vcf.gz tmp.vcf.gz
         done
 
@@ -473,8 +473,8 @@ task ExtractPoNFreqAnnotateFilterAndQC {
         n_total_events=$(bcftools view --no-header -e '(GT=="ref")' ~{sample_name}.filtered.genotyped-segments.vcf.gz | wc -l)
         n_pass_events=$(bcftools view --no-header -e '(GT=="ref") || (FILTER!~"PASS")' ~{sample_name}.filtered.genotyped-segments.vcf.gz | wc -l)
 
-        if [ $n_total_events -le ~{max_events} ]; then
-            if [ $n_pass_events -le ~{max_pass_events} ]; then
+        if [ "$n_total_events" -le ~{max_events} ]; then
+            if [ "$n_pass_events" -le ~{max_pass_events} ]; then
                 echo "PASS" > qc_status.txt
             else
                 echo "EXCESSIVE_NUMBER_OF_PASS_EVENTS" > qc_status.txt
@@ -483,8 +483,8 @@ task ExtractPoNFreqAnnotateFilterAndQC {
             echo "EXCESSIVE_NUMBER_OF_EVENTS" > qc_status.txt
         fi
 
-        echo $n_total_events > n_total_events.txt
-        echo $n_pass_events > n_pass_events.txt
+        echo "$n_total_events" > n_total_events.txt
+        echo "$n_pass_events" > n_pass_events.txt
 
         echo -e "sample\ttotal_cnv_events\tpassing_cnv_events" > ~{sample_name}.cnv_metrics.tsv
         echo -e "~{sample_name}\t${n_total_events}\t${n_pass_events}" >> ~{sample_name}.cnv_metrics.tsv
@@ -633,9 +633,6 @@ task GermlineCNVCallerCaseModeAndPostProcess {
     String output_dir_ = select_first([output_dir, "out"])
 
     Array[String] allosomal_contigs_args = if defined(allosomal_contigs) then prefix("--allosomal-contig ", select_first([allosomal_contigs])) else []
-    String genotyped_intervals_vcf_filename = "genotyped-intervals-~{entity_id}.vcf.gz"
-    String genotyped_segments_vcf_filename = "genotyped-segments-~{entity_id}.vcf.gz"
-    String denoised_copy_ratios_filename = "denoised_copy_ratios-~{entity_id}.tsv"
 
     command <<<
         set -eu

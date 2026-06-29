@@ -37,7 +37,7 @@ workflow SubsetWeightSet {
   }
 
   output {
-    WeightSet subsetted_weight_set = object{linear_weights : SubsetLinearWeights.subset_file, interaction_weights : SubsetInteractionWeights.subset_file, self_exclusive_sites : output_self_exclusive_sites}
+    WeightSet subsetted_weight_set = object{linear_weights : SubsetLinearWeights.subset_file, interaction_weights : SubsetInteractionWeights.subset_file, interaction_self_exclusive_sites : output_self_exclusive_sites}
     Int n_original_weights = SubsetLinearWeights.n_original_sites + select_first([SubsetInteractionWeights.n_original_sites, 0])
     Int n_subset_weights = SubsetLinearWeights.n_subset_sites + select_first([SubsetInteractionWeights.n_subset_sites, 0])
 

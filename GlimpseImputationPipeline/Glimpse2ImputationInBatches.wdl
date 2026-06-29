@@ -44,21 +44,21 @@ workflow Glimpse2ImputationInBatches {
     call SplitIntoBatches {
         input:
             batch_size = batch_size,
-            crams = crams,
-            cram_indices = cram_indices,
-            sample_ids = sample_ids
+            crams = crams, #!StringCoercion
+            cram_indices = cram_indices, #!StringCoercion
+            sample_ids = sample_ids 
     }
 
     scatter(i in range(length(SplitIntoBatches.crams_batches))) {
         call Imputation.Glimpse2Imputation {
             input:
                 reference_chunks = reference_chunks,
-                crams = SplitIntoBatches.crams_batches[i],
-                cram_indices = SplitIntoBatches.cram_indices_batches[i],
-                sample_ids = SplitIntoBatches.sample_ids_batches[i],
+                crams = SplitIntoBatches.crams_batches[i], #!FileCoercion
+                cram_indices = SplitIntoBatches.cram_indices_batches[i], #!FileCoercion
+                sample_ids = SplitIntoBatches.sample_ids_batches[i], 
                 fasta = fasta,
                 fasta_index = fasta_index,
-                output_basename = output_basename + "_batch_" + i,
+                output_basename = output_basename + "_batch_" + i, #!StringCoercion
                 ref_dict = ref_dict,
                 impute_reference_only_variants = impute_reference_only_variants,
                 call_indels = call_indels,
@@ -80,6 +80,7 @@ workflow Glimpse2ImputationInBatches {
             imputed_vcf_indices = Glimpse2Imputation.imputed_vcf_index,
             output_basename = output_basename,
             qc_metrics = Glimpse2Imputation.qc_metrics,
+            coverage_metrics = Glimpse2Imputation.coverage_metrics,
             mem_gb_merge = mem_gb_merge,
             docker_gatk = docker_gatk,
             docker_count_samples = docker_count_samples,

@@ -102,7 +102,7 @@ workflow PerformPopulationPCA {
   # see how well your PCA performed: according to the flashPCA website, you want your
   # mean squared error to be low (<1e-8). You will have to read the log file to check
   # this value 
-  call CheckPCA {
+  call CheckPCA { #!UnusedCall
     input:
       bim = LDPruning.bim,
       bed = LDPruning.bed,
@@ -145,7 +145,7 @@ task SelectSitesOriginalArray {
 
  	runtime {
 		docker: "skwalker/plink2:first"
-		disks: "local-disk 400 HDD"
+		disks: "local-disk " + disk_size + " HDD"
 		memory: mem + " GB"
   }
 
@@ -404,7 +404,7 @@ task SubsetToArrayVCF {
     Array[File] intervals
     Array[File] intervals_index
     String basename 
-    Int disk_size = 3 * ceil(size([vcf, intervals, vcf_index], "GB")) + 300
+    Int disk_size = 3 * ceil(size(vcf, "GB") + size(intervals, "GB") + size(vcf_index, "GB")) + 300
   }
 
     command <<<

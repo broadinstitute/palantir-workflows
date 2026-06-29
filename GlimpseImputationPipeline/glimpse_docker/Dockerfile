@@ -21,7 +21,11 @@ rm -r bcftools-1.16
 RUN wget https://github.com/broadinstitute/picard/releases/download/2.26.11/picard.jar && \
 mv picard.jar /
 
-# Install gcloud
-RUN curl -sSL https://sdk.cloud.google.com | bash
-
 WORKDIR /
+# Install gcloud
+RUN curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz && \
+tar -xzf google-cloud-cli-linux-x86_64.tar.gz && \
+./google-cloud-sdk/install.sh -q --path-update True && \
+rm google-cloud-cli-linux-x86_64.tar.gz
+
+RUN rm -r /docker_build/

@@ -118,8 +118,9 @@ task CollectWgsMetrics {
 
         grep -v -e '^#' -e "^$" "~{output_basename}.wgs_metrics" | head -2 > wgs.tsv
         COL_NUM=$(sed 's/\t/\n/g' wgs.tsv | grep -n 'MEAN_COVERAGE' | cut -d':' -f1)
-        awk -v col=$COL_NUM ' { print $col }' wgs.tsv | tail -1 > "~{output_basename}.mean_coverage"
+        awk -v col="$COL_NUM" ' { print $col }' wgs.tsv | tail -1 > "~{output_basename}.mean_coverage"
 
+        # shellcheck disable=SC2034
         mean_coverage=$(cat ~{output_basename}.mean_coverage)
         ~{'if (( $(echo "$mean_coverage < ' + fail_if_below_coverage + '" | bc -l) )); ' + "then echo -e '\nERROR: Downsampled coverage below minimum threshold.\n'; exit 1; fi"}
     >>>

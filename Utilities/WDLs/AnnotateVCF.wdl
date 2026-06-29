@@ -83,8 +83,7 @@ workflow AnnotateVCF {
                 truth_vcf_index=select_first([AnnotateTruthGatk.annotated_vcf_index, truth_vcf_index]),
                 truth_bed=truth_bed,
                 ref_fasta=ref_fasta,
-                ref_fasta_index=ref_fasta_index,
-                bed_labels=bed_labels
+                ref_fasta_index=ref_fasta_index
         }
 
         call AnnotateVcfRegions as AnnotateTruthRegions {
@@ -192,11 +191,11 @@ task AnnotateVcfRegions {
         mv ~{input_vcf_index} input.vcf.gz.tbi
 
         # Annotate VCF with each BED file and corresponding label
-        for i in ${!bed_files[@]}; do
+        for i in "${!bed_files[@]}"; do
             bed_file=${bed_files[$i]}
             bed_label=${bed_labels[$i]}
 
-            bgzip $bed_file
+            bgzip "$bed_file"
             tabix -p bed "${bed_file}.gz"
             bcftools annotate input.vcf.gz \
                 -a "${bed_file}.gz" \
@@ -258,11 +257,13 @@ task AnnotateVcfGcContent {
         bgzip gc_content_restricted.bed
         tabix -p bed gc_content_restricted.bed.gz
 
-        echo '##INFO=<ID=GC_CONTENT,Number=1,Type=Float,Description="GC Content in window of size ~{window_size} around variant.">' > header.txt
-        echo '##INFO=<ID=WINDOW_A,Number=1,Type=Integer,Description="Number of A bases in window of size ~{window_size} around variant.">' >> header.txt
-        echo '##INFO=<ID=WINDOW_C,Number=1,Type=Integer,Description="Number of C bases in window of size ~{window_size} around variant.">' >> header.txt
-        echo '##INFO=<ID=WINDOW_G,Number=1,Type=Integer,Description="Number of G bases in window of size ~{window_size} around variant.">' >> header.txt
-        echo '##INFO=<ID=WINDOW_T,Number=1,Type=Integer,Description="Number of T bases in window of size ~{window_size} around variant.">' >> header.txt
+        cat << EOF > header.txt
+        ##INFO=<ID=GC_CONTENT,Number=1,Type=Float,Description="GC Content in window of size ~{window_size} around variant.">
+        ##INFO=<ID=WINDOW_A,Number=1,Type=Integer,Description="Number of A bases in window of size ~{window_size} around variant.">
+        ##INFO=<ID=WINDOW_C,Number=1,Type=Integer,Description="Number of C bases in window of size ~{window_size} around variant.">
+        ##INFO=<ID=WINDOW_G,Number=1,Type=Integer,Description="Number of G bases in window of size ~{window_size} around variant.">
+        ##INFO=<ID=WINDOW_T,Number=1,Type=Integer,Description="Number of T bases in window of size ~{window_size} around variant.">
+        EOF
 
         if ~{include_N_count}; then
             echo '##INFO=<ID=WINDOW_N,Number=1,Type=Integer,Description="Number of N bases in window of size ~{window_size} around variant.">' >> header.txt
@@ -320,8 +321,6 @@ task VcfEvalAnnotate {
 
         File ref_fasta
         File ref_fasta_index
-
-        Array[String] bed_labels
     }
 
 
@@ -372,7 +371,7 @@ task AnnotateVcfWithGatk {
         String output_name = "annotated"
     }
 
-    String gatk_name = if (defined(gatk_jar)) then "java -jar " + gatk_jar else "gatk"
+    String gatk_name = if (defined(gatk_jar)) then "java -jar " + select_first([gatk_jar]) else "gatk"
 
     command <<<
         set -xeuo pipefail

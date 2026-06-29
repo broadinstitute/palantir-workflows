@@ -40,8 +40,6 @@ task PlotROCTask {
     
     Int machine_mem_gb = select_first([mem_gb, 8])
 
-    String additional_label_arg = if defined(additional_label) then "--additional-label \"" + additional_label + "\"" else ""
-
     command <<<
         set -xeuo pipefail
 
@@ -161,7 +159,7 @@ task PlotROCTask {
             main(args.roc_tables, args.sample_id, args.tool1, args.tool2, args.additional_label)
         EOF
 
-        python script.py --sample-id "~{sample_id}" --tool1 "~{tool1_label}" --tool2 "~{tool2_label}" ~{additional_label_arg} --roc-tables ~{sep=' ' roc_tables}
+        python script.py --sample-id "~{sample_id}" --tool1 "~{tool1_label}" --tool2 "~{tool2_label}" ~{"--additional-label \"" + additional_label + "\"" } --roc-tables ~{sep=' ' roc_tables}
     >>>
 
     output {
@@ -172,5 +170,6 @@ task PlotROCTask {
         docker: "us.gcr.io/broad-dsde-methods/python-data-slim-plots:1.0"
         preemptible: select_first([preemptible, 0])
         disks: "local-disk 200 HDD"
+        memory: machine_mem_gb + " GB"
     }
 }

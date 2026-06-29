@@ -1,6 +1,6 @@
 version 1.0
 
-import "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/Utilities/WDLs/CreateIGVSession.wdl" as IGV
+import "../Utilities/WDLs/CreateIGVSession.wdl" as IGV #!UnusedImport
 import "tasks.wdl" as SV_tasks
 
 struct RuntimeAttributes {
@@ -16,7 +16,6 @@ workflow BenchmarkSVs {
 
         String? experiment
 
-        File ref_fasta
         File ref_fai
 
         File? evaluation_bed
@@ -51,8 +50,6 @@ workflow BenchmarkSVs {
             input_vcf_index=subset_vcf_index,
             experiment=experiment,
             ref_fai=ref_fai,
-            bed_regions=bed_regions,
-            bed_labels=bed_labels,
             svlen_bin_cutoffs=svlen_bin_cutoffs
     }
 
@@ -84,10 +81,6 @@ task CollectQcMetrics {
         String experiment = ""
 
         File ref_fai
-
-        Array[File] bed_regions = []
-        Array[String] bed_labels = []
-        Int breakpoint_padding = 20
 
         Array[Int] svlen_bin_cutoffs = [100, 250, 1000, 2500, 10000, 25000]
         Array[Int] af_bin_cutoffs = [1, 10, 50]

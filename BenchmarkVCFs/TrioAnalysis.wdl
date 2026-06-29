@@ -150,11 +150,11 @@ task AnnotateVcfRegions {
         mv ~{input_vcf_index} input.vcf.gz.tbi
 
         # Annotate VCF with each BED file and corresponding label
-        for i in ${!bed_files[@]}; do
+        for i in "${!bed_files[@]}"; do
             bed_file=${bed_files[$i]}
             bed_label=${bed_labels[$i]}
 
-            bgzip $bed_file
+            bgzip "${bed_file}"
             tabix -p bed "${bed_file}.gz"
             bcftools annotate input.vcf.gz \
                 -a "${bed_file}.gz" \

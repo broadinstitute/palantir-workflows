@@ -42,7 +42,7 @@ workflow BenchmarkPhasing {
         File whatshap_eval = WhatsHapCompare.eval
         File switch_errors_bed = WhatsHapCompare.switch_errors_bed
         File longest_blocks = WhatsHapCompare.longest_blocks
-        File jaccard_table = select_first([EvaluateRegions.jaccard_table, ""])
+        File? jaccard_table = EvaluateRegions.jaccard_table
     }
 }
 
@@ -79,11 +79,11 @@ task WhatsHapCompare {
             ~{base_vcf} ~{call_vcf}
 
         echo "Experiment" > exp_column.txt
-        yes ~{experiment} | head -n $(cat eval.tsv | wc -l) | sed -e '1d' >> exp_column.txt
+        yes ~{experiment} | head -n "$(wc -l eval.tsv)" | sed -e '1d' >> exp_column.txt
         paste exp_column.txt eval.tsv > final-eval.tsv
 
         echo "Experiment" > exp_column.txt
-        yes ~{experiment} | head -n $(cat longest_blocks.tsv | wc -l) | sed -e '1d' >> exp_column.txt
+        yes ~{experiment} | head -n "$(wc -l longest_blocks.tsv)" | sed -e '1d' >> exp_column.txt
         paste exp_column.txt longest_blocks.tsv > final-longest_blocks.tsv
     >>>
 
@@ -144,11 +144,11 @@ task EvaluateRegions {
 
         # Add constant columns
         echo "Experiment" > exp_column.txt
-        yes ~{experiment} | head -n $(cat header-jaccard.tsv | wc -l) | sed -e '1d' >> exp_column.txt
+        yes ~{experiment} | head -n "$(wc -l header-jaccard.tsv)" | sed -e '1d' >> exp_column.txt
         paste exp_column.txt header-jaccard.tsv > jaccard-no_sample.tsv
 
         echo "Sample" > sample_column.txt
-        yes ~{call_sample_name} | head -n $(cat jaccard-no_sample.tsv | wc -l) | sed -e '1d' >> sample_column.txt
+        yes ~{call_sample_name} | head -n "$(wc -l jaccard-no_sample.tsv)" | sed -e '1d' >> sample_column.txt
         paste sample_column.txt jaccard-no_sample.tsv > final-jaccard.tsv
     >>>
 

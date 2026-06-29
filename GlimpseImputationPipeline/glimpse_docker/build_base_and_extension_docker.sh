@@ -2,7 +2,7 @@
 
 # This branch is using the following configuration.
 # To replicate this branch, run this script with the following arguments:
-# build_base_and_extension_docker.sh -r "https://github.com/kachulis/GLIMPSE.git" -b ck_checkpoint_clean -t "glimpse_build_test"
+# build_base_and_extension_docker.sh -r "https://github.com/odelaneau/GLIMPSE.git" -b master -t "glimpse_build_test"
 
 set -Eeuo pipefail
 
@@ -124,7 +124,7 @@ if docker images | grep "temp_glimpse_base" > /dev/null; then
     exit 1
 fi
 
-git clone $repo --branch $branch --single-branch ${script_dir}/glimpse_base
+git clone $repo --branch $branch --recursive --single-branch ${script_dir}/glimpse_base
 
 if [[ "$tag" != *":"* ]]; then
     prefix="https://github.com/"

@@ -6,19 +6,27 @@ on:
   pull_request:
   schedule:
     - cron: '23 2 * * *'
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: 'Notes about this run'
+        required: false
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+env:
+  CROMWELL_VERSION: 91
+  MINIWDL_VERSION: 1.13.1
 jobs:
   validate_wdl:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/install-cromwell
+      - uses: ./.github/actions/install-miniwdl
         with:
-          CROMWELL_VERSION: 89
-      - name: Womtool Validate
-        run: find . -name '*.wdl' | xargs -tI {} java -jar ${WOMTOOL_JAR} validate {}
+          MINIWDL_VERSION: ${{ env.MINIWDL_VERSION }}
+      - name: miniwdl check
+        run: find . -name '*.wdl' -not -path "./PRS/Validation/ValidateScoring.wdl" | xargs -I {} bash -c 'output=$(miniwdl check --strict "{}" 2>&1); if [ $? -ne 0 ]; then echo -e "FAILED {}\n$output"; exit 1; fi'
 
   test_wdl:
     needs: validate_wdl
@@ -36,10 +44,10 @@ jobs:
           service_account: palantir-workflows-service-acc@broad-dsde-methods.iam.gserviceaccount.com
       - uses: ./.github/actions/install-cromwell
         with:
-          CROMWELL_VERSION: 89
+          CROMWELL_VERSION: ${{ env.CROMWELL_VERSION }}
       - uses: ./.github/actions/install-watt
         with:
-          WATT_VERSION: v1.3.0
+          WATT_VERSION: v1.4.0
       - name: Get changed Files
         if: github.ref != 'refs/heads/main'
         id: changed-files

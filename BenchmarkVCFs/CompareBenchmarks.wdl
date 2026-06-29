@@ -59,6 +59,7 @@ task CreateGCPlotsTask {
     command <<<
         set -xeuo pipefail
         
+        # shellcheck disable=SC1091
         source activate compare_benchmarks
         
         cat <<'EOF' > script.py
@@ -225,6 +226,7 @@ task CompareBenchmarksTask {
     command <<<
         set -xeuo pipefail
         
+        # shellcheck disable=SC1091
         source activate compare_benchmarks
         
         cat <<'EOF' > script.py

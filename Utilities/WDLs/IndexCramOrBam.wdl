@@ -5,7 +5,7 @@ workflow IndexCramOrBam{
 		File input_file
 	}
 
-	String input_index_ending = if sub(input_file, ".*\\.cram$", "is_cram") == "is_cram" then ".crai" else ".bai"
+	String input_index_ending = if sub(input_file, ".*\\.cram$", "is_cram") == "is_cram" then ".crai" else ".bai" #!StringCoercion
 
 
 	call indexFile{

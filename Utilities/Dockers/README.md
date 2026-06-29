@@ -12,7 +12,7 @@ This directory contains `Dockerfile` files and descriptions of what each is inte
 
 * Directory: BCFTools
 * Description: A docker image containing an installation of [bcftools](https://samtools.github.io/bcftools/bcftools.html). Also includes some minimal Python tools (pandas) for data processing.
-* Location: `us.gcr.io/broad-dsde-methods/bcftools:v1.3`
+* Location: `us.gcr.io/broad-dsde-methods/bcftools:v1.4`
 * Used By: [BenchmarkVCFs](../../BenchmarkVCFs/BenchmarkVCFs.wdl)
 * Usage: `bcftools [COMMAND]`
 * Version Notes:
@@ -20,6 +20,7 @@ This directory contains `Dockerfile` files and descriptions of what each is inte
   * 1.1: Added the `python-is-python3` package so that `python` is a valid command.
   * 1.2: Versions are `bcftools` 1.18 (and Ubuntu from 22.10 to 23.10).
   * 1.3: Added gcloud SDK to allow streaming
+  * 1.4: Versions are `bcftools` 1.22 (and Ubuntu 24.04).
 
 ## bedtools
 
@@ -66,12 +67,13 @@ includes some minimal Python tools (pandas) for data processing.
 
 * Directory: Python-Data-Slim
 * Description: A small docker image with essential data processing and Terra packages in python. Comes with `python3`, along with the libraries `pandas`, `numpy`, `scipy`, `firecloud`, `fsspec` (a `firecloud` optional dependency), and `gcsfs` (for accessing Google bucket files) explicitly installed.
-* Location: `us.gcr.io/broad-dsde-methods/python-data-slim`
+* Location: `us.gcr.io/broad-dsde-methods/python-data-slim:1.1`
 * Used By: [FindSamplesAndBenchmark](../../BenchmarkVCFs/FindSamplesAndBenchmark.wdl), [CollectBenchmarkSucceeded](../WDLs/CollectBenchmarkSucceeded.wdl)
 * Usage: `python <<CODE [CODE HERE] CODE`
 * Version Notes: 
   * 1.0: Versions are `python3` 3.9.9, `pandas` 1.3.4, `numpy` 1.21.4, `scipy` 1.7.2, `firecloud` 0.16.32, 
   `fsspec` 2022.7.1, `gcsfs` 2022.7.1.
+  * 1.1: Versions are `python3` 3.12.5, `pandas` 2.3.3, `numpy` 2.3.4, `scipy` 1.16.3, `setuptools` 79.0.1, `fsspec` 2025.10.0, `gcsfs` 2025.10.0, `firecloud` 0.16.38.
 
 ## python-data-slim-pysam
 
@@ -129,12 +131,13 @@ includes some minimal Python tools (pandas) for data processing.
 * Directory: VCFEval
 * Description: A docker image containing various tools used for running `rtg vcfeval` in benchmarking. These include `rtg`,
 `python`, `bedtools`, and `bcftools`.
-* Location: `"us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.1`
+* Location: `us.gcr.io/broad-dsde-methods/vcfeval_docker:v1.2`
 * Used By: [BenchmarkVCFs](../../BenchmarkVCFs/BenchmarkVCFs.wdl), [TrioAnalysis](../../BenchmarkVCFs/TrioAnalysis.wdl)
 * Usage: `rtg [COMMAND]`, etc.
 * Version Notes:
   * 1.0: Versions are `rtg` 3.12.1, `bedtools` 2.31.0, `bcftools` 1.16
   * 1.1: Added `htslib` 1.21 (includes `tabix` and `bgzip`); bumped `bcftools` to 1.21
+  * 1.2: Versions are `rtg` 3.13, `bedtools` 2.31.0, `bcftools` 1.22
 
 ## whatshap
 

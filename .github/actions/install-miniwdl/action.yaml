@@ -1,0 +1,13 @@
+name: 'install-miniwdl'
+description: 'installs miniwdl locally for jobs that require it'
+inputs:
+  MINIWDL_VERSION:  
+    description: 'miniwdl version to isntall'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Install miniwdl
+      run: |
+        pip install miniwdl==${{ inputs.MINIWDL_VERSION }}
+      shell: bash
