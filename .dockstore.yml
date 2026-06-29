@@ -153,6 +153,12 @@ workflows:
   - name: CNVControlEventsQC
     subclass: WDL
     primaryDescriptorPath: /gCNV/CNVControlEventsQC.wdl
+  - name: Glimpse2QCReport
+    subclass: WDL
+    primaryDescriptorPath: /GlimpseImputationPipeline/Glimpse2QCReport.wdl
+  - name: CohortCNVCallingAndMergeForFabric
+    subclass: WDL
+    primaryDescriptorPath: /gCNV/cohort_cnv_calling_and_merge_for_fabric.wdl
   - name: HPVDeepSeek
     subclass: WDL
     primaryDescriptorPath: /HPVDeepSeek/HPVDeepSeek.wdl
