@@ -190,8 +190,6 @@ workflow HPVDeepSeekTertiaryAnalysis {
         File tumor_bai
         File high_risk_snps_hpv
         File reference
-        File reference_fai
-        File reference_dict
         File hpv16_sublineages
     }
 

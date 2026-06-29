@@ -187,7 +187,6 @@ task FilterMutectCalls {
         File artifact_priors_tar_gz
         File contamination_table
         File maf_segments
-        Boolean compress = true
 
         Int cpu = 1
         Int memory_gb = 16
@@ -234,7 +233,6 @@ task FilterAlignmentArtifacts {
         File reference_fai
         File reference_dict
         File realignment_index_bundle
-        Boolean compress = true
 
         Int cpu = 1
         Int memory_gb = 16

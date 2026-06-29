@@ -802,9 +802,9 @@ task CollectHsMetrics {
         String bait_set_name
         String output_prefix
 
-        Int? cpu = 2
-        Int? memory_gb = 32
-        Int? disk_size_gb = 512
+        Int cpu = 2
+        Int memory_gb = 32
+        Int disk_size_gb = 512
     }
 
     command <<<
@@ -881,8 +881,6 @@ workflow HPVDeepSeekGenotyping {
         File bwa_idx_bwt
         File bwa_idx_pac
         File bwa_idx_sa
-        File bait_interval_list
-        File target_interval_list
         File hpv_bait_interval_list
         File hpv_target_interval_list
         File hg38_bait_interval_list

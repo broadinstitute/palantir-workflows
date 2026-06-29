@@ -20,9 +20,6 @@ workflow HPVDeepSeek {
         File bwa_idx_bwt
         File bwa_idx_pac
         File bwa_idx_sa
-        File target_bed
-        File bait_interval_list
-        File target_interval_list
         File hpv_bait_interval_list
         File hpv_target_interval_list
         File hg38_bait_interval_list
@@ -77,8 +74,6 @@ workflow HPVDeepSeek {
             bwa_idx_bwt = bwa_idx_bwt,
             bwa_idx_pac = bwa_idx_pac,
             bwa_idx_sa = bwa_idx_sa,
-            bait_interval_list = bait_interval_list,
-            target_interval_list = target_interval_list,
             hpv_bait_interval_list = hpv_bait_interval_list,
             hpv_target_interval_list = hpv_target_interval_list,
             hg38_bait_interval_list = hg38_bait_interval_list,
@@ -126,8 +121,6 @@ workflow HPVDeepSeek {
             tumor_bai = HPVDeepSeekGenotyping.simplex_bam_index,
             high_risk_snps_hpv = high_risk_snps_hpv,
             reference = reference,
-            reference_fai = reference_fai,
-            reference_dict = reference_dict,
             hpv16_sublineages = hpv16_sublineages
     }
 
