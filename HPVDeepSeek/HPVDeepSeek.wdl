@@ -60,7 +60,7 @@ workflow HPVDeepSeek {
         Float ng_cfdna
     }
 
-    call HPVDeepSeekGenotyping.HPVDeepSeekGenotyping {
+    call HPVDeepSeekGenotyping.HPVDeepSeekGenotyping { # !NameCollision
         input:
             output_basename = output_basename,
             r1_fastq = r1_fastq,
@@ -89,7 +89,7 @@ workflow HPVDeepSeek {
             read_structure = read_structure
     }
 
-    call HPVDeepSeekSomaticVariantCalling.HPVDeepSeekSomaticVariantCalling {
+    call HPVDeepSeekSomaticVariantCalling.HPVDeepSeekSomaticVariantCalling { # !NameCollision
         input:
             output_basename = output_basename,
             tumor_bam = HPVDeepSeekGenotyping.duplex_bam,
@@ -114,7 +114,7 @@ workflow HPVDeepSeek {
             run_alignment_artifact_filter = run_alignment_artifact_filter
     }
 
-    call HPVDeepSeekTertiaryAnalysis.HPVDeepSeekTertiaryAnalysis {
+    call HPVDeepSeekTertiaryAnalysis.HPVDeepSeekTertiaryAnalysis { # !NameCollision
         input:
             output_basename = output_basename,
             tumor_bam = HPVDeepSeekGenotyping.simplex_bam,
@@ -124,7 +124,7 @@ workflow HPVDeepSeek {
             hpv16_sublineages = hpv16_sublineages
     }
 
-    call HPVDeepSeekNormalization.HPVDeepSeekNormalization {
+    call HPVDeepSeekNormalization.HPVDeepSeekNormalization { # !NameCollision
         input:
             sample_id = output_basename,
             simplex_bam = HPVDeepSeekGenotyping.simplex_bam,

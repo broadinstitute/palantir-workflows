@@ -241,11 +241,11 @@ task BwaMem {
         File fastq1
         File fastq2
         File reference
-        File bwa_idx_amb
-        File bwa_idx_ann
-        File bwa_idx_bwt
-        File bwa_idx_pac
-        File bwa_idx_sa
+        File bwa_idx_amb # !UnusedDeclaration
+        File bwa_idx_ann # !UnusedDeclaration
+        File bwa_idx_bwt # !UnusedDeclaration
+        File bwa_idx_pac # !UnusedDeclaration
+        File bwa_idx_sa  # !UnusedDeclaration
         String read_group_id
         String read_group_sample_name
         String read_group_library_name
@@ -405,7 +405,7 @@ task FilterAndGroupReadsByUMI {
     input {
         String output_basename
         File merged_bam
-        File reference
+        File reference # !UnusedDeclaration
         File reference_fai
         File reference_dict
         Boolean is_duplex

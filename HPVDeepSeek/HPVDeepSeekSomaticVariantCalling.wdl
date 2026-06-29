@@ -272,9 +272,9 @@ task RunMappingFilter {
         File reference
         File reference_fai
         File reference_dict
-        File blastdb_nhr
-        File blastdb_nin
-        File blastdb_nsq
+        File blastdb_nhr # !UnusedDeclaration
+        File blastdb_nin # !UnusedDeclaration
+        File blastdb_nsq # !UnusedDeclaration
         String blastn_path
         String mapping_filter_python_script
 

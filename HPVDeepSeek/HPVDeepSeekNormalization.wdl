@@ -26,7 +26,7 @@ task NormalizeHPV {
         df = pd.read_csv("~{fp_intervals}", sep = '\t', header = None, names = ["chromosome", "start", "end", "info"])
         df_detected_hpv_genotypes = pd.read_csv("~{hpv_status}", sep = '\t')
 
-        with pysam.AlignmentFile(sys.argv[1], "rb") as infile_simplex:
+        with pysam.AlignmentFile("~{simplex_bam}", "rb") as infile_simplex:
             chroms_and_lengths = dict(zip(infile_simplex.references, infile_simplex.lengths))
             chroms_and_lengths_hpv = {k: v for k, v in chroms_and_lengths.items() if k.startswith("HPV")}
 
@@ -53,8 +53,8 @@ task NormalizeHPV {
 
         df = df[df["chromosome"].isin(df_detected_genotypes["HPV_Genotype"].tolist())]
         df["HPV_Mean_Depth_Over_hg38_Median_Depth"] = df["mean_depth"] / median_val
-        df["ng_cfDNA"] = ng_cfdna
-        df["mL_Plasma"] = ul_plasma / 1000.0
+        df["ng_cfDNA"] = ~{ng_cfdna}
+        df["mL_Plasma"] = ~{ul_plasma} / 1000.0
         df["HPV_Quantity"] = df["HPV_Mean_Depth_Over_hg38_Median_Depth"] * ((df["ng_cfDNA"] / 0.0033) / df["mL_Plasma"])
 
         df = df.rename(columns = {"chromosome": "HPV_Genotype"})
