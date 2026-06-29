@@ -23,45 +23,43 @@ task NormalizeHPV {
         import pandas as pd
         from collections import Counter
 
-        infile_simplex = pysam.AlignmentFile("~{simplex_bam}", "rb")
         df = pd.read_csv("~{fp_intervals}", sep = '\t', header = None, names = ["chromosome", "start", "end", "info"])
         df_detected_hpv_genotypes = pd.read_csv("~{hpv_status}", sep = '\t')
 
-        chroms_and_lengths = dict(zip(infile_simplex.references, infile_simplex.lengths))
-        chroms_and_lengths_hpv = {k: v for k, v in chroms_and_lengths.items() if k.startswith("HPV")}
+        with pysam.AlignmentFile(sys.argv[1], "rb") as infile_simplex:
+            chroms_and_lengths = dict(zip(infile_simplex.references, infile_simplex.lengths))
+            chroms_and_lengths_hpv = {k: v for k, v in chroms_and_lengths.items() if k.startswith("HPV")}
 
-        new_rows = []
-        for key, value in chroms_and_lengths_hpv.items():
-            new_rows.append({"chromosome": key, "start": 0, "end": value, "info": "N/A"})
-        df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index = True)
+            new_rows = []
+            for key, value in chroms_and_lengths_hpv.items():
+                new_rows.append({"chromosome": key, "start": 0, "end": value, "info": "N/A"})
+            df = pd.concat([df, pd.DataFrame(new_rows)], ignore_index = True)
 
-        for idx, row in df.iterrows():
-            total_depth = 0
-            num_positions = 0
-            for pileupcolumn in infile_simplex.pileup(row.chromosome, row.start, row.end, stepper = "all", truncate = False, max_depth = 1000000, ignore_overlaps = True):
-                for pileupread in pileupcolumn.pileups:
-                    if pileupread.alignment.get_tag("cD") >= 5:
-                        total_depth += 1
-                num_positions += 1
+            for idx, row in df.iterrows():
+                total_depth = 0
+                num_positions = 0
+                for pileupcolumn in infile_simplex.pileup(row.chromosome, row.start, row.end, stepper = "all", truncate = False, max_depth = 1000000, ignore_overlaps = True):
+                    for pileupread in pileupcolumn.pileups:
+                        if pileupread.alignment.get_tag("cD") >= 5:
+                            total_depth += 1
+                    num_positions += 1
 
-            mean_depth = 0.0
-            if num_positions > 0:
-                mean_depth = total_depth / num_positions
-            df.loc[idx, "mean_depth"] = mean_depth
+                mean_depth = 0.0
+                if num_positions > 0:
+                    mean_depth = total_depth / num_positions
+                df.loc[idx, "mean_depth"] = mean_depth
 
         hg38_median_depth = df.loc[~df["chromosome"].str.startswith("HPV") & ~df["chromosome"].str.startswith("chrX") & ~df["chromosome"].str.startswith("chrY"), "mean_depth"].median()
 
-        mask = df["chromosome"].isin(df_detected_hpv_genotypes["HPV_Genotype"].tolist())
-        df.loc[mask, "r"] = df.loc[mask, "mean_depth"].apply(lambda x: x / hg38_median_depth)
-        df.loc[mask, "hpv_quantity"] = df.loc[mask, "r"].apply(lambda x: x * ~{ng_cfdna} / 0.0033 / ~{ul_plasma} / 1000.0)
+        df = df[df["chromosome"].isin(df_detected_genotypes["HPV_Genotype"].tolist())]
+        df["HPV_Mean_Depth_Over_hg38_Median_Depth"] = df["mean_depth"] / median_val
+        df["ng_cfDNA"] = ng_cfdna
+        df["mL_Plasma"] = ul_plasma / 1000.0
+        df["HPV_Quantity"] = df["HPV_Mean_Depth_Over_hg38_Median_Depth"] * ((df["ng_cfDNA"] / 0.0033) / df["mL_Plasma"])
 
-        outfile = open("~{sample_id}.normalized_hpv.tsv", 'w')
-        outfile.write("HPV_Genotype" + "\t" + "HPV_Mean_Depth_Over_hg38_Median_Depth" + "\t" + "ng_cfDNA" + "\t" + "mL_Plasma" + "\t" + "HPV_Quantity" + "\n")
-        for row in df.loc[mask].itertuples():
-            outfile.write(row.chromosome + "\t" + str(row.r) + "\t" + str(~{ng_cfdna}) + "\t"+ str(~{ul_plasma} / 1000.0) + "\t" + str(row.hpv_quantity) + "\n")
-
-        infile_simplex.close()
-        outfile.close()
+        df = df.rename(columns = {"chromosome": "HPV_Genotype"})
+        df = df[["HPV_Genotype", "HPV_Mean_Depth_Over_hg38_Median_Depth", "ng_cfDNA", "mL_Plasma", "HPV_Quantity"]]
+        df.to_csv("~{sample_id}.normalized_hpv.tsv", sep = '\t', index = False)
 
         CODE
     >>>
