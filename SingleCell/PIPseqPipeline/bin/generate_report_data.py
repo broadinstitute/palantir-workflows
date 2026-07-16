@@ -70,28 +70,29 @@ def write_rankplot(barcode_summary_path, sample_id, supersample_id):
     barcode_metrics = get_barcode_metrics(barcode_summary_path, sample_id, supersample_id)
     barcode_metrics.to_csv(f'{sample_id}.qc_barcode_metrics.tsv', index=False, sep='\t')
 
-def get_sc_metrics(sc_metrics_path, sample_id, supersample_id):
+def get_sc_metrics(sc_metrics_path, sample_id, supersample_id, num_input_cells):
     metrics = pd.read_csv(sc_metrics_path, names=['metric_type', 'sample_id', 'metric', 'value', 'frac'], dtype={'sample_id': str})
-    
+
     metrics = metrics.pivot(index=['sample_id'], columns='metric', values='value')
     if metrics.index[0] != sample_id:
         raise ValueError(f"Sample ID in scRNA metrics file ({metrics.index[0]}) does not match expected sample ID ({sample_id})")
-    
+
     metrics['Total Gene Input Reads'] = metrics['Total barcoded reads'] + metrics['Reads with non-matching barcodes'] + metrics['Reads missing barcodes']
     metrics['Fraction Reads with Valid Barcodes'] = metrics['Total barcoded reads'] / metrics['Total Gene Input Reads']
     metrics['Fraction Reads with valid IMI'] = (metrics['Reads with valid molecular identifier sequences'] + metrics['Reads with corrected molecular identifier sequences']) / metrics['Total barcoded reads']
     metrics['Fraction Mapped Reads'] = (metrics['Unique exon matching reads'] + metrics['Unique intron matching reads'] + metrics['Mitochondrial reads']) / metrics['Total barcoded reads']
     metrics['Mean reads per cell'] = metrics['Total gene reads'] / metrics['Passing cells']
-    
+    metrics['Fraction Input Cells Passing'] = metrics['Passing cells'] / num_input_cells
+
     metrics['supersample_id'] = supersample_id
     metrics = metrics.reset_index()
     metrics = metrics[['supersample_id', 'sample_id'] + [col for col in metrics.columns if col not in ['sample_id', 'supersample_id']]]
 
     return metrics
 
-def write_metrics(sc_metrics_path, sample_id, supersample_id):
+def write_metrics(sc_metrics_path, sample_id, supersample_id, num_input_cells):
     print('    Writing single-cell RNA QC metrics...')
-    metrics = get_sc_metrics(sc_metrics_path, sample_id, supersample_id)
+    metrics = get_sc_metrics(sc_metrics_path, sample_id, supersample_id, num_input_cells)
     metrics.to_csv(f'{sample_id}.qc_metrics.tsv', index=True, sep='\t')
 
 def main():
@@ -109,7 +110,8 @@ def main():
         write_metrics(
             args.scrna_metrics,
             args.sample_id,
-            args.supersample_id
+            args.supersample_id,
+            args.num_input_cells
         )
         print("\n✓ Report data generation completed successfully")
         return 0

@@ -91,9 +91,11 @@ def guide_qc(guide_assignments, supersample_metrics, supersample_basename, super
 
     fig, ax = plt.subplots(figsize=(6, 4))
     bars = ax.bar(plotdata.index, plotdata.values, color='C0')
-    bars[0].set_color('gray')
-    for bar in bars[3:]:
-        bar.set_color('C1')
+    for bar, guide_count in zip(bars, plotdata.index):
+        if guide_count < min_valid_guides:
+            bar.set_color('gray')
+        elif guide_count > max_valid_guides:
+            bar.set_color('C1')
     ax.set_xlabel('Number of guides assigned to cell')
     ax.set_ylabel('Number of cells')
     ax.set_title(f'{supersample_id}: Distribution of number of guides assigned to cells')
@@ -104,7 +106,7 @@ def guide_qc(guide_assignments, supersample_metrics, supersample_basename, super
     from matplotlib.patches import Patch
     label_too_few = '0' if min_valid_guides == 1 else f'0-{min_valid_guides-1}'
     label_valid_guides = f'{min_valid_guides}-{max_valid_guides}' if max_valid_guides > min_valid_guides else f'{min_valid_guides}'
-    label_too_many = f'>{max_valid_guides+1}+'
+    label_too_many = f'{max_valid_guides+1}+'
     legend_handles = [
         Patch(color='gray', label=f'{label_too_few} guides: {frac_too_few_guides:.1%}'),
         Patch(color='C0', label=f'{label_valid_guides} guides: {frac_valid_guides:.1%}'),
@@ -218,8 +220,8 @@ def main():
             args.supersample_basename,
             args.supersample_id,
             args.num_input_cells,
-            min_valid_guides=1,
-            max_valid_guides=2
+            min_valid_guides=args.min_valid_guides,
+            max_valid_guides=args.max_valid_guides
         )
         supersample_metrics.to_csv(f'{args.supersample_basename}.supersample_qc_metrics.tsv', index=False, sep='\t')
 

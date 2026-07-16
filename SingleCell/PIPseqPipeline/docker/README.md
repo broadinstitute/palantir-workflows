@@ -2,22 +2,24 @@
 
 ## Overview
 
-Similar to WDL's `runtime.docker` attribute, Nextflow allows you to specify Docker containers at the **process level** or **globally** in the config file.
+Similar to WDL's `runtime.docker` attribute, Nextflow allows you to specify Docker containers at the **process level** via the `container` directive.
 
-This pipeline uses **separate Docker images** for different processes:
-- **Metrics Processing**: Lighter image with core dependencies
-- **Guide Assignment**: Specialized image with CRISPAT and related tools
+This pipeline uses **two** container images:
+- **`qc_container`** (built from `docker/qc/Dockerfile` in this directory): used by `GENERATE_REPORT_DATA`, `CONCATENATE`, `GUIDE_ASSIGNMENT`, and `GENERATE_SUPERSAMPLE_QC`. Bundles pandas/scanpy/anndata/matplotlib plus CRISPAT (installed via git clone + pip, not conda) for guide assignment.
+- **`dragen_container`**: used by `DRAGEN_SCRNA`. This is an Illumina-provided DRAGEN image, not built from anything in this repository.
+
+Both are **required** pipeline parameters with no default — you must pass `--qc_container` and `--dragen_container` explicitly.
 
 ## Directory Structure
 
 ```
 docker/
-├── metrics/
-│   ├── Dockerfile           # Metrics processing image
-│   └── requirements.txt     # Python pip dependencies
-└── guide_assignment/
-    ├── Dockerfile           # CRISPR guide assignment image
-    └── requirements.txt     # Python pip dependencies
+├── README.md              # This file
+├── SETUP.md               # Build/push guide for the qc image
+├── build_and_push.sh      # Script to build and push the qc image to ECR
+└── qc/
+    ├── Dockerfile         # qc_container image definition
+    └── requirements.txt   # Additional pip-only Python dependencies
 ```
 
 ## Quick Comparison: WDL vs Nextflow
@@ -35,7 +37,7 @@ task my_task {
 ```groovy
 process MY_PROCESS {
     container "my-image:latest"
-    
+
     script:
     """
     # your code
@@ -43,206 +45,83 @@ process MY_PROCESS {
 }
 ```
 
-## Setup for Illumina Connected Analytics (ICA)
+In this pipeline, the container directives reference params rather than hardcoded strings, e.g. `container "${params.qc_container}"` — see `modules/*.nf`.
 
-### 1. Build and Push Your Docker Images
+## Building and Pushing the qc Image
 
-**Metrics Processing Image:**
 ```bash
-cd mdl_qc/qc_pipeline
-docker build -f docker/metrics/Dockerfile -t your-dockerhub-username/singlecell-qc-metrics:latest .
-
-# Test locally (optional)
-docker run -it your-dockerhub-username/singlecell-qc-metrics:latest python --version
-
-# Push to Docker Hub (or your registry)
-docker push your-dockerhub-username/singlecell-qc-metrics:latest
+cd docker
+export ECR_REGISTRY=<account-id>.dkr.ecr.<region>.amazonaws.com
+export AWS_REGION=<region>
+./build_and_push.sh latest
 ```
 
-**Guide Assignment Image:**
-```bash
-docker build -f docker/guide_assignment/Dockerfile -t your-dockerhub-username/singlecell-qc-guide-assignment:latest .
+See `SETUP.md` for full details, prerequisites, and troubleshooting.
 
-# Test locally (optional)
-docker run -it your-dockerhub-username/singlecell-qc-guide-assignment:latest python -c "import crispat; print('crispat loaded')"
+You are not limited to ECR — any registry your executor can pull from works; just build `qc/Dockerfile` and push it with your preferred tool.
 
-# Push to Docker Hub (or your registry)
-docker push your-dockerhub-username/singlecell-qc-guide-assignment:latest
-```
+## Running
 
-**Build both at once:**
-```bash
-# Build both images
-docker build -f docker/metrics/Dockerfile -t your-dockerhub-username/singlecell-qc-metrics:latest .
-docker build -f docker/guide_assignment/Dockerfile -t your-dockerhub-username/singlecell-qc-guide-assignment:latest .
-
-# Push both
-docker push your-dockerhub-username/singlecell-qc-metrics:latest
-docker push your-dockerhub-username/singlecell-qc-guide-assignment:latest
-```
-
-**Alternative: Use AWS ECR for ICA**
-```bash
-# Login to AWS ECR
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
-
-# Create repositories
-aws ecr create-repository --repository-name singlecell-qc-metrics --region us-east-1
-aws ecr create-repository --repository-name singlecell-qc-guide-assignment --region us-east-1
-
-# Tag for ECR
-docker tag singlecell-qc-metrics:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/singlecell-qc-metrics:latest
-docker tag singlecell-qc-guide-assignment:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/singlecell-qc-guide-assignment:latest
-
-# Push to ECR
-docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/singlecell-qc-metrics:latest
-docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/singlecell-qc-guide-assignment:latest
-```
-
-### 2. Run on ICA
-
-**Option A: Specify containers in command line**
 ```bash
 nextflow run main.nf \
-  -profile ica \
-  --container-metrics your-dockerhub-username/singlecell-qc-metrics:latest \
-  --container-guide-assignment your-dockerhub-username/singlecell-qc-guide-assignment:latest \
-  --num-input-cells 10000 \
-  --scrna-metrics s3://bucket/metrics.csv \
-  --data-filtered-matrix s3://bucket/matrix.mtx.gz \
-  --data-filtered-barcodes s3://bucket/barcodes.tsv.gz \
-  --data-filtered-features s3://bucket/features.tsv.gz \
-  --feature-barcode-reference s3://bucket/barcode_ref.csv
+  --qc_container <your-registry>/pipseq-qc:latest \
+  --dragen_container <your DRAGEN image> \
+  --num_input_cells 10000 \
+  --fastq_list fastq_list.csv \
+  --supersample_id "Sample_A" \
+  --supersample_basename "sample_a" \
+  --min_valid_guides 1 \
+  --max_valid_guides 2 \
+  --ref_tar reference.tar \
+  --annotation_file annotation.gtf \
+  --outdir results
 ```
 
-**Option B: Update process definitions**
+Note that running processes with the `container` directive requires an executor/environment that actually launches containers (e.g. Docker or Singularity enabled in your Nextflow config, or a Kubernetes/ICA executor). This repo does not ship a profile that enables container execution locally — add `docker.enabled = true` (or the Singularity/Podman equivalent) to your own config if you need that.
 
-Edit `modules/process.nf` to replace:
-```groovy
-container "${params.container_metrics ?: 'your-dockerhub-username/singlecell-qc-metrics:latest'}"
+## Deploying to ICA
+
+DRAGEN in this pipeline is scheduled via Kubernetes pod annotations targeting ICA's FPGA presets (see `pod annotation:` lines in `modules/dragen_scrna.nf`), so the intended deployment target is Illumina Connected Analytics. `export_pipeline_to_ica.py` imports the current git commit of this pipeline into an ICA project as a git-backed Nextflow pipeline; `nextflow_schema.json` drives the parameter form ICA renders from that import, so keep it in sync with any param changes in `main.nf`.
+
+## Updating the Dockerfile
+
+**Conda packages** (preferred for scientific packages):
+```dockerfile
+# Edit docker/qc/Dockerfile
+RUN conda install -y -c conda-forge -c bioconda \
+    your-package-name \
+    && conda clean -a -y
 ```
 
-Edit `modules/guide_assignment.nf` to replace:
-```groovy
-container "${params.container_guide_assignment ?: 'your-dockerhub-username/singlecell-qc-guide-assignment:latest'}"
-```
-with your actual image names.
+**Pip packages**: edit `docker/qc/requirements.txt` and rebuild.
 
-### 3. ICA-Specific Configuration
-
-The pipeline includes an `ica` profile in `nextflow.config` with AWS Batch settings. Key points:
-
-- **Docker enabled by default** when using `-profile ica`
-- **AWS Batch executor** for cloud execution
-- **S3 work directory** for intermediate files
-- **Region**: Update `aws.region` in config to match your ICA deployment
-
-## Container Management Strategy (Current Setup)
-
-This pipeline uses **process-specific containers** - the optimal approach for modularity:
-
-```groovy
-// In modules/process.nf
-process PROCESS_METRICS {
-    container "your-username/singlecell-qc-metrics:latest"
-    // ...
-}
-
-// In modules/guide_assignment.nf
-process GUIDE_ASSIGNMENT {
-    container "your-username/singlecell-qc-guide-assignment:latest"
-    // ...
-}
-```
-
-### Benefits of Separate Containers
-
-✅ **Smaller images**: Metrics processing doesn't need CRISPAT  
-✅ **Faster builds**: Changes to guide assignment don't rebuild metrics image  
-✅ **Better isolation**: Different dependency versions if needed  
-✅ **Clearer dependencies**: Each process has exactly what it needs  
-
-## Updating the Dockerfiles
-
-### Metrics Processing (`docker/metrics/Dockerfile`)
-Includes:
-- ✅ Python 3.10
-- ✅ pandas, numpy, scanpy, anndata
-- ✅ python-slugify
-- ✅ Additional packages from `docker/metrics/requirements.txt`
-
-### Guide Assignment (`docker/guide_assignment/Dockerfile`)
-Includes:
-- ✅ Python 3.10
-- ✅ pandas, numpy, scanpy, anndata
-- ✅ **crispat** (CRISPR-specific)
-- ✅ **pyro-ppl** (probabilistic programming for CRISPAT)
-- ✅ Additional packages from `docker/guide_assignment/requirements.txt`
-
-### Adding Packages
-
-**To metrics processing:**
-1. **Conda packages** (preferred for scientific packages):
-   ```dockerfile
-   # Edit docker/metrics/Dockerfile
-   RUN conda install -y -c conda-forge -c bioconda \
-       your-package-name \
-       && conda clean -a -y
-   ```
-
-2. **Pip packages**:
-   Edit `docker/metrics/requirements.txt` and rebuild
-
-**To guide assignment:**
-1. Edit `docker/guide_assignment/Dockerfile` or `docker/guide_assignment/requirements.txt`
-2. Rebuild only the guide assignment image
+**crispat itself** is installed via `git clone` + `pip install .` in the Dockerfile (not conda/pip requirements), since it's pulled from a specific fork — see the `git clone` step near the end of `docker/qc/Dockerfile`.
 
 ## Testing Locally
 
-Before pushing to ICA, test locally:
-
 ```bash
-# Run with Docker profile
-nextflow run main.nf \
-  -profile docker \
-  --container-metrics your-dockerhub-username/singlecell-qc-metrics:latest \
-  --container-guide-assignment your-dockerhub-username/singlecell-qc-guide-assignment:latest \
-  --num-input-cells 1000 \
-  --scrna-metrics test/data/metrics.csv \
-  --data-filtered-matrix test/data/matrix.mtx.gz \
-  --data-filtered-barcodes test/data/barcodes.tsv.gz \
-  --data-filtered-features test/data/features.tsv.gz
-```
-
-**Test individual containers:**
-```bash
-# Test metrics container
-docker run -it your-dockerhub-username/singlecell-qc-metrics:latest python -c "import pandas, scanpy; print('OK')"
-
-# Test guide assignment container
-docker run -it your-dockerhub-username/singlecell-qc-guide-assignment:latest python -c "import crispat; print('OK')"
+docker build -t my-qc-image:latest -f docker/qc/Dockerfile .
+docker run -it my-qc-image:latest python -c "import pandas, scanpy, crispat; print('OK')"
 ```
 
 ## Troubleshooting
 
 **Problem: "Container not found"**
-- Ensure image is pushed to registry accessible by ICA
-- Check image name/tag spelling
+- Ensure the image is pushed to a registry your executor can pull from
+- Check image name/tag spelling and that `--qc_container`/`--dragen_container` were actually passed
 
 **Problem: "Permission denied" for scripts**
-- Scripts in `bin/` are automatically made available in PATH
-- No need to `chmod +x` inside container
+- Scripts in `bin/` are automatically made available in `PATH` by Nextflow — no need to `chmod +x` inside the container
 
 **Problem: "Module not found" in Python**
-- Add missing package to Dockerfile
-- Rebuild and push new image
+- Add the missing package to `docker/qc/Dockerfile` (or `requirements.txt`) and rebuild/push the `qc_container` image
 
-**Problem: Different behavior locally vs ICA**
-- Check platform compatibility: add `--platform linux/amd64` to docker build
-- Verify AWS region matches ICA deployment
+**Problem: Different behavior locally vs. in the cloud**
+- Check platform compatibility: add `--platform linux/amd64` to `docker build` if building on Apple Silicon
+- Verify your registry region/credentials match what your executor expects
 
 ## Additional Resources
 
 - Nextflow containers: https://www.nextflow.io/docs/latest/container.html
-- ICA documentation: Check Illumina's ICA user guide for AWS Batch configuration
-- AWS Batch: https://www.nextflow.io/docs/latest/awscloud.html#aws-batch
+- AWS ECR: https://docs.aws.amazon.com/AmazonECR/latest/userguide/what-is-ecr.html
+- CRISPAT Documentation: https://github.com/pinellolab/CRISPAT

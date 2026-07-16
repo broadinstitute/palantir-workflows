@@ -1,5 +1,6 @@
 {
     "supersample_id": "ASAP_A",
+    "supersample_basename": "ASAP_A",
     "fastq_list": "m1_fastq_list.csv",
     "scrna_feature_barcode_reference": "guide_whitelist.csv",
     "scrna_barcode_sequence_list": "barcode_whitelist.csv",
@@ -7,5 +8,7 @@
     "ref_tar": "ref.stub.tar",
     "num_input_cells": 2088000,
     "min_valid_guides": 1,
-    "max_valid_guides": 2
+    "max_valid_guides": 2,
+    "dragen_container": "dragen_docker_image:latest",
+    "qc_container": "qc_docker_image:latest"
 }

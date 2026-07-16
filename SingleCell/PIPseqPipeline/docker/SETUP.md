@@ -1,16 +1,18 @@
-# Docker Setup for AWS Batch
+# Docker Setup
 
-This directory contains Docker image definitions for running the PIPseq QC Pipeline on AWS Batch.
+This directory contains the Docker image definition for the QC-side processes of the PIPseq pipeline (`GENERATE_REPORT_DATA`, `CONCATENATE`, `GUIDE_ASSIGNMENT`, `GENERATE_SUPERSAMPLE_QC`).
+
+DRAGEN (`DRAGEN_SCRNA`) uses a separate, Illumina-provided container passed via `--dragen_container`; it is not built from anything in this directory, and it runs on Illumina Connected Analytics (ICA), not AWS Batch.
 
 ## Structure
 
 ```
 docker/
 ├── README.md              # General Docker documentation
-├── SETUP.md               # This file - AWS Batch setup guide
-├── build_and_push.sh      # Script to build and push images to ECR
+├── SETUP.md               # This file - build/push guide
+├── build_and_push.sh      # Script to build and push the qc image to ECR
 └── qc/
-    ├── Dockerfile         # Single unified image for all pipeline processes
+    ├── Dockerfile         # Single unified image for all non-DRAGEN pipeline processes
     └── requirements.txt   # Python package requirements (optional)
 ```
 
@@ -54,48 +56,36 @@ The script will:
 3. Build the Docker image from `qc/Dockerfile`
 4. Push the image to ECR
 
-### Update Nextflow Config
+### Use the pushed image
 
-After pushing the image, update `nextflow.config`:
+`qc_container` is a required pipeline parameter (there is no config-file default) — pass it explicitly on the command line, or set `params.qc_container` in a config file included via `-c`:
 
-```groovy
-profiles {
-    awsbatch {
-        // Update these values
-        aws.region = 'us-east-1'
-        workDir = 's3://your-bucket-name/work'
-        process.queue = 'your-batch-queue-name'
-        params.container_qc = '123456789012.dkr.ecr.us-east-1.amazonaws.com/pipseq-qc:latest'
-    }
-}
+```bash
+nextflow run main.nf \
+  --qc_container 123456789012.dkr.ecr.us-east-1.amazonaws.com/pipseq-qc:latest \
+  --dragen_container <your DRAGEN container> \
+  --num_input_cells 10000 \
+  --fastq_list fastq_list.csv \
+  --supersample_id "Sample_A" \
+  --supersample_basename "sample_a" \
+  --outdir results \
+  ...
 ```
 
 ## QC Image Contents
 
 The `qc` image includes:
 - **Python 3.10** with conda
-- **AWS CLI v2** - Required for S3 file operations in AWS Batch
-- **Python packages**: pandas, numpy, scanpy, anndata, crispat, matplotlib, scipy
+- **AWS CLI v2** - Required for S3 file operations
+- **Python packages**: pandas, numpy, scanpy, anndata, matplotlib, scipy (via conda); crispat and its dependencies (pyro-ppl, torch, etc.) via `pip install` from a git clone
+- **Node.js + Puppeteer + sankeymatic_local** - for the (currently unused/disabled) Sankey plot feature in `bin/generate_supersample_qc.py`
 - **System tools**: git, build-essential
 
-This single image is used by all pipeline processes:
+This single image is used by all non-DRAGEN pipeline processes:
 - `GENERATE_REPORT_DATA`
 - `CONCATENATE`
 - `GUIDE_ASSIGNMENT`
-
-## Running on AWS Batch
-
-Once the image is pushed and configured:
-
-```bash
-nextflow run main.nf \
-  -profile awsbatch \
-  --num_input_cells 10000 \
-  --samplesheet s3://your-bucket/samplesheet.csv \
-  --supersample_id "Sample_A" \
-  --supersample_basename "sample_a" \
-  --outdir s3://your-bucket/results
-```
+- `GENERATE_SUPERSAMPLE_QC`
 
 ## Troubleshooting
 
@@ -105,8 +95,4 @@ nextflow run main.nf \
 
 **Build failures**: Check that the Dockerfile path is correct and all dependencies are available
 
-**AWS Batch issues**: Verify:
-- Container image URI is correct in `nextflow.config`
-- AWS Batch compute environment has internet access (for pulling from ECR)
-- IAM roles have appropriate S3 and ECR permissions
-- Work directory S3 bucket exists and is accessible
+**Container fails to start / wrong container used**: Double check the `--qc_container`/`--dragen_container` values passed on the command line (or set in your config file) — the pipeline has no default container image for either.

@@ -1,3 +1,4 @@
 # Additional pip packages for guide assignment
-# Core packages (pandas, numpy, scanpy, anndata, crispat, pyro-ppl) are installed via conda
-# Add any pip-only packages here if needed
+# pandas, numpy, scanpy, anndata, matplotlib, scipy are installed via conda (see Dockerfile).
+# crispat (and its dependencies, e.g. pyro-ppl) are installed separately via git clone + pip install (see Dockerfile).
+# Add any other pip-only packages here if needed

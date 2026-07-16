@@ -1,0 +1,5 @@
+RGID,RGSM,RGTY,Read1File,Read2File
+lib1_expr,Subsample_001,expression,/path/to/lib1_expr_R1.fastq.gz,/path/to/lib1_expr_R2.fastq.gz
+lib1_feat,Subsample_001,feature,/path/to/lib1_feat_R1.fastq.gz,/path/to/lib1_feat_R2.fastq.gz
+lib2_expr,Subsample_002,expression,/path/to/lib2_expr_R1.fastq.gz,/path/to/lib2_expr_R2.fastq.gz
+lib2_feat,Subsample_002,feature,/path/to/lib2_feat_R1.fastq.gz,/path/to/lib2_feat_R2.fastq.gz

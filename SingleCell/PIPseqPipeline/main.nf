@@ -114,7 +114,7 @@ workflow {
         exit 1
     }
 
-    if (!params.min_valid_guides || !params.max_valid_guides) {
+    if (params.min_valid_guides == null || params.max_valid_guides == null) {
         log.error "ERROR: --min_valid_guides and --max_valid_guides are required"
         helpMessage()
         exit 1
@@ -296,25 +296,27 @@ workflow {
     
     GENERATE_REPORT_DATA(qc_input_ch)
     
+    log.info "Concatenating subsamples into supersample AnnData..."
+
+    // Collect all subsample data for concatenation
+    concatenate_input_ch = all_subsamples
+        .toList()
+        .map { subsamples ->
+            tuple(
+                subsamples.collect { it[2] },  // matrices
+                subsamples.collect { it[3] },  // barcodes
+                subsamples.collect { it[4] },  // features
+                subsamples.collect { it[5] }   // subsample_ids
+            )
+        }
+
+    CONCATENATE(concatenate_input_ch)
+
     if (params.run_guide_assignment) {
-        log.info "Running CRISPR feature extraction and guide assignment..."
-        
-        // Collect all subsample data for concatenation
-        concatenate_input_ch = all_subsamples
-            .toList()
-            .map { subsamples ->
-                tuple(
-                    subsamples.collect { it[2] },  // matrices
-                    subsamples.collect { it[3] },  // barcodes
-                    subsamples.collect { it[4] },  // features
-                    subsamples.collect { it[5] }   // subsample_ids
-                )
-            }
-        
-        CONCATENATE(concatenate_input_ch)
-        
+        log.info "Running CRISPR guide assignment..."
+
         GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
-        
+
         // Set guide assignments channel
         guide_assignments_ch = GUIDE_ASSIGNMENT.out.guide_assignments
     } else {

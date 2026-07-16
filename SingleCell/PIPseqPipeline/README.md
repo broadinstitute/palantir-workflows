@@ -1,38 +1,44 @@
 # PIPseq QC Nextflow Pipeline
 
-This is a pipeline for processing single-cell QC metrics from PIPseq data using Nextflow.
+This is a pipeline for processing single-cell QC metrics from PIPseq data using Nextflow. It runs Illumina DRAGEN's scRNA pipeline per subsample, generates per-subsample and supersample-level QC reports, and (optionally) performs CRISPR guide assignment via CRISPAT.
+
+The pipeline is designed to run on Illumina Connected Analytics (ICA) — DRAGEN is scheduled onto ICA's FPGA-preset pods (see `pod annotation:` lines in `modules/dragen_scrna.nf`) — but it is plain Nextflow DSL2 and can run anywhere a compatible executor and the required container images are available.
 
 ## Overview
 
-This pipeline processes single-cell RNA-seq data with optional CRISPR guide assignment. It extracts CRISPR features from subsamples (which can be concatenated into a supersample), performs guide assignment using CRISPAT, and generates comprehensive QC reports.
-
 ### Terminology
 
-- **Subsample**: An individual sample (e.g., a technical replicate or a well from a plate)
-- **Supersample**: A logical grouping of subsamples that should be analyzed together (e.g., all wells from one biological sample)
+- **Subsample**: An individual sequencing unit (e.g. a well or technical replicate), identified by `RGSM` in the fastq list.
+- **Supersample**: A logical grouping of subsamples that should be analyzed together (e.g. all wells from one biological sample), identified by `--supersample_id` / `--supersample_basename`.
 
 ### Pipeline Workflow
 
-The pipeline performs three main tasks:
-1. **Concatenate Subsamples**: Combines subsamples into a supersample (handles single subsample case automatically)
-2. **Extract CRISPR Features**: Extracts "CRISPR Direct Capture" features from the concatenated data
-3. **Guide Assignment**: Performs CRISPAT guide assignment using Poisson-Gaussian mixture model (optional)
-4. **Generate Report Data**: Creates comprehensive QC metrics and visualizations for each subsample
+1. **Run DRAGEN scRNA** (`DRAGEN_SCRNA`): runs once per subsample, producing per-subsample metrics, barcode summary, and filtered matrix/barcodes/features files.
+2. **Generate per-subsample QC** (`GENERATE_REPORT_DATA`): always runs, one invocation per subsample, regardless of whether guide assignment is enabled.
+3. **Concatenate subsamples** (`CONCATENATE`): always runs; merges all subsamples' matrices into one supersample-level AnnData (`.h5ad`) and extracts a CRISPR-features-only AnnData (`.crispr.h5ad`). Handles the single-subsample case automatically.
+4. **CRISPR guide assignment** (`GUIDE_ASSIGNMENT`, optional): performs CRISPAT guide assignment (Poisson-Gaussian mixture model) on the concatenated CRISPR features. Runs only if `--run_guide_assignment` is `true` (the default).
+5. **Generate supersample QC** (`GENERATE_SUPERSAMPLE_QC`): always runs; combines all per-subsample QC files with guide assignment results (if available) into the final supersample-level report.
 
 ## Pipeline Structure
 
 ```
 SingleCell/PIPseqPipeline/
-├── main.nf                          # Main Nextflow pipeline
-├── nextflow.config                  # Pipeline configuration
+├── main.nf                          # Main Nextflow pipeline (entrypoint)
+├── nextflow.config                  # Pipeline configuration (default params, resources, reports)
+├── nextflow_schema.json             # Parameter schema (drives the ICA-rendered input form)
 ├── modules/
-│   ├── extract_crispr_features.nf   # Extract CRISPR Direct Capture features
-│   ├── guide_assignment.nf          # CRISPAT guide assignment
-│   └── generate_report_data.nf      # Generate QC report data
+│   ├── dragen_scrna.nf               # Run DRAGEN scRNA for one subsample
+│   ├── generate_report_data.nf       # Generate per-subsample QC metrics
+│   ├── concatenate.nf                # Concatenate subsamples into a supersample AnnData
+│   ├── guide_assignment.nf           # CRISPAT guide assignment
+│   └── generate_supersample_qc.nf    # Generate supersample-level QC report
 ├── bin/
-│   ├── extract_crispr_features.py   # Extract CRISPR features to h5ad
-│   ├── run_guide_assignment.py      # Run CRISPAT guide assignment
-│   └── generate_report_data.py      # Generate final QC metrics
+│   ├── generate_report_data.py       # Per-subsample QC metrics script
+│   ├── concatenate_samples.py        # Concatenation script
+│   ├── run_guide_assignment.py       # CRISPAT guide assignment script
+│   └── generate_supersample_qc.py    # Supersample QC report script
+├── docker/                          # Dockerfile/build scripts for the qc_container image
+├── stub_test/                       # Example inputs + `-stub-run` test setup
 └── README.md                        # This file
 ```
 
@@ -41,443 +47,147 @@ SingleCell/PIPseqPipeline/
 ### Prerequisites
 
 - Nextflow (>= 22.10.0)
-- Python 3.8+
-- Required Python packages: pandas, scanpy, anndata, crispat, matplotlib
+- A DRAGEN container image (`--dragen_container`) — provided by Illumina, not built from this repo
+- A QC container image (`--qc_container`) — built from `docker/qc/Dockerfile`, see `docker/SETUP.md`
+- An executor/environment that can run the `container` directive (e.g. Nextflow's k8s executor on ICA, or Docker/Singularity enabled locally via your own config)
 
-Install Nextflow:
+There is no bundled Nextflow profile for local/container-less execution — every process declares a `container`, so running for real requires a container-capable executor.
+
+### Stub run (no containers required)
+
+Every process has a `stub:` block that just touches placeholder output files, so you can validate the pipeline's wiring without DRAGEN, CRISPAT, or any container:
+
 ```bash
-curl -s https://get.nextflow.io | bash
+cd stub_test
+nextflow run ../main.nf -stub-run -params-file stub_inputs/pipeline_input.json
 ```
 
-Install Python dependencies:
-```bash
-pip install pandas scanpy anndata crispat matplotlib
-```
+See `stub_test/stub_inputs/` for additional variants (no feature library, cell hashing).
 
 ### Running the Pipeline
 
 ```bash
 nextflow run main.nf \
   --num_input_cells 10000 \
-  --samplesheet samplesheet.csv \
+  --fastq_list fastq_list.csv \
   --supersample_id "Supersample_A" \
-  --supersample_basename "supersample_A" \
+  --supersample_basename "supersample_a" \
+  --min_valid_guides 1 \
+  --max_valid_guides 2 \
+  --ref_tar /path/to/reference.tar \
+  --annotation_file /path/to/annotation.gtf \
+  --dragen_container <dragen image> \
+  --qc_container <qc image> \
   --outdir results
 ```
 
-Example samplesheet.csv:
+`concatenate_cpus` (default `16`), `concatenate_memory_gb` (default `64`), and `dragen_scratch_tb` (default `2`) have defaults in `nextflow.config` and don't need to be passed unless you want to override them.
+
+### fastq_list format
+
+CSV file with columns `RGID, RGSM, RGTY, Read1File, Read2File`:
+
 ```csv
-data_dir,dragen_file_prefix,subsample_id,subsample_basename
-/path/to/data1,sample_001,Subsample_001,subsample_001
-/path/to/data2,sample_002,Subsample_002,subsample_002
-/path/to/data3,sample_003,Subsample_003,subsample_003
+RGID,RGSM,RGTY,Read1File,Read2File
+lib1_expr,Subsample_001,expression,/path/to/lib1_R1.fastq.gz,/path/to/lib1_R2.fastq.gz
+lib1_feat,Subsample_001,feature,/path/to/lib1_feat_R1.fastq.gz,/path/to/lib1_feat_R2.fastq.gz
+lib2_expr,Subsample_002,expression,/path/to/lib2_R1.fastq.gz,/path/to/lib2_R2.fastq.gz
 ```
 
-**Pipeline behavior:**
-- Concatenates all subsamples (handles single subsample case automatically)
-- Runs GUIDE_ASSIGNMENT on concatenated CRISPR features (if enabled)
-- Per-subsample QC reports are always generated in `outdir/<supersample_basename>/<subsample_basename>/qc/`
-- Concatenated AnnData outputs to `outdir/<supersample_basename>/adata/`
-- Guide assignments are output to `outdir/<supersample_basename>/crispat_ga/`
+- `RGSM` values are subsample IDs — all rows with the same `RGSM` belong to the same subsample and are passed to DRAGEN together.
+- `RGTY` indicates readgroup type: `expression`, `feature` (CRISPR/feature-barcode library), or `hashing` (cell-hashing library). A subsample can mix multiple `RGTY` values across rows.
 
 ### Command-Line Options
 
 **Required:**
 - `--num_input_cells`: Number of input cells (integer)
-- `--samplesheet`: CSV file with columns: data_dir, dragen_file_prefix, subsample_id, subsample_basename
+- `--fastq_list`: CSV file described above
 - `--supersample_id`: Supersample identifier
 - `--supersample_basename`: Supersample basename for output organization
+- `--min_valid_guides` / `--max_valid_guides`: Guide-count thresholds used for guide assignment QC (integers; `0` is a valid value for `--min_valid_guides`)
+- `--ref_tar`: DRAGEN reference genome tar file
+- `--annotation_file`: Gene annotation file (GTF/GFF) for DRAGEN
+- `--dragen_container`: Container image for DRAGEN execution
+- `--qc_container`: Container image for QC processing
 
 **Optional:**
-- `--run_guide_assignment`: Run CRISPR guide assignment (default: true)
-- `--outdir`: Output directory (default: `results`)
+- `--run_guide_assignment`: Whether to run CRISPR guide assignment (default: `true`)
+- `--use_direct_capture_mode`: Whether to use DRAGEN direct-capture mode for feature barcodes (default: `true`)
+- `--scrna_feature_barcode_reference`: Feature barcode reference CSV for DRAGEN (only needed if the fastq_list has `feature` rows)
+- `--scrna_barcode_sequence_list`: Barcode sequence list CSV for DRAGEN
+- `--scrna_cell_hashing_reference`: Cell hashing reference CSV for DRAGEN (only needed if the fastq_list has `hashing` rows)
+- `--additional_dragen_args`: Extra raw arguments appended to the DRAGEN command line
+- `--guide_assignment_num_processes`: Number of processes for CRISPAT guide assignment (default: all available cores)
+- `--concatenate_cpus` / `--concatenate_memory_gb`: Resources for the `CONCATENATE` process (defaults: `16` / `64`)
+- `--dragen_scratch_tb`: Scratch disk space (TiB) allocated to the DRAGEN pod (default: `2`)
+- `--outdir`: Output directory (default: `out`)
 - `--help`: Show help message
-
-**Expected files in each data_dir:**
-- `<dragen_file_prefix>.scRNA_metrics.csv`
-- `<dragen_file_prefix>.scRNA.barcodeSummary.tsv`
-- `<dragen_file_prefix>.scRNA.filtered.matrix.mtx.gz`
-- `<dragen_file_prefix>.scRNA.filtered.barcodes.tsv.gz`
-- `<dragen_file_prefix>.scRNA.filtered.features.tsv.gz`
-
-### Execution Profiles
-
-Run with different executors:
-
-```bash
-# Local execution without containers (default)
-nextflow run main.nf -profile local \
-  --num_input_cells 10000 \
-  --samplesheet samplesheet.csv \
-  --outdir results
-
-# AWS Batch with Docker containers
-nextflow run main.nf -profile awsbatch \
-  --num_input_cells 10000 \
-  --samplesheet s3://bucket/samplesheet.csv \
-  --outdir s3://bucket/results
-
-# SLURM cluster
-nextflow run main.nf -profile cluster \
-  --num_input_cells 10000 \
-  --samplesheet samplesheet.csv \
-  --outdir results
-
-# Google Cloud Platform with containers
-nextflow run main.nf -profile gcp \
-  --num_input_cells 10000 \
-  --samplesheet gs://bucket/samplesheet.csv \
-  --outdir gs://bucket/results
-
-# Local with Docker
-nextflow run main.nf -profile docker \
-  --num_input_cells 10000 \
-  --samplesheet samplesheet.csv \
-  --outdir results
-```
-
-#### Profile Details
-
-**`local`** - Local execution without containers
-- Runs directly on your machine
-- No Docker or Singularity required
-- Python scripts must be available in your environment
-- Best for: Development, testing, small datasets
-
-**`awsbatch`** - AWS Batch with Docker containers
-- Runs on AWS Batch compute environment
-- Requires Docker containers in ECR or Docker Hub
-- Data can be in S3 buckets
-- Update configuration in `nextflow.config`:
-  - `aws.region`: Your AWS region
-  - `workDir`: S3 bucket for intermediate files
-  - `process.queue`: Your AWS Batch queue name
-  - `params.container_metrics`: ECR image URI
-  - `params.container_guide_assignment`: ECR image URI
-- Best for: Large-scale production runs, cloud-native workflows
-
-## Pipeline Components
-
-### 1. Extract CRISPR Features (`extract_crispr_features.py`)
-
-**Purpose:** Reads 10x-style filtered matrix files and extracts only the "CRISPR Direct Capture" feature types.
-
-**Inputs:**
-- Matrix file (`.mtx.gz`)
-- Barcodes file (`.tsv.gz`)
-- Features file (`.tsv.gz`)
-
-**Output:**
-- CRISPR features h5ad file (AnnData format)
-
-### 2. Guide Assignment (`run_guide_assignment.py`)
-
-**Purpose:** Performs CRISPR guide assignment using CRISPAT's Poisson-Gaussian mixture model.
-
-**Input:**
-- CRISPR h5ad file from step 1
-
-**Output:**
-- Guide assignments CSV file
-
-### 3. Generate Report Data (`generate_report_data.py`)
-
-**Purpose:** Generates comprehensive QC metrics and report data.
-
-**Inputs:**
-- scRNA metrics CSV
-- Barcode summary
-- Sample ID
-- Guide assignments (optional)
-
-**Output:**
-- QC report CSV with metrics and visualizations
 
 ## Output
 
-Results are organized in the output directory:
+Results are organized under `${params.outdir}/${params.supersample_basename}/`:
 
-**`${params.outdir}/<supersample_basename>/<subsample_basename>/qc/`:** (per-subsample QC reports)
-- `<subsample_basename>.qc_barcode_metrics.tsv` - Barcode rank metrics
-- `<subsample_basename>.qc_metrics.tsv` - Single-cell RNA QC metrics
-- `<subsample_basename>.qc_guide_assignment_stats.tsv` - Guide assignment statistics (if enabled)
-- `<subsample_basename>.qc_guide_assignment_distribution.png` - Guide assignment distribution plot (if enabled)
-
-**`${params.outdir}/<supersample_basename>/adata/`:** (concatenated AnnData files)
-- `<supersample_basename>.h5ad` - Concatenated AnnData with all features
-- `<supersample_basename>.crispr.h5ad` - Concatenated CRISPR features only
-
-**`${params.outdir}/<supersample_basename>/crispat_ga/`:** (guide assignments - if enabled)
-- `assignments.csv` - CRISPAT guide assignments
-
-**`${params.outdir}/pipeline_info/`:** (Nextflow reports)
-- `timeline.html` - Execution timeline
-- `report.html` - Resource usage report
-- `trace.txt` - Detailed execution trace
-- `dag.svg` - Pipeline DAG visualization
-
-## Configuration
-
-### Resource Allocation
-
-Modify `nextflow.config` to adjust:
-- Resource allocations (CPU, memory, time)
-- Executor settings
-- Process-specific configurations (EXTRACT_CRISPR_FEATURES, GUIDE_ASSIGNMENT, GENERATE_REPORT_DATA)
-- Cloud execution settings (AWS Batch, GCP)
-
-Example process-specific configuration:
-```groovy
-process {
-    withName: EXTRACT_CRISPR_FEATURES {
-        cpus = 8
-        memory = 32.GB
-        time = 8.h
-    }
-    
-    withName: GUIDE_ASSIGNMENT {
-        cpus = 16
-        memory = 64.GB
-        time = 24.h
-    }
-}
-
-### Local Execution Setup
-
-**Use when**: Development, testing, or when you have Python dependencies installed locally.
-
-**Requirements**:
-- Python 3.8+ with pandas, scanpy, anndata, crispat, matplotlib, numpy, scipy installed
-- Nextflow >= 22.10.0
-- Scripts in `bin/` directory must be executable
-
-For local execution without containers:
-
-1. **Install Python dependencies**:
-   ```bash
-   pip install pandas scanpy anndata crispat matplotlib numpy scipy
-   ```
-
-2. **Ensure scripts are executable**:
-   ```bash
-   chmod +x bin/extract_crispr_features.py
-   chmod +x bin/run_guide_assignment.py
-   chmod +x bin/generate_report_data.py
-   ```
-
-3. **Run with local profile**:
-   ```bash
-   nextflow run main.nf -profile local \
-     --num_input_cells 10000 \
-     --data_dir data/sample_output \
-     --dragen_file_prefix sample_123 \
-     --sample_id "Sample_123" \
-     --sample_basename "sample_123" \
-     --outdir results
-   ```
-
-### AWS Batch Execution Setup
-
-**Use when**: Production runs, large-scale processing, cloud-native workflows.
-
-**Prerequisites**:
-1. **AWS Batch Setup**: Create compute environment and job queue
-2. **ECR Repositories**: Push Docker images to ECR
-3. **S3 Buckets**: Create buckets for data and work directory
-4. **IAM Permissions**: Ensure proper S3 access for Batch execution role
-
-**Configuration**:
-
-Update `nextflow.config` with your AWS details:
-```groovy
-awsbatch {
-    aws.region = 'us-east-1'                    // Your region
-    workDir = 's3://my-bucket/work'             // S3 work directory
-    process.queue = 'my-batch-queue'            // Batch queue name
-    
-    // Container images in ECR
-    params.container_metrics = '123456789012.dkr.ecr.us-east-1.amazonaws.com/pipseq-metrics:v1.0'
-    params.container_crispr = '123456789012.dkr.ecr.us-east-1.amazonaws.com/pipseq-crispr:v1.0'
-    params.container_guide_assignment = '123456789012.dkr.ecr.us-east-1.amazonaws.com/pipseq-guide:v1.0'
-}
-```
-
-**Execution**:
-```bash
-# Configure AWS credentials
-export AWS_ACCESS_KEY_ID=your_key_id
-export AWS_SECRET_ACCESS_KEY=your_secret_key
-export AWS_DEFAULT_REGION=us-east-1
-
-# Run pipeline with S3 paths
-nextflow run main.nf -profile awsbatch \
-  --num_input_cells 10000 \
-  --data_dir s3://my-bucket/data/sample_output \
-  --dragen_file_prefix sample_123 \
-  --sample_id "Sample_123" \
-  --sample_basename "sample_123" \
-  --outdir s3://my-bucket/results
-```
-
-**AWS Batch Tips**:
-- **Resume failed runs**: Add `-resume` flag
-- **Monitor**: Check AWS Batch console for job status
-- **Logs**: CloudWatch Logs for each task
-- **Costs**: S3 storage + EC2 compute time
-- **Data transfer**: Input/output to S3 is fastest
-
-### Additional Configuration
-
-Modify `nextflow.config` to adjust:
-- Resource allocations (CPU, memory, time)
-- Executor settings
-- Process-specific configurations (EXTRACT_CRISPR_FEATURES, GUIDE_ASSIGNMENT, GENERATE_REPORT_DATA)
-- Cloud execution settings (AWS Batch, GCP)
-
-## Example Workflow
-
-1. Prepare your samplesheet with the required data:
-   ```csv
-   data_dir,dragen_file_prefix,sample_id,sample_basename
-   /path/to/data,sample_123,Sample_123,sample_123
-   ```
-   
-   Each data_dir should contain:
-   ```
-   data/sample_output/
-   ├── sample_123.scRNA_metrics.csv
-   ├── sample_123.scRNA.barcodeSummary.tsv
-   ├── sample_123.scRNA.filtered.matrix.mtx.gz
-   ├── sample_123.scRNA.filtered.barcodes.tsv.gz
-   └── sample_123.scRNA.filtered.features.tsv.gz
-   ```
-
-2. Run the pipeline:
-   ```bash
-   nextflow run main.nf \
-     --num_input_cells 10000 \
-     --samplesheet samplesheet.csv \
-     --outdir results
-   ```
-
-3. Check outputs in the results directory:
-   - QC reports per sample: `results/<sample_basename>/qc/`
-   - Guide assignments: `results/ga_crispat/`
-   - CRISPR h5ad (single sample): `results/crispr_adata/`
-   - Concatenated h5ad (multiple samples): `results/concatenated/`
+- **`<subsample_id>/dragen_output/`**: raw DRAGEN outputs for that subsample (metrics CSV, barcode summary, filtered matrix/barcodes/features)
+- **`<subsample_id>/logs/`**: DRAGEN logs for that subsample
+- **`<subsample_id>/qc/`**: per-subsample QC files
+  - `<subsample_id>.qc_metrics.tsv`
+  - `<subsample_id>.qc_barcode_metrics.tsv`
+- **`adata/`**: concatenated AnnData files (always produced, independent of guide assignment)
+  - `<supersample_basename>.h5ad` — full concatenated dataset
+  - `<supersample_basename>.crispr.h5ad` — CRISPR-features-only subset
+- **`crispat_ga/`**: CRISPAT guide assignment outputs (only if `--run_guide_assignment true`)
+  - `poisson_gauss/assignments.csv`
+- **`supersample_qc/`**: final supersample-level report
+  - `<supersample_basename>.supersample_qc_metrics.tsv`
+  - `<supersample_basename>.guide_assignment_distribution.png` (only if guide assignment ran)
+- **`pipeline_info/`**: Nextflow reports (`timeline.html`, `report.html`, `trace.txt`, `dag.svg`)
 
 ## CRISPR Guide Assignment
 
-Guide assignment is **enabled by default** (`--run_guide_assignment true`).
+Guide assignment is **enabled by default** (`--run_guide_assignment true`) and adds one step on top of the concatenation that always happens:
 
-**Three-step process (single sample)**:
-1. **Extract CRISPR features**: Reads matrix/barcodes/features files, extracts "CRISPR Direct Capture" feature types, and writes to an h5ad file (`bin/extract_crispr_features.py`)
-2. **Run guide assignment**: Uses the h5ad file to run CRISPAT's Poisson-Gaussian mixture model (`bin/run_guide_assignment.py`)
-3. **Generate report**: Combines all data to create comprehensive QC metrics (`bin/generate_report_data.py`)
+1. **Concatenate**: merge all subsamples and extract CRISPR Direct Capture features into `<supersample_basename>.crispr.h5ad` (`bin/concatenate_samples.py`) — this always runs.
+2. **Guide assignment**: run CRISPAT's Poisson-Gaussian mixture model on the CRISPR AnnData (`bin/run_guide_assignment.py`) — only if enabled.
+3. **Supersample report**: fold guide assignment results into the final QC report (`bin/generate_supersample_qc.py`) — always runs, with or without guide assignment data.
 
-**Multi-sample process**:
-1. **Concatenate samples**: Combines all samples into a single AnnData object (`bin/concatenate_samples.py`)
-2. **Run guide assignment**: Uses the concatenated h5ad to run CRISPAT
-3. **Generate reports**: Creates per-sample QC metrics
-
-**Disable guide assignment**:
+Disable guide assignment with:
 ```bash
-nextflow run main.nf \
-  --num_input_cells 10000 \
-  --samplesheet samplesheet.csv \
-  --run_guide_assignment false \
-  --outdir results
+nextflow run main.nf ... --run_guide_assignment false
 ```
-
-**Output files**:
-- `crispr_adata/<sample_basename>.crispr.h5ad`: Extracted CRISPR features (single sample only)
-- `concatenated/concatenated.h5ad`: Concatenated CRISPR features (multiple samples)
-- `ga_crispat/<sample_basename>.assignments.csv` or `ga_crispat/concatenated.assignments.csv`: Guide assignments
-- `<sample_basename>/qc/<sample_basename>.qc_*.tsv`: Per-sample QC metrics with guide assignment data integrated
 
 ## Resuming Failed Runs
 
 Nextflow caches completed tasks. Resume a failed pipeline with `-resume`:
 ```bash
-nextflow run main.nf \
-  --num_input_cells 10000 \
-  --data_dir data/sample_output \
-  --dragen_file_prefix sample_123 \
-  --sample_id "Sample_123" \
-  --sample_basename "sample_123" \
-  -resume
+nextflow run main.nf ... -resume
 ```
-
-## Profile Comparison
-
-| Profile | Executor | Containers | Best For |
-|---------|----------|------------|----------|
-| `local` | Local machine | None | Development, testing, small datasets |
-| `awsbatch` | AWS Batch | Docker (ECR) | Production, large-scale, cloud-native |
-| `docker` | Local machine | Docker | Local testing with containers |
-| `cluster` | SLURM | Optional | HPC clusters |
-| `gcp` | Google Cloud | Docker | Google Cloud users |
 
 ## Troubleshooting
 
-### Local Profile Issues
+**Error**: `ModuleNotFoundError` / missing Python package inside a process
+- **Solution**: The package needs to be added to `docker/qc/Dockerfile` (or `docker/qc/requirements.txt`) and the `qc_container` image rebuilt/pushed — pipeline processes run inside the container, not your local environment.
 
-**Error**: `command not found: extract_crispr_features.py`
-- **Solution**: Ensure scripts are executable: `chmod +x bin/*.py`
-- **Solution**: Check Python is in PATH
+**Error**: CRISPR features extraction fails / no CRISPR features found
+- **Solution**: Verify your `scrna_feature_barcode_reference` and fastq_list `feature` rows are correct, and that DRAGEN's features output actually contains a "CRISPR Direct Capture" feature type.
 
-**Error**: `ModuleNotFoundError: No module named 'scanpy'` (or anndata, crispat)
-- **Solution**: Install dependencies: `pip install pandas scanpy anndata crispat matplotlib numpy scipy`
+**Error**: Concatenation fails with "We cannot process more than 300 guides"
+- **Solution**: `bin/concatenate_samples.py` hard-caps CRISPR feature count at 300 for runtime reasons; reduce your guide library or contact the pipeline maintainer if you need this raised.
 
-**Error**: CRISPR features extraction fails
-- **Solution**: Verify your features file contains "CRISPR Direct Capture" feature type entries
+**Error**: Pipeline exits immediately with "ERROR: --xyz is required"
+- **Solution**: Required params are validated by hand-written checks near the top of `main.nf`'s `workflow {}` block, not just the schema — check the exact list of required flags above.
 
-**Error**: File not found
-- **Solution**: Verify file paths and ensure the `dragen_file_prefix` matches your input files exactly
-
-### AWS Batch Profile Issues
-
-**Error**: `Unable to locate credentials`
-- **Solution**: Configure AWS CLI or set environment variables
-
-**Error**: `Access Denied` for S3
-- **Solution**: Check IAM role attached to AWS Batch compute environment
-
-**Error**: Container fails to start
-- **Solution**: Verify ECR image URI is correct
-- **Solution**: Check Batch execution role has ECR pull permissions
-
-**Error**: Job stays in RUNNABLE state
-- **Solution**: Check compute environment is ENABLED and VALID
-- **Solution**: Verify VPC/subnet configuration
-
-### General Issues
-
-- **Out of memory**: Adjust memory allocation in `nextflow.config` for specific processes:
+**Out of memory / timeout**: Adjust resource allocations in `nextflow.config` for specific processes, e.g.:
   ```groovy
-  withName: EXTRACT_CRISPR_FEATURES {
-      memory = 32.GB
+  process {
+      withName: GUIDE_ASSIGNMENT {
+          memory = 64.GB
+          time = 24.h
+      }
   }
   ```
-- **Guide assignment fails**: Check that CRISPR Direct Capture features are present in your features file
 
 ## Additional Resources
 
-- [Nextflow AWS Batch Documentation](https://www.nextflow.io/docs/latest/awscloud.html)
-- [AWS Batch Setup Guide](https://docs.aws.amazon.com/batch/latest/userguide/what-is-batch.html)
 - [Nextflow Configuration Reference](https://www.nextflow.io/docs/latest/config.html)
+- [Nextflow Container Documentation](https://www.nextflow.io/docs/latest/container.html)
 - [CRISPAT Documentation](https://github.com/pinellolab/CRISPAT)
-  pip install pandas scanpy anndata crispat matplotlib
-  ```
-- **Out of memory**: Adjust memory allocation in `nextflow.config` for specific processes:
-  ```groovy
-  withName: EXTRACT_CRISPR_FEATURES {
-      memory = 32.GB
-  }
-  ```
-- **File not found**: Verify file paths and ensure the `file_prefix` matches your input files exactly
-- **Guide assignment fails**: Check that CRISPR Direct Capture features are present in your features file
-
-For more detailed execution instructions, see [EXECUTION_GUIDE.md](EXECUTION_GUIDE.md).
-- **Module not found**: Install required Python packages in your environment
-- **Out of memory**: Adjust memory allocation in `nextflow.config` under `process.withName.PROCESS_METRICS`

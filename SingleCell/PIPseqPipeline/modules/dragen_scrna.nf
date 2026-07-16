@@ -25,6 +25,7 @@ process DRAGEN_SCRNA {
     output:
         stdout emit: result
         path 'dragen_output/*', emit: output
+        path 'logs/*', emit: logs
 
     script:
         def fastqList = fastq_files.collect{ it.toString() }

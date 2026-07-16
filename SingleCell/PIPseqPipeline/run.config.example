@@ -1,24 +1,30 @@
 /*
  * Custom configuration file for pipeline run
- * 
- * Copy this file to run.config and update the parameters below
- * Then run: nextflow run main.nf -c run.config -profile local_cloud
+ *
+ * Copy this file to run.config, update the parameters below, and run:
+ *   nextflow run main.nf -c run.config
+ *
+ * Note: there is no bundled Nextflow profile for cloud/container execution in this
+ * pipeline. If you need Docker/Singularity or a cloud executor, configure it here too
+ * (e.g. `docker.enabled = true`, `process.executor = 'awsbatch'`, `aws.region = ...`).
  */
 
 params {
     // Required parameters
     num_input_cells = 10000
-    samplesheet = 's3://your-bucket/path/to/samplesheet.csv'  // or gs:// or local path
+    fastq_list = 's3://your-bucket/path/to/fastq_list.csv'  // or gs:// or local path
     supersample_id = 'Supersample_A'
     supersample_basename = 'supersample_a'
-    
+    min_valid_guides = 1
+    max_valid_guides = 2
+    ref_tar = 's3://your-bucket/path/to/reference.tar'
+    annotation_file = 's3://your-bucket/path/to/annotation.gtf'
+    dragen_container = 'your-dragen-image:latest'
+    qc_container = 'your-registry/pipseq-qc:latest'
+
     // Output location
     outdir = 's3://your-bucket/results'  // or gs:// or local path
-    
+
     // Optional parameters
     run_guide_assignment = true
 }
-
-// Optional: Override profile settings here
-// aws.region = 'us-west-2'
-// aws.profile = 'your-profile'

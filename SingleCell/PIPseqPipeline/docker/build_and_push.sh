@@ -50,5 +50,5 @@ docker push ${IMAGE_NAME}
 echo ""
 echo "✓ Successfully built and pushed: ${IMAGE_NAME}"
 echo ""
-echo "To use this image in your pipeline, update nextflow.config:"
-echo "  params.container_qc = '${IMAGE_NAME}'"
+echo "To use this image, pass it as --qc_container, e.g.:"
+echo "  nextflow run main.nf --qc_container '${IMAGE_NAME}' ..."
