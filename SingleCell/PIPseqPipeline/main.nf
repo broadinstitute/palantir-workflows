@@ -68,9 +68,9 @@ def helpMessage() {
       - All rows with the same RGSM belong to the same subsample
 
     Optional arguments:
-      --run_guide_assignment     Whether to run the CRISPAT guide-assignment step (default: ${params.run_guide_assignment}).
-                                  This only toggles the statistical guide-assignment step -- CRISPR feature
-                                  extraction and the concatenated supersample AnnData are always produced.
+      --run_guide_assignment     Whether to run guide assignment (default: ${params.run_guide_assignment}). Toggles both
+                                  the CRISPAT and purity-based guide-assignment methods together -- CRISPR feature
+                                  extraction and the concatenated supersample AnnData are always produced regardless.
       --guide_assignment_num_processes  Number of processes to use for guide assignment (default: all available cores)
       --outdir                   Output directory (default: ${params.outdir})
       --help                     Show this help message
@@ -78,10 +78,11 @@ def helpMessage() {
     Behavior:
       - Runs DRAGEN scRNA for each subsample
       - Concatenates all subsamples into a supersample AnnData (handles single subsample case automatically) -- always runs
-      - Runs CRISPAT guide assignment on the concatenated CRISPR features -- only if --run_guide_assignment is true
+      - Runs CRISPAT and purity-based guide assignment on the concatenated CRISPR features -- only if --run_guide_assignment is true
       - Per-subsample QC reports are generated in outdir/<supersample_basename>/<subsample_id>/qc/
       - Concatenated AnnData outputs to outdir/<supersample_basename>/adata/
-      - Guide assignments are output to outdir/<supersample_basename>/crispat_ga/
+      - CRISPAT guide assignments are output to outdir/<supersample_basename>/crispat_ga/
+      - Purity-based guide assignments are output to outdir/<supersample_basename>/purity_ga/
     """.stripIndent()
 }
 
@@ -89,7 +90,8 @@ def helpMessage() {
 include { DRAGEN_SCRNA } from './modules/dragen_scrna'
 include { GENERATE_REPORT_DATA } from './modules/generate_report_data'
 include { GENERATE_SUPERSAMPLE_QC } from './modules/generate_supersample_qc'
-include { GUIDE_ASSIGNMENT } from './modules/guide_assignment'
+include { CRISPAT_GUIDE_ASSIGNMENT } from './modules/crispat_guide_assignment'
+include { PURITY_BASED_GUIDE_ASSIGNMENT } from './modules/purity_based_guide_assignment'
 include { CONCATENATE } from './modules/concatenate'
 
 /*
@@ -281,22 +283,26 @@ workflow {
     CONCATENATE(concatenate_input_ch)
 
     if (params.run_guide_assignment) {
-        log.info "Running CRISPR guide assignment..."
+        log.info "Running CRISPR guide assignment (CRISPAT and purity-based)..."
 
-        GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
+        // Both methods run independently on the same concatenated CRISPR AnnData.
+        CRISPAT_GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
+        PURITY_BASED_GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
 
-        // Set guide assignments channel
-        guide_assignments_ch = GUIDE_ASSIGNMENT.out.guide_assignments
+        // Only CRISPAT's assignments feed into GENERATE_SUPERSAMPLE_QC below; the
+        // purity-based assignments are published on their own (see purity_ga/) and
+        // aren't otherwise consumed by this pipeline.
+        crispat_guide_assignments_ch = CRISPAT_GUIDE_ASSIGNMENT.out.guide_assignments
     } else {
         // Use placeholder for guide assignments -- see the NO_* placeholder note above.
-        guide_assignments_ch = Channel.of(file('NO_FILE'))
+        crispat_guide_assignments_ch = Channel.of(file('NO_FILE'))
     }
 
     // Generate supersample QC (always runs)
     supersample_qc_input = GENERATE_REPORT_DATA.out.qc_metrics
         .collect()
         .map { qc_metrics_list -> [qc_metrics_list] }  // Wrap list in tuple to preserve it
-        .combine(guide_assignments_ch)
+        .combine(crispat_guide_assignments_ch)
         .map { qc_metrics_list, guide_assignments ->
             // qc_metrics_list is the collected list of qc files
             // guide_assignments is the guide assignments file (or NO_FILE)
@@ -331,6 +337,7 @@ workflow.onComplete {
               adata/                          Concatenated supersample AnnData (<basename>.h5ad) and CRISPR-
                                                features-only subset (<basename>.crispr.h5ad) -- always produced
               crispat_ga/                     CRISPAT guide assignment output (only if --run_guide_assignment true)
+              purity_ga/                      Purity-based guide assignment output (only if --run_guide_assignment true)
               supersample_qc/                 Final supersample-level QC report, and (if guide assignment ran)
                                                the guide-assignment distribution plot
               pipeline_info/                  Nextflow execution reports (timeline, report, trace, DAG)

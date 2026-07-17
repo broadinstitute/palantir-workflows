@@ -37,24 +37,24 @@ def parse_args():
     )
     return parser.parse_args()
 
-def run_guide_assignment(crispr_adata_path, num_processes):
+def run_crispat_guide_assignment(crispr_adata_path, num_processes):
     print('Running CRISPAT Gaussian Mixture model...')
     crispat.ga_poisson_gauss(f'{crispr_adata_path}', f'crispat_ga/poisson_gauss/', parallelize=True, n_processes=num_processes, report_interval_seconds=30)
 
 def main():
     """Main execution function."""
     args = parse_args()
-    
+
     try:
-        run_guide_assignment(
+        run_crispat_guide_assignment(
             args.crispr_adata,
             args.num_processes
         )
-        print("\n✓ Guide assignment completed successfully")
+        print("\n✓ CRISPAT guide assignment completed successfully")
         return 0
-        
+
     except Exception as e:
-        print(f"\n✗ Error during guide assignment: {e}", file=sys.stderr)
+        print(f"\n✗ Error during CRISPAT guide assignment: {e}", file=sys.stderr)
         import traceback
         traceback.print_exc()
         return 1

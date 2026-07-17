@@ -1,6 +1,6 @@
 # PIPseq QC Nextflow Pipeline
 
-This is a pipeline for processing single-cell QC metrics from PIPseq data using Nextflow. It runs Illumina DRAGEN's scRNA pipeline per subsample, generates per-subsample and supersample-level QC reports, and (optionally) performs CRISPR guide assignment via CRISPAT.
+This is a pipeline for processing single-cell QC metrics from PIPseq data using Nextflow. It runs Illumina DRAGEN's scRNA pipeline per subsample, generates per-subsample and supersample-level QC reports, and (optionally) performs CRISPR guide assignment using two independent methods: CRISPAT and a purity-based method.
 
 The pipeline is designed to run on Illumina Connected Analytics (ICA) — DRAGEN is scheduled onto ICA's FPGA-preset pods (see `pod annotation:` lines in `modules/dragen_scrna.nf`) — but it is plain Nextflow DSL2 and can run anywhere a compatible executor and the required container images are available.
 
@@ -16,8 +16,10 @@ The pipeline is designed to run on Illumina Connected Analytics (ICA) — DRAGEN
 1. **Run DRAGEN scRNA** (`DRAGEN_SCRNA`): runs once per subsample, producing per-subsample metrics, barcode summary, and filtered matrix/barcodes/features files.
 2. **Generate per-subsample QC** (`GENERATE_REPORT_DATA`): always runs, one invocation per subsample, regardless of whether guide assignment is enabled.
 3. **Concatenate subsamples** (`CONCATENATE`): always runs; merges all subsamples' matrices into one supersample-level AnnData (`.h5ad`) and extracts a CRISPR-features-only AnnData (`.crispr.h5ad`). Handles the single-subsample case automatically.
-4. **CRISPR guide assignment** (`GUIDE_ASSIGNMENT`, optional): performs CRISPAT guide assignment (Poisson-Gaussian mixture model) on the concatenated CRISPR features. Runs only if `--run_guide_assignment` is `true` (the default).
-5. **Generate supersample QC** (`GENERATE_SUPERSAMPLE_QC`): always runs; combines all per-subsample QC files with guide assignment results (if available) into the final supersample-level report.
+4. **CRISPR guide assignment** (optional; runs only if `--run_guide_assignment` is `true`, the default): two independent methods run on the same concatenated CRISPR features and publish separately —
+   - **`CRISPAT_GUIDE_ASSIGNMENT`**: CRISPAT's Poisson-Gaussian mixture model.
+   - **`PURITY_BASED_GUIDE_ASSIGNMENT`**: a simpler purity/count-threshold heuristic (see [Purity-Based Guide Assignment](#purity-based-guide-assignment) below).
+5. **Generate supersample QC** (`GENERATE_SUPERSAMPLE_QC`): always runs; combines all per-subsample QC files with CRISPAT's guide assignment results (if available) into the final supersample-level report. The purity-based assignments are not folded into this report.
 
 ## Pipeline Structure
 
@@ -30,12 +32,14 @@ SingleCell/PIPseqPipeline/
 │   ├── dragen_scrna.nf               # Run DRAGEN scRNA for one subsample
 │   ├── generate_report_data.nf       # Generate per-subsample QC metrics
 │   ├── concatenate.nf                # Concatenate subsamples into a supersample AnnData
-│   ├── guide_assignment.nf           # CRISPAT guide assignment
+│   ├── crispat_guide_assignment.nf   # CRISPAT guide assignment
+│   ├── purity_based_guide_assignment.nf  # Purity-based guide assignment
 │   └── generate_supersample_qc.nf    # Generate supersample-level QC report
 ├── bin/
 │   ├── generate_report_data.py       # Per-subsample QC metrics script
 │   ├── concatenate_samples.py        # Concatenation script
-│   ├── run_guide_assignment.py       # CRISPAT guide assignment script
+│   ├── run_crispat_guide_assignment.py   # CRISPAT guide assignment script
+│   ├── purity_based_guide_assignment.py  # Purity-based guide assignment script
 │   └── generate_supersample_qc.py    # Supersample QC report script
 ├── docker/                          # Dockerfile/build scripts for the qc_container image
 ├── stub_test/                       # Example inputs + `-stub-run` test setup
@@ -147,6 +151,8 @@ Results are organized under `${params.outdir}/${params.supersample_basename}/`:
   - `<supersample_basename>.crispr.h5ad` — CRISPR-features-only subset
 - **`crispat_ga/`**: CRISPAT guide assignment outputs (only if `--run_guide_assignment true`)
   - `poisson_gauss/assignments.csv`
+- **`purity_ga/`**: purity-based guide assignment output (only if `--run_guide_assignment true`)
+  - `<supersample_id>.purity_based_guide_assignments.csv`
 - **`supersample_qc/`**: final supersample-level report
   - `<supersample_basename>.supersample_qc_metrics.tsv`
   - `<supersample_basename>.guide_assignment_distribution.png` (only if guide assignment ran)
@@ -156,16 +162,26 @@ A `README.txt` describing this layout is written directly into `${params.outdir}
 
 ## CRISPR Guide Assignment
 
-Guide assignment is **enabled by default** (`--run_guide_assignment true`) and adds one step on top of the concatenation that always happens:
+Guide assignment is **enabled by default** (`--run_guide_assignment true`) and adds two independent steps on top of the concatenation that always happens, both consuming the same `<supersample_basename>.crispr.h5ad`:
 
 1. **Concatenate**: merge all subsamples and extract CRISPR Direct Capture features into `<supersample_basename>.crispr.h5ad` (`bin/concatenate_samples.py`) — this always runs.
-2. **Guide assignment**: run CRISPAT's Poisson-Gaussian mixture model on the CRISPR AnnData (`bin/run_guide_assignment.py`) — only if enabled.
-3. **Supersample report**: fold guide assignment results into the final QC report (`bin/generate_supersample_qc.py`) — always runs, with or without guide assignment data.
+2. **CRISPAT guide assignment**: run CRISPAT's Poisson-Gaussian mixture model on the CRISPR AnnData (`bin/run_crispat_guide_assignment.py`) — only if enabled. Feeds into the final supersample QC report.
+3. **Purity-based guide assignment**: an independent, simpler heuristic (`bin/purity_based_guide_assignment.py`) — only if enabled. Published on its own; not folded into the supersample QC report.
+4. **Supersample report**: fold CRISPAT's guide assignment results into the final QC report (`bin/generate_supersample_qc.py`) — always runs, with or without guide assignment data.
 
-Disable guide assignment with:
+Disable both guide assignment methods with:
 ```bash
 nextflow run main.nf ... --run_guide_assignment false
 ```
+
+### Purity-Based Guide Assignment
+
+For each cell, `bin/purity_based_guide_assignment.py` looks at the CRISPR guide UMI counts and computes:
+- `total_count`: sum of all guide counts for that cell
+- `count_1st` / `count_2nd`: the highest and second-highest guide counts for that cell
+- `purity`: `count_1st / (count_1st + count_2nd)`
+
+A cell is assigned to its top guide (`gRNA`) only if `total_count > 10` **and** `purity > 0.75`; otherwise `gRNA` is left empty. Output columns: `cell, gRNA, purity, total_count, count_1st, count_2nd`.
 
 ## Resuming Failed Runs
 
@@ -185,13 +201,13 @@ nextflow run main.nf ... -resume
 **Error**: Concatenation fails with "We cannot process more than 300 guides"
 - **Solution**: `bin/concatenate_samples.py` hard-caps CRISPR feature count at 300 for runtime reasons; reduce your guide library or contact the pipeline maintainer if you need this raised.
 
-**Error**: Pipeline exits immediately with "ERROR: --xyz is required"
-- **Solution**: Required params are validated by hand-written checks near the top of `main.nf`'s `workflow {}` block, not just the schema — check the exact list of required flags above.
+**Error**: Pipeline exits immediately with a parameter validation error
+- **Solution**: Required/typed params are validated against `nextflow_schema.json` via the `nf-schema` plugin (see [Parameter validation](#parameter-validation)); a few additional business-logic checks (RGTY values, guide-count range, guide reference size) run right after. Check the exact list of required flags above.
 
 **Out of memory / timeout**: Adjust resource allocations in `nextflow.config` for specific processes, e.g.:
   ```groovy
   process {
-      withName: GUIDE_ASSIGNMENT {
+      withName: CRISPAT_GUIDE_ASSIGNMENT {
           memory = 64.GB
           time = 24.h
       }

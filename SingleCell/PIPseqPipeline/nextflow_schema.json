@@ -135,7 +135,7 @@
                     "type": "boolean",
                     "description": "Whether to run CRISPR guide assignment",
                     "default": true,
-                    "help_text": "Enable or disable the CRISPAT guide-assignment step only. CRISPR feature extraction and the concatenated supersample AnnData (<basename>.crispr.h5ad) are always produced regardless of this flag.",
+                    "help_text": "Enable or disable both guide-assignment methods (CRISPAT and purity-based) only. CRISPR feature extraction and the concatenated supersample AnnData (<basename>.crispr.h5ad) are always produced regardless of this flag.",
                     "fa_icon": "fas fa-toggle-on"
                 },
                 "min_valid_guides": {
@@ -184,7 +184,7 @@
                 "qc_container": {
                     "type": "string",
                     "description": "Container image for QC processing",
-                    "help_text": "Image used by the GENERATE_REPORT_DATA, CONCATENATE, GUIDE_ASSIGNMENT, and GENERATE_SUPERSAMPLE_QC processes.",
+                    "help_text": "Image used by the GENERATE_REPORT_DATA, CONCATENATE, CRISPAT_GUIDE_ASSIGNMENT, PURITY_BASED_GUIDE_ASSIGNMENT, and GENERATE_SUPERSAMPLE_QC processes.",
                     "fa_icon": "fas fa-chart-bar"
                 }
             }
