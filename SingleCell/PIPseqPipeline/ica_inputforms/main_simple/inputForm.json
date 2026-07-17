@@ -7,10 +7,65 @@
     },
     {
       "type": "data",
-      "id": "fastq_files",
-      "helpText": "Input FASTQ files",
-      "label": "fastq_files",
+      "id": "expression_r1_fastqs",
+      "helpText": "Expression R1 FASTQ file(s), matched by position with expression_r2_fastqs. List more than one to cover multiple lanes.",
+      "label": "expression_r1_fastqs",
       "minValues": 1,
+      "maxValues": 999,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "type": "data",
+      "id": "expression_r2_fastqs",
+      "helpText": "Expression R2 FASTQ file(s), matched by position with expression_r1_fastqs. Must have the same count.",
+      "label": "expression_r2_fastqs",
+      "minValues": 1,
+      "maxValues": 999,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "type": "data",
+      "id": "feature_r1_fastqs",
+      "helpText": "Feature (CRISPR/feature-barcode) R1 FASTQ file(s), matched by position with feature_r2_fastqs. Requires scrna_feature_barcode_reference if given.",
+      "label": "feature_r1_fastqs",
+      "minValues": 0,
+      "maxValues": 999,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "type": "data",
+      "id": "feature_r2_fastqs",
+      "helpText": "Feature R2 FASTQ file(s), matched by position with feature_r1_fastqs. Must have the same count.",
+      "label": "feature_r2_fastqs",
+      "minValues": 0,
+      "maxValues": 999,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "type": "data",
+      "id": "hashing_r1_fastqs",
+      "helpText": "Cell-hashing R1 FASTQ file(s), matched by position with hashing_r2_fastqs. Requires scrna_cell_hashing_reference if given.",
+      "label": "hashing_r1_fastqs",
+      "minValues": 0,
+      "maxValues": 999,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "type": "data",
+      "id": "hashing_r2_fastqs",
+      "helpText": "Cell-hashing R2 FASTQ file(s), matched by position with hashing_r1_fastqs. Must have the same count.",
+      "label": "hashing_r2_fastqs",
+      "minValues": 0,
       "maxValues": 999,
       "dataFilter": {
         "dataType": "file"
@@ -35,6 +90,7 @@
     {
       "type": "textbox",
       "id": "supersample_id",
+      "helpText": "Also used as this run's subsample_id, since this entrypoint always describes exactly one subsample.",
       "minValues": 1,
       "maxValues": 1
     },
@@ -43,15 +99,6 @@
       "id": "supersample_basename",
       "minValues": 1,
       "maxValues": 1
-    },
-    {
-      "type": "data",
-      "id": "fastq_list",
-      "minValues": 1,
-      "maxValues": 1,
-      "dataFilter": {
-        "dataType": "file"
-      }
     },
     {
       "type": "data",
