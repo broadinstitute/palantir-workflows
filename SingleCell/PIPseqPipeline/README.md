@@ -46,7 +46,7 @@ SingleCell/PIPseqPipeline/
 
 ### Prerequisites
 
-- Nextflow (>= 22.10.0)
+- Nextflow (>= 25.10.0 — required by the pinned `nf-schema` validation plugin; requires network access to the Nextflow plugin registry on first run)
 - A DRAGEN container image (`--dragen_container`) — provided by Illumina, not built from this repo
 - A QC container image (`--qc_container`) — built from `docker/qc/Dockerfile`, see `docker/SETUP.md`
 - An executor/environment that can run the `container` directive (e.g. Nextflow's k8s executor on ICA, or Docker/Singularity enabled locally via your own config)
@@ -97,6 +97,16 @@ lib2_expr,Subsample_002,expression,/path/to/lib2_R1.fastq.gz,/path/to/lib2_R2.fa
 - `RGSM` values are subsample IDs — all rows with the same `RGSM` belong to the same subsample and are passed to DRAGEN together.
 - `RGTY` indicates readgroup type: `expression`, `feature` (CRISPR/feature-barcode library), or `hashing` (cell-hashing library). A subsample can mix multiple `RGTY` values across rows.
 
+### Parameter validation
+
+Required/typed params (presence, type, allowed range/pattern) are validated against `nextflow_schema.json` via the [`nf-schema`](https://nextflow-io.github.io/nf-schema/) plugin as soon as the pipeline starts — a missing, mistyped, or out-of-range param fails immediately with a clear message rather than partway through the run.
+
+A few checks that can't be expressed in JSON Schema are enforced separately, right after schema validation:
+- `RGTY` values in `--fastq_list` must be exactly `expression`, `feature`, or `hashing` (case-sensitive) — a typo fails immediately instead of silently producing an empty feature/hashing group.
+- If `--fastq_list` has any `feature` rows, `--scrna_feature_barcode_reference` must be set (and likewise `--scrna_cell_hashing_reference` for `hashing` rows).
+- `--min_valid_guides` must be `<= --max_valid_guides`.
+- `--scrna_feature_barcode_reference` can't contain more than 300 guides (checked before any DRAGEN job runs, to fail fast rather than after every subsample has already been processed).
+
 ### Command-Line Options
 
 **Required:**
@@ -141,6 +151,8 @@ Results are organized under `${params.outdir}/${params.supersample_basename}/`:
   - `<supersample_basename>.supersample_qc_metrics.tsv`
   - `<supersample_basename>.guide_assignment_distribution.png` (only if guide assignment ran)
 - **`pipeline_info/`**: Nextflow reports (`timeline.html`, `report.html`, `trace.txt`, `dag.svg`)
+
+A `README.txt` describing this layout is written directly into `${params.outdir}/${params.supersample_basename}/` when the run finishes successfully.
 
 ## CRISPR Guide Assignment
 

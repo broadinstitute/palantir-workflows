@@ -1,5 +1,5 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/SingleCell/PIPseqPipeline/nextflow_schema.json",
     "title": "PIPseq Pipeline",
     "description": "Single-cell RNA sequencing QC pipeline with DRAGEN scRNA processing and CRISPR guide assignment",
@@ -135,7 +135,7 @@
                     "type": "boolean",
                     "description": "Whether to run CRISPR guide assignment",
                     "default": true,
-                    "help_text": "Enable or disable CRISPR guide assignment analysis. If disabled, only QC metrics will be generated.",
+                    "help_text": "Enable or disable the CRISPAT guide-assignment step only. CRISPR feature extraction and the concatenated supersample AnnData (<basename>.crispr.h5ad) are always produced regardless of this flag.",
                     "fa_icon": "fas fa-toggle-on"
                 },
                 "min_valid_guides": {
@@ -194,6 +194,11 @@
             "type": "object",
             "fa_icon": "fas fa-server",
             "description": "Resource allocation options for pipeline processes.",
+            "required": [
+                "concatenate_cpus",
+                "concatenate_memory_gb",
+                "dragen_scratch_tb"
+            ],
             "properties": {
                 "concatenate_cpus": {
                     "type": "integer",

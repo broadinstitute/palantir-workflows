@@ -111,6 +111,9 @@ def main():
         print(concatenated.var_keys())
         crispr_mask = concatenated.var['feature_types'] == 'CRISPR Direct Capture'
         num_crispr_features = crispr_mask.sum()
+        # Primary check is in main.nf (MAX_CRISPR_GUIDES), which counts guides in
+        # --scrna_feature_barcode_reference before any DRAGEN job runs. This is a safety
+        # net in case DRAGEN's actual CRISPR feature count ever disagrees with that count.
         if num_crispr_features > 300:
             raise RuntimeError('We cannot process more than 300 guides right now due to runtime constraints.')
         concatenated_crispr = concatenated[:, crispr_mask]
