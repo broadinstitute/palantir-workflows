@@ -15,7 +15,7 @@ project_names_and_ids = {
 
 current_git_commit_id = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()
 current_git_commit_id_short = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode().strip()
-current_git_commit_message = subprocess.check_output(['git', 'log', '-1', '--pretty=%B']).decode().strip()
+current_git_commit_message = subprocess.check_output(['git', 'log', '-1', '--pretty=%B']).decode().strip().split('\n')[0].strip()
 
 entrypoints = {
     'Full pipeline (main.nf, --fastq_list)': {

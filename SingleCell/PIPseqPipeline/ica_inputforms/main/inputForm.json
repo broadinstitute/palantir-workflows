@@ -1,0 +1,177 @@
+{
+  "fields": [
+    {
+      "id": "section_datainputs",
+      "type": "section",
+      "label": "Section for selecting data inputs"
+    },
+    {
+      "type": "data",
+      "id": "fastq_files",
+      "helpText": "Input FASTQ files",
+      "label": "fastq_files",
+      "minValues": 1,
+      "maxValues": 999,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "type": "integer",
+      "id": "num_input_cells",
+      "helpText": "Number of input cells",
+      "label": "num_input_cells",
+      "minValues": 1,
+      "maxValues": 1
+    },
+    {
+      "type": "textbox",
+      "id": "outdir",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": "out"
+    },
+    {
+      "type": "textbox",
+      "id": "supersample_basename",
+      "minValues": 1,
+      "maxValues": 1
+    },
+    {
+      "type": "data",
+      "id": "fastq_list",
+      "minValues": 1,
+      "maxValues": 1,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "type": "data",
+      "id": "ref_tar",
+      "minValues": 1,
+      "maxValues": 1,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "type": "data",
+      "id": "annotation_file",
+      "minValues": 1,
+      "maxValues": 1,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "type": "checkbox",
+      "id": "use_direct_capture_mode",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": true
+    },
+    {
+      "type": "data",
+      "id": "scrna_feature_barcode_reference",
+      "minValues": 0,
+      "maxValues": 1,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "type": "data",
+      "id": "scrna_barcode_sequence_list",
+      "minValues": 0,
+      "maxValues": 1,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "type": "data",
+      "id": "scrna_cell_hashing_reference",
+      "minValues": 0,
+      "maxValues": 1,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "type": "textbox",
+      "id": "additional_dragen_args",
+      "minValues": 0,
+      "maxValues": 1
+    },
+    {
+      "type": "checkbox",
+      "id": "run_guide_assignment",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": true
+    },
+    {
+      "type": "textbox",
+      "id": "supersample_id",
+      "minValues": 1,
+      "maxValues": 1
+    },
+    {
+      "type": "integer",
+      "id": "min_valid_guides",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 1
+    },
+    {
+      "type": "integer",
+      "id": "max_valid_guides",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 2
+    },
+    {
+      "type": "textbox",
+      "id": "dragen_container",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": "079623148045.dkr.ecr.us-east-1.amazonaws.com/cp-prod/854d2763-de5c-4306-88f7-a32085b763c5:latest"
+    },
+    {
+      "type": "textbox",
+      "id": "qc_container",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": "079623148045.dkr.ecr.us-east-1.amazonaws.com/cp-prod/483688b7-bc90-442d-810c-7773140e9134:latest"
+    },
+    {
+      "type": "integer",
+      "id": "concatenate_cpus",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 16
+    },
+    {
+      "type": "integer",
+      "id": "concatenate_memory_gb",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 64
+    },
+    {
+      "type": "integer",
+      "id": "dragen_scratch_tb",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 2
+    },
+    {
+      "type": "integer",
+      "id": "guide_assignment_num_processes",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 8
+    }
+  ]
+}
