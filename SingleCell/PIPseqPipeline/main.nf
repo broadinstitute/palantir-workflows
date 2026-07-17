@@ -4,11 +4,14 @@ nextflow.enable.dsl=2
 /*
  * Single-Cell QC Metrics Processing Pipeline
  *
- * This pipeline ingests metrics CSVs and data files,
- * processes them with a Python script, and generates output CSVs.
+ * Production entrypoint: describes every subsample via a --fastq_list CSV (potentially
+ * many subsamples per run). For one-off single-subsample runs where hand-writing that CSV
+ * is unnecessary friction, see main_simple.nf, which takes flat expression/feature/hashing
+ * FASTQ params instead. Both entrypoints share the same engine -- see workflows/pipseq_core.nf.
  */
 
 include { validateParameters; paramsSummaryLog } from 'plugin/nf-schema'
+include { PIPSEQ_CORE; writeOutputManifest } from './workflows/pipseq_core'
 
 // Define parameters
 params.num_input_cells = null          // Number of input cells (integer)
@@ -30,17 +33,14 @@ params.additional_dragen_args = null        // Optional additional arguments to 
 // Recognized RGTY values in --fastq_list (see helpMessage() below)
 def VALID_RGTY = ['expression', 'feature', 'hashing']
 
-// concatenate_samples.py hard-caps the number of CRISPR guides it can process for runtime
-// reasons. Checked here (fast, before any DRAGEN job runs) and again after concatenation
-// in concatenate_samples.py as a safety net, in case the reference and DRAGEN's actual
-// feature output ever disagree.
-def MAX_CRISPR_GUIDES = 300
-
 // Help message
 def helpMessage() {
     log.info"""
     Usage:
       nextflow run main.nf --num_input_cells <int> --fastq_list <fastq_list.csv> --supersample_id <id> --supersample_basename <name> [options]
+
+    For one-off single-subsample runs, see main_simple.nf instead -- it takes flat
+    expression/feature/hashing FASTQ params and doesn't require writing a fastq_list CSV.
 
     Required arguments:
       --num_input_cells          Number of input cells (integer)
@@ -86,14 +86,6 @@ def helpMessage() {
     """.stripIndent()
 }
 
-// Import modules
-include { DRAGEN_SCRNA } from './modules/dragen_scrna'
-include { GENERATE_REPORT_DATA } from './modules/generate_report_data'
-include { GENERATE_SUPERSAMPLE_QC } from './modules/generate_supersample_qc'
-include { CRISPAT_GUIDE_ASSIGNMENT } from './modules/crispat_guide_assignment'
-include { PURITY_BASED_GUIDE_ASSIGNMENT } from './modules/purity_based_guide_assignment'
-include { CONCATENATE } from './modules/concatenate'
-
 /*
  * Main workflow
  */
@@ -110,21 +102,6 @@ workflow {
     // already declares; update nextflow_schema.json instead.
     validateParameters()
     log.info paramsSummaryLog(workflow)
-
-    // --- Business-logic checks that can't be expressed in JSON Schema ---
-
-    if (params.min_valid_guides > params.max_valid_guides) {
-        log.error "ERROR: --min_valid_guides (${params.min_valid_guides}) must be <= --max_valid_guides (${params.max_valid_guides})"
-        exit 1
-    }
-
-    if (params.scrna_feature_barcode_reference) {
-        def guide_count = file(params.scrna_feature_barcode_reference).readLines().size() - 1 // minus header row
-        if (guide_count > MAX_CRISPR_GUIDES) {
-            log.error "ERROR: --scrna_feature_barcode_reference contains ${guide_count} guides, but this pipeline cannot process more than ${MAX_CRISPR_GUIDES} guides right now due to runtime constraints."
-            exit 1
-        }
-    }
 
     log.info "Reading subsamples from fastq_list..."
 
@@ -204,145 +181,9 @@ workflow {
             }
         }
 
-    log.info "Running DRAGEN scRNA for each subsample..."
-
-    // Prepare DRAGEN inputs. Nextflow path inputs can't be cleanly optional, so a 'NO_*'
-    // placeholder filename stands in for "not provided" -- DRAGEN_SCRNA and its stub check
-    // `.name != 'NO_*'` to tell a real reference apart from this placeholder.
-    dragen_input_ch = subsample_info.map { info ->
-        tuple(
-            [
-                subsample_id: info.rgsm,
-                feature_barcode_groups: info.feature_rgids,
-                hto_barcode_groups: info.hashing_rgids,
-                use_direct_capture_mode: params.use_direct_capture_mode,
-                additional_dragen_args: params.additional_dragen_args ?: ''
-            ],
-            file(params.ref_tar),
-            file(params.fastq_list),
-            file(params.annotation_file),
-            params.scrna_feature_barcode_reference ? file(params.scrna_feature_barcode_reference) : file('NO_FEATURE_BARCODE_REF'),
-            params.scrna_barcode_sequence_list ? file(params.scrna_barcode_sequence_list) : file('NO_BARCODE_SEQ_LIST'),
-            params.scrna_cell_hashing_reference ? file(params.scrna_cell_hashing_reference) : file('NO_CELL_HASHING_REF'),
-            info.fastq_files
-        )
-    }
-
-    // Run DRAGEN
-    DRAGEN_SCRNA(dragen_input_ch)
-
-    // Rejoin DRAGEN's named per-file-type outputs by subsample_id. Each of these channels
-    // already carries (subsample_id, file) pairs (see modules/dragen_scrna.nf), so this
-    // replaces the previous approach of flattening the whole output glob and re-deriving
-    // subsample_id/file-type from filenames.
-    all_subsamples = DRAGEN_SCRNA.out.metrics
-        .join(DRAGEN_SCRNA.out.barcode_summary)
-        .join(DRAGEN_SCRNA.out.matrix)
-        .join(DRAGEN_SCRNA.out.barcodes)
-        .join(DRAGEN_SCRNA.out.features)
-        .map { subsample_id, metrics, barcode_summary, matrix, barcodes, features ->
-            [
-                subsample_id: subsample_id,
-                metrics: metrics,
-                barcode_summary: barcode_summary,
-                matrix: matrix,
-                barcodes: barcodes,
-                features: features
-            ]
-        }
-
-    // Generate per-subsample QC reports
-    qc_input_ch = all_subsamples.map { s ->
-        tuple(
-            [
-                subsample_id: s.subsample_id,
-                supersample_id: params.supersample_id,
-                num_input_cells: params.num_input_cells
-            ],
-            s.metrics,
-            s.barcode_summary
-        )
-    }
-
-    GENERATE_REPORT_DATA(qc_input_ch)
-
-    log.info "Concatenating subsamples into supersample AnnData..."
-
-    // Collect all subsample data for concatenation
-    concatenate_input_ch = all_subsamples
-        .toList()
-        .map { subsamples ->
-            tuple(
-                subsamples.collect { it.matrix },
-                subsamples.collect { it.barcodes },
-                subsamples.collect { it.features },
-                subsamples.collect { it.subsample_id }
-            )
-        }
-
-    CONCATENATE(concatenate_input_ch)
-
-    if (params.run_guide_assignment) {
-        log.info "Running CRISPR guide assignment (CRISPAT and purity-based)..."
-
-        // Both methods run independently on the same concatenated CRISPR AnnData.
-        CRISPAT_GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
-        PURITY_BASED_GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
-
-        // Only CRISPAT's assignments feed into GENERATE_SUPERSAMPLE_QC below; the
-        // purity-based assignments are published on their own (see purity_ga/) and
-        // aren't otherwise consumed by this pipeline.
-        crispat_guide_assignments_ch = CRISPAT_GUIDE_ASSIGNMENT.out.guide_assignments
-    } else {
-        // Use placeholder for guide assignments -- see the NO_* placeholder note above.
-        crispat_guide_assignments_ch = Channel.of(file('NO_FILE'))
-    }
-
-    // Generate supersample QC (always runs)
-    supersample_qc_input = GENERATE_REPORT_DATA.out.qc_metrics
-        .collect()
-        .map { qc_metrics_list -> [qc_metrics_list] }  // Wrap list in tuple to preserve it
-        .combine(crispat_guide_assignments_ch)
-        .map { qc_metrics_list, guide_assignments ->
-            // qc_metrics_list is the collected list of qc files
-            // guide_assignments is the guide assignments file (or NO_FILE)
-            tuple(
-                [
-                    num_input_cells: params.num_input_cells,
-                    supersample_basename: params.supersample_basename,
-                    supersample_id: params.supersample_id,
-                    min_valid_guides: params.min_valid_guides,
-                    max_valid_guides: params.max_valid_guides
-                ],
-                qc_metrics_list,
-                guide_assignments
-            )
-        }
-
-    GENERATE_SUPERSAMPLE_QC(supersample_qc_input)
+    PIPSEQ_CORE(subsample_info, file(params.fastq_list))
 }
 
-// Write a short manifest describing the output layout once the run finishes successfully.
 workflow.onComplete {
-    if (workflow.success) {
-        def manifest = file("${params.outdir}/${params.supersample_basename}/README.txt")
-        manifest.text = """
-            Output layout for supersample '${params.supersample_id}' (${params.supersample_basename}):
-
-              <subsample_id>/dragen_output/   Raw DRAGEN scRNA outputs for that subsample (metrics, barcode
-                                               summary, filtered matrix/barcodes/features, and any other files
-                                               DRAGEN produced for it)
-              <subsample_id>/logs/            DRAGEN logs for that subsample
-              <subsample_id>/qc/              Per-subsample QC metrics (qc_metrics.tsv, qc_barcode_metrics.tsv)
-              adata/                          Concatenated supersample AnnData (<basename>.h5ad) and CRISPR-
-                                               features-only subset (<basename>.crispr.h5ad) -- always produced
-              crispat_ga/                     CRISPAT guide assignment output (only if --run_guide_assignment true)
-              purity_ga/                      Purity-based guide assignment output (only if --run_guide_assignment true)
-              supersample_qc/                 Final supersample-level QC report, and (if guide assignment ran)
-                                               the guide-assignment distribution plot
-              pipeline_info/                  Nextflow execution reports (timeline, report, trace, DAG)
-
-            See README.md in the pipeline repository for parameter and output details.
-            """.stripIndent()
-    }
+    if (workflow.success) writeOutputManifest()
 }

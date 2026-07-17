@@ -1,0 +1,317 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/broadinstitute/palantir-workflows/main/SingleCell/PIPseqPipeline/nextflow_schema_simple.json",
+    "title": "PIPseq Pipeline (simple single-subsample entrypoint)",
+    "description": "Single-cell RNA sequencing QC pipeline with DRAGEN scRNA processing and CRISPR guide assignment -- simple entrypoint for one-off single-subsample runs (main_simple.nf), taking flat expression/feature/hashing FASTQ lists instead of a --fastq_list CSV",
+    "type": "object",
+    "definitions": {
+        "input_output_options": {
+            "title": "Input/output options",
+            "type": "object",
+            "fa_icon": "fas fa-terminal",
+            "description": "Define where the pipeline should find input data and save output data. This entrypoint always describes exactly one subsample; its subsample_id is set to supersample_id.",
+            "required": [
+                "expression_r1_fastqs",
+                "expression_r2_fastqs",
+                "supersample_id",
+                "supersample_basename"
+            ],
+            "properties": {
+                "expression_r1_fastqs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "file-path"
+                    },
+                    "minItems": 1,
+                    "description": "Expression R1 FASTQ file(s)",
+                    "help_text": "One or more expression R1 FASTQ files, matched by position with --expression_r2_fastqs.",
+                    "fa_icon": "fas fa-file"
+                },
+                "expression_r2_fastqs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "file-path"
+                    },
+                    "minItems": 1,
+                    "description": "Expression R2 FASTQ file(s)",
+                    "help_text": "One or more expression R2 FASTQ files, matched by position with --expression_r1_fastqs. Must have the same count.",
+                    "fa_icon": "fas fa-file"
+                },
+                "feature_r1_fastqs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "file-path"
+                    },
+                    "description": "Feature (CRISPR/feature-barcode) R1 FASTQ file(s) (optional)",
+                    "help_text": "One or more feature R1 FASTQ files, matched by position with --feature_r2_fastqs. Requires --scrna_feature_barcode_reference if given.",
+                    "fa_icon": "fas fa-file"
+                },
+                "feature_r2_fastqs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "file-path"
+                    },
+                    "description": "Feature R2 FASTQ file(s) (optional)",
+                    "help_text": "One or more feature R2 FASTQ files, matched by position with --feature_r1_fastqs. Must have the same count.",
+                    "fa_icon": "fas fa-file"
+                },
+                "hashing_r1_fastqs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "file-path"
+                    },
+                    "description": "Cell-hashing R1 FASTQ file(s) (optional)",
+                    "help_text": "One or more cell-hashing R1 FASTQ files, matched by position with --hashing_r2_fastqs. Requires --scrna_cell_hashing_reference if given.",
+                    "fa_icon": "fas fa-file"
+                },
+                "hashing_r2_fastqs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "file-path"
+                    },
+                    "description": "Cell-hashing R2 FASTQ file(s) (optional)",
+                    "help_text": "One or more cell-hashing R2 FASTQ files, matched by position with --hashing_r1_fastqs. Must have the same count.",
+                    "fa_icon": "fas fa-file"
+                },
+                "supersample_id": {
+                    "type": "string",
+                    "description": "Supersample identifier",
+                    "help_text": "Unique identifier for the supersample being processed. Also used as this run's subsample_id, since this entrypoint always describes exactly one subsample.",
+                    "fa_icon": "fas fa-tag"
+                },
+                "supersample_basename": {
+                    "type": "string",
+                    "description": "Supersample basename for output organization",
+                    "help_text": "Base name used for organizing output directories and files.",
+                    "default": "output",
+                    "fa_icon": "fas fa-folder"
+                },
+                "outdir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "The output directory where the results will be saved",
+                    "default": "out",
+                    "fa_icon": "fas fa-folder-open"
+                }
+            }
+        },
+        "dragen_options": {
+            "title": "DRAGEN scRNA options",
+            "type": "object",
+            "description": "Parameters for DRAGEN scRNA processing",
+            "default": "",
+            "fa_icon": "fas fa-dna",
+            "required": [
+                "ref_tar",
+                "annotation_file",
+                "num_input_cells"
+            ],
+            "properties": {
+                "ref_tar": {
+                    "type": "string",
+                    "format": "file-path",
+                    "pattern": "^\\S+\\.tar$",
+                    "description": "DRAGEN reference genome tar file",
+                    "help_text": "Path to the DRAGEN reference genome archive.",
+                    "fa_icon": "fas fa-archive"
+                },
+                "annotation_file": {
+                    "type": "string",
+                    "format": "file-path",
+                    "pattern": "^\\S+\\.(gtf|gff)$",
+                    "description": "Gene annotation file for DRAGEN",
+                    "help_text": "GTF or GFF gene annotation file used by DRAGEN for scRNA processing.",
+                    "fa_icon": "fas fa-file-alt"
+                },
+                "num_input_cells": {
+                    "type": "integer",
+                    "description": "Number of input cells",
+                    "help_text": "Expected number of cells in the input sample. Used for quality control metrics.",
+                    "fa_icon": "fas fa-hashtag",
+                    "minimum": 1
+                },
+                "use_direct_capture_mode": {
+                    "type": "boolean",
+                    "description": "Whether to use direct capture mode in DRAGEN",
+                    "help_text": "Controls whether feature barcode groups are passed to DRAGEN via --scrna-direct-capture-barcode-groups (true) or --scrna-feature-barcode-groups (false).",
+                    "default": true,
+                    "fa_icon": "fas fa-toggle-on"
+                },
+                "scrna_feature_barcode_reference": {
+                    "type": "string",
+                    "format": "file-path",
+                    "mimetype": "text/csv",
+                    "pattern": "^\\S+\\.csv$",
+                    "description": "Feature barcode reference file for DRAGEN (optional)",
+                    "help_text": "CSV file containing feature barcode sequences for CRISPR guide detection. Required if --feature_r1_fastqs/--feature_r2_fastqs are given.",
+                    "fa_icon": "fas fa-barcode"
+                },
+                "scrna_barcode_sequence_list": {
+                    "type": "string",
+                    "format": "file-path",
+                    "mimetype": "text/csv",
+                    "pattern": "^\\S+\\.csv$",
+                    "description": "Barcode sequence list file for DRAGEN (optional)",
+                    "help_text": "CSV file passed to DRAGEN's --scrna-barcode-sequence-list.",
+                    "fa_icon": "fas fa-list"
+                },
+                "scrna_cell_hashing_reference": {
+                    "type": "string",
+                    "format": "file-path",
+                    "mimetype": "text/csv",
+                    "pattern": "^\\S+\\.csv$",
+                    "description": "Cell hashing reference file for DRAGEN (optional)",
+                    "help_text": "CSV file passed to DRAGEN's --scrna-cell-hashing-reference. Required if --hashing_r1_fastqs/--hashing_r2_fastqs are given.",
+                    "fa_icon": "fas fa-tags"
+                },
+                "additional_dragen_args": {
+                    "type": "string",
+                    "description": "Additional arguments to pass to the DRAGEN command line (optional)",
+                    "help_text": "Raw string appended to the end of the DRAGEN command line invocation.",
+                    "fa_icon": "fas fa-terminal"
+                }
+            }
+        },
+        "guide_assignment_options": {
+            "title": "Guide assignment options",
+            "type": "object",
+            "description": "Parameters for CRISPR guide assignment",
+            "default": "",
+            "fa_icon": "fas fa-cut",
+            "properties": {
+                "run_guide_assignment": {
+                    "type": "boolean",
+                    "description": "Whether to run CRISPR guide assignment",
+                    "default": true,
+                    "help_text": "Enable or disable both guide-assignment methods (CRISPAT and purity-based) only. CRISPR feature extraction and the concatenated supersample AnnData (<basename>.crispr.h5ad) are always produced regardless of this flag.",
+                    "fa_icon": "fas fa-toggle-on"
+                },
+                "min_valid_guides": {
+                    "type": "integer",
+                    "description": "Minimum number of valid guides for guide assignment QC",
+                    "help_text": "Minimum threshold for the number of valid guides per cell for quality control.",
+                    "fa_icon": "fas fa-level-down-alt",
+                    "minimum": 0
+                },
+                "max_valid_guides": {
+                    "type": "integer",
+                    "description": "Maximum number of valid guides for guide assignment QC",
+                    "help_text": "Maximum threshold for the number of valid guides per cell for quality control.",
+                    "fa_icon": "fas fa-level-up-alt",
+                    "minimum": 1
+                },
+                "guide_assignment_num_processes": {
+                    "type": "integer",
+                    "description": "Number of processes to use for CRISPAT guide assignment (optional)",
+                    "help_text": "Defaults to all available cores if not set.",
+                    "fa_icon": "fas fa-microchip",
+                    "minimum": 1
+                }
+            },
+            "required": [
+                "min_valid_guides",
+                "max_valid_guides"
+            ]
+        },
+        "container_options": {
+            "title": "Container options",
+            "type": "object",
+            "fa_icon": "fas fa-box",
+            "description": "Container images used to execute pipeline processes.",
+            "required": [
+                "dragen_container",
+                "qc_container"
+            ],
+            "properties": {
+                "dragen_container": {
+                    "type": "string",
+                    "description": "Container image for DRAGEN execution",
+                    "help_text": "Image used by the DRAGEN_SCRNA process.",
+                    "fa_icon": "fas fa-dna"
+                },
+                "qc_container": {
+                    "type": "string",
+                    "description": "Container image for QC processing",
+                    "help_text": "Image used by the GENERATE_REPORT_DATA, CONCATENATE, CRISPAT_GUIDE_ASSIGNMENT, PURITY_BASED_GUIDE_ASSIGNMENT, and GENERATE_SUPERSAMPLE_QC processes.",
+                    "fa_icon": "fas fa-chart-bar"
+                }
+            }
+        },
+        "resource_options": {
+            "title": "Resource options",
+            "type": "object",
+            "fa_icon": "fas fa-server",
+            "description": "Resource allocation options for pipeline processes.",
+            "required": [
+                "concatenate_cpus",
+                "concatenate_memory_gb",
+                "dragen_scratch_tb"
+            ],
+            "properties": {
+                "concatenate_cpus": {
+                    "type": "integer",
+                    "description": "Number of CPUs for CONCATENATE process",
+                    "default": 16,
+                    "fa_icon": "fas fa-microchip",
+                    "minimum": 1
+                },
+                "concatenate_memory_gb": {
+                    "type": "integer",
+                    "description": "Memory in GB for CONCATENATE process",
+                    "default": 64,
+                    "fa_icon": "fas fa-memory",
+                    "minimum": 1
+                },
+                "dragen_scratch_tb": {
+                    "type": "integer",
+                    "description": "Scratch disk space (TiB) allocated to the DRAGEN pod",
+                    "default": 2,
+                    "fa_icon": "fas fa-hdd",
+                    "minimum": 1
+                }
+            }
+        },
+        "generic_options": {
+            "title": "Generic options",
+            "type": "object",
+            "fa_icon": "fas fa-cog",
+            "description": "Less common options for the pipeline, typically set in a config file.",
+            "help_text": "These options are common to all pipelines and allow you to customize various aspects of pipeline execution.",
+            "properties": {
+                "help": {
+                    "type": "boolean",
+                    "description": "Display help text",
+                    "fa_icon": "fas fa-question-circle",
+                    "default": false,
+                    "hidden": true
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "$ref": "#/definitions/input_output_options"
+        },
+        {
+            "$ref": "#/definitions/dragen_options"
+        },
+        {
+            "$ref": "#/definitions/guide_assignment_options"
+        },
+        {
+            "$ref": "#/definitions/container_options"
+        },
+        {
+            "$ref": "#/definitions/resource_options"
+        },
+        {
+            "$ref": "#/definitions/generic_options"
+        }
+    ]
+}

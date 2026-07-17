@@ -1,0 +1,23 @@
+{
+    "supersample_id": "stub_supersample_simple",
+    "supersample_basename": "stub_supersample_simple",
+    "expression_r1_fastqs": ["stub_inputs/R1.stub.fastq.gz"],
+    "expression_r2_fastqs": ["stub_inputs/R2.stub.fastq.gz"],
+    "feature_r1_fastqs": ["stub_inputs/R1.stub.fastq.gz"],
+    "feature_r2_fastqs": ["stub_inputs/R2.stub.fastq.gz"],
+    "hashing_r1_fastqs": ["stub_inputs/R1.stub.fastq.gz"],
+    "hashing_r2_fastqs": ["stub_inputs/R2.stub.fastq.gz"],
+    "scrna_feature_barcode_reference": "stub_inputs/scrna_feature_barcode_reference.stub.csv",
+    "scrna_barcode_sequence_list": "stub_inputs/barcode_sequence_list.stub.csv",
+    "scrna_cell_hashing_reference": "stub_inputs/cell_hashing_reference.stub.csv",
+    "annotation_file": "stub_inputs/annotation.stub.gtf",
+    "ref_tar": "stub_inputs/ref.stub.tar",
+    "num_input_cells": 2088000,
+    "min_valid_guides": 1,
+    "max_valid_guides": 2,
+    "dragen_container": "dragen_docker_image:latest",
+    "qc_container": "qc_docker_image:latest",
+    "concatenate_cpus": 8,
+    "concatenate_memory_gb": 2,
+    "guide_assignment_num_processes": 4
+}

@@ -4,6 +4,10 @@ This is a pipeline for processing single-cell QC metrics from PIPseq data using 
 
 The pipeline is designed to run on Illumina Connected Analytics (ICA) — DRAGEN is scheduled onto ICA's FPGA-preset pods (see `pod annotation:` lines in `modules/dragen_scrna.nf`) — but it is plain Nextflow DSL2 and can run anywhere a compatible executor and the required container images are available.
 
+There are two entrypoints, sharing the same underlying engine (`workflows/pipseq_core.nf`):
+- **`main.nf`** — production entrypoint. Describes potentially many subsamples via a `--fastq_list` CSV.
+- **`main_simple.nf`** — for one-off runs with a single subsample, where hand-writing a `--fastq_list` CSV is unnecessary friction. Takes flat expression/feature/hashing FASTQ lists instead; see [Simple single-subsample entrypoint](#simple-single-subsample-entrypoint).
+
 ## Overview
 
 ### Terminology
@@ -25,9 +29,13 @@ The pipeline is designed to run on Illumina Connected Analytics (ICA) — DRAGEN
 
 ```
 SingleCell/PIPseqPipeline/
-├── main.nf                          # Main Nextflow pipeline (entrypoint)
+├── main.nf                          # Production entrypoint (--fastq_list)
+├── main_simple.nf                   # Simple single-subsample entrypoint (flat FASTQ params)
+├── workflows/
+│   └── pipseq_core.nf                # Shared engine called by both entrypoints
 ├── nextflow.config                  # Pipeline configuration (default params, resources, reports)
-├── nextflow_schema.json             # Parameter schema (drives the ICA-rendered input form)
+├── nextflow_schema.json             # Parameter schema for main.nf (drives the ICA-rendered input form)
+├── nextflow_schema_simple.json      # Parameter schema for main_simple.nf
 ├── modules/
 │   ├── dragen_scrna.nf               # Run DRAGEN scRNA for one subsample
 │   ├── generate_report_data.nf       # Generate per-subsample QC metrics
@@ -64,6 +72,9 @@ Every process has a `stub:` block that just touches placeholder output files, so
 ```bash
 cd stub_test
 nextflow run ../main.nf -stub-run -params-file stub_inputs/pipeline_input.json
+
+# Simple entrypoint
+nextflow run ../main_simple.nf -stub-run -params-file stub_inputs/pipeline_input_simple.json
 ```
 
 See `stub_test/stub_inputs/` for additional variants (no feature library, cell hashing).
@@ -101,6 +112,33 @@ lib2_expr,Subsample_002,expression,/path/to/lib2_R1.fastq.gz,/path/to/lib2_R2.fa
 - `RGSM` values are subsample IDs — all rows with the same `RGSM` belong to the same subsample and are passed to DRAGEN together.
 - `RGTY` indicates readgroup type: `expression`, `feature` (CRISPR/feature-barcode library), or `hashing` (cell-hashing library). A subsample can mix multiple `RGTY` values across rows.
 
+### Simple single-subsample entrypoint
+
+For one-off runs with a single subsample, `main_simple.nf` skips the `--fastq_list` CSV entirely — you pass expression/feature/hashing FASTQs directly, and `subsample_id` is set to `--supersample_id`:
+
+```bash
+nextflow run main_simple.nf \
+  --num_input_cells 10000 \
+  --expression_r1_fastqs r1_lane1.fastq.gz,r1_lane2.fastq.gz \
+  --expression_r2_fastqs r2_lane1.fastq.gz,r2_lane2.fastq.gz \
+  --supersample_id "Sample_A" \
+  --supersample_basename "sample_a" \
+  --min_valid_guides 1 \
+  --max_valid_guides 2 \
+  --ref_tar /path/to/reference.tar \
+  --annotation_file /path/to/annotation.gtf \
+  --dragen_container <dragen image> \
+  --qc_container <qc image> \
+  --outdir results
+```
+
+- `--expression_r1_fastqs` / `--expression_r2_fastqs` are **required** lists of files, matched by position (supports multiple lanes — just list multiple files).
+- `--feature_r1_fastqs` / `--feature_r2_fastqs` are optional; if given, `--scrna_feature_barcode_reference` is required.
+- `--hashing_r1_fastqs` / `--hashing_r2_fastqs` are optional; if given, `--scrna_cell_hashing_reference` is required.
+- Every other param (`num_input_cells`, `min_valid_guides`/`max_valid_guides`, `ref_tar`, `annotation_file`, `dragen_container`, `qc_container`, `run_guide_assignment`, resource params, etc.) is identical to `main.nf` — see [Command-Line Options](#command-line-options) below.
+- Internally, `main_simple.nf` synthesizes a DRAGEN-compatible fastq-list CSV from the given FASTQ lists and hands it to the same shared engine (`workflows/pipseq_core.nf`) `main.nf` uses — everything downstream of subsample discovery (DRAGEN, concatenation, guide assignment, QC) behaves identically either way.
+- Validated against `nextflow_schema_simple.json` (a separate schema from `main.nf`'s `nextflow_schema.json`, since the input params differ).
+
 ### Parameter validation
 
 Required/typed params (presence, type, allowed range/pattern) are validated against `nextflow_schema.json` via the [`nf-schema`](https://nextflow-io.github.io/nf-schema/) plugin as soon as the pipeline starts — a missing, mistyped, or out-of-range param fails immediately with a clear message rather than partway through the run.
@@ -112,6 +150,8 @@ A few checks that can't be expressed in JSON Schema are enforced separately, rig
 - `--scrna_feature_barcode_reference` can't contain more than 300 guides (checked before any DRAGEN job runs, to fail fast rather than after every subsample has already been processed).
 
 ### Command-Line Options
+
+For `main.nf` (`main_simple.nf` shares everything here except `--fastq_list`, which it replaces with the FASTQ-list params described in [Simple single-subsample entrypoint](#simple-single-subsample-entrypoint)):
 
 **Required:**
 - `--num_input_cells`: Number of input cells (integer)

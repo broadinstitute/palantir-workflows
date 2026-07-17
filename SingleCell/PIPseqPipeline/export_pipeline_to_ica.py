@@ -17,10 +17,31 @@ current_git_commit_id = subprocess.check_output(['git', 'rev-parse', 'HEAD']).de
 current_git_commit_id_short = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode().strip()
 current_git_commit_message = subprocess.check_output(['git', 'log', '-1', '--pretty=%B']).decode().strip()
 
-pipeline_name = f'PIPseq_BCL_{current_git_commit_id_short}'
+entrypoints = {
+    'Full pipeline (main.nf, --fastq_list)': {
+        'name_suffix': '',
+        'main_file_path': 'SingleCell/PIPseqPipeline/main.nf',
+    },
+    'Simple single-subsample entrypoint (main_simple.nf, flat FASTQ params)': {
+        'name_suffix': '_Simple',
+        'main_file_path': 'SingleCell/PIPseqPipeline/main_simple.nf',
+    },
+}
+
+print('Which entrypoint do you want to export?')
+entrypoint_names = list(entrypoints.keys())
+for i, entrypoint_name in enumerate(entrypoint_names, start=1):
+    print(f'  {i}. {entrypoint_name}')
+entrypoint_choice = input('Enter the number of the entrypoint (or anything else to abort): ')
+if not entrypoint_choice.isdigit() or int(entrypoint_choice) < 1 or int(entrypoint_choice) > len(entrypoint_names):
+    exit(0)
+entrypoint = entrypoints[entrypoint_names[int(entrypoint_choice) - 1]]
+
+pipeline_name = f'PIPseq_BCL{entrypoint["name_suffix"]}_{current_git_commit_id_short}'
 
 repository_url = 'https://github.com/broadinstitute/palantir-workflows'
-main_file_path = 'SingleCell/PIPseqPipeline/main.nf'
+main_file_path = entrypoint['main_file_path']
+# Both entrypoints share the same process/resource config regardless of which is exported.
 nextflow_config_path = 'SingleCell/PIPseqPipeline/nextflow.config'
 
 git_credential_uuid = '5a2282d8-61a7-4222-8969-bfefbbe4f949'
