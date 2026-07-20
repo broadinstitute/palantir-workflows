@@ -116,7 +116,6 @@
                 "ref_tar": {
                     "type": "string",
                     "format": "file-path",
-                    "pattern": "^\\S+\\.tar$",
                     "description": "DRAGEN reference genome tar file",
                     "help_text": "Path to the DRAGEN reference genome archive.",
                     "fa_icon": "fas fa-archive"
@@ -124,7 +123,6 @@
                 "annotation_file": {
                     "type": "string",
                     "format": "file-path",
-                    "pattern": "^\\S+\\.(gtf|gff)$",
                     "description": "Gene annotation file for DRAGEN",
                     "help_text": "GTF or GFF gene annotation file used by DRAGEN for scRNA processing.",
                     "fa_icon": "fas fa-file-alt"
@@ -147,7 +145,6 @@
                     "type": "string",
                     "format": "file-path",
                     "mimetype": "text/csv",
-                    "pattern": "^\\S+\\.csv$",
                     "description": "Feature barcode reference file for DRAGEN (optional)",
                     "help_text": "CSV file containing feature barcode sequences for CRISPR guide detection. Required if --feature_r1_fastqs/--feature_r2_fastqs are given.",
                     "fa_icon": "fas fa-barcode"
@@ -156,7 +153,6 @@
                     "type": "string",
                     "format": "file-path",
                     "mimetype": "text/csv",
-                    "pattern": "^\\S+\\.csv$",
                     "description": "Barcode sequence list file for DRAGEN (optional)",
                     "help_text": "CSV file passed to DRAGEN's --scrna-barcode-sequence-list.",
                     "fa_icon": "fas fa-list"
@@ -165,7 +161,6 @@
                     "type": "string",
                     "format": "file-path",
                     "mimetype": "text/csv",
-                    "pattern": "^\\S+\\.csv$",
                     "description": "Cell hashing reference file for DRAGEN (optional)",
                     "help_text": "CSV file passed to DRAGEN's --scrna-cell-hashing-reference. Required if --hashing_r1_fastqs/--hashing_r2_fastqs are given.",
                     "fa_icon": "fas fa-tags"

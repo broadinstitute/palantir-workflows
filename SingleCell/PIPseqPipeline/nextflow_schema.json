@@ -20,7 +20,6 @@
                     "type": "string",
                     "format": "file-path",
                     "mimetype": "text/csv",
-                    "pattern": "^\\S+\\.csv$",
                     "description": "Path to CSV file with FASTQ information",
                     "help_text": "CSV file with columns: RGID, RGSM, RGTY, Read1File, Read2File. RGSM values represent subsample IDs. RGTY indicates readgroup type ('expression', 'feature', or 'hashing'). All rows with the same RGSM belong to the same subsample.",
                     "fa_icon": "fas fa-file-csv"
@@ -62,7 +61,6 @@
                 "ref_tar": {
                     "type": "string",
                     "format": "file-path",
-                    "pattern": "^\\S+\\.tar$",
                     "description": "DRAGEN reference genome tar file",
                     "help_text": "Path to the DRAGEN reference genome archive.",
                     "fa_icon": "fas fa-archive"
@@ -70,7 +68,6 @@
                 "annotation_file": {
                     "type": "string",
                     "format": "file-path",
-                    "pattern": "^\\S+\\.(gtf|gff)$",
                     "description": "Gene annotation file for DRAGEN",
                     "help_text": "GTF or GFF gene annotation file used by DRAGEN for scRNA processing.",
                     "fa_icon": "fas fa-file-alt"
@@ -93,7 +90,6 @@
                     "type": "string",
                     "format": "file-path",
                     "mimetype": "text/csv",
-                    "pattern": "^\\S+\\.csv$",
                     "description": "Feature barcode reference file for DRAGEN (optional)",
                     "help_text": "CSV file containing feature barcode sequences for CRISPR guide detection. Not required for expression-only runs with no feature/CRISPR library.",
                     "fa_icon": "fas fa-barcode"
@@ -102,7 +98,6 @@
                     "type": "string",
                     "format": "file-path",
                     "mimetype": "text/csv",
-                    "pattern": "^\\S+\\.csv$",
                     "description": "Barcode sequence list file for DRAGEN (optional)",
                     "help_text": "CSV file passed to DRAGEN's --scrna-barcode-sequence-list.",
                     "fa_icon": "fas fa-list"
@@ -111,7 +106,6 @@
                     "type": "string",
                     "format": "file-path",
                     "mimetype": "text/csv",
-                    "pattern": "^\\S+\\.csv$",
                     "description": "Cell hashing reference file for DRAGEN (optional)",
                     "help_text": "CSV file passed to DRAGEN's --scrna-cell-hashing-reference. Required only when the fastq_list contains rows with RGTY=hashing.",
                     "fa_icon": "fas fa-tags"
