@@ -20,6 +20,7 @@ params.run_guide_assignment = true     // Whether to run guide assignment
 params.outdir = "out"              // Output directory
 params.help = false
 params.dragen_container = null         // DRAGEN container image
+params.dragen_machine_type = null          // DRAGEN machine type (e.g., fpga2-medium)
 params.qc_container = null             // QC container image
 params.use_direct_capture_mode = true       // Whether to use direct capture mode in DRAGEN
 params.guide_assignment_num_processes = null  // Number of processes for guide assignment (default: all available cores)
@@ -134,6 +135,12 @@ workflow {
 
     if (!params.dragen_container) {
         log.error "ERROR: --dragen_container is required"
+        helpMessage()
+        exit 1
+    }
+
+    if (!params.dragen_machine_type) {
+        log.error "ERROR: --dragen_machine_type is required"
         helpMessage()
         exit 1
     }
