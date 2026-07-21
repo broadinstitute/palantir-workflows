@@ -445,6 +445,34 @@ task FilterAndGroupReadsByUMI {
     }
 }
 
+task FilterBam {
+    input {
+        String output_basename
+        File bam
+
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((2.5 * size(bam, "GiB")) + 100)
+        Int min_ssd_size_gb = 512
+        Boolean use_ssd = true
+    }
+
+    command <<<
+        samtools view -f 2 -q 1 -bh ~{bam} -o ~{output_basename}.filtered.bam
+    >>>
+
+    output {
+        File filtered_bam = "~{output_basename}.filtered.bam"
+    }
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
+        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
+    }
+}
+
 # Collapse PCR duplicates with the same UMI and alignment coordinates into a single consensus read, improving accuracy by reducing sequencing errors.
 # --input: BAM file with UMI-grouped reads (contains MI tags).
 # --output: BAM with consensus reads, still unmapped (requires re-alignment).
@@ -1169,14 +1197,26 @@ workflow HPVDeepSeekGenotyping {
             extra_args = "--SORT_ORDER coordinate --ATTRIBUTES_TO_RETAIN X0 --ATTRIBUTES_TO_RETAIN RX --ADD_MATE_CIGAR true --MAX_INSERTIONS_OR_DELETIONS -1 --PRIMARY_ALIGNMENT_STRATEGY MostDistant --ALIGNER_PROPER_PAIR_FLAGS true --CLIP_OVERLAPPING_READS false"
     }
 
+    call FilterBam as FilterSimplexConsensusBam {
+        input:
+            bam = MergeConsensusSimplex.merged_bam,
+            output_basename = output_basename + ".simplex.filtered"
+    }
+
+    call FilterBam as FilterDuplexConsensusBam {
+        input:
+            bam = MergeConsensusDuplex.merged_bam,
+            output_basename = output_basename + ".duplex.filtered"
+    }
+
     call SortAndIndexBam as SortAndIndexSimplexBam {
         input:
-            bam = MergeConsensusSimplex.merged_bam
+            bam = FilterSimplexConsensusBam.filtered_bam
     }
 
     call SortAndIndexBam as SortAndIndexDuplexBam {
         input:
-            bam = MergeConsensusDuplex.merged_bam
+            bam = FilterDuplexConsensusBam.filtered_bam
     }
 
     call CollectAlignmentSummaryMetrics as PostConsensusAlignmentSummaryMetrics {
