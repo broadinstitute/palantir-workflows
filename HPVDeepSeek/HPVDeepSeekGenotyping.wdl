@@ -1200,13 +1200,13 @@ workflow HPVDeepSeekGenotyping {
     call FilterBam as FilterSimplexConsensusBam {
         input:
             bam = MergeConsensusSimplex.merged_bam,
-            output_basename = output_basename + ".simplex.filtered"
+            output_basename = output_basename + ".simplex"
     }
 
     call FilterBam as FilterDuplexConsensusBam {
         input:
             bam = MergeConsensusDuplex.merged_bam,
-            output_basename = output_basename + ".duplex.filtered"
+            output_basename = output_basename + ".duplex"
     }
 
     call SortAndIndexBam as SortAndIndexSimplexBam {
