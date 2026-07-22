@@ -173,6 +173,14 @@
       "min": 1
     },
     {
+      "type": "textbox",
+      "id": "dragen_machine_type",
+      "helpText": "ICA pod preset size for the DRAGEN job",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": "fpga2-medium"
+    },
+    {
       "type": "integer",
       "id": "guide_assignment_num_processes",
       "minValues": 1,
