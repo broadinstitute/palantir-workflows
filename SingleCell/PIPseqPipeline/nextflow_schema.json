@@ -214,6 +214,13 @@
                     "default": 2,
                     "fa_icon": "fas fa-hdd",
                     "minimum": 1
+                },
+                "dragen_machine_type": {
+                    "type": "string",
+                    "description": "ICA pod preset size for the DRAGEN job",
+                    "default": "fpga2-medium",
+                    "help_text": "Passed as the scheduler.illumina.com/presetSize pod annotation on the DRAGEN_SCRNA process.",
+                    "fa_icon": "fas fa-server"
                 }
             }
         },

@@ -17,7 +17,7 @@ process DRAGEN_SCRNA {
     tag "${meta.subsample_id}"
 
     container "${params.dragen_container}"
-    pod annotation: 'scheduler.illumina.com/presetSize', value: 'fpga2-large'
+    pod annotation: 'scheduler.illumina.com/presetSize', value: "${params.dragen_machine_type}"
     // add scratch space for intermediate files
     pod annotation: 'volumes.illumina.com/scratchSize', value: "${params.dragen_scratch_tb}TiB"
     // ICA will upload everything in the "out" folder to cloud storage
