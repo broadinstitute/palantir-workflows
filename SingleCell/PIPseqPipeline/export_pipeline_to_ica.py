@@ -130,10 +130,13 @@ else:
 
 print('')
 print(f'Uploading input form from {input_form_path}...')
+# The inputForm/inputFormFile endpoint only recognizes the v3 API version -- sending the v4
+# Accept header used for the other endpoints above gets rejected with "Invalid Accept Header".
+input_form_headers = {**headers, 'Accept': 'application/vnd.illumina.v3+json'}
 with open(input_form_path, 'rb') as input_form_file:
     form_response = requests.put(
         f'{api_url}/projects/{project_id}/pipelines/{pipeline_id}/inputForm/inputFormFile',
-        headers=headers,
+        headers=input_form_headers,
         files={'content': ('inputForm.json', input_form_file, 'application/json')},
     )
 print(f'Input form upload status code: {form_response.status_code}')
