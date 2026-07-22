@@ -147,7 +147,6 @@ A few checks that can't be expressed in JSON Schema are enforced separately, rig
 - `RGTY` values in `--fastq_list` must be exactly `expression`, `feature`, or `hashing` (case-sensitive) — a typo fails immediately instead of silently producing an empty feature/hashing group.
 - If `--fastq_list` has any `feature` rows, `--scrna_feature_barcode_reference` must be set (and likewise `--scrna_cell_hashing_reference` for `hashing` rows).
 - `--min_valid_guides` must be `<= --max_valid_guides`.
-- `--scrna_feature_barcode_reference` can't contain more than 300 guides (checked before any DRAGEN job runs, to fail fast rather than after every subsample has already been processed).
 
 ### Command-Line Options
 
@@ -238,11 +237,8 @@ nextflow run main.nf ... -resume
 **Error**: CRISPR features extraction fails / no CRISPR features found
 - **Solution**: Verify your `scrna_feature_barcode_reference` and fastq_list `feature` rows are correct, and that DRAGEN's features output actually contains a "CRISPR Direct Capture" feature type.
 
-**Error**: Concatenation fails with "We cannot process more than 300 guides"
-- **Solution**: `bin/concatenate_samples.py` hard-caps CRISPR feature count at 300 for runtime reasons; reduce your guide library or contact the pipeline maintainer if you need this raised.
-
 **Error**: Pipeline exits immediately with a parameter validation error
-- **Solution**: Required/typed params are validated against `nextflow_schema.json` via the `nf-schema` plugin (see [Parameter validation](#parameter-validation)); a few additional business-logic checks (RGTY values, guide-count range, guide reference size) run right after. Check the exact list of required flags above.
+- **Solution**: Required/typed params are validated against `nextflow_schema.json` via the `nf-schema` plugin (see [Parameter validation](#parameter-validation)); a few additional business-logic checks (RGTY values, guide-count range) run right after. Check the exact list of required flags above.
 
 **Out of memory / timeout**: Adjust resource allocations in `nextflow.config` for specific processes, e.g.:
   ```groovy

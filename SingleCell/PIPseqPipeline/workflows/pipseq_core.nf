@@ -36,12 +36,6 @@ params.outdir = "out"
 params.use_direct_capture_mode = true
 params.additional_dragen_args = null
 
-// concatenate_samples.py hard-caps the number of CRISPR guides it can process for runtime
-// reasons. Checked here (fast, before any DRAGEN job runs) and again after concatenation
-// in concatenate_samples.py as a safety net, in case the reference and DRAGEN's actual
-// feature output ever disagree.
-def MAX_CRISPR_GUIDES = 300
-
 workflow PIPSEQ_CORE {
     take:
     subsample_info   // channel of maps: [rgsm, feature_rgids, hashing_rgids, fastq_files]
@@ -55,14 +49,6 @@ workflow PIPSEQ_CORE {
     if (params.min_valid_guides > params.max_valid_guides) {
         log.error "ERROR: --min_valid_guides (${params.min_valid_guides}) must be <= --max_valid_guides (${params.max_valid_guides})"
         exit 1
-    }
-
-    if (params.scrna_feature_barcode_reference) {
-        def guide_count = file(params.scrna_feature_barcode_reference).readLines().size() - 1 // minus header row
-        if (guide_count > MAX_CRISPR_GUIDES) {
-            log.error "ERROR: --scrna_feature_barcode_reference contains ${guide_count} guides, but this pipeline cannot process more than ${MAX_CRISPR_GUIDES} guides right now due to runtime constraints."
-            exit 1
-        }
     }
 
     log.info "Running DRAGEN scRNA for each subsample..."
