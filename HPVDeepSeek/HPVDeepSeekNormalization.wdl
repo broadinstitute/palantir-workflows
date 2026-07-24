@@ -47,18 +47,19 @@ task NormalizeHPV {
                 mean_depth = 0.0
                 if num_positions > 0:
                     mean_depth = total_depth / num_positions
-                df.loc[idx, "mean_depth"] = mean_depth
+                df.loc[idx, "hpv_mean_depth"] = mean_depth
 
         hg38_median_depth = df.loc[~df["chromosome"].str.startswith("HPV") & ~df["chromosome"].str.startswith("chrX") & ~df["chromosome"].str.startswith("chrY"), "mean_depth"].median()
 
         df = df[df["chromosome"].isin(df_detected_hpv_genotypes["HPV_Genotype"].tolist())]
-        df["HPV_Mean_Depth_Over_hg38_Median_Depth"] = df["mean_depth"] / hg38_median_depth
+        df['hg38_median_depth'] = hg38_median_depth
+        df["HPV_Mean_Depth_Over_hg38_Median_Depth"] = df["hpv_mean_depth"] / hg38_median_depth
         df["ng_cfDNA"] = ~{ng_cfdna}
         df["mL_Plasma"] = ~{ul_plasma} / 1000.0
         df["HPV_Quantity"] = df["HPV_Mean_Depth_Over_hg38_Median_Depth"] * ((df["ng_cfDNA"] / 0.0033) / df["mL_Plasma"])
 
         df = df.rename(columns = {"chromosome": "HPV_Genotype"})
-        df = df[["HPV_Genotype", "HPV_Mean_Depth_Over_hg38_Median_Depth", "ng_cfDNA", "mL_Plasma", "HPV_Quantity"]]
+        df = df[["HPV_Genotype", "hpv_mean_depth", "hg38_median_depth", "HPV_Mean_Depth_Over_hg38_Median_Depth", "ng_cfDNA", "mL_Plasma", "HPV_Quantity"]]
         df.to_csv("~{sample_id}.normalized_hpv.tsv", sep = '\t', index = False)
 
         CODE
