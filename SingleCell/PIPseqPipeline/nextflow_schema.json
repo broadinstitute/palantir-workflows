@@ -178,7 +178,7 @@
                 "qc_container": {
                     "type": "string",
                     "description": "Container image for QC processing",
-                    "help_text": "Image used by the GENERATE_REPORT_DATA, CONCATENATE, CRISPAT_GUIDE_ASSIGNMENT, PURITY_BASED_GUIDE_ASSIGNMENT, and GENERATE_SUPERSAMPLE_QC processes.",
+                    "help_text": "Image used by the GENERATE_SUBSAMPLE_QC, CONCATENATE, CRISPAT_GUIDE_ASSIGNMENT, PURITY_BASED_GUIDE_ASSIGNMENT, and GENERATE_SUPERSAMPLE_QC processes.",
                     "fa_icon": "fas fa-chart-bar"
                 }
             }
@@ -221,6 +221,62 @@
                     "default": "fpga2-medium",
                     "help_text": "Passed as the scheduler.illumina.com/presetSize pod annotation on the DRAGEN_SCRNA process.",
                     "fa_icon": "fas fa-server"
+                },
+                "cpu_generate_subsample_qc": {
+                    "type": "integer",
+                    "description": "Number of CPUs for the GENERATE_SUBSAMPLE_QC process",
+                    "default": 8,
+                    "fa_icon": "fas fa-microchip",
+                    "minimum": 1
+                },
+                "memory_gb_generate_subsample_qc": {
+                    "type": "integer",
+                    "description": "Memory in GB for the GENERATE_SUBSAMPLE_QC process",
+                    "default": 32,
+                    "fa_icon": "fas fa-memory",
+                    "minimum": 1
+                },
+                "cpu_generate_supersample_qc": {
+                    "type": "integer",
+                    "description": "Number of CPUs for the GENERATE_SUPERSAMPLE_QC process",
+                    "default": 8,
+                    "fa_icon": "fas fa-microchip",
+                    "minimum": 1
+                },
+                "memory_gb_generate_supersample_qc": {
+                    "type": "integer",
+                    "description": "Memory in GB for the GENERATE_SUPERSAMPLE_QC process",
+                    "default": 32,
+                    "fa_icon": "fas fa-memory",
+                    "minimum": 1
+                },
+                "cpu_crispat_guide_assignment": {
+                    "type": "integer",
+                    "description": "Number of CPUs for the CRISPAT_GUIDE_ASSIGNMENT process",
+                    "default": 8,
+                    "fa_icon": "fas fa-microchip",
+                    "minimum": 1
+                },
+                "memory_gb_crispat_guide_assignment": {
+                    "type": "integer",
+                    "description": "Memory in GB for the CRISPAT_GUIDE_ASSIGNMENT process",
+                    "default": 32,
+                    "fa_icon": "fas fa-memory",
+                    "minimum": 1
+                },
+                "cpu_purity_based_guide_assignment": {
+                    "type": "integer",
+                    "description": "Number of CPUs for the PURITY_BASED_GUIDE_ASSIGNMENT process",
+                    "default": 8,
+                    "fa_icon": "fas fa-microchip",
+                    "minimum": 1
+                },
+                "memory_gb_purity_based_guide_assignment": {
+                    "type": "integer",
+                    "description": "Memory in GB for the PURITY_BASED_GUIDE_ASSIGNMENT process",
+                    "default": 32,
+                    "fa_icon": "fas fa-memory",
+                    "minimum": 1
                 }
             }
         },

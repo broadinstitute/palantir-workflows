@@ -6,6 +6,8 @@ process GENERATE_SUPERSAMPLE_QC {
     tag "${meta.supersample_basename}"
     publishDir "${params.outdir}/${params.supersample_basename}/supersample_qc", mode: 'copy'
     container "${params.qc_container}"
+    cpus params.cpu_generate_supersample_qc
+    memory "${params.memory_gb_generate_supersample_qc}.GB"
 
     input:
     // meta: [num_input_cells, supersample_basename, supersample_id, min_valid_guides, max_valid_guides]

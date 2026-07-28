@@ -6,7 +6,7 @@
  */
 
 include { DRAGEN_SCRNA } from '../modules/dragen_scrna'
-include { GENERATE_REPORT_DATA } from '../modules/generate_report_data'
+include { GENERATE_SUBSAMPLE_QC } from '../modules/generate_subsample_qc'
 include { GENERATE_SUPERSAMPLE_QC } from '../modules/generate_supersample_qc'
 include { CRISPAT_GUIDE_ASSIGNMENT } from '../modules/crispat_guide_assignment'
 include { PURITY_BASED_GUIDE_ASSIGNMENT } from '../modules/purity_based_guide_assignment'
@@ -111,7 +111,7 @@ workflow PIPSEQ_CORE {
         )
     }
 
-    GENERATE_REPORT_DATA(qc_input_ch)
+    GENERATE_SUBSAMPLE_QC(qc_input_ch)
 
     log.info "Concatenating subsamples into supersample AnnData..."
 
@@ -146,7 +146,7 @@ workflow PIPSEQ_CORE {
     }
 
     // Generate supersample QC (always runs)
-    supersample_qc_input = GENERATE_REPORT_DATA.out.qc_metrics
+    supersample_qc_input = GENERATE_SUBSAMPLE_QC.out.qc_metrics
         .collect()
         .map { qc_metrics_list -> [qc_metrics_list] }  // Wrap list in tuple to preserve it
         .combine(crispat_guide_assignments_ch)

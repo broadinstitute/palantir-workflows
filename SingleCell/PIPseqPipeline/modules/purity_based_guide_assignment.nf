@@ -6,6 +6,8 @@ process PURITY_BASED_GUIDE_ASSIGNMENT {
     tag "purity_based_guide_assignment"
     publishDir "${params.outdir}/${params.supersample_basename}/purity_ga", mode: 'copy'
     container "${params.qc_container}"
+    cpus params.cpu_purity_based_guide_assignment
+    memory "${params.memory_gb_purity_based_guide_assignment}.GB"
 
     input:
     path(crispr_adata)

@@ -18,7 +18,7 @@ There are two entrypoints, sharing the same underlying engine (`workflows/pipseq
 ### Pipeline Workflow
 
 1. **Run DRAGEN scRNA** (`DRAGEN_SCRNA`): runs once per subsample, producing per-subsample metrics, barcode summary, and filtered matrix/barcodes/features files.
-2. **Generate per-subsample QC** (`GENERATE_REPORT_DATA`): always runs, one invocation per subsample, regardless of whether guide assignment is enabled.
+2. **Generate per-subsample QC** (`GENERATE_SUBSAMPLE_QC`): always runs, one invocation per subsample, regardless of whether guide assignment is enabled.
 3. **Concatenate subsamples** (`CONCATENATE`): always runs; merges all subsamples' matrices into one supersample-level AnnData (`.h5ad`) and extracts a CRISPR-features-only AnnData (`.crispr.h5ad`). Handles the single-subsample case automatically.
 4. **CRISPR guide assignment** (optional; runs only if `--run_guide_assignment` is `true`, the default): two independent methods run on the same concatenated CRISPR features and publish separately —
    - **`CRISPAT_GUIDE_ASSIGNMENT`**: CRISPAT's Poisson-Gaussian mixture model.
@@ -38,13 +38,13 @@ SingleCell/PIPseqPipeline/
 ├── nextflow_schema_simple.json      # Parameter schema for main_simple.nf
 ├── modules/
 │   ├── dragen_scrna.nf               # Run DRAGEN scRNA for one subsample
-│   ├── generate_report_data.nf       # Generate per-subsample QC metrics
+│   ├── generate_subsample_qc.nf      # Generate per-subsample QC metrics
 │   ├── concatenate.nf                # Concatenate subsamples into a supersample AnnData
 │   ├── crispat_guide_assignment.nf   # CRISPAT guide assignment
 │   ├── purity_based_guide_assignment.nf  # Purity-based guide assignment
 │   └── generate_supersample_qc.nf    # Generate supersample-level QC report
 ├── bin/
-│   ├── generate_report_data.py       # Per-subsample QC metrics script
+│   ├── generate_subsample_qc.py      # Per-subsample QC metrics script
 │   ├── concatenate_samples.py        # Concatenation script
 │   ├── run_crispat_guide_assignment.py   # CRISPAT guide assignment script
 │   ├── purity_based_guide_assignment.py  # Purity-based guide assignment script
@@ -96,7 +96,7 @@ nextflow run main.nf \
   --outdir results
 ```
 
-`concatenate_cpus` (default `16`), `concatenate_memory_gb` (default `64`), and `dragen_scratch_tb` (default `2`) have defaults in `nextflow.config` and don't need to be passed unless you want to override them.
+All resource params (CPU/memory/scratch-space allocations per process, plus `dragen_machine_type`) have defaults in `nextflow.config` and don't need to be passed unless you want to override them — see the **Optional** list under [Command-Line Options](#command-line-options).
 
 ### fastq_list format
 
@@ -173,6 +173,11 @@ For `main.nf` (`main_simple.nf` shares everything here except `--fastq_list`, wh
 - `--guide_assignment_num_processes`: Number of processes for CRISPAT guide assignment (default: all available cores)
 - `--concatenate_cpus` / `--concatenate_memory_gb`: Resources for the `CONCATENATE` process (defaults: `16` / `64`)
 - `--dragen_scratch_tb`: Scratch disk space (TiB) allocated to the DRAGEN pod (default: `2`)
+- `--dragen_machine_type`: ICA pod preset size for the DRAGEN job (default: `fpga2-medium`)
+- `--cpu_generate_subsample_qc` / `--memory_gb_generate_subsample_qc`: Resources for the `GENERATE_SUBSAMPLE_QC` process (defaults: `8` / `32`)
+- `--cpu_generate_supersample_qc` / `--memory_gb_generate_supersample_qc`: Resources for the `GENERATE_SUPERSAMPLE_QC` process (defaults: `8` / `32`)
+- `--cpu_crispat_guide_assignment` / `--memory_gb_crispat_guide_assignment`: Resources for the `CRISPAT_GUIDE_ASSIGNMENT` process (defaults: `8` / `32`)
+- `--cpu_purity_based_guide_assignment` / `--memory_gb_purity_based_guide_assignment`: Resources for the `PURITY_BASED_GUIDE_ASSIGNMENT` process (defaults: `8` / `32`)
 - `--outdir`: Output directory (default: `out`)
 - `--help`: Show help message
 

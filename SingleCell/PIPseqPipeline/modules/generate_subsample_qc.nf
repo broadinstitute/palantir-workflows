@@ -1,11 +1,13 @@
 /*
- * Process module for metrics processing
+ * Process module for per-subsample QC metrics processing
  */
 
-process GENERATE_REPORT_DATA {
+process GENERATE_SUBSAMPLE_QC {
     tag "${meta.subsample_id}"
     publishDir "${params.outdir}/${params.supersample_basename}/${meta.subsample_id}/qc", mode: 'copy'
     container "${params.qc_container}"
+    cpus params.cpu_generate_subsample_qc
+    memory "${params.memory_gb_generate_subsample_qc}.GB"
 
     input:
     // meta: [subsample_id, supersample_id, num_input_cells]
@@ -25,7 +27,7 @@ process GENERATE_REPORT_DATA {
 
     # Run the Python processing script
     # The script should be in the bin/ directory and will be automatically available
-    generate_report_data.py \\
+    generate_subsample_qc.py \\
         --num-input-cells ${meta.num_input_cells} \\
         --scrna-metrics ${scrna_metrics} \\
         --barcode-summary ${barcode_summary} \\
@@ -35,7 +37,7 @@ process GENERATE_REPORT_DATA {
 
     stub:
     """
-    echo "[STUB] Would generate report data with:"
+    echo "[STUB] Would generate subsample QC data with:"
     echo "  Sample ID: ${meta.subsample_id}"
     echo "  Supersample ID: ${meta.supersample_id}"
     echo "  Num input cells: ${meta.num_input_cells}"

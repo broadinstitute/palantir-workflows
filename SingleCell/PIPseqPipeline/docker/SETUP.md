@@ -1,6 +1,6 @@
 # Docker Setup
 
-This directory contains the Docker image definition for the QC-side processes of the PIPseq pipeline (`GENERATE_REPORT_DATA`, `CONCATENATE`, `CRISPAT_GUIDE_ASSIGNMENT`, `PURITY_BASED_GUIDE_ASSIGNMENT`, `GENERATE_SUPERSAMPLE_QC`).
+This directory contains the Docker image definition for the QC-side processes of the PIPseq pipeline (`GENERATE_SUBSAMPLE_QC`, `CONCATENATE`, `CRISPAT_GUIDE_ASSIGNMENT`, `PURITY_BASED_GUIDE_ASSIGNMENT`, `GENERATE_SUPERSAMPLE_QC`).
 
 DRAGEN (`DRAGEN_SCRNA`) uses a separate, Illumina-provided container passed via `--dragen_container`; it is not built from anything in this directory, and it runs on Illumina Connected Analytics (ICA), not AWS Batch.
 
@@ -82,7 +82,7 @@ The `qc` image includes:
 - **System tools**: git, build-essential
 
 This single image is used by all non-DRAGEN pipeline processes:
-- `GENERATE_REPORT_DATA`
+- `GENERATE_SUBSAMPLE_QC`
 - `CONCATENATE`
 - `CRISPAT_GUIDE_ASSIGNMENT`
 - `PURITY_BASED_GUIDE_ASSIGNMENT`

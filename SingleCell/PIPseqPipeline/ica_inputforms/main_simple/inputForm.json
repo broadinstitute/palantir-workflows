@@ -229,6 +229,70 @@
     },
     {
       "type": "integer",
+      "id": "cpu_generate_subsample_qc",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 8,
+      "min": 1
+    },
+    {
+      "type": "integer",
+      "id": "memory_gb_generate_subsample_qc",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 32,
+      "min": 1
+    },
+    {
+      "type": "integer",
+      "id": "cpu_generate_supersample_qc",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 8,
+      "min": 1
+    },
+    {
+      "type": "integer",
+      "id": "memory_gb_generate_supersample_qc",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 32,
+      "min": 1
+    },
+    {
+      "type": "integer",
+      "id": "cpu_crispat_guide_assignment",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 8,
+      "min": 1
+    },
+    {
+      "type": "integer",
+      "id": "memory_gb_crispat_guide_assignment",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 32,
+      "min": 1
+    },
+    {
+      "type": "integer",
+      "id": "cpu_purity_based_guide_assignment",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 8,
+      "min": 1
+    },
+    {
+      "type": "integer",
+      "id": "memory_gb_purity_based_guide_assignment",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": 32,
+      "min": 1
+    },
+    {
+      "type": "integer",
       "id": "guide_assignment_num_processes",
       "minValues": 1,
       "maxValues": 1,

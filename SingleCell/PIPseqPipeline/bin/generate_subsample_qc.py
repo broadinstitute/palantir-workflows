@@ -100,7 +100,7 @@ def main():
     args = parse_args()
     
     try:
-        print('Generating report data...')
+        print('Generating subsample QC data...')
         # Load inputs and generate plots/metrics
         write_rankplot(
             args.barcode_summary,
@@ -113,11 +113,11 @@ def main():
             args.supersample_id,
             args.num_input_cells
         )
-        print("\n✓ Report data generation completed successfully")
+        print("\n✓ Subsample QC data generation completed successfully")
         return 0
-        
+
     except Exception as e:
-        print(f"\n✗ Error during report data generation: {e}", file=sys.stderr)
+        print(f"\n✗ Error during subsample QC data generation: {e}", file=sys.stderr)
         import traceback
         traceback.print_exc()
         return 1

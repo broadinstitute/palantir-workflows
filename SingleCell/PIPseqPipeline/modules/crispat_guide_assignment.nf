@@ -6,6 +6,8 @@ process CRISPAT_GUIDE_ASSIGNMENT {
     tag "crispat_guide_assignment"
     publishDir "${params.outdir}/${params.supersample_basename}", mode: 'copy'
     container "${params.qc_container}"
+    cpus params.cpu_crispat_guide_assignment
+    memory "${params.memory_gb_crispat_guide_assignment}.GB"
 
     input:
     path(crispr_adata)
