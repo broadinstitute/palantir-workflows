@@ -6,17 +6,6 @@
       "label": "Section for selecting data inputs"
     },
     {
-      "type": "data",
-      "id": "fastq_files",
-      "helpText": "Input FASTQ files",
-      "label": "fastq_files",
-      "minValues": 1,
-      "maxValues": 999,
-      "dataFilter": {
-        "dataType": "file"
-      }
-    },
-    {
       "type": "integer",
       "id": "num_input_cells",
       "helpText": "Number of input cells",
@@ -49,6 +38,17 @@
       "id": "fastq_list",
       "minValues": 1,
       "maxValues": 1,
+      "dataFilter": {
+        "dataType": "file"
+      }
+    },
+    {
+      "type": "data",
+      "id": "fastq_files",
+      "helpText": "All FASTQ files referenced by fastq_list's CSV -- required so ICA localizes them onto the compute node. Not read directly by the pipeline.",
+      "label": "fastq_files",
+      "minValues": 1,
+      "maxValues": 999,
       "dataFilter": {
         "dataType": "file"
       }

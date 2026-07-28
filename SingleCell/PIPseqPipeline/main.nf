@@ -16,6 +16,9 @@ include { PIPSEQ_CORE; writeOutputManifest } from './workflows/pipseq_core'
 // Define parameters
 params.num_input_cells = null          // Number of input cells (integer)
 params.fastq_list = null               // CSV file with FASTQ information (RGID, RGSM, RGTY, Read1File, Read2File)
+params.fastq_files = null              // Unused by the pipeline directly -- exists so ICA localizes the FASTQ
+                                        // files referenced by path inside --fastq_list's CSV onto the compute node.
+                                        // Required because this pipeline currently only runs on ICA.
 params.ref_tar = null                  // DRAGEN reference tar file
 params.annotation_file = null          // Gene annotation file for DRAGEN
 params.scrna_feature_barcode_reference = null  // Feature barcode reference for DRAGEN
@@ -46,6 +49,7 @@ def helpMessage() {
     Required arguments:
       --num_input_cells          Number of input cells (integer)
       --fastq_list               CSV file with FASTQ information (columns: RGID, RGSM, RGTY, Read1File, Read2File)
+      --fastq_files              All FASTQ files referenced by --fastq_list (needed so ICA localizes them onto the compute node; not read directly by the pipeline)
       --supersample_id           Supersample identifier
       --supersample_basename     Supersample basename for output organization
       --min_valid_guides         Minimum number of valid guides for guide assignment QC (integer)

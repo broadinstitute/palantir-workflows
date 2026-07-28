@@ -12,6 +12,7 @@
             "description": "Define where the pipeline should find input data and save output data.",
             "required": [
                 "fastq_list",
+                "fastq_files",
                 "supersample_id",
                 "supersample_basename"
             ],
@@ -23,6 +24,17 @@
                     "description": "Path to CSV file with FASTQ information",
                     "help_text": "CSV file with columns: RGID, RGSM, RGTY, Read1File, Read2File. RGSM values represent subsample IDs. RGTY indicates readgroup type ('expression', 'feature', or 'hashing'). All rows with the same RGSM belong to the same subsample.",
                     "fa_icon": "fas fa-file-csv"
+                },
+                "fastq_files": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "file-path"
+                    },
+                    "minItems": 1,
+                    "description": "All FASTQ files referenced by --fastq_list (not used directly by the pipeline)",
+                    "help_text": "Not read directly by the pipeline -- --fastq_list's CSV already references these files by path. Declaring them here as their own input is what makes ICA localize them onto the compute node before the run starts; without it, the paths inside the CSV would be unreachable on ICA. Required because this pipeline currently only runs on ICA.",
+                    "fa_icon": "fas fa-file"
                 },
                 "supersample_id": {
                     "type": "string",

@@ -51,6 +51,12 @@ SingleCell/PIPseqPipeline/
 │   └── generate_supersample_qc.py    # Supersample QC report script
 ├── docker/                          # Dockerfile/build scripts for the qc_container image
 ├── stub_test/                       # Example inputs + `-stub-run` test setup
+├── test/                            # Flat pipeline-inputs JSON for each entrypoint, used by ica_tools/start_analysis.py
+├── ica_tools/                       # Scripts for publishing/running this pipeline on ICA
+│   ├── export_pipeline_to_ica.py     # Imports the current commit into ICA as a git-backed pipeline
+│   ├── start_analysis.py             # Interactively starts an ICA analysis run
+│   ├── ica_common.py                 # Shared helpers (API key, project list, prompt_choice())
+│   └── inputforms/<main|main_simple>/inputForm.json  # Hand-maintained ICA launch-form definitions
 └── README.md                        # This file
 ```
 
@@ -155,6 +161,7 @@ For `main.nf` (`main_simple.nf` shares everything here except `--fastq_list`, wh
 **Required:**
 - `--num_input_cells`: Number of input cells (integer)
 - `--fastq_list`: CSV file described above
+- `--fastq_files`: All FASTQ files referenced by `--fastq_list`'s CSV. Not read by the pipeline itself -- it's what makes ICA localize those files onto the compute node (ICA has no way to know the CSV references them otherwise). Required because this pipeline currently only runs on ICA.
 - `--supersample_id`: Supersample identifier
 - `--supersample_basename`: Supersample basename for output organization
 - `--min_valid_guides` / `--max_valid_guides`: Guide-count thresholds used for guide assignment QC (integers; `0` is a valid value for `--min_valid_guides`)

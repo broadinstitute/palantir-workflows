@@ -81,7 +81,7 @@ Note that running processes with the `container` directive requires an executor/
 
 ## Deploying to ICA
 
-DRAGEN in this pipeline is scheduled via Kubernetes pod annotations targeting ICA's FPGA presets (see `pod annotation:` lines in `modules/dragen_scrna.nf`), so the intended deployment target is Illumina Connected Analytics. `export_pipeline_to_ica.py` imports the current git commit of this pipeline into an ICA project as a git-backed Nextflow pipeline; `nextflow_schema.json` drives the parameter form ICA renders from that import, so keep it in sync with any param changes in `main.nf`.
+DRAGEN in this pipeline is scheduled via Kubernetes pod annotations targeting ICA's FPGA presets (see `pod annotation:` lines in `modules/dragen_scrna.nf`), so the intended deployment target is Illumina Connected Analytics. `ica_tools/export_pipeline_to_ica.py` imports the current git commit of this pipeline into an ICA project as a git-backed Nextflow pipeline; `nextflow_schema.json` drives the parameter form ICA renders from that import, so keep it in sync with any param changes in `main.nf`.
 
 ## Updating the Dockerfile
 

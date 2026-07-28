@@ -1,0 +1,13 @@
+{
+    "fastq_list": "/pipseq_test_data/dummy_fastq_list.csv",
+    "fastq_files": ["/pipseq_test_data/dummy_R1.fastq.gz", "/pipseq_test_data/dummy_R2.fastq.gz"],
+    "num_input_cells": 2088000,
+    "supersample_id": "dummy_supersample",
+    "supersample_basename": "dummy_supersample",
+    "ref_tar": "/pipseq_test_data/dummy_ref.tar",
+    "annotation_file": "/pipseq_test_data/dummy_annotation.gtf",
+    "dragen_container": "dragen_docker_image:latest",
+    "qc_container": "qc_docker_image:latest",
+    "min_valid_guides": 1,
+    "max_valid_guides": 2
+}
