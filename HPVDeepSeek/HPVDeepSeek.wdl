@@ -123,7 +123,7 @@ workflow HPVDeepSeek {
             tumor_bai = HPVDeepSeekGenotyping.simplex_bam_index,
             high_risk_snps_hpv = high_risk_snps_hpv,
             reference = reference,
-            hpv16_sublineages = hpv16_sublineages
+            hpv16_sublineages = hpv16_sublineages,
             mem_for_breakpoint_detection = mem_for_breakpoint_detection
     }
 

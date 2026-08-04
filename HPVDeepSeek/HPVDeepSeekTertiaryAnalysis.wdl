@@ -199,7 +199,7 @@ workflow HPVDeepSeekTertiaryAnalysis {
         input:
             bam = tumor_bam,
             bai = tumor_bai,
-            output_basename = output_basename
+            output_basename = output_basename,
             memory_gb = mem_for_breakpoint_detection
     }
 
