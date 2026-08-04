@@ -191,6 +191,8 @@ workflow HPVDeepSeekTertiaryAnalysis {
         File high_risk_snps_hpv
         File reference
         File hpv16_sublineages
+
+        Int? mem_for_breakpoint_detection
     }
 
     call DetectHPVIntegrationBreakpoints {
@@ -198,6 +200,7 @@ workflow HPVDeepSeekTertiaryAnalysis {
             bam = tumor_bam,
             bai = tumor_bai,
             output_basename = output_basename
+            memory_gb = mem_for_breakpoint_detection
     }
 
     call Sublineages {

@@ -58,6 +58,8 @@ workflow HPVDeepSeek {
         File fp_intervals
         Float ul_plasma
         Float ng_cfdna
+
+        Int? mem_for_breakpoint_detection
     }
 
     call HPVDeepSeekGenotyping.HPVDeepSeekGenotyping { # !NameCollision
@@ -122,6 +124,7 @@ workflow HPVDeepSeek {
             high_risk_snps_hpv = high_risk_snps_hpv,
             reference = reference,
             hpv16_sublineages = hpv16_sublineages
+            mem_for_breakpoint_detection = mem_for_breakpoint_detection
     }
 
     call HPVDeepSeekNormalization.HPVDeepSeekNormalization { # !NameCollision
