@@ -230,9 +230,9 @@ nextflow run main.nf ... --run_guide_assignment false
 For each cell, `bin/purity_based_guide_assignment.py` looks at the CRISPR guide UMI counts and computes:
 - `total_count`: sum of all guide counts for that cell
 - `count_1st` / `count_2nd`: the highest and second-highest guide counts for that cell
-- `purity`: `count_1st / (count_1st + count_2nd)`
+- `purity_1st_vs_2nd`: `count_1st / (count_1st + count_2nd)`
 
-A cell is assigned to its top guide (`gRNA`) only if `total_count > 10` **and** `purity > 0.75`; otherwise `gRNA` is left empty. Output columns: `cell, gRNA, purity, total_count, count_1st, count_2nd`.
+A cell is assigned to its top guide (`gRNA`) only if `total_count > 10` **and** `purity_1st_vs_2nd > 0.75`; otherwise `gRNA` is left empty. Output columns: `cell, gRNA, purity_1st_vs_2nd, total_count, count_1st, count_2nd`.
 
 ## Resuming Failed Runs
 

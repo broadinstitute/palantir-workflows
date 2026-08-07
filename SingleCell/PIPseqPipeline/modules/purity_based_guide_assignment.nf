@@ -33,6 +33,6 @@ process PURITY_BASED_GUIDE_ASSIGNMENT {
     """
     echo "[STUB] Would run purity-based guide assignment on: ${crispr_adata}"
 
-    echo "cell,gRNA,purity,total_count,count_1st,count_2nd" > ${params.supersample_id}.purity_based_guide_assignments.csv
+    echo "cell,gRNA,purity_1st_vs_2nd,total_count,count_1st,count_2nd" > ${params.supersample_id}.purity_based_guide_assignments.csv
     """
 }

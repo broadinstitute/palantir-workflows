@@ -76,7 +76,7 @@ def assign_guides(crispr_adata_path):
     return pd.DataFrame({
         'cell': adata.obs_names,
         'gRNA': gRNA,
-        'purity': purity,
+        'purity_1st_vs_2nd': purity,
         'total_count': total_count,
         'count_1st': count_1st,
         'count_2nd': count_2nd,
