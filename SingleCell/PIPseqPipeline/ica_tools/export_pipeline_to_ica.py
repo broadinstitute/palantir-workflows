@@ -1,6 +1,5 @@
 import requests
 import subprocess
-import json
 import datetime
 import os
 import time
@@ -86,12 +85,11 @@ files = {
 }
 
 response = requests.post(f'{api_url}/projects/{project_id}/pipelines:importGitPipeline', headers=headers, files=files)
-print(f'API response status code: {response.status_code}')
-print(f'API response body:')
-print(json.dumps(response.json(), indent=2))
 if not response.ok:
+    print(f'ERROR: import failed (HTTP {response.status_code}): {response.json().get("detail", response.text)}')
     exit(1)
 pipeline_id = response.json()['id']
+print(f'Import scheduled successfully (HTTP {response.status_code}). Pipeline ID: {pipeline_id}')
 
 # The git pipeline import runs asynchronously (status starts as 'Importing'). The input form
 # can only be uploaded once ICA has finished parsing the repo and the pipeline reaches 'Draft'.
@@ -128,9 +126,8 @@ with open(input_form_path, 'rb') as input_form_file:
         headers=input_form_headers,
         files={'content': ('inputForm.json', input_form_file, 'application/json')},
     )
-print(f'Input form upload status code: {form_response.status_code}')
-if form_response.content:
-    print(json.dumps(form_response.json(), indent=2))
 if not form_response.ok:
+    print(f'ERROR: input form upload failed (HTTP {form_response.status_code}): {form_response.json().get("detail", form_response.text)}')
     exit(1)
+print(f'Input form uploaded successfully (HTTP {form_response.status_code}).')
 print('Done.')

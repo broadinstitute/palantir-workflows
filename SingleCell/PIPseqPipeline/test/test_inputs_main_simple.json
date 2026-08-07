@@ -1,13 +1,24 @@
 {
-    "expression_r1_fastqs": ["/pipseq_test_data/dummy_R1.fastq.gz"],
-    "expression_r2_fastqs": ["/pipseq_test_data/dummy_R2.fastq.gz"],
+    "expression_r1_fastqs": [
+        "/walkup_delivery/WALKUP-20571/260608_SL-EXG_0711_B23TF7FLT4/8554_1781105885/fastq/23TF7FLT4_8_0470677032_PH20260514_FR_7_S15_L008_R1_001.fastq.gz"
+    ],
+    "expression_r2_fastqs": [
+        "/walkup_delivery/WALKUP-20571/260608_SL-EXG_0711_B23TF7FLT4/8554_1781105885/fastq/23TF7FLT4_8_0470677032_PH20260514_FR_7_S15_L008_R2_001.fastq.gz"
+    ],
+    "feature_r1_fastqs": [
+        "/walkup_delivery/WALKUP-20571/260608_SL-EXG_0711_B23TF7FLT4/8554_1781105885/fastq/23TF7FLT4_8_0470677032_PH20260601_pvIVT_7_S26_L008_R1_001.fastq.gz"
+    ],
+    "feature_r2_fastqs": [
+        "/walkup_delivery/WALKUP-20571/260608_SL-EXG_0711_B23TF7FLT4/8554_1781105885/fastq/23TF7FLT4_8_0470677032_PH20260601_pvIVT_7_S26_L008_R2_001.fastq.gz"
+    ],
     "num_input_cells": 2088000,
-    "supersample_id": "dummy_supersample",
-    "supersample_basename": "dummy_supersample",
-    "ref_tar": "/pipseq_test_data/dummy_ref.tar",
-    "annotation_file": "/pipseq_test_data/dummy_annotation.gtf",
-    "dragen_container": "dragen_docker_image:latest",
-    "qc_container": "qc_docker_image:latest",
+    "supersample_id": "test_t100_simple",
+    "supersample_basename": "test_t100_simple",
+    "scrna_feature_barcode_reference": "/experiments/MDL-1898/PVA_CRISPRi_gRNA_whitelist_CP2129.csv",
+    "ref_tar": "/hg38-alt_masked.cnv.hla.methyl_cg.methylated_combined.rna-12-r6.0-1.tar.gz",
+    "annotation_file": "/Illumina Gene Annotations/gencode.v32.annotation.gtf",
+    "dragen_container": "079623148045.dkr.ecr.us-east-1.amazonaws.com/cp-prod/854d2763-de5c-4306-88f7-a32085b763c5:latest",
+    "qc_container": "079623148045.dkr.ecr.us-east-1.amazonaws.com/cp-prod/483688b7-bc90-442d-810c-7773140e9134:latest",
     "min_valid_guides": 1,
     "max_valid_guides": 2
 }

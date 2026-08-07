@@ -199,10 +199,10 @@ def main():
 
     print(f'Starting analysis "{user_reference}" for pipeline {pipeline["code"]} in project {project_names[project_choice]}...')
     response = start_analysis(api_key, project_id, pipeline_id, user_reference, fields)
-    print(f'API response status code: {response.status_code}')
-    print(json.dumps(response.json(), indent=2))
     if not response.ok:
+        print(f'ERROR: failed to start analysis (HTTP {response.status_code}): {response.json().get("detail", response.text)}')
         sys.exit(1)
+    print(f'Analysis started successfully (HTTP {response.status_code}). Analysis ID: {response.json()["id"]}')
 
 
 if __name__ == '__main__':
