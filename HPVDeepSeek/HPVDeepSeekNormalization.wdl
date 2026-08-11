@@ -37,13 +37,12 @@ task NormalizeHPV {
 
             for idx, row in df.iterrows():
                 total_depth = 0
-                num_positions = 0
-                for pileupcolumn in infile_simplex.pileup(row.chromosome, row.start, row.end, stepper = "all", truncate = False, max_depth = 1000000, ignore_overlaps = True):
+                for pileupcolumn in infile_simplex.pileup(row.chromosome, row.start, row.end, stepper = "all", truncate = True, max_depth = 1000000, ignore_overlaps = True):
                     for pileupread in pileupcolumn.pileups:
                         if pileupread.alignment.get_tag("cD") >= 5:
                             total_depth += 1
-                    num_positions += 1
 
+                num_positions = row.end - row.start
                 mean_depth = 0.0
                 if num_positions > 0:
                     mean_depth = total_depth / num_positions
