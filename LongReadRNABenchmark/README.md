@@ -48,6 +48,8 @@ Evaluation then proceeds as:
 
 Every per-tool task also writes a `monitoring.log` (resource usage over time, from a monitoring script staged out of a Google bucket). These logs are outputs of the per-tool workflows but are *not* surfaced as outputs of the top level benchmark, so to see them you need to dig into the call outputs in the job history.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/LongReadRNABenchmark/IsoformDiscoveryBenchmark.html) · [open locally](../docs/viz/LongReadRNABenchmark/IsoformDiscoveryBenchmark.html)
+
 ### Inputs
 
 * `File inputBAM`: long RNA reads aligned to `referenceGenome`.
@@ -83,12 +85,16 @@ Unless noted otherwise, `inputBAM` is expected to be long RNA reads already alig
 
 [`Bambu.wdl`](Bambu.wdl). Runs [bambu](https://bioconductor.org/packages/bambu) (an R/Bioconductor package) via an inline `Rscript`: `prepareAnnotations()` on the reference annotation, then `bambu()` on the BAM, then `writeBambuOutput()`. The task then post-processes bambu's `extended_annotations.gtf` down to only those transcripts with a read count of at least 1 in `counts_transcript.txt`.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/LongReadRNABenchmark/Bambu.html) · [open locally](../docs/viz/LongReadRNABenchmark/Bambu.html)
+
 * Inputs: `inputBAM`, `inputBAMIndex`, `referenceGenome`, `referenceGenomeIndex`, `referenceAnnotation` (required), `datasetName`.
 * Outputs: `bambuGTF` (`Bambu_out/Bambu_out_{datasetName}.gtf`, the expression-filtered extended annotation), `bambuCounts` (the filtered per-transcript count table), `monitoringLog`.
 
 ### Cupcake
 
 [`Cupcake.wdl`](Cupcake.wdl). Converts the BAM back to FASTQ with `samtools fastq`, removes duplicate FASTQ records with the bundled `remove_fastq_duplicates.py` helper, then runs [cDNA_Cupcake](https://github.com/Magdoll/cDNA_Cupcake)'s `collapse_isoforms_by_sam.py` to collapse the aligned reads into isoforms. Annotation-free. Note the collapse step is run with `--cpus 1` regardless of the requested CPU count.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/LongReadRNABenchmark/Cupcake.html) · [open locally](../docs/viz/LongReadRNABenchmark/Cupcake.html)
 
 * Inputs: `inputBAM`, `inputBAMIndex`, `datasetName`.
 * Outputs: `cupcakeGFF` (`Cupcake_out_{datasetName}.collapsed.gff`), `monitoringLog`.
@@ -97,12 +103,16 @@ Unless noted otherwise, `inputBAM` is expected to be long RNA reads already alig
 
 [`Flair.wdl`](Flair.wdl). Runs [FLAIR](https://github.com/BrooksLabUCSC/flair) from the Docker Hub image `brookslab/flair`: `samtools fastq` to recover reads, `bam2Bed12` to convert the BAM to BED12, then `flair correct` (splice-site correction against the genome and annotation) followed by `flair collapse` (isoform collapsing).
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/LongReadRNABenchmark/Flair.html) · [open locally](../docs/viz/LongReadRNABenchmark/Flair.html)
+
 * Inputs: `inputBAM`, `inputBAMIndex`, `referenceGenome`, `referenceGenomeIndex`, `referenceAnnotation` (required), `datasetName`.
 * Outputs: `flairGTF` (`Flair_out_{datasetName}.isoforms.gtf`), `monitoringLog`.
 
 ### Flames
 
 [`Flames.wdl`](Flames.wdl). Runs [FLAMES](https://github.com/LuyiTian/FLAMES)' `python/bulk_long_pipeline.py`, giving it both the original BAM (`--inbam`) and a FASTQ directory produced from it with `samtools fastq`. Note that FLAMES expects the annotation as GFF3 (`--gff3`).
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/LongReadRNABenchmark/Flames.html) · [open locally](../docs/viz/LongReadRNABenchmark/Flames.html)
 
 * Inputs: `inputBAM`, `inputBAMIndex`, `referenceGenome`, `referenceGenomeIndex`, `referenceAnnotation` (required). Note this is the only per-tool workflow that does **not** take `datasetName`, so its output filename is fixed.
 * Outputs: `flamesGFF` (`isoform_annotated.gff3`), `monitoringLog`.
@@ -111,12 +121,16 @@ Unless noted otherwise, `inputBAM` is expected to be long RNA reads already alig
 
 [`IsoQuant.wdl`](IsoQuant.wdl). Runs [IsoQuant](https://github.com/ablab/IsoQuant)'s `isoquant.py` on the BAM. The reference annotation is optional: when supplied, the task passes `--genedb` plus `--complete_genedb` and writes to `IsoQuant_out_{datasetName}`; when omitted, it runs annotation-free and writes to `IsoQuant_denovo_out_{datasetName}`. This is how the top level workflow gets both an annotation-guided and a reference-free IsoQuant run out of one wrapper.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/LongReadRNABenchmark/IsoQuant.html) · [open locally](../docs/viz/LongReadRNABenchmark/IsoQuant.html)
+
 * Inputs: `inputBAM`, `inputBAMIndex`, `referenceGenome`, `referenceGenomeIndex`, `referenceAnnotation` (**optional**), `datasetName`, `dataType`.
 * Outputs: `isoQuantGTF` (`{outputPrefix}/{datasetName}/{datasetName}.transcript_models.gtf`), `monitoringLog`.
 
 ### IsoSeq
 
 [`IsoSeq.wdl`](IsoSeq.wdl). Converts the BAM to FASTQ, realigns with [pbmm2](https://github.com/PacificBiosciences/pbmm2) using the `ISOSEQ` preset, and collapses redundant transcripts with [isoseq3](https://github.com/PacificBiosciences/IsoSeq) `collapse`. Annotation-free. Because it realigns from scratch, this is one of the more expensive tasks in the benchmark.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/LongReadRNABenchmark/IsoSeq.html) · [open locally](../docs/viz/LongReadRNABenchmark/IsoSeq.html)
 
 * Inputs: `inputBAM`, `inputBAMIndex`, `referenceGenome`, `referenceGenomeIndex`, `datasetName`.
 * Outputs: `isoSeqGFF` (`IsoSeq_out_{datasetName}.gff`), `monitoringLog`.
@@ -125,12 +139,16 @@ Unless noted otherwise, `inputBAM` is expected to be long RNA reads already alig
 
 [`StringTie.wdl`](StringTie.wdl). Runs [StringTie](http://ccb.jhu.edu/software/stringtie/) in long-read mode (`-L`). As with IsoQuant, the annotation is optional: with it, StringTie runs in reference-guided mode (`-G`) and the output is named `StringTie_out_{datasetName}.gtf`; without it, the output is named `StringTie_denovo_out_{datasetName}.gtf`.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/LongReadRNABenchmark/StringTie.html) · [open locally](../docs/viz/LongReadRNABenchmark/StringTie.html)
+
 * Inputs: `inputBAM`, `referenceAnnotation` (**optional**), `datasetName`. Note this workflow does not take a BAM index or the reference genome.
 * Outputs: `stringTieGTF`, `monitoringLog`.
 
 ### Talon
 
 [`Talon.wdl`](Talon.wdl). Runs the full [TALON](https://github.com/mortazavilab/TALON) pipeline: `talon_label_reads` (internal priming labels), `samtools calmd` to add MD tags, `talon_initialize_database` from the reference annotation, a generated single-line config CSV, `talon` itself, `talon_filter_transcripts`, and finally `talon_create_GTF` against the filtered whitelist. `datasetName` is reused as the TALON build name, annotation name, and dataset name; `dataType` is the platform field of the config CSV.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/LongReadRNABenchmark/Talon.html) · [open locally](../docs/viz/LongReadRNABenchmark/Talon.html)
 
 * Inputs: `inputBAM`, `inputBAMIndex`, `referenceGenome`, `referenceGenomeIndex`, `referenceAnnotation` (required), `datasetName`, `dataType`.
 * Outputs: `talonGTF` (`Talon_out_{datasetName}_talon.gtf`), `monitoringLog`.

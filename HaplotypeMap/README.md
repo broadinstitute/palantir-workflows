@@ -27,6 +27,8 @@ Five tasks run in sequence:
    first value of the site's `AF` INFO field, so the input VCF must carry `AF`.
 5. **`make_vcf`** — Picard `ConvertHaplotypeDatabaseToVcf` turns the haplotype map into a VCF representation.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/HaplotypeMap/BuildHaplotypeMap.html) · [open locally](../docs/viz/HaplotypeMap/BuildHaplotypeMap.html)
+
 ### Inputs
 
 * `File input_vcf`: genotyped multi-sample VCF (or GVCF) to derive the panel from. Uncompressed — `vcftools` is

@@ -70,6 +70,8 @@ Top-level workflow and the recommended entry point. It runs, in order:
 4. [HPVDeepSeekNormalization](#hpvdeepseeknormalization) on the simplex consensus BAM plus the HPV status
    table from step 1.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/HPVDeepSeek/HPVDeepSeek.html) · [open locally](../docs/viz/HPVDeepSeek/HPVDeepSeek.html)
+
 Steps 2–4 do not depend on each other, so Cromwell will run them concurrently once genotyping completes.
 The `output_basename` input is used as the basename for essentially every output file, and is also passed
 through as the `sample_id` for normalization.
@@ -205,6 +207,8 @@ Steps, in order:
 16. **`bcftools mpileup | bcftools call -mv`** on the simplex BAM restricted to `human_snp_targets_bed`,
     producing the human SNP genotype VCF.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/HPVDeepSeek/HPVDeepSeekGenotyping.html) · [open locally](../docs/viz/HPVDeepSeek/HPVDeepSeekGenotyping.html)
+
 ### Inputs
 
 Same as the genotyping inputs of [HPVDeepSeek](#hpvdeepseek), with two differences:
@@ -288,6 +292,8 @@ intervals. Steps, in order:
    selection, `--prefer-mane-transcripts`, `--remove-filtered-variants` (filtered variants dropped), gnomAD
    data sources disabled.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/HPVDeepSeek/HPVDeepSeekSomaticVariantCalling.html) · [open locally](../docs/viz/HPVDeepSeek/HPVDeepSeekSomaticVariantCalling.html)
+
 ### Inputs
 
 - **String output_basename**: Basename for all output files.
@@ -353,6 +359,8 @@ the **simplex** consensus BAM) and are independent of each other except for the 
    `HPV16_Ref`, builds a variant table with an allele fraction computed from the `AD` field, and reports
    which of the positions listed in `high_risk_snps_hpv` were found.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/HPVDeepSeek/HPVDeepSeekTertiaryAnalysis.html) · [open locally](../docs/viz/HPVDeepSeek/HPVDeepSeekTertiaryAnalysis.html)
+
 ### Inputs
 
 - **String output_basename**: Basename for all output files; also used as the `run_id`/`library_id` in the
@@ -417,6 +425,8 @@ python with `pysam` and `pandas`:
    `HPV_Quantity = HPV_Mean_Depth_Over_hg38_Median_Depth * ((ng_cfDNA / 0.0033) / mL_Plasma)`, where
    `0.0033` converts nanograms of cfDNA to genome equivalents (ng per haploid genome) and `mL_Plasma` is
    `ul_plasma / 1000`.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/HPVDeepSeek/HPVDeepSeekNormalization.html) · [open locally](../docs/viz/HPVDeepSeek/HPVDeepSeekNormalization.html)
 
 ### Inputs
 

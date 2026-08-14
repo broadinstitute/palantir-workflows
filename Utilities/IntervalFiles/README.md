@@ -320,6 +320,8 @@ coverage tasks, `us.gcr.io/broad-dsde-methods/samtools:v1` for the MAPQ histogra
 `us.gcr.io/broad-dsde-methods/python-data-slim:1.0` for the two gather tasks. Note this workflow is not registered in
 `.dockstore.yml`, so it must be imported directly if you want to run it on Terra.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/IntervalFiles/ComputeIntervalBamStats.html) · [open locally](../../docs/viz/Utilities/IntervalFiles/ComputeIntervalBamStats.html)
+
 ### Inputs
 * `input_name`: name for the sample, written into the `Sample` column of every output row
 * `input_bam`: BAM to compute statistics for

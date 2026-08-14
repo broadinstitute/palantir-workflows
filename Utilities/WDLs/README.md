@@ -27,6 +27,8 @@ This WDL takes a VCF and adds various annotations based on user input. Optionall
 * reference / GC context: using bedtools, gather some statistics about GC content in a window around the variant, or occurrences of a custom sequence motif.
 * general GATK annotations: using `VariantAnnotator`, add any of the annotations available in GATK, e.g. `Coverage`, or `FisherStrand`; requires reads be provided.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/AnnotateVCF.html) · [open locally](../../docs/viz/Utilities/WDLs/AnnotateVCF.html)
+
 ### Inputs
 * `query_vcf`: VCF to annotate
 * `query_vcf_index`: index for `query_vcf`
@@ -64,6 +66,8 @@ Unfortunately, this means that the outputs of benchmarking the successful ones d
 If you don't mind sacrificing the few that failed, or want to get started analyzing the successful ones ASAP, this wdl will automatically collect
 the successful outputs and aggregate them into one .csv, similar to the last task of the benchmarking wdl.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/CollectBenchmarkSucceeded.html) · [open locally](../../docs/viz/Utilities/WDLs/CollectBenchmarkSucceeded.html)
+
 ### Inputs
 
 * `namespace`: the first personalized part of your workspace URL; e.g. if you see `<my_project>/<my_workspace>` at the top
@@ -81,6 +85,8 @@ This WDL concatenates a list of tab-separated tables into one combined TSV using
 column headers. Optionally, you can tack on extra constant-valued columns to the combined output, which is useful for
 labeling the rows of the result with metadata (e.g. a sample name or experiment tag) when aggregating scattered outputs
 from another workflow. Runs on the `us.gcr.io/broad-dsde-methods/python-data-slim:1.0` docker.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/CombineTables.html) · [open locally](../../docs/viz/Utilities/WDLs/CombineTables.html)
 
 ### Inputs
 * `tables`: list of TSV files to concatenate
@@ -101,6 +107,8 @@ into an IGV session .xml file. A reference must be provided, either by a hardcod
 path to the desired fasta. Input files are interpreted as WDL strings, so no localization occurs. Bucket paths are output in the .xml
 session, so IGV will stream them directly from the cloud. This task is useful to add to the end of workflows that output lots of files
 you might want to visualize together for analysis or debugging.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/CreateIGVSession.html) · [open locally](../../docs/viz/Utilities/WDLs/CreateIGVSession.html)
 
 ### Inputs
 
@@ -130,6 +138,8 @@ Both inputs are TSVs with a header row. The training file must have `PC1` and `P
 Dockstore as `DetectPCANovelties`. See also [PRSQC](#prsqc), which runs an inlined variant of this novelty check against
 a pre-computed alphashape.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/DetectPCANovelties.html) · [open locally](../../docs/viz/Utilities/WDLs/DetectPCANovelties.html)
+
 ### Inputs
 * `test`: TSV of samples to test, with columns `SAMPLE_ID`, `PC1`, `PC2`
 * `training`: TSV of baseline/training samples, with columns `PC1`, `PC2`; used both to fit the alphashape and to draw the baseline points in the output plot
@@ -150,6 +160,8 @@ pipeline. This workflow takes in a diploid assembly and calls variants, creating
 This modified version allows for you to specify custom PAR regions for your reference so you can call haploid variants
 when appropriate. Some data cleaning and indexing of the output VCF is also performed.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/Dipcall.html) · [open locally](../../docs/viz/Utilities/WDLs/Dipcall.html)
+
 ### Inputs
 
 * `assemblyFastaPat`: the haploid assembly fasta for paternally inherited chromosomes
@@ -166,6 +178,8 @@ when appropriate. Some data cleaning and indexing of the output VCF is also perf
 ### Summary
 
 The idea of this WDL is to do everything you need for a standard downsampling experiment. It takes in either CRAM or BAM files and downsamples them either according to a defined downsampling ratio or to a desired target coverage. If no downsampling ratio is defined then it will run `ColectWgsMetrics` to get the original mean coverage and determine the downsampling ratio based on that coverage and the desired target coverage. After downsampling using `DownsampleSam` the workflow will run `CollectWgsMetrics` once more and output the mean coverage of the downsampled CRAM (or BAM) file. This provides feedback with respect to the target coverage, because downsampling is always associated with some uncertainty. If `fail_if_below_coverage` is set, the workflow will fail if that downsampled mean coverage is below the provided threshold.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/DownsampleAndCollectCoverage.html) · [open locally](../../docs/viz/Utilities/WDLs/DownsampleAndCollectCoverage.html)
 
 ### Inputs
 * `File input_cram`: Input BAM or CRAM
@@ -202,6 +216,8 @@ block-gzipped VCF plus its index. Note the workflow itself is named `ExtractSing
 `ExtractSampleFromVCF.wdl`), which is also how it is registered on Dockstore. The task runs on the
 `us.gcr.io/broad-dsde-methods/imputation_bcftools_vcftools_docker:v1.0.0` docker.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/ExtractSampleFromVCF.html) · [open locally](../../docs/viz/Utilities/WDLs/ExtractSampleFromVCF.html)
+
 ### Inputs
 * `vcf`: the multi-sample callset VCF to extract from
 * `basename`: basename for the output; the result is written as `<basename>.vcf.gz`
@@ -218,6 +234,8 @@ block-gzipped VCF plus its index. Note the workflow itself is named `ExtractSing
 
 Use this WDL to index a CRAM or BAM file, using `samtools`. The type is inferred using the file extension (either `.cram` or `.bam`). 
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/IndexCramOrBam.html) · [open locally](../../docs/viz/Utilities/WDLs/IndexCramOrBam.html)
+
 
 ## IntervalList2Bed
 
@@ -226,6 +244,8 @@ Use this WDL to index a CRAM or BAM file, using `samtools`. The type is inferred
 This WDL takes in a list of interval files (either `.bed` or `.interval_list`) and converts the `.interval_list` files into `.bed`. The WDL checks if any of the provided files has a `.interval_list` extension, and then will call a conversion task on it if so. This means if all the files provided are `.bed`, then no tasks will be called, and the original list will be returned. This allows you to drop this task in to your workflows to extend pipeline functionality from accepting `.bed` inputs to also handle `.interval_list` files without penalizing users who provided `.bed` files with unnecessary extra tasks, which is ideal as many tools require specifically `.bed` lists.
 
 If labels are provided, they will be returned in the new order of the `bed_files` output, which may be different than the originally given order. If labels are not provided, a list of `basename`s for the input files will be returned, in the correct order.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/IntervalList2Bed.html) · [open locally](../../docs/viz/Utilities/WDLs/IntervalList2Bed.html)
 
 ### Inputs
 * `interval_files`: a list of `.bed` and/or `.interval_list` files
@@ -241,6 +261,8 @@ If labels are provided, they will be returned in the new order of the `bed_files
 ### Summary
 
 This WDL allows you to check fingerprints across two sets of files, and match them. There is an option to fail if files don't match fingerprints, allowing you to use this as a safety check on workflows that have paired files that must have matching samples. Alternatively, the WDL also has functionality to support finding matches across two batches, which can then be used downstream.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/MatchFingerprints.html) · [open locally](../../docs/viz/Utilities/WDLs/MatchFingerprints.html)
 
 ### Inputs
 * `input_files`: a list of files to check the fingerprints of
@@ -288,6 +310,8 @@ the final gather, `us.gcr.io/broad-gotc-prod/picard-python:1.0.0-2.26.10-1663951
 `hailgenetics/hail:0.2.126-py3.11` for QC metrics, and `us.gcr.io/broad-dsde-methods/python-data-slim:1.1` for merging
 the metrics. This workflow is registered on Dockstore and has an automated test configured in `test/watt_config.yml`.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/MergeSingleSampleMinimacVcfs.html) · [open locally](../../docs/viz/Utilities/WDLs/MergeSingleSampleMinimacVcfs.html)
+
 ### Inputs
 * `vcfs`: list of single-sample imputed VCFs to merge; these must all contain the identical set of sites, in the same order
 * `n_per_batch`: number of single-sample VCFs to paste together in each first-pass batch
@@ -320,6 +344,8 @@ experimentally, and users training on something other than 1kG should be aware o
 `CheckScores` runs on `us.gcr.io/broad-dsde-methods/python-data-slim:1.0` and `DetectPCANovelties` runs on the
 `us.gcr.io/broad-dsde-methods/kockan/alphashape` docker (pinned by digest). This workflow is registered on Dockstore.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/PRSQC.html) · [open locally](../../docs/viz/Utilities/WDLs/PRSQC.html)
+
 ### Inputs
 * `prs_full_risk`: TSV of PRS results indexed by `sample_id`, with columns `prs_score`, `combined_risk_score`, `pc1`, and `pc2`; works for either single-sample or multi-sample files
 * `acceptable_range`: TSV indexed by metric name (`prs_score`, `combined_risk_score`, `pc1`, `pc2`) with `min` and `max` columns
@@ -349,6 +375,8 @@ sure that file sits alongside the main descriptor. Each task also runs a monitor
 `gs://broad-dsde-methods-tbrookin/cromwell_monitoring_script2.sh` and returns its log. Dockers used:
 `gcr.io/broad-cga-aarong-gtex/rnaseqc:latest` for RNA-SeQC 2 and `us.gcr.io/broad-gotc-prod/picard-cloud:2.27.5` for
 Picard. This workflow is registered on Dockstore as `RNAMetrics`.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/WDLs/RNAMetrics.html) · [open locally](../../docs/viz/Utilities/WDLs/RNAMetrics.html)
 
 ### Inputs
 * `inputBAM`: aligned RNA-seq BAM

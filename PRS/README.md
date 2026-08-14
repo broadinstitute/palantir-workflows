@@ -102,6 +102,8 @@ combine a BGE PRS with PCs and family history into a single linear risk score.
 
 Defined in [ScoringPart.wdl](ScoringPart.wdl); registered on Dockstore as **PRScoringWorkflow**.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/PRS/ScoringPart.html) · [open locally](../docs/viz/PRS/ScoringPart.html)
+
 ### Summary
 
 The main user-facing scoring workflow. Given an imputed VCF and a `NamedWeightSet`, it:
@@ -182,6 +184,8 @@ The workflow uses `ErrorWithMessage` tasks to fail fast on invalid input combina
 
 Defined in [PerformPopulationPCA.wdl](PerformPopulationPCA.wdl); registered on Dockstore as **PerformPopulationPCA**.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/PRS/PerformPopulationPCA.html) · [open locally](../docs/viz/PRS/PerformPopulationPCA.html)
+
 ### Summary
 
 Run this once whenever you adopt a new reference population dataset (e.g. Thousand Genomes) or a new array platform.
@@ -234,6 +238,8 @@ LD-pruned sites to prune to.
 Defined in [TrainAncestryAdjustmentModel.wdl](TrainAncestryAdjustmentModel.wdl); registered on Dockstore as
 **TrainAncestryAdjustmentModel**.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/PRS/TrainAncestryAdjustmentModel.html) · [open locally](../docs/viz/PRS/TrainAncestryAdjustmentModel.html)
+
 ### Summary
 
 Scores the reference population with a weight set and fits the ancestry-adjustment model for it. The fit is done in
@@ -265,6 +271,8 @@ when a `population_vcf` is provided.
 ## PRSWrapper
 
 Defined in [PRSWrapper.wdl](PRSWrapper.wdl); registered on Dockstore as **PRSWrapper**.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/PRS/PRSWrapper.html) · [open locally](../docs/viz/PRS/PRSWrapper.html)
 
 ### Summary
 
@@ -327,6 +335,8 @@ score table does not match the provided `sample_id`.
 
 Defined in [AggregatePRSResults.wdl](AggregatePRSResults.wdl); registered on Dockstore as **AggregatePRSResults**.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/PRS/AggregatePRSResults.html) · [open locally](../docs/viz/PRS/AggregatePRSResults.html)
+
 ### Summary
 
 Aggregates the per-sample `PRSWrapper` outputs for one lab batch. It joins the results with the PC projections,
@@ -381,6 +391,8 @@ Outputs are prefixed `<lab_batch>` when `group_n` is 1 and `<lab_batch>_group_<g
 
 Defined in [CKDRiskAdjustment.wdl](CKDRiskAdjustment.wdl); registered on Dockstore as **CKDRiskAdjustment**.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/PRS/CKDRiskAdjustment.html) · [open locally](../docs/viz/PRS/CKDRiskAdjustment.html)
+
 ### Summary
 
 Applies an APOL1 adjustment on top of an already-adjusted chronic kidney disease score. It genotypes the G1/G2 risk
@@ -409,6 +421,8 @@ high-risk samples, recomputing the percentile with `pnorm`.
 ## PCARE
 
 Defined in [PCARE.wdl](PCARE.wdl); registered on Dockstore as **PCARE**. Covered by a WATT test (see [Testing](#testing)).
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/PRS/PCARE.html) · [open locally](../docs/viz/PRS/PCARE.html)
 
 ### Summary
 
@@ -462,6 +476,8 @@ the defaults for the thresholds (19.69 / 20.38) are the only values baked into t
 ## PCAREAndQC
 
 Defined in [PCAREAndQC.wdl](PCAREAndQC.wdl); registered on Dockstore as **PCAREAndQC**.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/PRS/PCAREAndQC.html) · [open locally](../docs/viz/PRS/PCAREAndQC.html)
 
 ### Summary
 

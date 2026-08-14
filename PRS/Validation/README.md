@@ -37,6 +37,8 @@ branch array vs `main` array, and branch array vs branch array scored with the s
 maximum absolute difference in the pre-training comparison exceeds `max_diff_pretrain_threshold`, the workflow fails
 with an error message — training the model separately should give identical scores to training it inline.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/PRS/Validation/ValidateScoring.html) · [open locally](../../docs/viz/PRS/Validation/ValidateScoring.html)
+
 ### Inputs
 
 - **File? validationArrays**: array VCF to score with this branch. If not provided, `validationArraysMain` is used for
@@ -90,6 +92,8 @@ Subsets every component of a [`WeightSet`](../Structs.wdl) to a given list of si
 The linear weights are filtered on their first column; the interaction weights are kept only when **both** `id_1` and
 `id_2` survive; the self-exclusive sites are filtered on their `id` column, preserving the original `maxAllowed`. The
 interaction weights and self-exclusive sites are only processed if they are present in the input weight set.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/PRS/Validation/SubsetWeightSet.html) · [open locally](../../docs/viz/PRS/Validation/SubsetWeightSet.html)
 
 ### Inputs
 

@@ -35,6 +35,17 @@ Each directory below groups a set of related workflows and has its own README wi
 * [Scripts/monitoring](Scripts/monitoring/README.md): A script for collecting memory, CPU, and disk usage from a running task.
 
 
+## Interactive Pipeline Diagrams
+
+Most WDL pipelines in this repo have an accompanying interactive dependency-graph diagram (generated with
+[pipeviz](https://github.com/broadinstitute/pipeline_viz_explorer)), linked from that pipeline's own README. Each
+diagram is a single self-contained HTML file under [docs/viz](docs/viz), with no server required to view it.
+
+Since GitHub does not execute JavaScript when rendering a file in its web UI, diagram links come in two flavors:
+* **view on GitHub** — a [raw.githack.com](https://raw.githack.com) link that serves the file with the correct
+  content type, so it renders and behaves interactively right in your browser.
+* **open locally** — a plain relative link to the `.html` file; after cloning the repo, just open it in a browser.
+
 ## Testing Workflows
 
 Automated WDL testing is implemented using [watt](https://github.com/rickymagner/watt).

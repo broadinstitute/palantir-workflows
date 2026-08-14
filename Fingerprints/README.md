@@ -17,6 +17,8 @@ java -jar <picard_jar> CalculateFingerprintMetrics INPUT=<fingerprint_vcf> OUTPU
 
 and returns the metrics file produced by Picard. There is no pre- or post-processing done by the WDL.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Fingerprints/GetFingerprintMetrics.html) · [open locally](../docs/viz/Fingerprints/GetFingerprintMetrics.html)
+
 ### Inputs
 
 * `File fingerprint_vcf`: the fingerprint VCF to compute metrics for; passed to Picard as `INPUT`

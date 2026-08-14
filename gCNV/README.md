@@ -107,6 +107,8 @@ that the WDLs hard-code are given; for the meaning of each, see the GATK tool do
 
 Source: [cnv_germline_cohort_workflow.wdl](cnv_germline_cohort_workflow.wdl)
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/gCNV/cnv_germline_cohort_workflow.html) · [open locally](../docs/viz/gCNV/cnv_germline_cohort_workflow.html)
+
 ### Summary
 
 Builds a GATK gCNV denoising model and contig-ploidy model from a cohort of normal samples, and produces genotyped
@@ -262,6 +264,8 @@ Runtime: **Int? mem_gb_for_germline_cnv_caller** (default 7 GB), **Int? cpu_for_
 
 Source: [cnv_germline_case_workflow.wdl](cnv_germline_case_workflow.wdl)
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/gCNV/cnv_germline_case_workflow.html) · [open locally](../docs/viz/gCNV/cnv_germline_case_workflow.html)
+
 ### Summary
 
 Calls CNVs for a batch of samples in case mode against models produced by
@@ -352,6 +356,8 @@ Runtime: **Int? mem_gb_for_germline_cnv_caller** (7 GB), **Int? cpu_for_germline
 ## SingleSampleGCNVAndFilterVCFs
 
 Source: [single_sample_cnv_germline_case_filter_workflow.wdl](single_sample_cnv_germline_case_filter_workflow.wdl)
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/gCNV/single_sample_cnv_germline_case_filter_workflow.html) · [open locally](../docs/viz/gCNV/single_sample_cnv_germline_case_filter_workflow.html)
 
 ### Summary
 
@@ -457,6 +463,8 @@ the panel. Then each `filter_expressions[i]` is applied as a `bcftools filter` s
 Source: [cnv_calling_and_merge_for_fabric.wdl](cnv_calling_and_merge_for_fabric.wdl) — registered in Dockstore,
 tested by `test/CNVCallingAndMergeForFabric`.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/gCNV/cnv_calling_and_merge_for_fabric.html) · [open locally](../docs/viz/gCNV/cnv_calling_and_merge_for_fabric.html)
+
 ### Summary
 
 The single-sample delivery workflow. It runs
@@ -511,6 +519,8 @@ this.
 
 Source: [cohort_cnv_calling_and_merge_for_fabric.wdl](cohort_cnv_calling_and_merge_for_fabric.wdl) — registered in
 Dockstore, tested by `test/CohortCNVAndMergeForFabric`.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/gCNV/cohort_cnv_calling_and_merge_for_fabric.html) · [open locally](../docs/viz/gCNV/cohort_cnv_calling_and_merge_for_fabric.html)
 
 ### Summary
 
@@ -580,6 +590,8 @@ All outputs are arrays, one entry per sample, in cohort order.
 
 Source: [CNVControlEventsQC.wdl](CNVControlEventsQC.wdl) — registered in Dockstore, tested by
 `test/CNVControlEventsQC`.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/gCNV/CNVControlEventsQC.html) · [open locally](../docs/viz/gCNV/CNVControlEventsQC.html)
 
 ### Summary
 

@@ -36,6 +36,8 @@ Scores one set of samples against a weights file using both a WES GVCF and an im
 genotype wherever it is high quality, and emits per-source and combined plink-style score tables plus lists of the
 sites that were scored.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/PRS/ScoreBGE/ScoreBGE.html) · [open locally](../../docs/viz/PRS/ScoreBGE/ScoreBGE.html)
+
 ### Inputs
 
 - **File exome_gvcf**: WES GVCF to score.

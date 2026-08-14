@@ -16,6 +16,8 @@ This WDL adds phasing information to a VCF using read information.
 
 The WDL [PhaseVCF](PhaseVCF.wdl) has the following input/output schema.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/BenchmarkPhasing/PhaseVCF.html) · [open locally](../docs/viz/BenchmarkPhasing/PhaseVCF.html)
+
 ### Inputs
 
 - `input_vcf`: the VCF to add phasing information to
@@ -52,6 +54,8 @@ on inconsistencies in the call VCF's phasing against the baseline. More details 
 [WhatsHap documentation](https://whatshap.readthedocs.io/en/latest/guide.html#whatshap-compare).
 
 The WDL [BenchmarkPhasing](BenchmarkPhasing.wdl) has the following input/output schema.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/BenchmarkPhasing/BenchmarkPhasing.html) · [open locally](../docs/viz/BenchmarkPhasing/BenchmarkPhasing.html)
 
 ### Inputs
 

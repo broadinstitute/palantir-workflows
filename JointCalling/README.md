@@ -20,6 +20,8 @@ The GVCF inputs are declared `localization_optional: true` in `parameter_meta`, 
 downloaded — only their paths are written into the map. This keeps the task cheap regardless of cohort size, and
 means the paths in the output map are the original bucket paths.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/JointCalling/CreateSampleMap.html) · [open locally](../docs/viz/JointCalling/CreateSampleMap.html)
+
 ### Inputs
 
 * `Array[String] sample_names`: sample names, in the same order as `gvcfs`
