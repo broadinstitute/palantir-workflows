@@ -3,6 +3,8 @@
 ## Overview
 The `TrioAnalysis` workflow is designed to analyze the genetic data of a child and their parents to compute Mendelian concordance statistics. The workflow takes VCF files for the child, father, and mother, along with reference genome files, and optionally annotates the VCF with regions from BED files. The final output includes annotated VCF files and summary tables of Mendelian violations and uncertainties.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/BenchmarkVCFs/TrioAnalysis.html) · [open locally](../../docs/viz/BenchmarkVCFs/TrioAnalysis.html)
+
 ## Inputs
 - **`File child_vcf`**: VCF file for the child.
 - **`File child_vcf_index`**: Index file for the child's VCF.

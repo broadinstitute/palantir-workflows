@@ -31,7 +31,8 @@ were computed.
    3. [Sequence Process Specific](#sequence-process-specific)
       1. [UGHiConf](#ughiconf)
 2. [Using on Terra](#using-on-terra)
-3. [Appendix on Statistics](#appendix-on-statistics)
+3. [ComputeIntervalBamStats](#computeintervalbamstats)
+4. [Appendix on Statistics](#appendix-on-statistics)
 
 
 ## Interval File Summaries
@@ -303,6 +304,43 @@ strat_labels = [
 "UGHiConf",
 ]
 ```
+
+## ComputeIntervalBamStats
+
+The `ComputeIntervalBamStats.wdl` in this directory is a companion workflow for measuring how a BAM behaves across the
+interval files listed above. It scatters over the provided interval files and, for each one, subsets the BAM to that
+interval with GATK `PrintReads`, then computes two things: coverage statistics via Picard
+[CollectWgsMetrics](https://gatk.broadinstitute.org/hc/en-us/articles/13832707851035-CollectWgsMetrics-Picard-) (run
+through `gatk`), and a MAPQ histogram via `samtools view` piped through `awk`/`uniq -c`. The per-interval results are
+then gathered into tidy, long-format TSVs with `Sample`, `Experiment`, and `Interval_List` columns, so results from many
+samples and interval lists can be concatenated and plotted together.
+
+Dockers used: `us.gcr.io/broad-gatk/gatk:4.3.0.0` (configurable via the `gatk_tag` task input) for the subsetting and
+coverage tasks, `us.gcr.io/broad-dsde-methods/samtools:v1` for the MAPQ histogram, and
+`us.gcr.io/broad-dsde-methods/python-data-slim:1.0` for the two gather tasks. Note this workflow is not registered in
+`.dockstore.yml`, so it must be imported directly if you want to run it on Terra.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/Utilities/IntervalFiles/ComputeIntervalBamStats.html) · [open locally](../../docs/viz/Utilities/IntervalFiles/ComputeIntervalBamStats.html)
+
+### Inputs
+* `input_name`: name for the sample, written into the `Sample` column of every output row
+* `input_bam`: BAM to compute statistics for
+* `input_bam_index`: index for `input_bam`
+* `experiment`: (default: `""`) free-form label written into the `Experiment` column, useful when combining results across runs
+* `ref_fasta`: reference FASTA
+* `ref_index`: index for `ref_fasta`
+* `ref_dict`: sequence dictionary for `ref_fasta`
+* `interval_files`: list of interval files to compute statistics over; these are passed to GATK, so `.interval_list` or `.bed` both work
+* `interval_names`: list of labels for `interval_files`, in the same order; these are used for intermediate file names and for the `Interval_List` output column
+
+The `CollectWgsMetrics` task also exposes `min_BQ` (default `20`), `min_MQ` (default `20`), and `coverage_cap`
+(default `250`) if you need to change the thresholds.
+
+### Outputs
+* `wgs_summary`: TSV with one row per interval file, containing the `CollectWgsMetrics` summary metrics
+* `cov_summary`: TSV of the `CollectWgsMetrics` coverage histogram, with one block of rows per interval file
+* `mapq_summary`: TSV of MAPQ value counts, with one block of rows per interval file
+
 
 ## Appendix on Statistics
 

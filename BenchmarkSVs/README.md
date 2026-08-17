@@ -29,6 +29,8 @@ The final outputs include tables of cleaned data that can then be used for your 
 
 ### BenchmarkSVs Workflow
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/BenchmarkSVs/BenchmarkSVs.html) · [open locally](../docs/viz/BenchmarkSVs/BenchmarkSVs.html)
+
 #### Inputs
 
 - `base_vcf` - proxy for "truth" VCF to use; must contain `END`, `SVTYPE`, and `SVLEN` INFO fields.
@@ -59,6 +61,8 @@ In addition to these, specific tasks expose flags for certain tools. The `RunTru
 - `igv_session` - output from [CreateIGVSession](/Utilities/WDLs/CreateIGVSession.wdl) if toggled on
 
 ### QcSVs Workflow
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/BenchmarkSVs/QcSVs.html) · [open locally](../docs/viz/BenchmarkSVs/QcSVs.html)
 
 #### Inputs
 
@@ -106,6 +110,8 @@ The script works by downloading the combined files `.tar` directory output from 
 ## The CleanSVs WDL
 
 Some tools are particular about the format required to process SV VCFs, like Wittyer (deprecated). As a helper script, the CleanSVs WDL is provided to reformat SV VCFs to make them more amenable for certain types of analysis. Its functionality and usage are briefly described here.
+
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/BenchmarkSVs/CleanSVs.html) · [open locally](../docs/viz/BenchmarkSVs/CleanSVs.html)
 
 ### Inputs
 
