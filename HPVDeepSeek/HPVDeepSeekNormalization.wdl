@@ -26,6 +26,10 @@ task NormalizeHPV {
         df = pd.read_csv("~{fp_intervals}", sep = '\t', header = None, names = ["chromosome", "start", "end", "info"])
         df_detected_hpv_genotypes = pd.read_csv("~{hpv_status}", sep = '\t')
 
+        hpv_min_family_size = 5
+        human_min_family_size = 2
+        hpv_read_counter = Counter()
+
         with pysam.AlignmentFile("~{simplex_bam}", "rb") as infile_simplex:
             chroms_and_lengths = dict(zip(infile_simplex.references, infile_simplex.lengths))
             chroms_and_lengths_hpv = {k: v for k, v in chroms_and_lengths.items() if k.startswith("HPV")}
@@ -38,8 +42,9 @@ task NormalizeHPV {
             for idx, row in df.iterrows():
                 total_depth = 0
                 for pileupcolumn in infile_simplex.pileup(row.chromosome, row.start, row.end, stepper = "all", truncate = True, max_depth = 1000000, ignore_overlaps = True):
+                    min_family_size = hpv_min_family_size if row.chromosome.startswith("HPV") else human_min_family_size
                     for pileupread in pileupcolumn.pileups:
-                        if pileupread.alignment.get_tag("cD") >= 5:
+                        if pileupread.alignment.get_tag("cD") >= min_family_size:
                             total_depth += 1
 
                 num_positions = row.end - row.start
@@ -47,6 +52,12 @@ task NormalizeHPV {
                 if num_positions > 0:
                     mean_depth = total_depth / num_positions
                 df.loc[idx, "mean_depth"] = mean_depth
+            for hpv_genotype in df_detected_hpv_genotypes["HPV_Genotype"]:
+                for read in infile_simplex.fetch(contig=hpv_genotype):
+                    if read.is_unmapped or read.reference_name is None or read.is_secondary or read.is_supplementary:
+                        continue
+                    if read.get_tag("cD") >= hpv_min_family_size:
+                        hpv_read_counter[read.reference_name] += 1
 
         hg38_median_depth = df.loc[~df["chromosome"].str.startswith("HPV") & ~df["chromosome"].str.startswith("chrX") & ~df["chromosome"].str.startswith("chrY"), "mean_depth"].median()
 
@@ -60,6 +71,7 @@ task NormalizeHPV {
 
         df = df.rename(columns = {"chromosome": "HPV_Genotype"})
         df = df[["HPV_Genotype", "HPV_Mean_Depth", "hg38_median_depth", "HPV_Mean_Depth_Over_hg38_Median_Depth", "ng_cfDNA", "mL_Plasma", "HPV_Quantity"]]
+        df['HPV_Total_Reads'] = df['HPV_Genotype'].map(hpv_read_counter).fillna(0).astype('int')
         df.to_csv("~{sample_id}.normalized_hpv.tsv", sep = '\t', index = False)
 
         CODE
