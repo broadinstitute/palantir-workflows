@@ -12,8 +12,9 @@ There are two entrypoints, sharing the same underlying engine (`workflows/pipseq
 
 ### Terminology
 
-- **Subsample**: An individual sequencing unit (e.g. a well or technical replicate), identified by `RGSM` in the fastq list.
-- **Supersample**: A logical grouping of subsamples that should be analyzed together (e.g. all wells from one biological sample), identified by `--supersample_id` / `--supersample_basename`.
+Each **supersample** contains one or more **subsamples**. A **T100** supersample contains **one subsample**, an **M1** supersample contains **eight subsamples**. Each subsample consists of one or more sequencing libraries, typically at least one expression library and at least one feature library.
+
+Subsamples are identified by `RGSM` in the fastq list. All subsamples are processed through DRAGEN scRNA in parallel and subsequently combined into one supersample, identified by `--supersample_id` / `--supersample_basename`.
 
 ### Pipeline Workflow
 
