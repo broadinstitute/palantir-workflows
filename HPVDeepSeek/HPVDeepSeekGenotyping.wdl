@@ -619,7 +619,8 @@ task SamtoolsCoverage {
 
 # HPV+ Classification
 # Sample is considered HPV+ if the following thresholds are met:
-# Duplex read count ≥ 2
+# Duplex read count ≥ 4
+# We also output all HPV genotypes with a duplex read count greater than zero but less than the threshold, but mark them as not reportable
 task DetermineHPVStatus {
     input {
         String output_basename
@@ -645,8 +646,8 @@ task DetermineHPVStatus {
         df = df.rename(columns = {"#rname": "rname"})
         df = df[["rname", "numreads", "coverage"]]
 
-        df = df[(df["rname"].str.startswith("HPV")) & (df["numreads"] >= 2)]
-        df["Is_Reportable"] = ~df.rname.isin(low_risk_hpv_genotype_list)
+        df = df[(df["rname"].str.startswith("HPV")) & (df["numreads"] > 0)]
+        df["Is_Reportable"] = (~df.rname.isin(low_risk_hpv_genotype_list)) & (df["numreads"] >= 4)
 
         df = df.rename(columns = {"rname": "HPV_Genotype", "numreads": "Num_Duplex_Reads", "coverage": "%_Genomic_Coverage"})
         df.to_csv("~{output_basename}.hpv_status.tsv", sep = '\t', index = False)
