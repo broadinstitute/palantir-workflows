@@ -39,6 +39,10 @@ RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools.s
 	mv bedtools.static.binary /usr/local/bin/bedtools
 
 # Talon
+# pybedtools 0.12.x requires Python 3.9+ but does not declare requires-python,
+# so pip on this image's Python 3.8 tries (and fails) to build it.
+RUN pip install "pybedtools<0.12"
+
 RUN wget https://github.com/mortazavilab/TALON/archive/refs/tags/v5.0.tar.gz && \
 	tar xvf v5.0.tar.gz && \
 	cd TALON-5.0 && \
