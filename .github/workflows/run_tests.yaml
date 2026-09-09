@@ -17,6 +17,9 @@ concurrency:
 env:
   CROMWELL_VERSION: 91
   MINIWDL_VERSION: 1.13.1
+  # Pinned: ruff 0.16 greatly expanded the set of rules enabled by default,
+  # so an unpinned install can start failing lint without any code change.
+  RUFF_VERSION: 0.15.22
 jobs:
   validate_wdl:
     runs-on: ubuntu-latest
@@ -105,7 +108,7 @@ jobs:
           python -m pip install --upgrade pip
       - name: Lint with Ruff
         run: |
-          pip install ruff
+          pip install ruff==${{ env.RUFF_VERSION }}
           ruff check --output-format=github .
 
   python_test:

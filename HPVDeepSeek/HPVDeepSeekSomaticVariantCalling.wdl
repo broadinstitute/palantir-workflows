@@ -416,11 +416,11 @@ task Funcotate {
 
         if ~{use_gnomad} ; then
             echo "Enabling gnomAD..."
+            # potential_gnomad_gz is only used through WDL placeholders, which shellcheck cannot see
+            # shellcheck disable=SC2034
             for potential_gnomad_gz in gnomAD_exome.tar.gz gnomAD_genome.tar.gz ; do
                 if [[ -f ~{dollar}{DATA_SOURCES_FOLDER}/~{dollar}{potential_gnomad_gz} ]] ; then
-                    cd ~{dollar}{DATA_SOURCES_FOLDER}
-                    tar -zvxf ~{dollar}{potential_gnomad_gz}
-                    cd -
+                    ( cd ~{dollar}{DATA_SOURCES_FOLDER} && tar -zvxf ~{dollar}{potential_gnomad_gz} )
                 else
                     echo "ERROR: Cannot find gnomAD folder: ~{dollar}{potential_gnomad_gz}" 1>&2
                     false
@@ -430,7 +430,7 @@ task Funcotate {
 
         gatk --java-options "-Xmx14g" \
         Funcotator \
-        --data-sources-path $DATA_SOURCES_FOLDER \
+        --data-sources-path "$DATA_SOURCES_FOLDER" \
         --ref-version ~{reference_version} \
         --output-file-format ~{output_format} \
         --reference ~{reference} \
