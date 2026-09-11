@@ -7,7 +7,7 @@ task DetectHPVIntegrationBreakpoints {
         File bai
 
         Int cpu = 1
-        Int memory_gb = 16
+        Int memory_gb = 64
         Int disk_size_gb = ceil((2.5 * size(bam, "GiB")) + 50)
     }
 
