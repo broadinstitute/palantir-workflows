@@ -13,7 +13,8 @@ process GENERATE_SUPERSAMPLE_QC {
     // meta: [num_input_cells, supersample_basename, supersample_id, min_valid_guides, max_valid_guides]
     tuple val(meta),
           path(subsample_qc_files),
-          path(guide_assignments)
+          path(guide_assignments),
+          path(purity_guide_assignments)
 
     output:
     path "${meta.supersample_basename}.guide_assignment_distribution.png", emit: guide_assignment_distribution, optional: true
@@ -22,6 +23,7 @@ process GENERATE_SUPERSAMPLE_QC {
 
     script:
     def guide_arg = guide_assignments.name != 'NO_FILE' ? "--guide-assignments ${guide_assignments} --min-valid-guides ${meta.min_valid_guides} --max-valid-guides ${meta.max_valid_guides}" : ""
+    def purity_guide_arg = purity_guide_assignments.name != 'NO_FILE' ? "--purity-guide-assignments ${purity_guide_assignments}" : ""
     """
     set -ex
 
@@ -35,11 +37,13 @@ process GENERATE_SUPERSAMPLE_QC {
         --subsample-qc-files ${subsample_qc_files.join(' ')} \\
         --supersample-basename ${meta.supersample_basename} \\
         --supersample-id ${meta.supersample_id} \\
-        ${guide_arg}
+        ${guide_arg} \\
+        ${purity_guide_arg}
     """
 
     stub:
     def guide_arg = guide_assignments.name != 'NO_FILE' ? "--guide-assignments ${guide_assignments} --min-valid-guides ${meta.min_valid_guides} --max-valid-guides ${meta.max_valid_guides}" : ""
+    def purity_guide_arg = purity_guide_assignments.name != 'NO_FILE' ? "--purity-guide-assignments ${purity_guide_assignments}" : ""
     """
     echo "[STUB] Would generate supersample QC with:"
     echo "  Supersample ID: ${meta.supersample_id}"
@@ -47,6 +51,7 @@ process GENERATE_SUPERSAMPLE_QC {
     echo "  Num subsamples: ${subsample_qc_files.size()}"
     echo "  Subsample QC files: ${subsample_qc_files.join(', ')}"
     echo "  Guide arguments: ${guide_arg}"
+    echo "  Purity guide arguments: ${purity_guide_arg}"
 
     touch ${meta.supersample_basename}.supersample_qc_metrics.tsv
 

@@ -132,17 +132,18 @@ workflow PIPSEQ_CORE {
     if (params.run_guide_assignment) {
         log.info "Running CRISPR guide assignment (CRISPAT and purity-based)..."
 
-        // Both methods run independently on the same concatenated CRISPR AnnData.
+        // Both methods run independently on the same concatenated CRISPR AnnData, and both
+        // feed into GENERATE_SUPERSAMPLE_QC below (as separate N4 metrics); the purity-based
+        // assignments are also published on their own (see purity_ga/).
         CRISPAT_GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
         PURITY_BASED_GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
 
-        // Only CRISPAT's assignments feed into GENERATE_SUPERSAMPLE_QC below; the
-        // purity-based assignments are published on their own (see purity_ga/) and
-        // aren't otherwise consumed by this pipeline.
         crispat_guide_assignments_ch = CRISPAT_GUIDE_ASSIGNMENT.out.guide_assignments
+        purity_guide_assignments_ch = PURITY_BASED_GUIDE_ASSIGNMENT.out.guide_assignments
     } else {
         // Use placeholder for guide assignments -- see the NO_* placeholder note above.
         crispat_guide_assignments_ch = Channel.of(file('NO_FILE'))
+        purity_guide_assignments_ch = Channel.of(file('NO_FILE'))
     }
 
     // Generate supersample QC (always runs)
@@ -150,9 +151,10 @@ workflow PIPSEQ_CORE {
         .collect()
         .map { qc_metrics_list -> [qc_metrics_list] }  // Wrap list in tuple to preserve it
         .combine(crispat_guide_assignments_ch)
-        .map { qc_metrics_list, guide_assignments ->
+        .combine(purity_guide_assignments_ch)
+        .map { qc_metrics_list, guide_assignments, purity_guide_assignments ->
             // qc_metrics_list is the collected list of qc files
-            // guide_assignments is the guide assignments file (or NO_FILE)
+            // guide_assignments / purity_guide_assignments are the guide assignment files (or NO_FILE)
             tuple(
                 [
                     num_input_cells: params.num_input_cells,
@@ -162,7 +164,8 @@ workflow PIPSEQ_CORE {
                     max_valid_guides: params.max_valid_guides
                 ],
                 qc_metrics_list,
-                guide_assignments
+                guide_assignments,
+                purity_guide_assignments
             )
         }
 

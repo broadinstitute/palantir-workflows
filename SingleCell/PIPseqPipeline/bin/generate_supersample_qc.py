@@ -44,7 +44,13 @@ def parse_args():
         "--guide-assignments",
         type=str,
         required=False,
-        help="Path to guide assignments file (optional)"
+        help="Path to CRISPAT guide assignments file (optional)"
+    )
+    parser.add_argument(
+        "--purity-guide-assignments",
+        type=str,
+        required=False,
+        help="Path to purity-based guide assignments file (optional)"
     )
     parser.add_argument(
         "--min-valid-guides",
@@ -60,18 +66,23 @@ def parse_args():
     )
     return parser.parse_args()
 
-def generate_supersample_qc(guide_assignments, subsample_qc_files, supersample_basename, supersample_id, num_input_cells, min_valid_guides, max_valid_guides):
+def generate_supersample_qc(guide_assignments, purity_guide_assignments, subsample_qc_files, supersample_basename, supersample_id, num_input_cells, min_valid_guides, max_valid_guides):
     subsample_metrics = pd.concat([pd.read_table(subsample_qc_file) for subsample_qc_file in subsample_qc_files], ignore_index=True)
 
     supersample_metrics = pd.DataFrame({'sample_id': [supersample_id]})
     supersample_metrics['N0 Input cells'] = num_input_cells
     supersample_metrics['N1 Passing cells'] = subsample_metrics['Passing cells'].sum()
     #supersample_metrics['N2 Guide containing passing cells'] = (subsample_metrics['Fraction passing cells with CRISPR reads'] * subsample_metrics['Passing cells']).sum()
-    
+
     if guide_assignments is not None:
         num_guides_per_cell = guide_assignments.groupby('cell')['gRNA'].nunique().value_counts()
-        n3_guide_assignment_passing_cells = num_guides_per_cell[(num_guides_per_cell.index >= min_valid_guides) & (num_guides_per_cell.index <= max_valid_guides)].sum()
-        supersample_metrics['N4 Guide assignment passing cells'] = n3_guide_assignment_passing_cells
+        n4_crispat_guide_assigned_cells = num_guides_per_cell[(num_guides_per_cell.index >= min_valid_guides) & (num_guides_per_cell.index <= max_valid_guides)].sum()
+        supersample_metrics['N4 CRISPAT guide assigned cells'] = n4_crispat_guide_assigned_cells
+
+    if purity_guide_assignments is not None:
+        # One row per cell; unassigned cells have an empty (NaN once read back) gRNA.
+        n4_purity_guide_assigned_cells = (purity_guide_assignments['gRNA'].fillna('') != '').sum()
+        supersample_metrics['N4 purity-based guide assigned cells'] = n4_purity_guide_assigned_cells
 
     return supersample_metrics
 
@@ -127,8 +138,8 @@ N0: Input cells [{this_supersample_metrics['N1 Passing cells']:.0f}] N1: GEX pas
 N0: Input cells [{this_supersample_metrics['N0 Input cells'] - this_supersample_metrics['N1 Passing cells']:.0f}] Empty droplets
 N1: GEX passing cells [{this_supersample_metrics['N2 Guide containing passing cells']:.0f}] N2: Guide containing passing cells
 N1: GEX passing cells [{this_supersample_metrics['N1 Passing cells'] - this_supersample_metrics['N2 Guide containing passing cells']:.0f}] Cells with no guide reads
-N2: Guide containing passing cells [{this_supersample_metrics['N4 Guide assignment passing cells']:.0f}] N4: Guide assignment passing cells
-N2: Guide containing passing cells [{this_supersample_metrics['N2 Guide containing passing cells'] - this_supersample_metrics['N4 Guide assignment passing cells']:.0f}] Cells with no valid guide assignment
+N2: Guide containing passing cells [{this_supersample_metrics['N4 CRISPAT guide assigned cells']:.0f}] N4: CRISPAT guide assigned cells
+N2: Guide containing passing cells [{this_supersample_metrics['N2 Guide containing passing cells'] - this_supersample_metrics['N4 CRISPAT guide assigned cells']:.0f}] Cells with no valid guide assignment
 
 :N0: Input cells #777777
 :Empty droplets #aaaaaa
@@ -213,9 +224,14 @@ def main():
         #else:
         #    raise RuntimeError("Right now, we require guide assignments to generate the supersample QC report. Change this if you want to allow generating the report without guide assignments.")
 
+        purity_guide_assignments = None
+        if args.purity_guide_assignments is not None and args.purity_guide_assignments != 'NO_FILE':
+            purity_guide_assignments = pd.read_csv(args.purity_guide_assignments)
+
         print(f"Generating supersample QC for {args.supersample_id}...")
         supersample_metrics = generate_supersample_qc(
             guide_assignments,
+            purity_guide_assignments,
             args.subsample_qc_files,
             args.supersample_basename,
             args.supersample_id,
