@@ -40,8 +40,11 @@ RUN wget https://github.com/samtools/samtools/releases/download/1.16.1/samtools-
 	make install
 
 # IsoQuant 3.2.0 for memory optimizations
+# pybedtools 0.12.x requires Python 3.9+ but does not declare requires-python,
+# so pip on this image's Python 3.8 tries (and fails) to build it.
 RUN wget https://github.com/ablab/IsoQuant/releases/download/v3.2.0/IsoQuant-3.2.0.tar.gz && \
 	tar xvf IsoQuant-3.2.0.tar.gz && \
 	cd IsoQuant-3.2.0 && \
 	pip install numpy==1.21 && \
+	pip install "pybedtools<0.12" && \
 	pip install -r requirements.txt

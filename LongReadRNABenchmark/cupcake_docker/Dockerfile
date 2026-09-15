@@ -57,6 +57,11 @@ COPY remove_fastq_duplicates.py $SRC/remove_fastq_duplicates.py
 # see https://pypi.org/project/sklearn/
 ENV SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL=True
 
+# cupcake's setup.py install resolves its dependencies with easy_install, which ignores
+# python_requires and builds sdists (never wheels); recent pysam releases then fail to
+# compile on this image's Python 3.8. Install the dependencies with pip up front instead.
+RUN pip3 install "pysam==0.22.1" bcbio-gff sklearn
+
 RUN git clone https://github.com/Magdoll/cDNA_Cupcake.git && \
 	cd cDNA_Cupcake && \
 	python3 setup.py build && \
