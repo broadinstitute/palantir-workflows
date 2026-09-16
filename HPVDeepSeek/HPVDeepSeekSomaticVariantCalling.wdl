@@ -68,7 +68,6 @@ task Mutect2 {
         --germline-resource ~{gnomad} \
         --panel-of-normals ~{pon} \
         --intervals ~{intervals} \
-        --f1r2-tar-gz ~{output_basename}.f1r2.tar.gz \
         --read-filter NotSupplementaryAlignmentReadFilter \
         --dont-use-soft-clipped-bases true \
         --af-of-alleles-not-in-resource 0.001 \
@@ -106,39 +105,7 @@ task Mutect2 {
         File unfiltered_vcf = "~{output_basename}.vcf.gz"
         File unfiltered_vcf_idx = "~{output_basename}.vcf.gz.tbi"
         File mutect2_stats = "~{output_basename}.vcf.gz.stats"
-        File f1r2_counts = "~{output_basename}.f1r2.tar.gz"
         File tumor_pileups = "~{output_basename}.tumor-pileups.table"
-    }
-}
-
-task LearnReadOrientationModel {
-    input {
-        String output_basename
-        File f1r2_tar_gz
-
-        Int cpu = 1
-        Int memory_gb = 16
-        Int disk_size_gb = 128
-        Int min_ssd_size_gb = 512
-        Boolean use_ssd = true
-    }
-
-    command <<<
-        gatk --java-options "-Xms8g -Xmx14g" \
-        LearnReadOrientationModel \
-        --input ~{f1r2_tar_gz} \
-        --output ~{output_basename}.artifact-priors.tar.gz
-    >>>
-
-    runtime {
-        cpu: cpu
-        memory: "~{memory_gb} GiB"
-        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
-        docker: "us.gcr.io/broad-gatk/gatk:4.6.2.0"
-    }
-
-    output {
-        File artifact_prior_table = "~{output_basename}.artifact-priors.tar.gz"
     }
 }
 
@@ -184,7 +151,6 @@ task FilterMutectCalls {
         File reference_fai
         File reference_dict
         File mutect2_stats
-        File artifact_priors_tar_gz
         File contamination_table
         File maf_segments
 
@@ -203,7 +169,6 @@ task FilterMutectCalls {
         --output ~{output_basename}.vcf.gz \
         --contamination-table ~{contamination_table} \
         --tumor-segmentation ~{maf_segments} \
-        --ob-priors ~{artifact_priors_tar_gz} \
         --stats ~{mutect2_stats} \
         --filtering-stats ~{output_basename}.filtering.stats
     >>>
@@ -519,12 +484,6 @@ workflow HPVDeepSeekSomaticVariantCalling {
             output_basename = output_basename
     }
 
-    call LearnReadOrientationModel {
-        input:
-            f1r2_tar_gz = Mutect2.f1r2_counts,
-            output_basename = output_basename
-    }
-
     call CalculateContamination {
         input:
             tumor_pileups = Mutect2.tumor_pileups,
@@ -541,7 +500,6 @@ workflow HPVDeepSeekSomaticVariantCalling {
             mutect2_stats = Mutect2.mutect2_stats,
             contamination_table = CalculateContamination.contamination_table,
             maf_segments = CalculateContamination.maf_segments,
-            artifact_priors_tar_gz = LearnReadOrientationModel.artifact_prior_table,
             output_basename = output_basename
     }
 
