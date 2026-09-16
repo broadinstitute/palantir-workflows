@@ -82,7 +82,7 @@ def generate_supersample_qc(guide_assignments, purity_guide_assignments, subsamp
     if purity_guide_assignments is not None:
         # One row per cell; unassigned cells have an empty (NaN once read back) gRNA.
         n4_purity_guide_assigned_cells = (purity_guide_assignments['gRNA'].fillna('') != '').sum()
-        supersample_metrics['N4 purity-based guide assigned cells'] = n4_purity_guide_assigned_cells
+        supersample_metrics['N4 Purity-based guide assigned cells'] = n4_purity_guide_assigned_cells
 
     return supersample_metrics
 
