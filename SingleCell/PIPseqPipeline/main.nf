@@ -83,11 +83,12 @@ def helpMessage() {
     Behavior:
       - Runs DRAGEN scRNA for each subsample
       - Concatenates all subsamples into a supersample AnnData (handles single subsample case automatically) -- always runs
-      - Runs CRISPAT and purity-based guide assignment on the concatenated CRISPR features -- only if --run_guide_assignment is true
+      - Runs CRISPAT and purity-based guide assignment once per subsample, on that subsample's own DRAGEN AnnData
+        (each filters to CRISPR Direct Capture features itself) -- only if --run_guide_assignment is true
       - Per-subsample QC reports are generated in outdir/<supersample_basename>/<subsample_id>/qc/
       - Concatenated AnnData outputs to outdir/<supersample_basename>/adata/
-      - CRISPAT guide assignments are output to outdir/<supersample_basename>/crispat_ga/
-      - Purity-based guide assignments are output to outdir/<supersample_basename>/purity_ga/
+      - Per-subsample CRISPAT guide assignments are output to outdir/<supersample_basename>/<subsample_id>/crispat_ga/
+      - Per-subsample purity-based guide assignments are output to outdir/<supersample_basename>/<subsample_id>/purity_ga/
     """.stripIndent()
 }
 

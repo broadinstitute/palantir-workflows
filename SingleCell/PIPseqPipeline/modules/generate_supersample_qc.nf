@@ -11,6 +11,8 @@ process GENERATE_SUPERSAMPLE_QC {
 
     input:
     // meta: [num_input_cells, supersample_basename, supersample_id, min_valid_guides, max_valid_guides]
+    // guide_assignments / purity_guide_assignments: collected lists of per-subsample guide
+    // assignment files (empty list if guide assignment didn't run) -- see workflows/pipseq_core.nf
     tuple val(meta),
           path(subsample_qc_files),
           path(guide_assignments),
@@ -22,8 +24,8 @@ process GENERATE_SUPERSAMPLE_QC {
     path "${meta.supersample_basename}.supersample_qc_metrics.tsv", emit: supersample_qc_metrics
 
     script:
-    def guide_arg = guide_assignments.name != 'NO_FILE' ? "--guide-assignments ${guide_assignments} --min-valid-guides ${meta.min_valid_guides} --max-valid-guides ${meta.max_valid_guides}" : ""
-    def purity_guide_arg = purity_guide_assignments.name != 'NO_FILE' ? "--purity-guide-assignments ${purity_guide_assignments}" : ""
+    def guide_arg = guide_assignments.size() > 0 ? "--guide-assignments ${guide_assignments.join(' ')} --min-valid-guides ${meta.min_valid_guides} --max-valid-guides ${meta.max_valid_guides}" : ""
+    def purity_guide_arg = purity_guide_assignments.size() > 0 ? "--purity-guide-assignments ${purity_guide_assignments.join(' ')}" : ""
     """
     set -ex
 
@@ -42,8 +44,8 @@ process GENERATE_SUPERSAMPLE_QC {
     """
 
     stub:
-    def guide_arg = guide_assignments.name != 'NO_FILE' ? "--guide-assignments ${guide_assignments} --min-valid-guides ${meta.min_valid_guides} --max-valid-guides ${meta.max_valid_guides}" : ""
-    def purity_guide_arg = purity_guide_assignments.name != 'NO_FILE' ? "--purity-guide-assignments ${purity_guide_assignments}" : ""
+    def guide_arg = guide_assignments.size() > 0 ? "--guide-assignments ${guide_assignments.join(' ')} --min-valid-guides ${meta.min_valid_guides} --max-valid-guides ${meta.max_valid_guides}" : ""
+    def purity_guide_arg = purity_guide_assignments.size() > 0 ? "--purity-guide-assignments ${purity_guide_assignments.join(' ')}" : ""
     """
     echo "[STUB] Would generate supersample QC with:"
     echo "  Supersample ID: ${meta.supersample_id}"

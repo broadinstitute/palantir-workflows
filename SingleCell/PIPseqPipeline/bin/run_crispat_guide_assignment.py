@@ -24,10 +24,16 @@ def parse_args():
         description="Perform CRISPR guide assignment using CRISPAT"
     )
     parser.add_argument(
-        "--crispr-adata",
+        "--adata",
         type=str,
         required=True,
-        help="Path to feature barcode reference file"
+        help="Path to the subsample's DRAGEN-filtered AnnData (h5ad) file"
+    )
+    parser.add_argument(
+        "--subsample-id",
+        type=str,
+        required=True,
+        help="Subsample identifier, used to name the output file and disambiguate cell barcodes across subsamples"
     )
     parser.add_argument(
         "--num-processes",
@@ -37,9 +43,25 @@ def parse_args():
     )
     return parser.parse_args()
 
-def run_crispat_guide_assignment(crispr_adata_path, num_processes):
-    print('Running CRISPAT Gaussian Mixture model...')
-    crispat.ga_poisson_gauss(f'{crispr_adata_path}', f'crispat_ga/poisson_gauss/', parallelize=True, n_processes=num_processes, report_interval_seconds=30)
+def run_crispat_guide_assignment(adata_path, subsample_id, num_processes):
+    print(f"Extracting CRISPR Direct Capture features for {subsample_id}...")
+    adata = sc.read_h5ad(adata_path)
+    crispr_adata = adata[:, adata.var['feature_types'] == 'CRISPR Direct Capture']
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        crispr_adata_path = os.path.join(tmpdir, 'crispr_adata.h5ad')
+        crispr_adata.write_h5ad(crispr_adata_path)
+
+        print('Running CRISPAT Gaussian Mixture model...')
+        crispat.ga_poisson_gauss(crispr_adata_path, f'crispat_ga/poisson_gauss/', parallelize=True, n_processes=num_processes, report_interval_seconds=30)
+
+    # CRISPAT names its output file identically for every subsample -- rename it and suffix
+    # 'cell' with the subsample ID so per-subsample outputs can be safely combined downstream
+    # (barcodes can otherwise collide across subsamples), matching the suffixing convention
+    # bin/concatenate_samples.py uses (ad.concat(..., index_unique='_')).
+    assignments = pd.read_csv('crispat_ga/poisson_gauss/assignments.csv')
+    assignments['cell'] = assignments['cell'].astype(str) + '_' + subsample_id
+    assignments.to_csv(f'{subsample_id}.crispat_guide_assignments.csv', index=False)
 
 def main():
     """Main execution function."""
@@ -47,7 +69,8 @@ def main():
 
     try:
         run_crispat_guide_assignment(
-            args.crispr_adata,
+            args.adata,
+            args.subsample_id,
             args.num_processes
         )
         print("\n✓ CRISPAT guide assignment completed successfully")

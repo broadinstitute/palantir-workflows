@@ -130,20 +130,32 @@ workflow PIPSEQ_CORE {
     CONCATENATE(concatenate_input_ch)
 
     if (params.run_guide_assignment) {
-        log.info "Running CRISPR guide assignment (CRISPAT and purity-based)..."
+        log.info "Running CRISPR guide assignment (CRISPAT and purity-based) per subsample..."
 
-        // Both methods run independently on the same concatenated CRISPR AnnData, and both
-        // feed into GENERATE_SUPERSAMPLE_QC below (as separate N4 metrics); the purity-based
-        // assignments are also published on their own (see purity_ga/).
-        CRISPAT_GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
-        PURITY_BASED_GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
+        // Both methods run independently, once per subsample, directly on that subsample's
+        // own DRAGEN-filtered AnnData -- each filters to CRISPR Direct Capture features itself
+        // (see bin/run_crispat_guide_assignment.py / bin/purity_based_guide_assignment.py)
+        // rather than consuming CONCATENATE's already-filtered supersample-level crispr.h5ad.
+        // Both feed into GENERATE_SUPERSAMPLE_QC below (as separate N4 metrics, combined across
+        // all subsamples); the purity-based assignments are also published on their own
+        // (see <subsample_id>/purity_ga/).
+        CRISPAT_GUIDE_ASSIGNMENT(DRAGEN_SCRNA.out.filtered_adata)
+        PURITY_BASED_GUIDE_ASSIGNMENT(DRAGEN_SCRNA.out.filtered_adata)
 
+        // .collect() produces a List; wrap it in another List (as qc_metrics_list is below)
+        // so .combine() below treats it as one value instead of flattening it apart.
         crispat_guide_assignments_ch = CRISPAT_GUIDE_ASSIGNMENT.out.guide_assignments
+            .map { subsample_id, guide_assignments -> guide_assignments }
+            .collect()
+            .map { list -> [list] }
         purity_guide_assignments_ch = PURITY_BASED_GUIDE_ASSIGNMENT.out.guide_assignments
+            .map { subsample_id, guide_assignments -> guide_assignments }
+            .collect()
+            .map { list -> [list] }
     } else {
-        // Use placeholder for guide assignments -- see the NO_* placeholder note above.
-        crispat_guide_assignments_ch = Channel.of(file('NO_FILE'))
-        purity_guide_assignments_ch = Channel.of(file('NO_FILE'))
+        // No per-subsample guide assignment files to combine.
+        crispat_guide_assignments_ch = Channel.of([[]])
+        purity_guide_assignments_ch = Channel.of([[]])
     }
 
     // Generate supersample QC (always runs)
@@ -152,9 +164,9 @@ workflow PIPSEQ_CORE {
         .map { qc_metrics_list -> [qc_metrics_list] }  // Wrap list in tuple to preserve it
         .combine(crispat_guide_assignments_ch)
         .combine(purity_guide_assignments_ch)
-        .map { qc_metrics_list, guide_assignments, purity_guide_assignments ->
-            // qc_metrics_list is the collected list of qc files
-            // guide_assignments / purity_guide_assignments are the guide assignment files (or NO_FILE)
+        .map { qc_metrics_list, guide_assignments_list, purity_guide_assignments_list ->
+            // qc_metrics_list / guide_assignments_list / purity_guide_assignments_list are
+            // collected lists of per-subsample files (empty if guide assignment didn't run)
             tuple(
                 [
                     num_input_cells: params.num_input_cells,
@@ -164,8 +176,8 @@ workflow PIPSEQ_CORE {
                     max_valid_guides: params.max_valid_guides
                 ],
                 qc_metrics_list,
-                guide_assignments,
-                purity_guide_assignments
+                guide_assignments_list,
+                purity_guide_assignments_list
             )
         }
 
@@ -181,14 +193,16 @@ def writeOutputManifest() {
         Output layout for supersample '${params.supersample_id}' (${params.supersample_basename}):
 
           <subsample_id>/dragen_output/   Raw DRAGEN scRNA outputs for that subsample (metrics, barcode
-                                           summary, filtered matrix/barcodes/features, and any other files
-                                           DRAGEN produced for it)
+                                           summary, filtered matrix/barcodes/features/AnnData, and any
+                                           other files DRAGEN produced for it)
           <subsample_id>/logs/            DRAGEN logs for that subsample
           <subsample_id>/qc/              Per-subsample QC metrics (qc_metrics.tsv, qc_barcode_metrics.tsv)
+          <subsample_id>/crispat_ga/      Per-subsample CRISPAT guide assignment output (only if
+                                           --run_guide_assignment true)
+          <subsample_id>/purity_ga/       Per-subsample purity-based guide assignment output (only if
+                                           --run_guide_assignment true)
           adata/                          Concatenated supersample AnnData (<basename>.h5ad) and CRISPR-
                                            features-only subset (<basename>.crispr.h5ad) -- always produced
-          crispat_ga/                     CRISPAT guide assignment output (only if --run_guide_assignment true)
-          purity_ga/                      Purity-based guide assignment output (only if --run_guide_assignment true)
           supersample_qc/                 Final supersample-level QC report, and (if guide assignment ran)
                                            the guide-assignment distribution plot
           pipeline_info/                  Nextflow execution reports (timeline, report, trace, DAG)

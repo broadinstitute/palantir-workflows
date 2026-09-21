@@ -48,6 +48,7 @@ process DRAGEN_SCRNA {
         tuple val(meta.subsample_id), path("dragen_output/${meta.subsample_id}.scRNA.filtered.matrix.mtx.gz"), emit: matrix
         tuple val(meta.subsample_id), path("dragen_output/${meta.subsample_id}.scRNA.filtered.barcodes.tsv.gz"), emit: barcodes
         tuple val(meta.subsample_id), path("dragen_output/${meta.subsample_id}.scRNA.filtered.features.tsv.gz"), emit: features
+        tuple val(meta.subsample_id), path("dragen_output/${meta.subsample_id}.scRNA.filtered.h5ad"), emit: filtered_adata
 
     script:
         def subsample_id = meta.subsample_id
@@ -146,6 +147,7 @@ process DRAGEN_SCRNA {
     touch dragen_output/${subsample_id}.scRNA.filtered.matrix.mtx.gz
     touch dragen_output/${subsample_id}.scRNA.filtered.barcodes.tsv.gz
     touch dragen_output/${subsample_id}.scRNA.filtered.features.tsv.gz
+    touch dragen_output/${subsample_id}.scRNA.filtered.h5ad
 
     mkdir -p logs
     echo "[STUB] DRAGEN completed successfully" > logs/stub.log

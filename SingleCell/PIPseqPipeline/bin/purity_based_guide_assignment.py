@@ -24,22 +24,23 @@ def parse_args():
         description="Perform purity-based CRISPR guide assignment"
     )
     parser.add_argument(
-        "--crispr-adata",
+        "--adata",
         type=str,
         required=True,
-        help="Path to CRISPR-features-only AnnData (h5ad) file"
+        help="Path to the subsample's DRAGEN-filtered AnnData (h5ad) file"
     )
     parser.add_argument(
-        "--supersample-id",
+        "--subsample-id",
         type=str,
         required=True,
-        help="Supersample identifier, used to name the output file"
+        help="Subsample identifier, used to name the output file and disambiguate cell barcodes across subsamples"
     )
     return parser.parse_args()
 
 
-def assign_guides(crispr_adata_path):
-    adata = sc.read_h5ad(crispr_adata_path)
+def assign_guides(adata_path, subsample_id):
+    adata = sc.read_h5ad(adata_path)
+    adata = adata[:, adata.var['feature_types'] == 'CRISPR Direct Capture']
 
     counts = adata.X
     if scipy.sparse.issparse(counts):
@@ -73,8 +74,13 @@ def assign_guides(crispr_adata_path):
     top1_guide = guide_names[top1_idx]
     gRNA = np.where(passes, top1_guide, '')
 
+    # Suffix 'cell' with the subsample ID so per-subsample outputs can be safely combined
+    # downstream (barcodes can otherwise collide across subsamples), matching the suffixing
+    # convention bin/concatenate_samples.py uses (ad.concat(..., index_unique='_')).
+    cells = [f'{cell}_{subsample_id}' for cell in adata.obs_names]
+
     return pd.DataFrame({
-        'cell': adata.obs_names,
+        'cell': cells,
         'gRNA': gRNA,
         'purity_1st_vs_2nd': purity,
         'total_count': total_count,
@@ -88,10 +94,10 @@ def main():
     args = parse_args()
 
     try:
-        print(f"Running purity-based guide assignment for {args.supersample_id}...")
-        assignments = assign_guides(args.crispr_adata)
+        print(f"Running purity-based guide assignment for {args.subsample_id}...")
+        assignments = assign_guides(args.adata, args.subsample_id)
 
-        output_path = f"{args.supersample_id}.purity_based_guide_assignments.csv"
+        output_path = f"{args.subsample_id}.purity_based_guide_assignments.csv"
         assignments.to_csv(output_path, index=False)
 
         print(f"\n✓ Purity-based guide assignment completed successfully ({output_path})")

@@ -43,14 +43,16 @@ def parse_args():
     parser.add_argument(
         "--guide-assignments",
         type=str,
+        nargs='+',
         required=False,
-        help="Path to CRISPAT guide assignments file (optional)"
+        help="Paths to per-subsample CRISPAT guide assignments files (optional)"
     )
     parser.add_argument(
         "--purity-guide-assignments",
         type=str,
+        nargs='+',
         required=False,
-        help="Path to purity-based guide assignments file (optional)"
+        help="Paths to per-subsample purity-based guide assignments files (optional)"
     )
     parser.add_argument(
         "--min-valid-guides",
@@ -217,16 +219,16 @@ def main():
     args = parse_args()
     try:
         guide_assignments = None
-        if args.guide_assignments is not None:
+        if args.guide_assignments:
             if (args.min_valid_guides is None or args.max_valid_guides is None):
                 raise ValueError("Both --min-valid-guides and --max-valid-guides must be set if --guide-assignments is provided")
-            guide_assignments = pd.read_csv(args.guide_assignments) if args.guide_assignments is not None and args.guide_assignments != 'NO_FILE' else None
+            guide_assignments = pd.concat([pd.read_csv(f) for f in args.guide_assignments], ignore_index=True)
         #else:
         #    raise RuntimeError("Right now, we require guide assignments to generate the supersample QC report. Change this if you want to allow generating the report without guide assignments.")
 
         purity_guide_assignments = None
-        if args.purity_guide_assignments is not None and args.purity_guide_assignments != 'NO_FILE':
-            purity_guide_assignments = pd.read_csv(args.purity_guide_assignments)
+        if args.purity_guide_assignments:
+            purity_guide_assignments = pd.concat([pd.read_csv(f) for f in args.purity_guide_assignments], ignore_index=True)
 
         print(f"Generating supersample QC for {args.supersample_id}...")
         supersample_metrics = generate_supersample_qc(

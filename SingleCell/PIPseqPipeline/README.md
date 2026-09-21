@@ -18,13 +18,13 @@ Subsamples are identified by `RGSM` in the fastq list. All subsamples are proces
 
 ### Pipeline Workflow
 
-1. **Run DRAGEN scRNA** (`DRAGEN_SCRNA`): runs once per subsample, producing per-subsample metrics, barcode summary, and filtered matrix/barcodes/features files.
+1. **Run DRAGEN scRNA** (`DRAGEN_SCRNA`): runs once per subsample, producing per-subsample metrics, barcode summary, and filtered matrix/barcodes/features/AnnData files.
 2. **Generate per-subsample QC** (`GENERATE_SUBSAMPLE_QC`): always runs, one invocation per subsample, regardless of whether guide assignment is enabled.
-3. **Concatenate subsamples** (`CONCATENATE`): always runs; merges all subsamples' matrices into one supersample-level AnnData (`.h5ad`) and extracts a CRISPR-features-only AnnData (`.crispr.h5ad`). Handles the single-subsample case automatically.
-4. **CRISPR guide assignment** (optional; runs only if `--run_guide_assignment` is `true`, the default): two independent methods run on the same concatenated CRISPR features and publish separately —
+3. **Concatenate subsamples** (`CONCATENATE`): always runs; merges all subsamples' matrices into one supersample-level AnnData (`.h5ad`) and extracts a CRISPR-features-only AnnData (`.crispr.h5ad`). Handles the single-subsample case automatically. Independent of guide assignment below — nothing consumes its CRISPR-features-only output.
+4. **CRISPR guide assignment** (optional; runs only if `--run_guide_assignment` is `true`, the default): two independent methods each run once per subsample, directly on that subsample's own DRAGEN AnnData (filtering to CRISPR Direct Capture features themselves), and publish separately —
    - **`CRISPAT_GUIDE_ASSIGNMENT`**: CRISPAT's Poisson-Gaussian mixture model.
    - **`PURITY_BASED_GUIDE_ASSIGNMENT`**: a simpler purity/count-threshold heuristic (see [Purity-Based Guide Assignment](#purity-based-guide-assignment) below).
-5. **Generate supersample QC** (`GENERATE_SUPERSAMPLE_QC`): always runs; combines all per-subsample QC files with CRISPAT's guide assignment results (if available) into the final supersample-level report. The purity-based assignments are not folded into this report.
+5. **Generate supersample QC** (`GENERATE_SUPERSAMPLE_QC`): always runs; combines all per-subsample QC files with both methods' per-subsample guide assignment results (if available) into the final supersample-level report.
 
 ## Pipeline Structure
 
@@ -193,18 +193,19 @@ For `main.nf` (`main_simple.nf` shares everything here except `--fastq_list`, wh
 
 Results are organized under `${params.outdir}/${params.supersample_basename}/`:
 
-- **`<subsample_id>/dragen_output/`**: raw DRAGEN outputs for that subsample (metrics CSV, barcode summary, filtered matrix/barcodes/features)
+- **`<subsample_id>/dragen_output/`**: raw DRAGEN outputs for that subsample (metrics CSV, barcode summary, filtered matrix/barcodes/features/AnnData)
 - **`<subsample_id>/logs/`**: DRAGEN logs for that subsample
 - **`<subsample_id>/qc/`**: per-subsample QC files
   - `<subsample_id>.qc_metrics.tsv`
   - `<subsample_id>.qc_barcode_metrics.tsv`
+- **`<subsample_id>/crispat_ga/`**: per-subsample CRISPAT guide assignment output (only if `--run_guide_assignment true`)
+  - `poisson_gauss/assignments.csv`
+  - `<subsample_id>.crispat_guide_assignments.csv`
+- **`<subsample_id>/purity_ga/`**: per-subsample purity-based guide assignment output (only if `--run_guide_assignment true`)
+  - `<subsample_id>.purity_based_guide_assignments.csv`
 - **`adata/`**: concatenated AnnData files (always produced, independent of guide assignment)
   - `<supersample_basename>.h5ad` — full concatenated dataset
   - `<supersample_basename>.crispr.h5ad` — CRISPR-features-only subset
-- **`crispat_ga/`**: CRISPAT guide assignment outputs (only if `--run_guide_assignment true`)
-  - `poisson_gauss/assignments.csv`
-- **`purity_ga/`**: purity-based guide assignment output (only if `--run_guide_assignment true`)
-  - `<supersample_id>.purity_based_guide_assignments.csv`
 - **`supersample_qc/`**: final supersample-level report
   - `<supersample_basename>.supersample_qc_metrics.tsv`
   - `<supersample_basename>.guide_assignment_distribution.png` (only if guide assignment ran)
@@ -214,12 +215,13 @@ A `README.txt` describing this layout is written directly into `${params.outdir}
 
 ## CRISPR Guide Assignment
 
-Guide assignment is **enabled by default** (`--run_guide_assignment true`) and adds two independent steps on top of the concatenation that always happens, both consuming the same `<supersample_basename>.crispr.h5ad`:
+Guide assignment is **enabled by default** (`--run_guide_assignment true`) and runs both methods once per subsample, directly on that subsample's own DRAGEN AnnData (`<subsample_id>.scRNA.filtered.h5ad`) — independent of, and not waiting on, `CONCATENATE`:
 
-1. **Concatenate**: merge all subsamples and extract CRISPR Direct Capture features into `<supersample_basename>.crispr.h5ad` (`bin/concatenate_samples.py`) — this always runs.
-2. **CRISPAT guide assignment**: run CRISPAT's Poisson-Gaussian mixture model on the CRISPR AnnData (`bin/run_crispat_guide_assignment.py`) — only if enabled. Feeds into the final supersample QC report.
-3. **Purity-based guide assignment**: an independent, simpler heuristic (`bin/purity_based_guide_assignment.py`) — only if enabled. Published on its own; not folded into the supersample QC report.
-4. **Supersample report**: fold CRISPAT's guide assignment results into the final QC report (`bin/generate_supersample_qc.py`) — always runs, with or without guide assignment data.
+1. **CRISPAT guide assignment**: for each subsample, filter its DRAGEN AnnData to CRISPR Direct Capture features and run CRISPAT's Poisson-Gaussian mixture model (`bin/run_crispat_guide_assignment.py`) — only if enabled. Feeds into the final supersample QC report.
+2. **Purity-based guide assignment**: for each subsample, filter its DRAGEN AnnData to CRISPR Direct Capture features and apply an independent, simpler heuristic (`bin/purity_based_guide_assignment.py`) — only if enabled. Published on its own per subsample, and also feeds into the final supersample QC report.
+3. **Supersample report**: fold every subsample's guide assignment results from both methods into the final QC report (`bin/generate_supersample_qc.py`) — always runs, with or without guide assignment data.
+
+Each per-subsample output CSV's `cell` column is suffixed with `_<subsample_id>` before being combined across subsamples in the supersample report, so identical barcodes from different subsamples can't collide.
 
 Disable both guide assignment methods with:
 ```bash
