@@ -4,3 +4,7 @@
 # that aren't supposed to affect pipeline outputs (e.g. performance/memory fixes). Leave out
 # large files (matrices, BAMs, etc.) that aren't practical to diff directly.
 *.scRNA_metrics.csv
+*.purity_based_guide_assignments.csv
+assignments.csv
+*.qc_metrics.tsv
+*.supersample_qc_metrics.tsv
