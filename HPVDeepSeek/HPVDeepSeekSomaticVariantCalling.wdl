@@ -10,7 +10,7 @@ task ClipBam {
         File reference
         File reference_fai
         Int num_clip_bases_five_prime
-        Int? num_clip_bases_three_prime
+        Int num_clip_bases_three_prime
 
         Int cpu = 1
         Int memory_gb = 16
@@ -26,20 +26,20 @@ task ClipBam {
         export PICARD_LOCAL_JAR="/usr/picard.jar"
 
         java "-Xms8g -Xmx14g" -jar $FGBIO_LOCAL_JAR ClipBam \
-        -i ${bam} \
-        -o ${output_basename}.clipped.bam \
+        -i ~{bam} \
+        -o ~{output_basename}.clipped.bam \
         -c "Hard" \
-        --ref ${reference} \
-        --read-one-five-prime ${num_clip_bases_five_prime} \
-        --read-two-five-prime ${num_clip_bases_five_prime} \
-        ${"--read-one-three-prime " + num_clip_bases_three_prime} \
-        ${"--read-two-three-prime " + num_clip_bases_three_prime}
+        --ref ~{reference} \
+        --read-one-five-prime ~{num_clip_bases_five_prime} \
+        --read-two-five-prime ~{num_clip_bases_five_prime} \
+        --read-one-three-prime ~{num_clip_bases_three_prime} \
+        --read-two-three-prime ~{num_clip_bases_three_prime}
 
-        samtools view -hb -q 60 ${output_basename}.clipped.bam -o ${output_basename}.filtered.bam
+        samtools view -hb -q 60 ~{output_basename}.clipped.bam -o ~{output_basename}.filtered.bam
 
         java -jar $PICARD_LOCAL_JAR BuildBamIndex \
-        INPUT=${output_basename}.filtered.bam  \
-        OUTPUT=${output_basename}.filtered.bai
+        INPUT=~{output_basename}.filtered.bam  \
+        OUTPUT=~{output_basename}.filtered.bai
     >>>
 
     runtime {
