@@ -13,7 +13,7 @@ task ClipBam {
         Int num_clip_bases_three_prime
 
         Int cpu = 1
-        Int memory_gb = 16
+        Int memory_gb = 32
         Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 128)
         Int min_ssd_size_gb = 512
         Boolean use_ssd = true
@@ -25,7 +25,7 @@ task ClipBam {
         export FGBIO_LOCAL_JAR="/usr/fgbio-1.0.0.jar"
         export PICARD_LOCAL_JAR="/usr/picard.jar"
 
-        java "-Xms8g -Xmx14g" -jar $FGBIO_LOCAL_JAR ClipBam \
+        java -Xmx14000m -jar $FGBIO_LOCAL_JAR ClipBam \
         -i ~{bam} \
         -o ~{output_basename}.clipped.bam \
         -c "Hard" \
