@@ -1,5 +1,60 @@
 version 1.0
 
+# We want to clip the end(s) of the fragments because they are lower quality
+# We also want to filter for MQ < 60
+task ClipBam {
+    input {
+        String output_basename
+        File bam
+        File bai
+        File reference
+        File reference_fai
+        Int num_clip_bases_five_prime
+        Int? num_clip_bases_three_prime
+
+        Int cpu = 1
+        Int memory_gb = 16
+        Int disk_size_gb = ceil((3 * size(bam, "GiB")) + 128)
+        Int min_ssd_size_gb = 512
+        Boolean use_ssd = true
+    }
+
+    command <<<
+        set -e
+
+        export FGBIO_LOCAL_JAR="/usr/fgbio-1.0.0.jar"
+        export PICARD_LOCAL_JAR="/usr/picard.jar"
+
+        java "-Xms8g -Xmx14g" -jar $FGBIO_LOCAL_JAR ClipBam \
+        -i ${bam} \
+        -o ${output_basename}.clipped.bam \
+        -c "Hard" \
+        --ref ${reference} \
+        --read-one-five-prime ${num_clip_bases_five_prime} \
+        --read-two-five-prime ${num_clip_bases_five_prime} \
+        ${"--read-one-three-prime " + num_clip_bases_three_prime} \
+        ${"--read-two-three-prime " + num_clip_bases_three_prime}
+
+        samtools view -hb -q 60 ${output_basename}.clipped.bam -o ${output_basename}.filtered.bam
+
+        java -jar $PICARD_LOCAL_JAR BuildBamIndex \
+        INPUT=${output_basename}.filtered.bam  \
+        OUTPUT=${output_basename}.filtered.bai
+    >>>
+
+    runtime {
+        cpu: cpu
+        memory: "~{memory_gb} GiB"
+        disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
+        docker: "us.gcr.io/broad-dsde-methods/liquidbiopsy:0.0.3.5"
+    }
+
+    output {
+        File output_bam = "~{output_basename}.filtered.bam"
+        File output_bam_index = "~{output_basename}.filtered.bai"
+    }
+}
+
 task CollectSequencingArtifactMetrics {
     input {
         String output_basename
@@ -458,6 +513,17 @@ workflow HPVDeepSeekSomaticVariantCalling {
         Boolean run_alignment_artifact_filter = false
     }
 
+    call ClipBam {
+        input:
+            bam = tumor_bam,
+            bai = tumor_bai,
+            reference = reference,
+            reference_fai = reference_fai,
+            num_clip_bases_five_prime = 10,
+            num_clip_bases_three_prime = 10,
+            output_basename = output_basename
+    }
+
     call CollectSequencingArtifactMetrics { # !UnusedCall
         input:
             bam = tumor_bam,
@@ -469,8 +535,8 @@ workflow HPVDeepSeekSomaticVariantCalling {
 
     call Mutect2 {
         input:
-            tumor_bam = tumor_bam,
-            tumor_bai = tumor_bai,
+            tumor_bam = ClipBam.output_bam,
+            tumor_bai = ClipBam.output_bam_index,
             reference = reference,
             reference_fai = reference_fai,
             reference_dict = reference_dict,
