@@ -458,7 +458,9 @@ task FilterBam {
     }
 
     command <<<
-        samtools view -f 2 -q 1 -bh ~{bam} -o ~{output_basename}.filtered.bam
+        samtools view -f 2 -q 1 -bh ~{bam} -o temp.bam
+        samtools view -F 0x900 -e 'length(seq) < 75 || seq =~ "N.*N.*N.*N.*N"' temp.bam | cut -f1 | sort -u > fail.txt
+        samtools view -b -N ^fail.txt -o ~{output_basename}.filtered.bam temp.bam
     >>>
 
     output {
