@@ -21,9 +21,9 @@ Subsamples are identified by `RGSM` in the fastq list. All subsamples are proces
 1. **Run DRAGEN scRNA** (`DRAGEN_SCRNA`): runs once per subsample, producing per-subsample metrics, barcode summary, and filtered matrix/barcodes/features files.
 2. **Generate per-subsample QC** (`GENERATE_SUBSAMPLE_QC`): always runs, one invocation per subsample, regardless of whether guide assignment is enabled.
 3. **Concatenate subsamples** (`CONCATENATE`): always runs; merges all subsamples' matrices into one supersample-level AnnData (`.h5ad`) and extracts a CRISPR-features-only AnnData (`.crispr.h5ad`). Handles the single-subsample case automatically.
-4. **CRISPR guide assignment** (optional; runs only if `--run_guide_assignment` is `true`, the default): two independent methods run on the same concatenated CRISPR features and publish separately —
-   - **`CRISPAT_GUIDE_ASSIGNMENT`**: CRISPAT's Poisson-Gaussian mixture model.
-   - **`PURITY_BASED_GUIDE_ASSIGNMENT`**: a simpler purity/count-threshold heuristic (see [Purity-Based Guide Assignment](#purity-based-guide-assignment) below).
+4. **CRISPR guide assignment** (each method is optional and independently toggleable, both default to `true`): two independent methods run on the same concatenated CRISPR features and publish separately —
+   - **`CRISPAT_GUIDE_ASSIGNMENT`** (runs only if `--run_crispat_guide_assignment` is `true`): CRISPAT's Poisson-Gaussian mixture model.
+   - **`PURITY_BASED_GUIDE_ASSIGNMENT`** (runs only if `--run_purity_guide_assignment` is `true`): a simpler purity/count-threshold heuristic (see [Purity-Based Guide Assignment](#purity-based-guide-assignment) below).
 5. **Generate supersample QC** (`GENERATE_SUPERSAMPLE_QC`): always runs; combines all per-subsample QC files with CRISPAT's guide assignment results (if available) into the final supersample-level report. The purity-based assignments are not folded into this report.
 
 ## Pipeline Structure
@@ -142,7 +142,7 @@ nextflow run main_simple.nf \
 - `--expression_r1_fastqs` / `--expression_r2_fastqs` are **required** lists of files, matched by position (supports multiple lanes — just list multiple files).
 - `--feature_r1_fastqs` / `--feature_r2_fastqs` are optional; if given, `--scrna_feature_barcode_reference` is required.
 - `--hashing_r1_fastqs` / `--hashing_r2_fastqs` are optional; if given, `--scrna_cell_hashing_reference` is required.
-- Every other param (`num_input_cells`, `min_valid_guides`/`max_valid_guides`, `ref_tar`, `annotation_file`, `dragen_container`, `qc_container`, `run_guide_assignment`, resource params, etc.) is identical to `main.nf` — see [Command-Line Options](#command-line-options) below.
+- Every other param (`num_input_cells`, `min_valid_guides`/`max_valid_guides`, `ref_tar`, `annotation_file`, `dragen_container`, `qc_container`, `run_crispat_guide_assignment`, `run_purity_guide_assignment`, resource params, etc.) is identical to `main.nf` — see [Command-Line Options](#command-line-options) below.
 - Internally, `main_simple.nf` synthesizes a DRAGEN-compatible fastq-list CSV from the given FASTQ lists and hands it to the same shared engine (`workflows/pipseq_core.nf`) `main.nf` uses — everything downstream of subsample discovery (DRAGEN, concatenation, guide assignment, QC) behaves identically either way.
 - Validated against `nextflow_schema_simple.json` (a separate schema from `main.nf`'s `nextflow_schema.json`, since the input params differ).
 
@@ -172,7 +172,8 @@ For `main.nf` (`main_simple.nf` shares everything here except `--fastq_list`, wh
 - `--qc_container`: Container image for QC processing
 
 **Optional:**
-- `--run_guide_assignment`: Whether to run CRISPR guide assignment (default: `true`)
+- `--run_crispat_guide_assignment`: Whether to run CRISPAT guide assignment (default: `true`)
+- `--run_purity_guide_assignment`: Whether to run purity-based guide assignment (default: `true`)
 - `--use_direct_capture_mode`: Whether to use DRAGEN direct-capture mode for feature barcodes (default: `true`)
 - `--scrna_feature_barcode_reference`: Feature barcode reference CSV for DRAGEN (only needed if the fastq_list has `feature` rows)
 - `--scrna_barcode_sequence_list`: Barcode sequence list CSV for DRAGEN
@@ -201,9 +202,9 @@ Results are organized under `${params.outdir}/${params.supersample_basename}/`:
 - **`adata/`**: concatenated AnnData files (always produced, independent of guide assignment)
   - `<supersample_basename>.h5ad` — full concatenated dataset
   - `<supersample_basename>.crispr.h5ad` — CRISPR-features-only subset
-- **`crispat_ga/`**: CRISPAT guide assignment outputs (only if `--run_guide_assignment true`)
+- **`crispat_ga/`**: CRISPAT guide assignment outputs (only if `--run_crispat_guide_assignment true`)
   - `poisson_gauss/assignments.csv`
-- **`purity_ga/`**: purity-based guide assignment output (only if `--run_guide_assignment true`)
+- **`purity_ga/`**: purity-based guide assignment output (only if `--run_purity_guide_assignment true`)
   - `<supersample_id>.purity_based_guide_assignments.csv`
 - **`supersample_qc/`**: final supersample-level report
   - `<supersample_basename>.supersample_qc_metrics.tsv`
@@ -214,16 +215,18 @@ A `README.txt` describing this layout is written directly into `${params.outdir}
 
 ## CRISPR Guide Assignment
 
-Guide assignment is **enabled by default** (`--run_guide_assignment true`) and adds two independent steps on top of the concatenation that always happens, both consuming the same `<supersample_basename>.crispr.h5ad`:
+Guide assignment is **enabled by default** (`--run_crispat_guide_assignment true --run_purity_guide_assignment true`) and adds two independent steps on top of the concatenation that always happens, both consuming the same `<supersample_basename>.crispr.h5ad`. Each method can be enabled/disabled independently of the other.
 
 1. **Concatenate**: merge all subsamples and extract CRISPR Direct Capture features into `<supersample_basename>.crispr.h5ad` (`bin/concatenate_samples.py`) — this always runs.
-2. **CRISPAT guide assignment**: run CRISPAT's Poisson-Gaussian mixture model on the CRISPR AnnData (`bin/run_crispat_guide_assignment.py`) — only if enabled. Feeds into the final supersample QC report.
-3. **Purity-based guide assignment**: an independent, simpler heuristic (`bin/purity_based_guide_assignment.py`) — only if enabled. Published on its own; not folded into the supersample QC report.
+2. **CRISPAT guide assignment**: run CRISPAT's Poisson-Gaussian mixture model on the CRISPR AnnData (`bin/run_crispat_guide_assignment.py`) — only if `--run_crispat_guide_assignment` is `true`. Feeds into the final supersample QC report.
+3. **Purity-based guide assignment**: an independent, simpler heuristic (`bin/purity_based_guide_assignment.py`) — only if `--run_purity_guide_assignment` is `true`. Published on its own; not folded into the supersample QC report.
 4. **Supersample report**: fold CRISPAT's guide assignment results into the final QC report (`bin/generate_supersample_qc.py`) — always runs, with or without guide assignment data.
 
-Disable both guide assignment methods with:
+Disable one or both guide assignment methods with:
 ```bash
-nextflow run main.nf ... --run_guide_assignment false
+nextflow run main.nf ... --run_crispat_guide_assignment false --run_purity_guide_assignment false  # disable both
+nextflow run main.nf ... --run_crispat_guide_assignment false                                        # disable CRISPAT only
+nextflow run main.nf ... --run_purity_guide_assignment false                                         # disable purity-based only
 ```
 
 ### Purity-Based Guide Assignment

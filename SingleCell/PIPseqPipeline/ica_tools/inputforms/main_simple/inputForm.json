@@ -160,7 +160,14 @@
     },
     {
       "type": "checkbox",
-      "id": "run_guide_assignment",
+      "id": "run_crispat_guide_assignment",
+      "minValues": 1,
+      "maxValues": 1,
+      "value": true
+    },
+    {
+      "type": "checkbox",
+      "id": "run_purity_guide_assignment",
       "minValues": 1,
       "maxValues": 1,
       "value": true

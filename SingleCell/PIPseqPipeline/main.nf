@@ -24,7 +24,8 @@ params.annotation_file = null          // Gene annotation file for DRAGEN
 params.scrna_feature_barcode_reference = null  // Feature barcode reference for DRAGEN
 params.scrna_barcode_sequence_list = null      // Optional barcode sequence list for DRAGEN
 params.scrna_cell_hashing_reference = null     // Optional cell hashing reference for DRAGEN
-params.run_guide_assignment = true     // Whether to run guide assignment
+params.run_crispat_guide_assignment = true  // Whether to run CRISPAT guide assignment
+params.run_purity_guide_assignment = true   // Whether to run purity-based guide assignment
 params.outdir = "out"              // Output directory
 params.help = false
 params.dragen_container = null         // DRAGEN container image
@@ -73,8 +74,9 @@ def helpMessage() {
       - All rows with the same RGSM belong to the same subsample
 
     Optional arguments:
-      --run_guide_assignment     Whether to run guide assignment (default: ${params.run_guide_assignment}). Toggles both
-                                  the CRISPAT and purity-based guide-assignment methods together -- CRISPR feature
+      --run_crispat_guide_assignment  Whether to run CRISPAT guide assignment (default: ${params.run_crispat_guide_assignment})
+      --run_purity_guide_assignment   Whether to run purity-based guide assignment (default: ${params.run_purity_guide_assignment})
+                                  Each guide-assignment method can be enabled/disabled independently -- CRISPR feature
                                   extraction and the concatenated supersample AnnData are always produced regardless.
       --guide_assignment_num_processes  Number of processes to use for guide assignment (default: all available cores)
       --outdir                   Output directory (default: ${params.outdir})
@@ -83,7 +85,8 @@ def helpMessage() {
     Behavior:
       - Runs DRAGEN scRNA for each subsample
       - Concatenates all subsamples into a supersample AnnData (handles single subsample case automatically) -- always runs
-      - Runs CRISPAT and purity-based guide assignment on the concatenated CRISPR features -- only if --run_guide_assignment is true
+      - Runs CRISPAT guide assignment on the concatenated CRISPR features -- only if --run_crispat_guide_assignment is true
+      - Runs purity-based guide assignment on the concatenated CRISPR features -- only if --run_purity_guide_assignment is true
       - Per-subsample QC reports are generated in outdir/<supersample_basename>/<subsample_id>/qc/
       - Concatenated AnnData outputs to outdir/<supersample_basename>/adata/
       - CRISPAT guide assignments are output to outdir/<supersample_basename>/crispat_ga/
