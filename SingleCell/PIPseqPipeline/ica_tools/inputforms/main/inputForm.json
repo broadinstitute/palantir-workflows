@@ -116,7 +116,7 @@
       "id": "run_crispat_guide_assignment",
       "minValues": 1,
       "maxValues": 1,
-      "value": true
+      "value": false
     },
     {
       "type": "checkbox",

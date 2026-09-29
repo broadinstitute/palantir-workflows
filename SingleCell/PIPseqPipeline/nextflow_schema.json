@@ -140,7 +140,7 @@
                 "run_crispat_guide_assignment": {
                     "type": "boolean",
                     "description": "Whether to run CRISPAT guide assignment",
-                    "default": true,
+                    "default": false,
                     "help_text": "Enable or disable CRISPAT's Poisson-Gaussian mixture model guide assignment, independently of --run_purity_guide_assignment. CRISPR feature extraction and the concatenated supersample AnnData (<basename>.crispr.h5ad) are always produced regardless of this flag.",
                     "fa_icon": "fas fa-toggle-on"
                 },

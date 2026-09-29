@@ -21,7 +21,7 @@ Subsamples are identified by `RGSM` in the fastq list. All subsamples are proces
 1. **Run DRAGEN scRNA** (`DRAGEN_SCRNA`): runs once per subsample, producing per-subsample metrics, barcode summary, and filtered matrix/barcodes/features files.
 2. **Generate per-subsample QC** (`GENERATE_SUBSAMPLE_QC`): always runs, one invocation per subsample, regardless of whether guide assignment is enabled.
 3. **Concatenate subsamples** (`CONCATENATE`): always runs; merges all subsamples' matrices into one supersample-level AnnData (`.h5ad`) and extracts a CRISPR-features-only AnnData (`.crispr.h5ad`). Handles the single-subsample case automatically.
-4. **CRISPR guide assignment** (each method is optional and independently toggleable, both default to `true`): two independent methods run on the same concatenated CRISPR features and publish separately —
+4. **CRISPR guide assignment** (each method is optional and independently toggleable; `--run_crispat_guide_assignment` defaults to `false`, `--run_purity_guide_assignment` defaults to `true`): two independent methods run on the same concatenated CRISPR features and publish separately —
    - **`CRISPAT_GUIDE_ASSIGNMENT`** (runs only if `--run_crispat_guide_assignment` is `true`): CRISPAT's Poisson-Gaussian mixture model.
    - **`PURITY_BASED_GUIDE_ASSIGNMENT`** (runs only if `--run_purity_guide_assignment` is `true`): a simpler purity/count-threshold heuristic (see [Purity-Based Guide Assignment](#purity-based-guide-assignment) below).
 5. **Generate supersample QC** (`GENERATE_SUPERSAMPLE_QC`): always runs; combines all per-subsample QC files with CRISPAT's guide assignment results (if available) into the final supersample-level report. The purity-based assignments are not folded into this report.
@@ -172,7 +172,7 @@ For `main.nf` (`main_simple.nf` shares everything here except `--fastq_list`, wh
 - `--qc_container`: Container image for QC processing
 
 **Optional:**
-- `--run_crispat_guide_assignment`: Whether to run CRISPAT guide assignment (default: `true`)
+- `--run_crispat_guide_assignment`: Whether to run CRISPAT guide assignment (default: `false`)
 - `--run_purity_guide_assignment`: Whether to run purity-based guide assignment (default: `true`)
 - `--use_direct_capture_mode`: Whether to use DRAGEN direct-capture mode for feature barcodes (default: `true`)
 - `--scrna_feature_barcode_reference`: Feature barcode reference CSV for DRAGEN (only needed if the fastq_list has `feature` rows)
@@ -215,18 +215,19 @@ A `README.txt` describing this layout is written directly into `${params.outdir}
 
 ## CRISPR Guide Assignment
 
-Guide assignment is **enabled by default** (`--run_crispat_guide_assignment true --run_purity_guide_assignment true`) and adds two independent steps on top of the concatenation that always happens, both consuming the same `<supersample_basename>.crispr.h5ad`. Each method can be enabled/disabled independently of the other.
+Guide assignment adds two independent steps on top of the concatenation that always happens, both consuming the same `<supersample_basename>.crispr.h5ad`. Each method can be enabled/disabled independently of the other; purity-based guide assignment is **enabled by default** (`--run_purity_guide_assignment true`), while CRISPAT is **disabled by default** (`--run_crispat_guide_assignment false`).
 
 1. **Concatenate**: merge all subsamples and extract CRISPR Direct Capture features into `<supersample_basename>.crispr.h5ad` (`bin/concatenate_samples.py`) — this always runs.
 2. **CRISPAT guide assignment**: run CRISPAT's Poisson-Gaussian mixture model on the CRISPR AnnData (`bin/run_crispat_guide_assignment.py`) — only if `--run_crispat_guide_assignment` is `true`. Feeds into the final supersample QC report.
 3. **Purity-based guide assignment**: an independent, simpler heuristic (`bin/purity_based_guide_assignment.py`) — only if `--run_purity_guide_assignment` is `true`. Published on its own; not folded into the supersample QC report.
 4. **Supersample report**: fold CRISPAT's guide assignment results into the final QC report (`bin/generate_supersample_qc.py`) — always runs, with or without guide assignment data.
 
-Disable one or both guide assignment methods with:
+Adjust which method(s) run with:
 ```bash
-nextflow run main.nf ... --run_crispat_guide_assignment false --run_purity_guide_assignment false  # disable both
-nextflow run main.nf ... --run_crispat_guide_assignment false                                        # disable CRISPAT only
-nextflow run main.nf ... --run_purity_guide_assignment false                                         # disable purity-based only
+nextflow run main.nf ... --run_crispat_guide_assignment true                                         # also enable CRISPAT (on top of the default purity-based run)
+nextflow run main.nf ... --run_purity_guide_assignment false                                          # disable purity-based only (default: no guide assignment at all)
+nextflow run main.nf ... --run_crispat_guide_assignment true --run_purity_guide_assignment true       # enable both
+nextflow run main.nf ... --run_purity_guide_assignment false --run_crispat_guide_assignment false     # disable both
 ```
 
 ### Purity-Based Guide Assignment

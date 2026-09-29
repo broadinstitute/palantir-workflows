@@ -26,6 +26,6 @@ params {
     outdir = 's3://your-bucket/results'  // or gs:// or local path
 
     // Optional parameters
-    run_crispat_guide_assignment = true
+    run_crispat_guide_assignment = false
     run_purity_guide_assignment = true
 }
