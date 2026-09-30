@@ -458,7 +458,9 @@ task FilterBam {
     }
 
     command <<<
-        samtools view -f 2 -q 1 -bh ~{bam} -o ~{output_basename}.filtered.bam
+        samtools view -f 2 -q 1 -bh ~{bam} -o temp.bam
+        samtools view -e 'length(seq) < 75 || seq =~ "N.*N.*N.*N.*N" || flag.munmap || sclen >= 50' temp.bam | cut -f1 | sort -u > fail.txt
+        samtools view -b -N ^fail.txt -o ~{output_basename}.filtered.bam temp.bam
     >>>
 
     output {
@@ -469,7 +471,7 @@ task FilterBam {
         cpu: cpu
         memory: "~{memory_gb} GiB"
         disks: "local-disk" + if use_ssd then " ~{min_ssd_size_gb} SSD" else " ~{disk_size_gb} HDD"
-        docker: "us-central1-docker.pkg.dev/broad-gp-hydrogen/hydrogen-dockers/kockan/hds@sha256:56f964695f08ddb74e3a29c63c3bc902334c1ddd735735cc98ba6d6a4212285c"
+        docker: "staphb/samtools:1.24"
     }
 }
 
