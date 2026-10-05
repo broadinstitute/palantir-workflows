@@ -137,11 +137,18 @@
             "default": "",
             "fa_icon": "fas fa-cut",
             "properties": {
-                "run_guide_assignment": {
+                "run_crispat_guide_assignment": {
                     "type": "boolean",
-                    "description": "Whether to run CRISPR guide assignment",
+                    "description": "Whether to run CRISPAT guide assignment",
+                    "default": false,
+                    "help_text": "Enable or disable CRISPAT's Poisson-Gaussian mixture model guide assignment, independently of --run_purity_guide_assignment. CRISPR feature extraction and the concatenated supersample AnnData (<basename>.crispr.h5ad) are always produced regardless of this flag.",
+                    "fa_icon": "fas fa-toggle-on"
+                },
+                "run_purity_guide_assignment": {
+                    "type": "boolean",
+                    "description": "Whether to run purity-based guide assignment",
                     "default": true,
-                    "help_text": "Enable or disable both guide-assignment methods (CRISPAT and purity-based) only. CRISPR feature extraction and the concatenated supersample AnnData (<basename>.crispr.h5ad) are always produced regardless of this flag.",
+                    "help_text": "Enable or disable the purity-based heuristic guide assignment, independently of --run_crispat_guide_assignment. CRISPR feature extraction and the concatenated supersample AnnData (<basename>.crispr.h5ad) are always produced regardless of this flag.",
                     "fa_icon": "fas fa-toggle-on"
                 },
                 "min_valid_guides": {

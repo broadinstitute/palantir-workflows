@@ -22,8 +22,8 @@ process GENERATE_SUPERSAMPLE_QC {
     path "${meta.supersample_basename}.supersample_qc_metrics.tsv", emit: supersample_qc_metrics
 
     script:
-    def guide_arg = guide_assignments.name != 'NO_FILE' ? "--guide-assignments ${guide_assignments} --min-valid-guides ${meta.min_valid_guides} --max-valid-guides ${meta.max_valid_guides}" : ""
-    def purity_guide_arg = purity_guide_assignments.name != 'NO_FILE' ? "--purity-guide-assignments ${purity_guide_assignments}" : ""
+    def guide_arg = guide_assignments.name != 'NO_CRISPAT_FILE' ? "--guide-assignments ${guide_assignments} --min-valid-guides ${meta.min_valid_guides} --max-valid-guides ${meta.max_valid_guides}" : ""
+    def purity_guide_arg = purity_guide_assignments.name != 'NO_PURITY_FILE' ? "--purity-guide-assignments ${purity_guide_assignments}" : ""
     """
     set -ex
 
@@ -42,8 +42,8 @@ process GENERATE_SUPERSAMPLE_QC {
     """
 
     stub:
-    def guide_arg = guide_assignments.name != 'NO_FILE' ? "--guide-assignments ${guide_assignments} --min-valid-guides ${meta.min_valid_guides} --max-valid-guides ${meta.max_valid_guides}" : ""
-    def purity_guide_arg = purity_guide_assignments.name != 'NO_FILE' ? "--purity-guide-assignments ${purity_guide_assignments}" : ""
+    def guide_arg = guide_assignments.name != 'NO_CRISPAT_FILE' ? "--guide-assignments ${guide_assignments} --min-valid-guides ${meta.min_valid_guides} --max-valid-guides ${meta.max_valid_guides}" : ""
+    def purity_guide_arg = purity_guide_assignments.name != 'NO_PURITY_FILE' ? "--purity-guide-assignments ${purity_guide_assignments}" : ""
     """
     echo "[STUB] Would generate supersample QC with:"
     echo "  Supersample ID: ${meta.supersample_id}"

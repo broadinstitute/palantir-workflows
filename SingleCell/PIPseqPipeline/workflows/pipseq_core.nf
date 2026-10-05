@@ -31,7 +31,8 @@ params.max_valid_guides = null
 params.scrna_feature_barcode_reference = null
 params.scrna_barcode_sequence_list = null
 params.scrna_cell_hashing_reference = null
-params.run_guide_assignment = true
+params.run_crispat_guide_assignment = false
+params.run_purity_guide_assignment = true
 params.outdir = "out"
 params.use_direct_capture_mode = true
 params.additional_dragen_args = null
@@ -129,21 +130,27 @@ workflow PIPSEQ_CORE {
 
     CONCATENATE(concatenate_input_ch)
 
-    if (params.run_guide_assignment) {
-        log.info "Running CRISPR guide assignment (CRISPAT and purity-based)..."
-
-        // Both methods run independently on the same concatenated CRISPR AnnData, and both
-        // feed into GENERATE_SUPERSAMPLE_QC below (as separate N4 metrics); the purity-based
-        // assignments are also published on their own (see purity_ga/).
+    // Both methods run independently on the same concatenated CRISPR AnnData, are each
+    // independently toggleable, and both feed into GENERATE_SUPERSAMPLE_QC below (as separate
+    // N4 metrics); the purity-based assignments are also published on their own (see purity_ga/).
+    if (params.run_crispat_guide_assignment) {
+        log.info "Running CRISPAT guide assignment..."
         CRISPAT_GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
-        PURITY_BASED_GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
-
         crispat_guide_assignments_ch = CRISPAT_GUIDE_ASSIGNMENT.out.guide_assignments
+    } else {
+        // Use placeholder for guide assignments -- see the NO_* placeholder note above. Needs a
+        // name distinct from purity's placeholder below: if both are ever NO_FILE at once (i.e.
+        // both methods disabled), GENERATE_SUPERSAMPLE_QC would otherwise get two same-named
+        // 'NO_FILE' path inputs in the same task, which Nextflow rejects as a file name collision.
+        crispat_guide_assignments_ch = Channel.of(file('NO_CRISPAT_FILE'))
+    }
+
+    if (params.run_purity_guide_assignment) {
+        log.info "Running purity-based guide assignment..."
+        PURITY_BASED_GUIDE_ASSIGNMENT(CONCATENATE.out.concatenated_crispr_adata)
         purity_guide_assignments_ch = PURITY_BASED_GUIDE_ASSIGNMENT.out.guide_assignments
     } else {
-        // Use placeholder for guide assignments -- see the NO_* placeholder note above.
-        crispat_guide_assignments_ch = Channel.of(file('NO_FILE'))
-        purity_guide_assignments_ch = Channel.of(file('NO_FILE'))
+        purity_guide_assignments_ch = Channel.of(file('NO_PURITY_FILE'))
     }
 
     // Generate supersample QC (always runs)
@@ -154,7 +161,7 @@ workflow PIPSEQ_CORE {
         .combine(purity_guide_assignments_ch)
         .map { qc_metrics_list, guide_assignments, purity_guide_assignments ->
             // qc_metrics_list is the collected list of qc files
-            // guide_assignments / purity_guide_assignments are the guide assignment files (or NO_FILE)
+            // guide_assignments / purity_guide_assignments are the guide assignment files (or their NO_*_FILE sentinel)
             tuple(
                 [
                     num_input_cells: params.num_input_cells,
@@ -187,8 +194,8 @@ def writeOutputManifest() {
           <subsample_id>/qc/              Per-subsample QC metrics (qc_metrics.tsv, qc_barcode_metrics.tsv)
           adata/                          Concatenated supersample AnnData (<basename>.h5ad) and CRISPR-
                                            features-only subset (<basename>.crispr.h5ad) -- always produced
-          crispat_ga/                     CRISPAT guide assignment output (only if --run_guide_assignment true)
-          purity_ga/                      Purity-based guide assignment output (only if --run_guide_assignment true)
+          crispat_ga/                     CRISPAT guide assignment output (only if --run_crispat_guide_assignment true)
+          purity_ga/                      Purity-based guide assignment output (only if --run_purity_guide_assignment true)
           supersample_qc/                 Final supersample-level QC report, and (if guide assignment ran)
                                            the guide-assignment distribution plot
           pipeline_info/                  Nextflow execution reports (timeline, report, trace, DAG)
