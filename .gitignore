@@ -56,3 +56,6 @@ old_*
 
 # Ignore generated credentials from google-github-actions/auth
 gha-creds-*.json
+
+# ICA API key for SingleCell/PIPseqPipeline/ica_tools/deliver_to_s3.py
+illumina-api-key.txt
