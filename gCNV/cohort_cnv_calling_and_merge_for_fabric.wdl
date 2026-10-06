@@ -94,12 +94,12 @@ workflow CohortCNVCallingAndMergeForFabric {
 
         Boolean qc_passed_scatter = (ExtractPoNFreqAnnotateFilterAndQC.qc_status == "PASS")
 
-        call cnv_calling_and_merge_for_fabric.ReformatAndMergeForFabric {
-            input:
-                cnv_vcf = ExtractPoNFreqAnnotateFilterAndQC.filtered_vcf,
-                short_variant_vcf = short_variant_vcfs[i],
-                gatk_docker = gatk_docker
-        }
+        # call cnv_calling_and_merge_for_fabric.ReformatAndMergeForFabric {
+        #     input:
+        #         cnv_vcf = ExtractPoNFreqAnnotateFilterAndQC.filtered_vcf,
+        #         short_variant_vcf = short_variant_vcfs[i],
+        #         gatk_docker = gatk_docker
+        # }
 
         call cnv_calling_and_merge_for_fabric.GCNVVisualzation {
             input:
@@ -124,9 +124,9 @@ workflow CohortCNVCallingAndMergeForFabric {
         Array[File] filtered_cnv_genotyped_segments_vcf_index = ExtractPoNFreqAnnotateFilterAndQC.filtered_vcf_index
         Array[File] filtered_cnv_genotyped_segments_vcf_md5sum = ExtractPoNFreqAnnotateFilterAndQC.filtered_vcf_md5sum
 
-        Array[File] merged_vcf = ReformatAndMergeForFabric.merged_vcf
-        Array[File] merged_vcf_index = ReformatAndMergeForFabric.merged_vcf_index
-        Array[File] merged_vcf_md5sum = ReformatAndMergeForFabric.merged_vcf_md5sum
+        # Array[File] merged_vcf = ReformatAndMergeForFabric.merged_vcf
+        # Array[File] merged_vcf_index = ReformatAndMergeForFabric.merged_vcf_index
+        # Array[File] merged_vcf_md5sum = ReformatAndMergeForFabric.merged_vcf_md5sum
 
         Array[Boolean] qc_passed = qc_passed_scatter
         Array[File] cnv_metrics = ExtractPoNFreqAnnotateFilterAndQC.cnv_metrics
