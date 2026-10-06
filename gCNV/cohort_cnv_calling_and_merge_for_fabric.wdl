@@ -101,7 +101,7 @@ workflow CohortCNVCallingAndMergeForFabric {
         #         gatk_docker = gatk_docker
         # }
 
-        call cnv_calling_and_merge_for_fabric.GCNVVisualzation {
+        call cnv_calling_and_merge_for_fabric.GCNVVisualization {
             input:
             filtered_vcf = ExtractPoNFreqAnnotateFilterAndQC.filtered_vcf,
             case_copy_ratios = CNVGermlineCohortWorkflow.denoised_copy_ratios[i],
@@ -130,7 +130,7 @@ workflow CohortCNVCallingAndMergeForFabric {
 
         Array[Boolean] qc_passed = qc_passed_scatter
         Array[File] cnv_metrics = ExtractPoNFreqAnnotateFilterAndQC.cnv_metrics
-        Array[File] cnv_event_report = GCNVVisualzation.cnv_event_report
+        Array[File] cnv_event_report = GCNVVisualization.cnv_event_report
         Array[File] low_gc_dropout_metric = LowGCDropoutQC.low_gc_dropout_tsv
 
     }
