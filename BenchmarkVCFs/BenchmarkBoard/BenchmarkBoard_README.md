@@ -2,6 +2,8 @@
 
 BenchmarkBoard is an interactive visualizer meant to complement the [BenchmarkVCFs](../BenchmarkVCFs.wdl) WDL tool for benchmarking VCFs. It is easy to setup for use with data output from the WDL, and can be used as-is as a comprehensive solution for analyzing benchmarking data produced by the pipeline, or thought of as a template or inspiration for ways to visualize the large amounts of data produced.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/BenchmarkVCFs/BenchmarkVCFs.html) · [open locally](../../docs/viz/BenchmarkVCFs/BenchmarkVCFs.html)
+
 ## Quickstart
 
 To use the BenchmarkBoard, you must satisfy the following requirements:

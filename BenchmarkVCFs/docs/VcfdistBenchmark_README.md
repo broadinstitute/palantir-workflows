@@ -5,6 +5,8 @@
 This guide describes an overview of the [vcfdistBenchmark](vcfdistBenchmark.wdl) WDL used for evaluating VCF performance 
 against a known baseline.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/BenchmarkVCFs/VcfdistBenchmark.html) · [open locally](../../docs/viz/BenchmarkVCFs/VcfdistBenchmark.html)
+
 Some useful resources/information referenced below:  
 * Link to vcfdist git repo: https://github.com/TimD1/vcfdist
 * Link to vcfdist preprint: https://www.biorxiv.org/content/10.1101/2023.03.10.532078v1.full.pdf

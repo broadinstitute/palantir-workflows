@@ -2,6 +2,8 @@
 
 This guide describes how to use the [FindSamplesAndBenchmark](../FindSamplesAndBenchmark.wdl) WDL. The goal of the workflow is to automatically match samples using fingerprints and then run [BenchmarkVCFs](../BenchmarkVCFs.wdl) on the matching pairs. Usage details can be found below.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/BenchmarkVCFs/FindSamplesAndBenchmark.html) · [open locally](../../docs/viz/BenchmarkVCFs/FindSamplesAndBenchmark.html)
+
 ## Acknowledgements
 
 This tool was inspired by the original tool with the same name (first written by Megan Shand), and developed subsequently by various hydro.gen members.
