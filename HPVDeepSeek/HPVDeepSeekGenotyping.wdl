@@ -458,8 +458,10 @@ task FilterBam {
     }
 
     command <<<
+        set -eo pipefail
+
         samtools view -f 2 -q 1 -bh ~{bam} -o temp.bam
-        samtools view -e 'length(seq) < 75 || seq =~ "N.*N.*N.*N.*N" || flag.munmap || sclen >= 50' temp.bam | cut -f1 | sort -u > fail.txt
+        samtools view -e 'length(seq) < 75 || seq =~ "N.*N.*N.*N.*N" || sclen >= 50' temp.bam | cut -f1 | sort -u > fail.txt
         samtools view -b -N ^fail.txt -o ~{output_basename}.filtered.bam temp.bam
     >>>
 
