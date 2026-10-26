@@ -127,8 +127,8 @@ workflow HPVDeepSeek {
     call HPVDeepSeekNormalization.HPVDeepSeekNormalization { # !NameCollision
         input:
             sample_id = output_basename,
-            simplex_bam = HPVDeepSeekGenotyping.simplex_bam,
-            simplex_bam_index = HPVDeepSeekGenotyping.simplex_bam_index,
+            duplex_bam = HPVDeepSeekGenotyping.duplex_bam,
+            duplex_bam_index = HPVDeepSeekGenotyping.duplex_bam_index,
             hpv_status = HPVDeepSeekGenotyping.hpv_status,
             fp_intervals = fp_intervals,
             ul_plasma = ul_plasma,
