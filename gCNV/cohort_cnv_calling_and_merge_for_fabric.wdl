@@ -50,6 +50,8 @@ workflow CohortCNVCallingAndMergeForFabric {
       Int? mem_gb_for_extract_pon_freq
       Int? disk_for_extract_pon_freq
       Float? overlap_thresh
+
+      Array[String]? allosomal_contigs
     }
 
     call cnv_germline_cohort.CNVGermlineCohortWorkflow {
@@ -72,7 +74,8 @@ workflow CohortCNVCallingAndMergeForFabric {
             maximum_number_pass_events_per_sample = maximum_number_pass_events_per_sample,
             mem_gb_for_germline_cnv_caller = mem_gb_for_germline_cnv_caller,
             cpu_for_germline_cnv_caller = cpu_for_germline_cnv_caller,
-            ref_copy_number_autosomal_contigs = ref_copy_number_autosomal_contigs
+            ref_copy_number_autosomal_contigs = ref_copy_number_autosomal_contigs,
+            allosomal_contigs = allosomal_contigs
     }
 
     scatter (i in range(length(CNVGermlineCohortWorkflow.genotyped_segments_vcfs))) {
