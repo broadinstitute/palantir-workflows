@@ -149,7 +149,6 @@ def load_api_key():
         "API key file not found. Save your ICA API key (and nothing else) in one "
         f"of these files:\n{locations}"
     )
-    return key
 
 
 def get_project_name(api, project_id):
