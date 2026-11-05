@@ -20,7 +20,7 @@ Subsamples are identified by `RGSM` in the fastq list. All subsamples are proces
 
 1. **Run DRAGEN scRNA** (`DRAGEN_SCRNA`): runs once per subsample, producing per-subsample metrics, barcode summary, and filtered matrix/barcodes/features files.
 2. **Generate per-subsample QC** (`GENERATE_SUBSAMPLE_QC`): always runs, one invocation per subsample, regardless of whether guide assignment is enabled.
-3. **Concatenate subsamples** (`CONCATENATE`): always runs; merges all subsamples' matrices into one supersample-level AnnData (`.h5ad`) and extracts a CRISPR-features-only AnnData (`.crispr.h5ad`). Handles the single-subsample case automatically.
+3. **Concatenate subsamples** (`CONCATENATE`): always runs; merges all subsamples' matrices into one supersample-level AnnData (`.h5ad`) and extracts a CRISPR-features-only AnnData (`.crispr.h5ad`). Handles the single-subsample case automatically. The merge is done on disk (`anndata.experimental.concat_on_disk`) so peak memory scales with the largest single subsample rather than with the total number of subsamples.
 4. **CRISPR guide assignment** (each method is optional and independently toggleable; `--run_crispat_guide_assignment` defaults to `false`, `--run_purity_guide_assignment` defaults to `true`): two independent methods run on the same concatenated CRISPR features and publish separately —
    - **`CRISPAT_GUIDE_ASSIGNMENT`** (runs only if `--run_crispat_guide_assignment` is `true`): CRISPAT's Poisson-Gaussian mixture model.
    - **`PURITY_BASED_GUIDE_ASSIGNMENT`** (runs only if `--run_purity_guide_assignment` is `true`): a simpler purity/count-threshold heuristic (see [Purity-Based Guide Assignment](#purity-based-guide-assignment) below).
@@ -180,7 +180,7 @@ For `main.nf` (`main_simple.nf` shares everything here except `--fastq_list`, wh
 - `--scrna_cell_hashing_reference`: Cell hashing reference CSV for DRAGEN (only needed if the fastq_list has `hashing` rows)
 - `--additional_dragen_args`: Extra raw arguments appended to the DRAGEN command line
 - `--guide_assignment_num_processes`: Number of processes for CRISPAT guide assignment (default: all available cores)
-- `--concatenate_cpus` / `--concatenate_memory_gb`: Resources for the `CONCATENATE` process (defaults: `16` / `64`)
+- `--concatenate_cpus` / `--concatenate_memory_gb`: Resources for the `CONCATENATE` process (defaults: `16` / `64`). Concatenation runs on disk, so memory only needs to fit one subsample at a time (plus the `.mtx` parsing overhead); the temporary per-subsample `.h5ad` files land in the task work directory and roughly match the uncompressed size of all input matrices combined.
 - `--dragen_scratch_tb`: Scratch disk space (TiB) allocated to the DRAGEN pod (default: `2`)
 - `--dragen_machine_type`: ICA pod preset size for the DRAGEN job (default: `fpga2-medium`)
 - `--cpu_generate_subsample_qc` / `--memory_gb_generate_subsample_qc`: Resources for the `GENERATE_SUBSAMPLE_QC` process (defaults: `8` / `32`)
