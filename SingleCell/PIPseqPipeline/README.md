@@ -202,6 +202,8 @@ Results are organized under `${params.outdir}/${params.supersample_basename}/`:
 - **`adata/`**: concatenated AnnData files (always produced, independent of guide assignment)
   - `<supersample_basename>.h5ad` — full concatenated dataset
   - `<supersample_basename>.crispr.h5ad` — CRISPR-features-only subset
+
+  Both files store `X` as a gzip-compressed **CSR** (compressed sparse row, i.e. cell-major) `float32` matrix of raw counts, cells × features. Cells are indexed as `<barcode>_<subsample_id>` with the subsample recorded in `obs['subsample_id']` (for a single-subsample run the barcodes are left unsuffixed and no `subsample_id` column is added); `var` carries DRAGEN's `gene_ids` and `feature_types` columns. CSR is the layout scanpy's preprocessing functions expect and makes per-cell operations cheap; if you do heavy per-gene work on the full matrix, convert once with `adata.X = adata.X.tocsc()`. (Versions of this pipeline before the on-disk concatenation wrote CSC.)
 - **`crispat_ga/`**: CRISPAT guide assignment outputs (only if `--run_crispat_guide_assignment true`)
   - `poisson_gauss/assignments.csv`
 - **`purity_ga/`**: purity-based guide assignment output (only if `--run_purity_guide_assignment true`)
