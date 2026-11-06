@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Deliver an ICA folder to s3://cell-programs-data/screens/...
+Deliver an ICA folder to s3://cell-programs-data/...
 
 Copies the CONTENTS of one ICA folder (from any project you can access) into a
 folder of the ICA delivery project. Everything in the delivery project is
-replicated automatically to s3://cell-programs-data/screens/.
+replicated automatically to s3://cell-programs-data/.
 
-Example: the contents of samples/sample_id_123/ copied to destination
-"PotC_Screen_1/sample_1/processing_output" end up in
+The destination usually starts with "pilots/" or "screens/". Example: the
+contents of samples/sample_id_123/ copied to destination
+"screens/PotC_Screen_1/sample_1/processing_output" end up in
 s3://cell-programs-data/screens/PotC_Screen_1/sample_1/processing_output/
 
 Requirements
@@ -40,7 +41,7 @@ ICA_BASE_URL = "https://ica.illumina.com/ica/rest"
 # ID of the ICA delivery project (Project > Details > URN, the part after "project:").
 DELIVERY_PROJECT_ID = "159ebcf0-88b6-4dc3-ab99-e2378001ea32"
 # Where the delivery project's root ends up in S3 (shown to the user only).
-FINAL_S3_PREFIX = "s3://cell-programs-data/screens/"
+FINAL_S3_PREFIX = "s3://cell-programs-data/"
 # Checked in order; the first one that exists is used.
 API_KEY_FILES = [
     Path(__file__).resolve().parent / "illumina-api-key.txt",
@@ -215,7 +216,7 @@ def find_folder_by_path(api, project_id, path):
 
 
 def parse_destination(text):
-    """Turn user input into a list of folder names, e.g. ['PotC_Screen_1', 'sample_1', 'processing_output']."""
+    """Turn user input into a list of folder names, e.g. ['screens', 'PotC_Screen_1', 'sample_1', 'processing_output']."""
     t = text.strip().strip("\"'").replace("\\", "/")
     for prefix in (FINAL_S3_PREFIX, FINAL_S3_PREFIX[len("s3://"):]):
         if t.lower().startswith(prefix.lower()):
@@ -223,11 +224,8 @@ def parse_destination(text):
             break
     segments = [s for s in t.split("/") if s]
     if not segments:
-        raise DeliveryError("Please enter a destination folder, e.g. PotC_Screen_1/sample_1/processing_output")
-    if segments[0].lower() == "screens":
         raise DeliveryError(
-            "Leave out 'screens/' at the start; it is added automatically. "
-            "Example: PotC_Screen_1/sample_1/processing_output"
+            "Please enter a destination folder, e.g. screens/PotC_Screen_1/sample_1/processing_output"
         )
     for seg in segments:
         if seg in (".", "..") or not SEGMENT_RE.match(seg):
@@ -342,7 +340,10 @@ def main():
 
     # 2. Destination
     while True:
-        dest_input = ask("\nDestination folder under screens/ (e.g. PotC_Screen_1/sample_1/processing_output): ")
+        dest_input = ask(
+            f"\nDestination folder under {FINAL_S3_PREFIX}, usually starting with "
+            "pilots/ or screens/\n(e.g. screens/PotC_Screen_1/sample_1/processing_output): "
+        )
         try:
             segments = parse_destination(dest_input)
             break

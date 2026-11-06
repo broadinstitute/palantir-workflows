@@ -2,7 +2,7 @@
 
 `deliver_to_s3.py` is a small helper script that copies a folder's worth of
 files from Illumina Connected Analytics (ICA) into
-`s3://cell-programs-data/screens/...`, where the data is kept long-term. You
+`s3://cell-programs-data/...`, where the data is kept long-term. You
 run it from a terminal, answer a few questions, and it does the rest. You do
 not need to know anything about AWS or S3 to use it — just ICA.
 
@@ -96,10 +96,11 @@ subfolders inside it), not the folder itself.
 
 ### 2.2 Where it should go
 
-Next, it asks for a destination path under `screens/`, for example:
+Next, it asks for a destination path in the bucket. This usually starts with
+either `pilots/` or `screens/`, for example:
 
 ```
-PotC_Screen_1/sample_1/processing_output
+screens/PotC_Screen_1/sample_1/processing_output
 ```
 
 This becomes the folder structure your files will have in S3, i.e. they'll
