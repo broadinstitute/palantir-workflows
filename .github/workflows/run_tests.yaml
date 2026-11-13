@@ -96,7 +96,10 @@ jobs:
           path: cromwell_logs/
 
   python_lint:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to Ubuntu 26.04, for which actions/setup-python
+    # has no Python 3.9 build. ScoreBGE's pinned deps (pandas 1.3.4, numpy 1.21.4)
+    # don't support newer Pythons, so stay on 24.04 until those are upgraded.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -112,7 +115,10 @@ jobs:
           ruff check --output-format=github .
 
   python_test:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to Ubuntu 26.04, for which actions/setup-python
+    # has no Python 3.9 build. ScoreBGE's pinned deps (pandas 1.3.4, numpy 1.21.4)
+    # don't support newer Pythons, so stay on 24.04 until those are upgraded.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
