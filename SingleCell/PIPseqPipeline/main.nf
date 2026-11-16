@@ -57,10 +57,10 @@ def helpMessage() {
       --max_valid_guides         Maximum number of valid guides for guide assignment QC (integer)
       --ref_tar                  DRAGEN reference genome tar file
       --annotation_file          Gene annotation file for DRAGEN
-      --dragen_container         Container image for DRAGEN execution
       --qc_container             Container image for QC processing
 
     Optional DRAGEN arguments:
+      --dragen_container                 Container image for DRAGEN execution (default: official DRAGEN 4.6.2 image)
       --use_direct_capture_mode          Whether to use direct capture mode in DRAGEN (default: ${params.use_direct_capture_mode})
       --scrna_feature_barcode_reference  Feature barcode reference file for DRAGEN (required if fastq_list has RGTY=feature rows)
       --scrna_barcode_sequence_list      Barcode sequence list file for DRAGEN (optional)

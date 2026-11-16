@@ -66,7 +66,7 @@ SingleCell/PIPseqPipeline/
 ### Prerequisites
 
 - Nextflow (>= 25.10.0 — required by the pinned `nf-schema` validation plugin; requires network access to the Nextflow plugin registry on first run)
-- A DRAGEN container image (`--dragen_container`) — provided by Illumina, not built from this repo
+- A DRAGEN container image (`--dragen_container`) — provided by Illumina, not built from this repo; defaults to the official DRAGEN 4.6.2 release image on ICA
 - A QC container image (`--qc_container`) — built from `docker/qc/Dockerfile`, see `docker/SETUP.md`
 - An executor/environment that can run the `container` directive (e.g. Nextflow's k8s executor on ICA, or Docker/Singularity enabled locally via your own config)
 
@@ -168,10 +168,10 @@ For `main.nf` (`main_simple.nf` shares everything here except `--fastq_list`, wh
 - `--min_valid_guides` / `--max_valid_guides`: Guide-count thresholds used for guide assignment QC (integers; `0` is a valid value for `--min_valid_guides`)
 - `--ref_tar`: DRAGEN reference genome tar file
 - `--annotation_file`: Gene annotation file (GTF/GFF) for DRAGEN
-- `--dragen_container`: Container image for DRAGEN execution
 - `--qc_container`: Container image for QC processing
 
 **Optional:**
+- `--dragen_container`: Container image for DRAGEN execution (default: the official DRAGEN 4.6.2 release, `079623148045.dkr.ecr.us-east-1.amazonaws.com/cp-prod/eed63783-a801-4697-9863-7ee44799be67:latest`)
 - `--run_crispat_guide_assignment`: Whether to run CRISPAT guide assignment (default: `false`)
 - `--run_purity_guide_assignment`: Whether to run purity-based guide assignment (default: `true`)
 - `--use_direct_capture_mode`: Whether to use DRAGEN direct-capture mode for feature barcodes (default: `true`)

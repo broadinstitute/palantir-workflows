@@ -3,9 +3,21 @@
 // previously each block duplicated this logic independently.
 def buildDragenOptionalArgs(meta, scrna_feature_barcode_reference, scrna_barcode_sequence_list, scrna_cell_hashing_reference) {
     def has_hashing_ref = scrna_cell_hashing_reference.name != 'NO_CELL_HASHING_REF'
+    // DRAGEN pairs each reference option with its own groups option:
+    //   --scrna-feature-barcode-reference        <-> --scrna-feature-barcode-groups
+    //   --scrna-direct-capture-barcode-reference <-> --scrna-direct-capture-barcode-groups
+    // DRAGEN 4.6.0 accepted a feature reference with direct-capture groups, but 4.6.2 rejects it
+    // ("Feature barcode groups must be provided using --scrna-feature-barcode-groups when feature
+    // barcode reference is provided"). Pick the reference option the same way as the groups option.
+    // For the same reason, only pass the reference at all when this subsample has feature groups:
+    // a reference with no groups option (e.g. a feature reference given for a run with no
+    // RGTY=feature rows) is the exact combination 4.6.2 rejects.
+    def use_direct_capture = meta.feature_barcode_groups && meta.use_direct_capture_mode
+    def feature_ref_option = use_direct_capture ? "--scrna-direct-capture-barcode-reference" : "--scrna-feature-barcode-reference"
+    def pass_feature_ref = meta.feature_barcode_groups && scrna_feature_barcode_reference.name != 'NO_FEATURE_BARCODE_REF'
     [
         scrna_barcode_sequence_list_arg: scrna_barcode_sequence_list.name != 'NO_BARCODE_SEQ_LIST' ? "--scrna-barcode-sequence-list ${scrna_barcode_sequence_list}" : "",
-        scrna_feature_barcode_reference_arg: scrna_feature_barcode_reference.name != 'NO_FEATURE_BARCODE_REF' ? "--scrna-feature-barcode-reference ${scrna_feature_barcode_reference}" : "",
+        scrna_feature_barcode_reference_arg: pass_feature_ref ? "${feature_ref_option} ${scrna_feature_barcode_reference}" : "",
         scrna_cell_hashing_reference_arg: has_hashing_ref ? "--scrna-cell-hashing-reference ${scrna_cell_hashing_reference}" : "",
         scrna_hto_barcode_groups_arg: has_hashing_ref ? "--scrna-hto-barcode-groups ${meta.hto_barcode_groups}" : "",
         scrna_direct_capture_mode_arg: meta.feature_barcode_groups ? "--scrna-enable-direct-capture-mode ${meta.use_direct_capture_mode}" : "",
@@ -131,6 +143,7 @@ process DRAGEN_SCRNA {
     echo "  Barcode sequence list: ${scrna_barcode_sequence_list.name != 'NO_BARCODE_SEQ_LIST' ? scrna_barcode_sequence_list : 'Not provided'}"
     echo "  Cell hashing reference: ${scrna_cell_hashing_reference.name != 'NO_CELL_HASHING_REF' ? scrna_cell_hashing_reference : 'Not provided'}"
     echo "  Cell hashing barcode groups: ${meta.hto_barcode_groups}"
+    echo "  scrna_feature_barcode_reference_arg: ${dragenArgs.scrna_feature_barcode_reference_arg}"
     echo "  scrna_barcode_sequence_list_arg: ${dragenArgs.scrna_barcode_sequence_list_arg}"
     echo "  scrna_cell_hashing_reference_arg: ${dragenArgs.scrna_cell_hashing_reference_arg}"
     echo "  scrna_hto_barcode_groups_arg: ${dragenArgs.scrna_hto_barcode_groups_arg}"

@@ -146,7 +146,7 @@
       "id": "dragen_container",
       "minValues": 1,
       "maxValues": 1,
-      "value": "079623148045.dkr.ecr.us-east-1.amazonaws.com/cp-prod/854d2763-de5c-4306-88f7-a32085b763c5:latest"
+      "value": "079623148045.dkr.ecr.us-east-1.amazonaws.com/cp-prod/eed63783-a801-4697-9863-7ee44799be67:latest"
     },
     {
       "type": "textbox",

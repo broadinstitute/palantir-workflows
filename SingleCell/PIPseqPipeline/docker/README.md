@@ -8,7 +8,7 @@ This pipeline uses **two** container images:
 - **`qc_container`** (built from `docker/qc/Dockerfile` in this directory): used by `GENERATE_SUBSAMPLE_QC`, `CONCATENATE`, `CRISPAT_GUIDE_ASSIGNMENT`, `PURITY_BASED_GUIDE_ASSIGNMENT`, and `GENERATE_SUPERSAMPLE_QC`. Bundles pandas/scanpy/anndata/matplotlib plus CRISPAT (installed via git clone + pip, not conda) for CRISPAT-based guide assignment; the purity-based method only needs scanpy/numpy/pandas.
 - **`dragen_container`**: used by `DRAGEN_SCRNA`. This is an Illumina-provided DRAGEN image, not built from anything in this repository.
 
-Both are **required** pipeline parameters with no default — you must pass `--qc_container` and `--dragen_container` explicitly.
+`--qc_container` is a **required** parameter with no default. `--dragen_container` defaults to the official DRAGEN 4.6.2 release image (set in `nextflow.config`); pass it only to use a different DRAGEN build.
 
 ## Directory Structure
 

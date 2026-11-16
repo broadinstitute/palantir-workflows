@@ -96,4 +96,4 @@ This single image is used by all non-DRAGEN pipeline processes:
 
 **Build failures**: Check that the Dockerfile path is correct and all dependencies are available
 
-**Container fails to start / wrong container used**: Double check the `--qc_container`/`--dragen_container` values passed on the command line (or set in your config file) — the pipeline has no default container image for either.
+**Container fails to start / wrong container used**: Double check the `--qc_container`/`--dragen_container` values passed on the command line (or set in your config file) — `--qc_container` has no default, and `--dragen_container` defaults to the DRAGEN 4.6.2 image set in `nextflow.config`.

@@ -234,7 +234,8 @@
                 "dragen_container": {
                     "type": "string",
                     "description": "Container image for DRAGEN execution",
-                    "help_text": "Image used by the DRAGEN_SCRNA process.",
+                    "default": "079623148045.dkr.ecr.us-east-1.amazonaws.com/cp-prod/eed63783-a801-4697-9863-7ee44799be67:latest",
+                    "help_text": "Image used by the DRAGEN_SCRNA process. Defaults to the official DRAGEN 4.6.2 release image.",
                     "fa_icon": "fas fa-dna"
                 },
                 "qc_container": {
