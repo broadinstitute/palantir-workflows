@@ -77,7 +77,7 @@ def get_sc_metrics(sc_metrics_path, sample_id, supersample_id, num_input_cells):
     if metrics.index[0] != sample_id:
         raise ValueError(f"Sample ID in scRNA metrics file ({metrics.index[0]}) does not match expected sample ID ({sample_id})")
 
-    metrics['Total Gene Input Reads'] = metrics['Total barcoded reads'] + metrics['Reads with non-matching barcodes'] + metrics['Reads missing barcodes']
+    metrics['Total Gene Input Reads'] = metrics['Total barcoded reads'] + metrics['Reads with non-matching barcodes'] + metrics['Reads missing cellular or molecular barcodes']
     metrics['Fraction Reads with Valid Barcodes'] = metrics['Total barcoded reads'] / metrics['Total Gene Input Reads']
     metrics['Fraction Reads with valid IMI'] = (metrics['Reads with valid molecular identifier sequences'] + metrics['Reads with corrected molecular identifier sequences']) / metrics['Total barcoded reads']
     metrics['Fraction Mapped Reads'] = (metrics['Unique exon matching reads'] + metrics['Unique intron matching reads'] + metrics['Mitochondrial reads']) / metrics['Total barcoded reads']

@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
 Imports the current git commit of this pipeline into an ICA project as a git-backed Nextflow
-pipeline, then uploads the matching hand-maintained input form.
+pipeline, uploads the matching hand-maintained input form, then releases the pipeline.
+
+Releasing matters for more than bookkeeping: ICA routes analyses of 'Draft' pipelines to a
+separate scheduler with far fewer compute instances, so runs of a Draft pipeline can sit waiting
+for an FPGA instance (for DRAGEN) for hours.
 
 Interactively prompts for which entrypoint (main.nf or main_simple.nf) and which ICA project.
 Also importable as a module (see export_pipeline() below) -- run_tests.py uses this to export a
@@ -122,6 +126,13 @@ def wait_for_draft(api_key, project_id, pipeline_id):
     raise RuntimeError(f'pipeline did not reach Draft status within {MAX_POLL_ATTEMPTS * POLL_INTERVAL_S}s (last status: {status}); not uploading input form.')
 
 
+def input_form_path_for(entrypoint_key):
+    input_form_path = os.path.join(script_dir, 'inputforms', ENTRYPOINTS[entrypoint_key]['input_form_dir'], 'inputForm.json')
+    if not os.path.isfile(input_form_path):
+        raise RuntimeError(f'input form file not found at {input_form_path}')
+    return input_form_path
+
+
 def upload_input_form(api_key, project_id, pipeline_id, input_form_path):
     print('')
     print(f'Uploading input form from {input_form_path}...')
@@ -142,17 +153,32 @@ def upload_input_form(api_key, project_id, pipeline_id, input_form_path):
     print(f'Input form uploaded successfully (HTTP {response.status_code}).')
 
 
+def release_pipeline(api_key, project_id, pipeline_id):
+    print('')
+    print(f'Releasing pipeline {pipeline_id}...')
+    # Like inputForm/inputFormFile, the :release endpoint is only documented for the v3 API version.
+    headers = {
+        'X-API-Key': api_key,
+        'Accept': 'application/vnd.illumina.v3+json',
+    }
+    response = requests.post(f'{API_URL}/projects/{project_id}/pipelines/{pipeline_id}:release', headers=headers, timeout=30)
+    if not response.ok:
+        raise RuntimeError(f'pipeline release failed (HTTP {response.status_code}): {response.text}')
+    print(f'Pipeline released successfully (HTTP {response.status_code}).')
+
+
 def export_pipeline(api_key, project_id, entrypoint_key, commit_id, commit_id_short, commit_message):
     """Imports entrypoint_key's given git commit into project_id, waits for it to reach Draft,
-    then uploads its input form. Returns the new pipeline_id."""
+    uploads its input form, then releases it (analyses of Draft pipelines get routed to a
+    scheduler with far fewer compute instances). Returns the new pipeline_id."""
     entrypoint = ENTRYPOINTS[entrypoint_key]
-    input_form_path = os.path.join(script_dir, 'inputforms', entrypoint['input_form_dir'], 'inputForm.json')
-    if not os.path.isfile(input_form_path):
-        raise RuntimeError(f'input form file not found at {input_form_path}')
+    input_form_path = input_form_path_for(entrypoint_key)
 
     pipeline_id = import_git_pipeline(api_key, project_id, entrypoint, commit_id, commit_id_short, commit_message)
     wait_for_draft(api_key, project_id, pipeline_id)
     upload_input_form(api_key, project_id, pipeline_id, input_form_path)
+    # Must come last: a released pipeline can no longer be edited, input form included.
+    release_pipeline(api_key, project_id, pipeline_id)
     print('Done.')
     return pipeline_id
 

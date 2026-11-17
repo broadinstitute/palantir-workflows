@@ -6,7 +6,9 @@ imported there.
 
 Looks up already-imported pipelines by the exact code export_pipeline_to_ica.py would have
 given the current commit (e.g. "PIPseq_BCL_abc1234") and reuses one if found; otherwise imports
-one via export_pipeline_to_ica.export_pipeline(). Since ICA's git-backed pipeline import fetches
+one via export_pipeline_to_ica.export_pipeline() (which also releases it). A reused pipeline still
+in 'Draft' status gets its input form re-uploaded and is then released before the run, since ICA
+routes analyses of Draft pipelines to a much smaller scheduler. Since ICA's git-backed pipeline import fetches
 code from GitHub at a specific commit id -- never from the local working tree -- this warns and
 asks for confirmation before exporting if there are uncommitted local changes, since those
 changes will *not* be part of whatever gets tested.
@@ -25,7 +27,7 @@ import subprocess
 import sys
 
 from ica_common import PROJECT_NAMES_AND_IDS, load_api_key
-from export_pipeline_to_ica import ENTRYPOINTS, export_pipeline, get_current_git_commit_info, pipeline_code_for
+from export_pipeline_to_ica import ENTRYPOINTS, export_pipeline, get_current_git_commit_info, input_form_path_for, pipeline_code_for, release_pipeline, upload_input_form
 from start_analysis import build_input_form_fields, list_pipseq_pipelines, load_input_form_field_types, start_analysis
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -47,7 +49,8 @@ def confirm(prompt):
 
 def find_existing_pipeline(api_key, project_id, expected_code):
     for pipeline in list_pipseq_pipelines(api_key, project_id):
-        if pipeline['code'] == expected_code:
+        # ICA stores the code with the pipeline version appended ("PIPseq_BCL_abc1234 abc1234").
+        if pipeline['code'].split(' ')[0] == expected_code:
             return pipeline
     return None
 
@@ -67,7 +70,22 @@ def main():
 
     if pipeline is not None:
         pipeline_id = pipeline['id']
-        print(f'Found existing pipeline {pipeline["code"]} ({pipeline_id}).')
+        status = pipeline.get('statusAsString')
+        print(f'Found existing pipeline {pipeline["code"]} ({pipeline_id}), status: {status}.')
+        # A Draft pipeline (exported before export_pipeline() started releasing, or left behind by
+        # an interrupted export) would get its analyses routed to ICA's much smaller Draft
+        # scheduler. Re-upload the input form first (the interrupted export may have died before
+        # that step, and a released pipeline can no longer be edited), then release it.
+        if status == 'Draft':
+            if args.dry_run:
+                print(f'Dry run -- would re-upload the input form and release pipeline {pipeline["code"]} ({pipeline_id}).')
+            else:
+                try:
+                    upload_input_form(api_key, project_id, pipeline_id, input_form_path_for(ENTRYPOINT_KEY))
+                    release_pipeline(api_key, project_id, pipeline_id)
+                except RuntimeError as e:
+                    print(f'ERROR: {e}')
+                    sys.exit(1)
         if args.dry_run:
             print(f'Dry run -- would run pipeline {pipeline["code"]} ({pipeline_id}) with inputs from {TEST_INPUT_FILE}.')
             return
