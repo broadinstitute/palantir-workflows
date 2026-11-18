@@ -571,7 +571,7 @@ task ConsensusBamToFastq {
 
         Int cpu = 2
         Int memory_gb = 16
-        Int disk_size_gb = ceil((2.5 * size(umi_consensus_unmapped_bam, "GiB")) + 50)
+        Int disk_size_gb = ceil((5 * size(umi_consensus_unmapped_bam, "GiB")) + 50)
     }
 
     command <<<
