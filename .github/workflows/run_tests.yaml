@@ -44,7 +44,7 @@ jobs:
         uses: 'google-github-actions/auth@v2'
         with:
           # broad-gp-hydrogen
-          workload_identity_provider: 'projects/HYDROGEN_PROJECT_NUMBER/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          workload_identity_provider: 'projects/1086248170808/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
           service_account: palantir-workflows-ci@broad-gp-hydrogen.iam.gserviceaccount.com
       - uses: ./.github/actions/install-cromwell
         with:
