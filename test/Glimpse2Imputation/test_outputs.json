@@ -1,10 +1,10 @@
 {
-    "Glimpse2Imputation.coverage_metrics":"gs://palantir-workflows-test-data/Glimpse2Imputation/test.coverage_metrics.txt",
-    "Glimpse2Imputation.qc_metrics":"gs://palantir-workflows-test-data/Glimpse2Imputation/test.qc_metrics.20241004.tsv",
+    "Glimpse2Imputation.coverage_metrics":"gs://broad-gp-hydrogen-palantir-workflows-test-data/Glimpse2Imputation/test.coverage_metrics.txt",
+    "Glimpse2Imputation.qc_metrics":"gs://broad-gp-hydrogen-palantir-workflows-test-data/Glimpse2Imputation/test.qc_metrics.20241004.tsv",
     "Glimpse2Imputation.imputed_vcf_index":null,
     "Glimpse2Imputation.imputed_vcf_md5sum":null,
     "Glimpse2Imputation.imputed_vcf":{
-        "file": "gs://palantir-workflows-test-data/Glimpse2Imputation/test.imputed.vcf.gz",
+        "file": "gs://broad-gp-hydrogen-palantir-workflows-test-data/Glimpse2Imputation/test.imputed.vcf.gz",
         "line_skip_regex": "^##fileDate="
     }
 }

@@ -1,8 +1,8 @@
 {
-    "BenchmarkVCFs.IndelDistributionStats": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/outputs/IndelDistributionStats.tsv",
-    "BenchmarkVCFs.ROCStats": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/outputs/ROCStats.tsv",
-    "BenchmarkVCFs.SNPSubstitutionStats": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/outputs/SNPSubstitutionStats.tsv",
-    "BenchmarkVCFs.SimpleSummary": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/outputs/SimpleSummary.tsv",
+    "BenchmarkVCFs.IndelDistributionStats": "gs://broad-gp-hydrogen-palantir-workflows-test-data/BenchmarkVCFs/base/outputs/IndelDistributionStats.tsv",
+    "BenchmarkVCFs.ROCStats": "gs://broad-gp-hydrogen-palantir-workflows-test-data/BenchmarkVCFs/base/outputs/ROCStats.tsv",
+    "BenchmarkVCFs.SNPSubstitutionStats": "gs://broad-gp-hydrogen-palantir-workflows-test-data/BenchmarkVCFs/base/outputs/SNPSubstitutionStats.tsv",
+    "BenchmarkVCFs.SimpleSummary": "gs://broad-gp-hydrogen-palantir-workflows-test-data/BenchmarkVCFs/base/outputs/SimpleSummary.tsv",
     "BenchmarkVCFs.igv_session": null,
     "BenchmarkVCFs.vcfeval_combined_output": null
 }
