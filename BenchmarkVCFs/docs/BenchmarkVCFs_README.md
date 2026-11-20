@@ -2,6 +2,8 @@
 
 This guide describes an overview of the [BenchmarkVCFs](../BenchmarkVCFs.wdl) WDL used for evaluating VCF performance against a known baseline. This includes how to toggle inputs for different goals and a description of the code structure.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/BenchmarkVCFs/BenchmarkVCFs.html) · [open locally](../../docs/viz/BenchmarkVCFs/BenchmarkVCFs.html)
+
 Some useful resources referenced below:
 * `bcftools` [Filtering Expressions](https://samtools.github.io/bcftools/bcftools.html#expressions)
 * [RTG manual](https://cdn.jsdelivr.net/gh/RealTimeGenomics/rtg-core@master/installer/resources/core/RTGOperationsManual.pdf),

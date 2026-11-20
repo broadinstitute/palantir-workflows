@@ -1,0 +1,50 @@
+name: Update Pipeline Diagrams
+
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - '**.wdl'
+
+concurrency:
+  group: update-pipeline-diagrams-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  update_diagrams:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install pipeviz
+        run: pip install git+https://github.com/broadinstitute/pipeline_viz_explorer.git
+
+      - name: Regenerate pipeline diagrams
+        run: |
+          shopt -s globstar nullglob
+          for html in docs/viz/**/*.html; do
+            wdl="${html#docs/viz/}"
+            wdl="${wdl%.html}.wdl"
+            if [ -f "$wdl" ]; then
+              pipeviz render "$wdl" -o "$html"
+            else
+              echo "::warning file=$html::source WDL '$wdl' no longer exists; this diagram is orphaned and should be removed (along with its README link) by hand"
+            fi
+          done
+
+      - name: Commit updated diagrams
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Auto-update pipeline diagrams'
+          file_pattern: 'docs/viz/**/*.html'
+          commit_user_name: github-actions[bot]
+          commit_user_email: github-actions[bot]@users.noreply.github.com

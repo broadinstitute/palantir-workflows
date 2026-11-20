@@ -2,6 +2,8 @@
 
 The purpose of this workflow is to create a table to facilitate a comparison of precision and sensitivity between different configurations (e.g. pipeline versions, chemistry changes) of samples vs. truth that have been obtained with the `BenchmarkVCFs` workflow.
 
+**Interactive diagram:** [view on GitHub](https://raw.githack.com/broadinstitute/palantir-workflows/main/docs/viz/BenchmarkVCFs/BenchmarkAndCompareVCFs.html) · [open locally](../../docs/viz/BenchmarkVCFs/BenchmarkAndCompareVCFs.html)
+
 After the `CompareBenchmarks` workflow is run, you can export the generated CSV table into a Google Sheets spreadsheet with automatic formatting using the `ExportToGoogleSheets` Colab notebook described below.
 
 ## Workflow
