@@ -43,8 +43,9 @@ jobs:
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v2'
         with:
-          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
-          service_account: palantir-workflows-service-acc@broad-dsde-methods.iam.gserviceaccount.com
+          # broad-gp-hydrogen
+          workload_identity_provider: 'projects/1086248170808/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: palantir-workflows-ci@broad-gp-hydrogen.iam.gserviceaccount.com
       - uses: ./.github/actions/install-cromwell
         with:
           CROMWELL_VERSION: ${{ env.CROMWELL_VERSION }}

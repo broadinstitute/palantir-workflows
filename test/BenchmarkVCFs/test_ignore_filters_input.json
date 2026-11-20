@@ -1,13 +1,13 @@
 {
     "BenchmarkVCFs.passing_only": false,
-    "BenchmarkVCFs.query_vcf": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.eval.vcf.gz",
-    "BenchmarkVCFs.query_vcf_index": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.eval.vcf.gz.tbi",
-    "BenchmarkVCFs.ref_index": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.fasta.fai",
-    "BenchmarkVCFs.base_vcf": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.truth.vcf.gz",
-    "BenchmarkVCFs.base_vcf_index": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.truth.vcf.gz.tbi",
+    "BenchmarkVCFs.query_vcf": "gs://broad-gp-hydrogen-palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.eval.vcf.gz",
+    "BenchmarkVCFs.query_vcf_index": "gs://broad-gp-hydrogen-palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.eval.vcf.gz.tbi",
+    "BenchmarkVCFs.ref_index": "gs://broad-gp-hydrogen-palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.fasta.fai",
+    "BenchmarkVCFs.base_vcf": "gs://broad-gp-hydrogen-palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.truth.vcf.gz",
+    "BenchmarkVCFs.base_vcf_index": "gs://broad-gp-hydrogen-palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.truth.vcf.gz.tbi",
     "BenchmarkVCFs.base_output_sample_name": "the_base",
     "BenchmarkVCFs.query_output_sample_name": "the_query",
     "BenchmarkVCFs.check_fingerprint": false,
-    "BenchmarkVCFs.ref_fasta": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.fasta",
-    "BenchmarkVCFs.evaluation_intervals": "gs://palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.confidence.interval_list"
+    "BenchmarkVCFs.ref_fasta": "gs://broad-gp-hydrogen-palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.fasta",
+    "BenchmarkVCFs.evaluation_intervals": "gs://broad-gp-hydrogen-palantir-workflows-test-data/BenchmarkVCFs/base/inputs/test.confidence.interval_list"
 }
