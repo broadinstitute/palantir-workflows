@@ -1,0 +1,76 @@
+name: Claude Code Review
+
+# Automated PR review using the Claude GitHub App + anthropics/claude-code-action.
+#
+# Requirements:
+#   - The Claude GitHub App installed on this repo (https://github.com/apps/claude)
+#   - Repo secret ANTHROPIC_API_KEY (or swap to claude_code_oauth_token below)
+#
+# A review can also be re-run manually from the Actions tab via workflow_dispatch.
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  claude-review:
+    # Skip drafts, and skip PRs from forks (they don't have access to repo secrets).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.draft == false &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write  # used by the action to obtain a Claude GitHub App token via OIDC
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+
+            Review this pull request. This repository contains genomics pipelines:
+            WDL workflows (run with Cromwell/miniwdl), Python packages and scripts,
+            R scripts, and Dockerfiles used by the WDL tasks.
+
+            Focus on correctness bugs first, then:
+            - WDL: task inputs/outputs wiring, runtime attributes (docker image tags,
+              memory/disk/cpu sizing), command-block bash errors (unset vars, missing
+              `set -euo pipefail`, quoting), optional input handling, scatter/gather logic,
+              and consistency between WDL changes and any associated test JSON/docs.
+            - Python/R: logic errors, edge cases (empty inputs, missing contigs/samples),
+              and file/genomic-coordinate handling (0- vs 1-based, chr prefixes, sex
+              chromosomes/PAR regions).
+            - Dockerfiles: unpinned versions, broken builds, image bloat.
+            - Security: secrets or credentials committed, unsafe shell interpolation.
+            - Tests: whether changes are covered by tests where tests exist.
+
+            Be concise and high-signal. Do not comment on style nits that a linter
+            (ruff, miniwdl check) would catch. If the PR looks good, say so briefly.
+
+            Use `gh pr diff` and `gh pr view` to inspect the change.
+            Use mcp__github_inline_comment__create_inline_comment for issues tied to
+            specific lines, and `gh pr comment` for a single top-level summary.
+          claude_args: |
+            --model claude-opus-5-5
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
